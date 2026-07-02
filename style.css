@@ -1,5 +1,5 @@
 body {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #0c0c0e;
     color: #e0e0e0;
     display: flex;
@@ -10,6 +10,7 @@ body {
     padding: 10px;
     box-sizing: border-box;
 }
+
 .game-container {
     width: 100%;
     max-width: 540px;
@@ -19,70 +20,80 @@ body {
     box-shadow: 0 15px 40px rgba(0,0,0,0.8); 
     border: 2px solid #2d2d35;
     box-sizing: border-box;
+    transition: all 0.3s ease;
 }
-h2 { text-align: center; color: #ffd700; margin-top: 0; letter-spacing: 3px; }
-.location-bar { text-align: center; background: #0f0f12; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-weight: bold; border: 1px solid #25252b; font-size: 14px; }
 
-/* 封面特殊樣式 */
-.title-panel-style {
-    background: linear-gradient(135deg, #16161a 0%, #243342 100%);
-    border: 2px solid #ffd700;
-    text-align: center;
-    padding: 30px 20px;
-    border-radius: 12px;
+/* 電腦大螢幕雙通道自適應排版 */
+@media (min-width: 900px) {
+    body { align-items: center; padding: 20px 10px; }
+    .game-container { max-width: 540px; }
 }
-.notice-container {
-    background: rgba(0, 0, 0, 0.5); border: 1px solid #3d3d4a; border-radius: 8px;
-    padding: 12px; margin-bottom: 15px; font-size: 11px; text-align: left; color: #ccc; line-height: 1.6;
-}
-.name-input {
-    width: 80%; padding: 12px; font-size: 15px; background: #0b0b0d; color: #fff;
-    border: 1px solid #3d3d4a; border-radius: 8px; text-align: center; margin-bottom: 15px; outline: none;
-}
-.name-input:focus { border: 1px solid #ffd700; }
 
-/* 遊戲內屬性面板 */
-.status-panel { background: #0b0b0d; padding: 14px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #22222a; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.status-item { font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-.full-row { grid-column: span 2; display: block !important; border-top: 1px solid #1c1c24; padding-top: 8px; }
-.flex-space { display: flex; justify-content: space-between; }
+.game-main-title { font-size: 28px; color: #ffd700; text-align: center; margin: 0 0 5px 0; text-shadow: 0 0 10px rgba(255,215,0,0.3); letter-spacing: 2px; }
+.game-sub-title { font-size: 12px; color: #aaa; text-align: center; margin: 0 0 15px 0; letter-spacing: 1px; }
+.location-bar { text-align: center; background: #0f0f12; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; border: 1px solid #25252b; font-size: 14px; letter-spacing: 1px; }
 
-/* 進度條外殼 */
+/* 卡牌組件樣式 */
+.dynamic-panel { padding: 15px; border-radius: 12px; margin-bottom: 15px; box-sizing: border-box; width: 100%; border: 1px solid #2d2d35; }
+.title-panel-style { background: linear-gradient(135deg, #16161a 0%, #243342 100%); border: 2px solid #ffd700; }
+.job-select-style { background: #151d24; border-color: #00cea6; }
+.cooking-style { background: #1a1625; border-color: #9b59b6; }
+.reward-style { background: linear-gradient(135deg, #1c2833 0%, #121212 100%); border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); }
+.panel-title { font-weight: bold; text-align: center; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px; color: #fff; }
+
+.notice-container { background: rgba(0, 0, 0, 0.5); border: 1px solid #3d3d4a; border-radius: 8px; padding: 12px; font-size: 11px; text-align: left; color: #ccc; line-height: 1.6; max-height: 120px; overflow-y: auto; }
+.name-input { width: 100%; padding: 12px; font-size: 15px; background: #0b0b0d; color: #fff; border: 1px solid #3d3d4a; border-radius: 8px; text-align: center; margin-bottom: 15px; outline: none; box-sizing: border-box; }
+.name-input:focus { border-color: #ffd700; }
+
+/* 網格與彈性排版 */
+.grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.flex-layout { display: flex; flex-direction: column; gap: 10px; }
+.flex-space { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+
+/* 數據狀態欄 */
+.status-panel { background: #0b0b0d; padding: 14px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #22222a; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 15px; }
+.status-item { font-size: 13px; white-space: nowrap; }
+.full-row { grid-column: span 2; }
+
+/* 進度條組件 */
 .visual-bar-bg { width: 100%; height: 8px; background: #25252b; border-radius: 4px; overflow: hidden; margin-top: 5px; border: 1px solid #050507; position: relative; }
-.visual-bar-fill { height: 100%; width: 100%; transition: width 0.3s ease; }
+.visual-bar-fill { height: 100%; width: 100%; transition: width 0.2s ease; }
 .hp-color { background: linear-gradient(90deg, #ff4757, #ff6b81); }
 .mp-color { background: linear-gradient(90deg, #1e90ff, #54a0ff); }
-.gold { color: #ffa500; font-weight: bold; }
 
-/* 日誌台 */
-.log-panel { height: 280px; overflow-y: auto; background: #070709; padding: 12px; border-radius: 10px; border: 1px solid #1f1f26; margin-bottom: 15px; font-size: 12px; line-height: 1.6; box-sizing: border-box; }
-.log-row-box { background: rgba(255,255,255,0.02); border-radius: 6px; padding: 6px 10px; margin: 6px 0; border-left: 3px solid #333; }
+/* 日誌控制台 */
+.log-panel { height: 260px; overflow-y: auto; background: #070709; padding: 12px; border-radius: 10px; border: 1px solid #1f1f26; margin-bottom: 15px; font-size: 12px; line-height: 1.6; box-sizing: border-box; }
+.log-row-box { background: rgba(255,255,255,0.02); border-radius: 6px; padding: 6px 10px; margin: 4px 0; border-left: 3px solid #555; word-break: break-all; }
 
-/* 控制面板 */
-.action-panel { display: flex; gap: 12px; width: 100%; }
-.btn-game { color: white; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; padding: 15px; font-size: 16px; }
-.btn-explore { background-color: #2ed573; width: 100%; }
-.btn-game:disabled { background-color: #444 !important; color: #888 !important; cursor: not-allowed; }
+/* 按鈕大全 */
+.btn-game { color: white; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; padding: 14px; font-size: 15px; transition: all 0.2s ease; touch-action: manipulation; }
+.btn-game:disabled { background-color: #444 !important; color: #888 !important; cursor: not-allowed; box-shadow: none !important; }
+.btn-explore { background-color: #2ed573; box-shadow: 0 4px 12px rgba(46,213,115,0.2); }
+.btn-explore:hover:not(:disabled) { background-color: #26af5f; }
+.btn-rest { background-color: #1e90ff; box-shadow: 0 4px 12px rgba(30,144,255,0.2); }
+.btn-rest:hover:not(:disabled) { background-color: #1a7ae0; }
+.btn-job-choice { background-color: #2c3e50; border: 1px solid #34495e; font-size: 12px; padding: 10px; }
+.btn-job-choice.active { background-color: #00cea6; border-color: #fff; color: #111; box-shadow: 0 0 10px rgba(0,206,166,0.4); }
+.btn-cook { background-color: #4a235a; border: 1px solid #6c3483; text-align: left; font-size: 11px; line-height: 1.4; }
+.btn-cook:hover:not(:disabled) { background-color: #5b2c6f; }
 
-/* 🔮 QTE 彈出視窗（設定為最頂層覆蓋，預設靠 JS 打開） */
-#qte-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 999;
-}
-.qte-box { background: #222227; padding: 30px; border-radius: 16px; border: 3px solid #ffd700; text-align: center; width: 80%; max-width: 300px; }
-#qte-skill-name { color: #2ecc71; font-weight: bold; font-size: 18px; margin: 0 0 15px 0; }
-#qte-tap-btn { background: #ff4757; color: white; border: none; padding: 20px 40px; font-size: 22px; font-weight: bold; border-radius: 50%; cursor: pointer; box-shadow: 0 0 15px rgba(255,71,87,0.5); }
-.qte-timer-bg { width: 100%; height: 6px; background: #444; border-radius: 3px; margin-top: 20px; overflow: hidden; }
+/* 🔮 全螢幕高優先級 QTE 渲染層 */
+#qte-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+.qte-box { background: #222227; padding: 30px; border-radius: 16px; border: 3px solid #ffd700; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 0 30px rgba(255,215,0,0.2); }
+#qte-tap-btn { background: #ff4757; color: white; border: none; padding: 25px 45px; font-size: 24px; font-weight: bold; border-radius: 50%; cursor: pointer; box-shadow: 0 0 20px rgba(255,71,87,0.6); user-select: none; transition: transform 0.05s; }
+#qte-tap-btn:active { transform: scale(0.92); }
+.qte-timer-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-top: 25px; overflow: hidden; border: 1px solid #000; }
 #qte-timer-fill { height: 100%; background: #2ecc71; width: 100%; }
 
-/* 💥 特效：成功閃綠光、失敗閃紅光、打擊畫面震動 */
-@keyframes shake {
+/* 💥 肉鴿專用動態回饋動畫 */
+@keyframes screenShake {
     0% { transform: translate(1px, 1px) rotate(0deg); }
-    10% { transform: translate(-1px, -2px) rotate(-1deg); }
-    30% { transform: translate(3px, 2px) rotate(0deg); }
-    50% { transform: translate(-1px, 2px) rotate(1deg); }
-    100% { transform: translate(1px, -2px) rotate(0deg); }
+    20% { transform: translate(-2px, -1px) rotate(-1deg); }
+    40% { transform: translate(2px, 2px) rotate(1deg); }
+    60% { transform: translate(-1px, 1px) rotate(-1deg); }
+    80% { transform: translate(1px, -1px) rotate(0deg); }
+    100% { transform: translate(1px, 1px) rotate(0deg); }
 }
-.shake-effect { animation: shake 0.2s; }
-.success-flash { background-color: #2e7d32 !important; transition: background 0.1s; }
-.fail-flash { background-color: #c62828 !important; transition: background 0.1s; }
+.shake-effect { animation: screenShake 0.15s ease-in-out; }
+.success-flash { background-color: #1b5e20 !important; transition: background 0.05s; }
+.fail-flash { background-color: #b71c1c !important; transition: background 0.05s; }
