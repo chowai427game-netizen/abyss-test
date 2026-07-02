@@ -15,9 +15,9 @@ let currentRun = {
     job: "novice",
     lv: 1, hp: 100, maxHp: 100, mp: 20, maxMp: 50, mpRegen: 15, atk: 15, gold: 0, exp: 0, nextExp: 30,
     block: 0, critChance: 0, dodgeChance: 0, vampRate: 0, regenPower: 0, doubleStrike: 0,
-    skills: { "緊急治療": 1 }, // 💡 修正：初心者一開始只有緊急治療
-    inventory: [],            // 地下城極限背包（最多容納 2 個食材物品）
-    qteBuffDuration: 0        // 吃了焦黑物體後的 QTE 寬限增長時間 (毫秒)
+    skills: { "緊急治療": 1 }, 
+    inventory: [],            
+    qteBuffDuration: 0        
 };
 
 let gameState = "TITLE"; // TITLE, VILLAGE, BATTLE, REWARD
@@ -63,11 +63,11 @@ const SKILLS_DATABASE = {
         { name: "加速術", type: "active", mp: 15, desc: "極限閃避！完美閃避率永久固定 +10%，且下一回合自身必定暴擊。", run: (lv) => ({ permDodge: 7 + lv * 3 }) },
         { name: "光之壁", type: "active", mp: 25, desc: "當魔物施展特技大招時，揉捏防御成功強行將該傷害抹除 50%。", run: (lv) => ({ bossDmgCut: 0.35 + lv * 0.15 }) },
         { name: "神聖之光", type: "active", mp: 15, desc: "射出破邪聖光造成 25 點真傷。對不死系或 B40F 以上魔物有 3倍傷。", run: (lv) => ({ holyBase: 10 + lv * 15, undeadMult: 2.0 + lv * 1.0 }) },
-        { name: "天使之護", type: "passive", desc: "【自動被動】神聖鐵甲加護，勇者固定減傷面板直接永續增加 +4 點。" },
+        { name: "天使之護", type: "passive", desc: "【自動被動】神神聖鐵甲加護，勇者固定減傷面板直接永續增加 +4 點。" },
         { name: "聖母之頌歌", type: "active", mp: 30, desc: "高階詠唱，接下來的 5 回合戰鬥內，自身每回合 MP 回復速度瘋狂翻倍。", run: (lv) => ({ mpRegenBuff: 10, duration: 3 + lv }) },
-        { name: "天使之淚", type: "active", mp: 10, desc: "引引導聖水淨化。當場徹底斬斷自身身上的所有【燃燒】與【劇毒】狀態。", run: (lv) => ({ cureStatus: true, healPerStack: 5 + lv * 10 }) },
+        { name: "天使之淚", type: "active", mp: 10, desc: "引導聖水淨化。當場徹底斬斷自身身上的所有【燃燒】與【劇毒】狀態。", run: (lv) => ({ cureStatus: true, healPerStack: 5 + lv * 10 }) },
         { name: "十字驅魔", type: "active", mp: 20, desc: "神聖驅逐，使敵方魔物的基礎攻擊力與命中率永久倒扣 -15%。", run: (lv) => ({ enemyDebuff: 0.10 + lv * 0.05 }) },
-        { name: "神聖反彈", type: "active", mp: 15, desc: "鏡面信仰。接下來的 2 回合內，肉身受到的物理外傷 40% 數值神神聖反彈。", run: (lv) => ({ reflectRate: 0.25 + lv * 0.15, duration: 1 + lv }) }
+        { name: "神聖反彈", type: "active", mp: 15, desc: "鏡面信仰。接下來的 2 回合內，肉身受到的物理外傷 40% 數值神聖反彈。", run: (lv) => ({ reflectRate: 0.25 + lv * 0.15, duration: 1 + lv }) }
     ]
 };
 
@@ -88,7 +88,7 @@ const MONSTER_DROPS = {
 };
 
 // ==========================================
-// 📡 核心聯網通訊模組
+// 📡 通用函數
 // ==========================================
 function addLog(msg) {
     const box = document.getElementById('log-box');
@@ -164,10 +164,18 @@ function handleMainAction() {
     }
 }
 
+// 💡 修正：點擊撤退時，瞬間關閉畫面上可能的 QTE 覆蓋層，防禦幽靈事件
 function handleSecondaryAction() {
-    addLog(`🏃【撤退】你驚險避開危險，成功撤退逃回地表村莊！當局等級重置歸零。`);
     gameState = "VILLAGE";
     document.getElementById('btn-secondary-action').style.display = "none";
+    
+    if (isQteActive) {
+        clearTimeout(qteTimer);
+        isQteActive = false;
+        document.getElementById('qte-overlay').style.display = 'none';
+    }
+    
+    addLog(`🏃【撤退】你驚險避開危險，成功撤退逃回地表村莊！當局等級重置歸零。`);
     
     currentRun.inventory.forEach(item => {
         accountMeta.warehouse[item] = (accountMeta.warehouse[item] || 0) + 1;
@@ -312,7 +320,7 @@ function executeVillageCooking(recipe) {
 }
 
 // ==========================================
-// 🕹️ 核心 QTE 異步 Promise 控制器
+// 🕹 "QTE" 異步計時器
 // ==========================================
 function triggerQteSystem(skillName, durationMs) {
     return new Promise((resolve) => {
@@ -354,7 +362,7 @@ function endQte(isSuccess) {
 }
 
 // ==========================================
-// ⚔️ 全新回合制戰鬥循環引擎
+// ⚔️ 戰鬥主引擎（已注入核心狀態防禦鏈）
 // ==========================================
 async function runDungeonLoop() {
     document.getElementById('btn-main-action').disabled = true;
@@ -375,6 +383,9 @@ async function runDungeonLoop() {
 
     let round = 1;
     while (currentRun.hp > 0 && monster.hp > 0) {
+        // 💡 核心安全鎖：如果玩家在中途已經點擊了撤退、或者狀態非 BATTLE，立刻徹底斬斷後台線程！
+        if (gameState !== "BATTLE") return; 
+
         addLog(`<span style="color:#888;">[第 ${round} 回合]</span>`);
         
         // 1. MP 回復
@@ -397,11 +408,17 @@ async function runDungeonLoop() {
             if (!sMeta || sMeta.type !== "active") continue;
             
             if (currentRun.mp >= sMeta.mp && Math.random() < 1.0) {
+                // 再度防禦確認
+                if (gameState !== "BATTLE") return;
+
                 addLog(`🔮 勇者體內魔力大激盪！正在引導詠唱 ➔ 【${sName} Lv.${currentRun.skills[sName]}】`);
                 activeTriggered = true;
                 
                 let isPerfect = await triggerQteSystem(sName, 1200);
                 
+                // QTE 醒來後第三重安全鎖 (以防玩家在 QTE 的 1.2 秒內剛好點了撤退)
+                if (gameState !== "BATTLE") return;
+
                 if (isPerfect) {
                     currentRun.mp -= sMeta.mp;
                     let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
@@ -412,7 +429,7 @@ async function runDungeonLoop() {
                     if (eff.healPercent) { let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h); addLog(`<span style="color:#2ecc71; font-weight:bold;">🩹【QTE PERFECT】聖光治癒！血量大幅回復 +${h} HP！</span>`); }
                     if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`<span style="color:#1e90ff; font-weight:bold;">🔵【QTE PERFECT】禪心開啟！魔力回湧 +${eff.mpRestore} 點！</span>`); }
                 } else {
-                    addLog(`<span style="color:#aaa;">⚠️【QTE MISS】手速超時！招式被打斷，本回合退化成基礎普攻。</span>`);
+                    addLog(`<span style="color:#aaa;">⚠️【QTE MISS】手速超時！招式被打斷，本回合退化成基礎普攻.</span>`);
                     monster.hp -= currentRun.atk;
                     addLog(`⚔️ 勇者造成基礎物理普攻 ${currentRun.atk} 點外傷。`);
                 }
@@ -427,6 +444,7 @@ async function runDungeonLoop() {
         
         if (monster.hp <= 0) break;
         await new Promise(r => setTimeout(r, 800));
+        if (gameState !== "BATTLE") return;
 
         // 4. 魔物反擊
         let rawDmg = monster.atk;
@@ -453,7 +471,9 @@ async function runDungeonLoop() {
         await new Promise(r => setTimeout(r, 1000));
     }
 
-    // 5. 戰後結算
+    // 5. 終局算帳防禦
+    if (gameState !== "BATTLE") return;
+
     if (currentRun.hp > 0) {
         currentRun.gold += 20;
         currentRun.exp += 15;
@@ -471,9 +491,11 @@ async function runDungeonLoop() {
         
         checkLevelUpAndTriggerSelect();
     } else {
+        // 戰死強制回村（核心肉鴿閉環）
         addLog(`☠️【魂歸深淵】你被魔物徹底擊潰！強制被救回村莊。局內背包材料全部丟失。`);
         
         gameState = "VILLAGE";
+        document.getElementById('btn-secondary-action').style.display = "none";
         resetCurrentRunData();
         uploadProgressToCloud();
         updateUI();
@@ -483,11 +505,10 @@ async function runDungeonLoop() {
 }
 
 // ==========================================
-// 💡 核心修改：嚴格重新設計的升級/轉職控制閥
+// 🎲 核心肉鴿升級：三選一控制閥
 // ==========================================
 function checkLevelUpAndTriggerSelect() {
     let leveledUp = false;
-    // 純粹升級增加數值
     while (currentRun.exp >= currentRun.nextExp) {
         currentRun.exp -= currentRun.nextExp;
         currentRun.lv++;
@@ -500,7 +521,6 @@ function checkLevelUpAndTriggerSelect() {
     if (leveledUp) {
         addLog(`✨👑 恭喜升級！勇者突破至 <strong>Lv.${currentRun.lv}</strong>！狀態已全滿。`);
         
-        // 🔒 規則1：如果初心者到達了 Lv.10，強制鎖定戰鬥，直接在地下城彈出一轉覺醒面板
         if (currentRun.job === "novice" && currentRun.lv >= 10) {
             gameState = "REWARD";
             updateUI();
@@ -508,7 +528,6 @@ function checkLevelUpAndTriggerSelect() {
             return;
         }
         
-        // 🔒 規則2：一轉職業普通升級【不會】給3選1！只有喺 Lv.10、Lv.20、Lv.30 整數級別才會觸發技能抽卡
         if (currentRun.job !== "novice" && currentRun.lv % 10 === 0) {
             gameState = "REWARD";
             updateUI();
@@ -517,12 +536,10 @@ function checkLevelUpAndTriggerSelect() {
         }
     }
     
-    // 平常級別不觸發任何事件，按鈕解鎖，繼續探險
     document.getElementById('btn-main-action').disabled = false;
     updateUI();
 }
 
-// 👑 初心者 Lv.10 專用一轉聖殿解鎖選擇
 function triggerJobAwakeningSelect() {
     const container = document.getElementById('reward-choices-container');
     document.getElementById('reward-title-text').innerText = "👑 突破初心者極限：請選擇你的一轉職業 👑";
@@ -542,7 +559,6 @@ function triggerJobAwakeningSelect() {
             if (!accountMeta.unlockedJobs.includes(j.id)) { accountMeta.unlockedJobs.push(j.id); }
             currentRun.job = j.id;
             
-            // 替換初始數值與初始綁定技能 (開局只有一招本職技能)
             if(j.id === "swordsman") { currentRun.maxMp = 50; currentRun.mpRegen = 5; currentRun.skills = { "狂擊": 1 }; }
             else if(j.id === "magician") { currentRun.maxMp = 150; currentRun.mpRegen = 20; currentRun.skills = { "火箭術": 1 }; }
             else if(j.id === "acolyte") { currentRun.maxMp = 90; currentRun.mpRegen = 10; currentRun.skills = { "治癒術": 1 }; }
@@ -552,13 +568,12 @@ function triggerJobAwakeningSelect() {
             document.getElementById('btn-main-action').disabled = false;
             uploadProgressToCloud();
             updateUI();
-            checkLevelUpAndTriggerSelect(); // 繼續檢查
+            checkLevelUpAndTriggerSelect(); 
         };
         container.appendChild(btn);
     });
 }
 
-// 🎲 一轉職業每 10 級專用抽卡技能池
 function triggerSkillSelectThreeOfOne() {
     const container = document.getElementById('reward-choices-container');
     document.getElementById('reward-title-text').innerText = "✨ 職業整數級突破：請抽選一項新技能或升級既有招式 ✨";
