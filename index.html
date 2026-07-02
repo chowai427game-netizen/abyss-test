@@ -3,102 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>命運深淵：肉鴿 QTE 測試版</title>
-    <!-- 🔗 引入外部樣式表 -->
+    <title>命運深淵：血脈傳承 - 完整分拆版</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="game-container" id="main-game-shell">
     <h2>⚔️ 命運深淵 ⚔️</h2>
-    
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
-    <div class="env-bar" id="env-text" style="display: none;">環境：無異常</div>
-    
-    <!-- 1. 標題與創角畫面 -->
+
+    <!-- 1. 📂 封面主面板 (TITLE STATE) -->
     <div class="dynamic-panel title-panel-style" id="title-box">
-        <h1 style="color: #ffd700; font-size: 26px; margin: 0 0 5px 0;">命運深淵 v3.0</h1>
-        <p style="color: #bbb; font-size: 12px; margin-bottom: 12px;">【肉鴿職業鎖定 × 全新 MP 運作 × 日誌 QTE 動作版】</p>
+        <h1 style="color: #ffd700; font-size: 26px; margin: 0 0 5px 0;">命運深淵</h1>
+        <p style="color: #bbb; font-size: 12px; margin-bottom: 12px;">【QTE 動態肉鴿全新版】</p>
+        
+        <div class="notice-container">
+            <strong style="color: #ffd700;">📢 測試提示：</strong><br>
+            • 依家已經成功接入全新嘅 MP 魔力系統同戰鬥 QTE 動態判定！<br>
+            • 請輸入名字開啟你嘅全新冒險之旅。
+        </div>
 
         <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12">
-        
-        <p style="color: #ffd700; font-size: 14px; font-weight: bold; margin-top: 15px;">🧭 請選擇本局你想降臨的職業：</p>
-        <div class="job-selector-grid">
-            <button class="job-select-btn active" onclick="selectJob('novice')">🔰 初心者<br><span style="font-size:10px;color:#aaa;">Lv.1-10 考驗生長</span></button>
-            <button class="job-select-btn" onclick="selectJob('swordsman')">⚔️ 劍士<br><span style="font-size:10px;color:#aaa;">高減傷 物理爆發</span></button>
-            <button class="job-select-btn" onclick="selectJob('magician')">🔮 魔法師<br><span style="font-size:10px;color:#aaa;">高魔力 元素融化</span></button>
-            <button class="job-select-btn" onclick="selectJob('acolyte')">👼 服事<br><span style="font-size:10px;color:#aaa;">神聖加成 死線逆襲</span></button>
-        </div>
-
         <br>
-        <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%; padding: 14px; font-size: 18px; margin-top: 15px;">開啟血脈冒險之旅 🧭</button>
+        <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">開啟冒險之旅 🧭</button>
     </div>
 
-    <!-- 2. 遊戲主畫面（戰鬥與村莊） -->
-    <div class="main-layout-container">
-        <div class="left-layout-flow" style="width: 100%;">
-            
-            <!-- 勇者數據面板 -->
-            <div class="status-panel" id="status-panel-box" style="display: none;">
-                <div class="status-item full-row" style="color: #ffd700; font-weight: bold;">
-                    <span>👤 勇者: <span id="player-name-display">--</span></span>
-                    <span id="player-job-display" style="background:#222; padding:2px 8px; border-radius:4px; font-size:11px;">🔰 初心者</span>
-                </div>
-                
-                <div class="status-item"><span>等級:</span> <span id="lv" style="color: #00ffff; font-weight:bold;">1</span></div>
-                <div class="status-item"><span>經驗值:</span> <span id="exp-text" class="exp">0 / 30</span></div>
-                
-                <!-- HP 血條 -->
-                <div class="status-item full-row" style="display: block !important;">
-                    <div style="display:flex; justify-content:space-between; font-size:13px;">
-                        <span>生命值 (HP):</span> <span><span id="hp" class="highlight">100</span> / <span id="max-hp">100</span></span>
-                    </div>
-                    <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill"></div></div>
-                </div>
-
-                <!-- MP 魔力條 (由舊版怒氣全新改造) -->
-                <div class="status-item full-row" style="display: block !important; margin-top: 5px;">
-                    <div style="display:flex; justify-content:space-between; font-size:13px;">
-                        <span>魔力值 (MP):</span> <span><span id="mp" style="color:#54a0ff; font-weight:bold;">0</span> / <span id="max-mp">50</span></span>
-                    </div>
-                    <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
-                </div>
-
-                <div class="status-item" style="margin-top:6px;"><span>基礎攻擊:</span> <span id="atk" style="color: #ff6b81; font-weight:bold;">15</span></div>
-                <div class="status-item" style="margin-top:6px;"><span>擁有金幣:</span> <span><span id="gold" class="gold">0</span> G</span></div>
-            </div>
+    <!-- 2. 📊 勇者個人數據面板 (預設隱藏，進遊戲後顯示) -->
+    <div class="status-panel" id="status-panel-box" style="display: none;">
+        <div class="status-item"><span>👤 勇者大名:</span> <span id="p-name">--</span></div>
+        <div class="status-item"><span>職業:</span> <span style="color: #00ffff; font-weight:bold;">初心者 (Lv.1)</span></div>
+        
+        <!-- 血條 -->
+        <div class="status-item full-row">
+            <div class="flex-space"><span>生命值:</span> <span><span id="p-hp">100</span> / 100</span></div>
+            <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
         </div>
         
-        <!-- 右側日誌與操作台 -->
-        <div class="right-layout-flow" style="width: 100%;">
-            <div class="log-panel" id="log-box" style="display: none;"></div>
-
-            <div class="action-panel" id="action-panel" style="display: none;">
-                <button id="btn-action1" type="button" onclick="handleAction1()" class="btn-game btn-action btn-explore">⚔️ 進入地下城</button>
-                <button id="btn-action2" type="button" onclick="handleAction2()" class="btn-game btn-action btn-rest">⛺ 在村莊休息</button>
-            </div>
+        <!-- 藍色 MP 條 -->
+        <div class="status-item full-row">
+            <div class="flex-space"><span>魔力值 (MP):</span> <span><span id="p-mp">0</span> / 50</span></div>
+            <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
         </div>
+        <div class="status-item"><span>擁有金幣:</span> <span class="gold" id="p-gold">0</span> G</div>
     </div>
 
-    <!-- 3. 🚨 全新 QTE 核心定格互動彈出層 -->
-    <div id="qte-overlay" class="qte-container" style="display: none;">
-        <div class="qte-card">
-            <div class="qte-title" id="qte-skill-name">⚡ 技能觸發 ⚡</div>
-            <p style="font-size: 11px; color: #aaa; margin: 4px 0;">快速反應！點擊下方按鈕釋放核心神技！</p>
-            <button id="qte-hit-btn" class="qte-btn-trigger">💥 釋放招式 💥</button>
-            <!-- 倒數時間條 -->
-            <div class="qte-timer-bg"><div id="qte-timer-fill" class="qte-timer-fill"></div></div>
-        </div>
+    <!-- 3. 📜 右側日誌打印台 (預設隱藏) -->
+    <div class="log-panel" id="log-box" style="display: none;"></div>
+
+    <!-- 4. 🕹️ 動作控制面板 (預設隱藏) -->
+    <div class="action-panel" id="action-panel" style="display: none;">
+        <button id="btn-action1" type="button" onclick="handleAction1()" class="btn-game btn-explore">⚔️ 進入地下城</button>
     </div>
 
-    <!-- 4. 結算重新開局按鈕 (測試用) -->
-    <div id="gameover-box" class="dynamic-panel" style="display:none; background: #2c1a1a; text-align:center; margin-top:15px;">
-        <p style="color:#ff4757; font-weight:bold;">☠️ 戰鬥不能 / 歸零重置 ☠️</p>
-        <button onclick="backToTitle()" class="btn-game btn-rest" style="padding:10px 20px;">🪦 確認歸零並返回起點</button>
+    <!-- 5. 🔮 獨立彈出層：動態 QTE 視窗 (預設隱藏) -->
+    <div id="qte-overlay" style="display: none;">
+        <div class="qte-box">
+            <p id="qte-skill-name">⚡ 技能發動 ⚡</p>
+            <button id="qte-tap-btn" onclick="handleQteTap()">🟢 撳我！</button>
+            <div class="qte-timer-bg"><div id="qte-timer-fill"></div></div>
+        </div>
     </div>
 </div>
 
-<!-- 🔗 引入外部 JavaScript 邏輯 -->
 <script src="game.js"></script>
 </body>
 </html>
