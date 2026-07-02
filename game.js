@@ -13,7 +13,7 @@ let accountMeta = {
 // 2. 🎮 當局肉鴿臨時狀態數據 (currentRun ➔ 死掉/回村立刻歸零)
 let currentRun = {
     job: "novice",
-    lv: 1, hp: 100, maxHp: 100, mp: 0, maxMp: 50, mpRegen: 5, atk: 15, gold: 0, exp: 0, nextExp: 30,
+    lv: 1, hp: 100, maxHp: 100, mp: 15, maxMp: 50, mpRegen: 15, atk: 15, gold: 0, exp: 0, nextExp: 30,
     block: 0, critChance: 0, dodgeChance: 0, vampRate: 0, regenPower: 0, doubleStrike: 0,
     skills: { "緊急治療": 1 }, // 學到的技能字典 { 技能名: 等級 }
     inventory: [],            // 地下城極限背包（最多容納 2 個食材物品）
@@ -27,9 +27,13 @@ let qteTimer = null;
 let qteResolvePointer = null;
 
 // ==========================================
-// ⚔️ 3 大核心職業 ➔ 30 大技能全數據庫配置
+// ⚔️ 4 大核心職業 ➔ 31 大技能全數據庫配置
 // ==========================================
 const SKILLS_DATABASE = {
+    // 💡 修正：補回 novice 基礎技能池，否則開局初心者會直接跳過
+    novice: [
+        { name: "緊急治療", type: "active", mp: 30, desc: "基礎求生治療，聖光微現回復些許生命值。", run: (lv, atk, maxMp, hp) => ({ healPercent: 0.20, lostHp: (currentRun.maxHp - hp) + 40 }) }
+    ],
     swordsman: [
         { name: "狂擊", type: "active", mp: 15, desc: "物理重擊造成 180% 傷害，機率使怪眩暈。", run: (lv, dmg) => ({ dmg: Math.floor(dmg * (1.4 + lv * 0.4)), stun: 20 + lv * 10 }) },
         { name: "怒爆", type: "active", mp: 25, desc: "釋放鬥氣造成 40 點火真傷，附加 3 回合普攻燃燒。", run: (lv) => ({ fireDmg: 20 + lv * 20, burnStacks: lv }) },
@@ -49,7 +53,7 @@ const SKILLS_DATABASE = {
         { name: "聖靈召喚", type: "active", mp: 25, desc: "造成 45 點念動傷。此魔攻無條件穿透魔物晶體盾與減傷甲。", run: (lv) => ({ pierceMagic: 25 + lv * 20 }) },
         { name: "能量外套", type: "passive", desc: "【自動被動】進入戰鬥第 1 回合，體表自動化生成 250 點防禦魔法盾。" },
         { name: "心靈爆破", type: "active", mp: 50, desc: "發動精神爆破，造成自身當前 MP 殘餘值 80% 的無屬性魔法傷。", run: (lv, dummy, mp) => ({ mpToDmg: mp * (0.50 + lv * 0.30) }) },
-        { name: "禪心", type: "active", mp: 0, desc: "犧牲當前回合不發動任何揮砍攻擊，強行讓 MP 當場充滿 +80 點。", run: (lv) => ({ mpRestore: 55 + lv * 25 }) },
+        { name: "禪心", type: "active", mp: 0, desc: "犧牲當前回合不發動 any 揮砍攻擊，強行讓 MP 當場充滿 +80 點。", run: (lv) => ({ mpRestore: 55 + lv * 25 }) },
         { name: "火牆術", type: "active", mp: 45, desc: "立起 3 回合火牆。敵反擊時每回合開頭反噬受創 25 點並燃燒。", run: (lv) => ({ thornsFire: 15 + lv * 10, duration: 1 + lv }) },
         { name: "冰凍術", type: "active", mp: 20, desc: "將當前地下城異常環境力場，直接強制洗牌洗成【永凍冰原】2回合。", run: (lv) => ({ globalFreezeTurns: 1 + lv }) },
         { name: "雷爆術", type: "active", mp: 60, desc: "雷暴轟炸 80 傷害；魔物身上每有 1 層毒或火狀態，傷害加深 20%。", run: (lv) => ({ baseStorm: 50 + lv * 30, ampPerStatus: 0.15 + lv * 0.05 }) }
@@ -59,7 +63,7 @@ const SKILLS_DATABASE = {
         { name: "天使之賜福", type: "active", mp: 40, desc: "神聖洗禮！本局冒險基礎攻擊永久 +10、最大生命上限永久 +50。", run: (lv) => ({ permAtk: 4 + lv * 6, permHp: 20 + lv * 30 }) },
         { name: "加速術", type: "active", mp: 15, desc: "極限閃避！完美閃避率永久固定 +10%，且下一回合自身必定暴擊。", run: (lv) => ({ permDodge: 7 + lv * 3 }) },
         { name: "光之壁", type: "active", mp: 25, desc: "當魔物施展特技大招時，揉捏防御成功強行將該傷害抹除 50%。", run: (lv) => ({ bossDmgCut: 0.35 + lv * 0.15 }) },
-        { name: "神聖之光", type: "active", mp: 15, desc: "射出破邪聖光造成 25 點真傷。對不死系或 B40F 以上魔物有 3 倍傷。", run: (lv) => ({ holyBase: 10 + lv * 15, undeadMult: 2.0 + lv * 1.0 }) },
+        { name: "神聖之光", type: "active", mp: 15, desc: "射出破邪聖光造成 25 點真傷。對不死系或 B40F 以上魔物有 3倍傷。", run: (lv) => ({ holyBase: 10 + lv * 15, undeadMult: 2.0 + lv * 1.0 }) },
         { name: "天使之護", type: "passive", desc: "【自動被動】神聖鐵甲加護，勇者固定減傷面板直接永續增加 +4 點。" },
         { name: "聖母之頌歌", type: "active", mp: 30, desc: "高階詠唱，接下來的 5 回合戰鬥內，自身每回合 MP 回復速度瘋狂翻倍。", run: (lv) => ({ mpRegenBuff: 10, duration: 3 + lv }) },
         { name: "天使之淚", type: "active", mp: 10, desc: "引導聖水淨化。當場徹底斬斷自身身上的所有【燃燒】與【劇毒】狀態。", run: (lv) => ({ cureStatus: true, healPerStack: 5 + lv * 10 }) },
@@ -87,7 +91,7 @@ const MONSTER_DROPS = {
 // ==========================================
 // 📡 核心聯網通訊模組 (Render 後端 API)
 // ==========================================
-async function addLog(msg) {
+function addLog(msg) {
     const box = document.getElementById('log-box');
     if (box) {
         box.innerHTML += `<div class="log-row-box">${msg}</div>`;
@@ -103,7 +107,6 @@ async function checkCloudAccount() {
         let response = await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(inputName)}`);
         let res = await response.json();
         if (res.success && res.activeChar) {
-            // 讀取成功後映射至本地
             accountMeta.unlockedJobs = res.activeChar.unlockedJobs || ["novice"];
             accountMeta.warehouse = res.activeChar.warehouse || {};
             legBox.innerHTML = `🟢 <strong>偵測到雲端血脈！</strong> 已成功永久解鎖職業：${accountMeta.unlockedJobs.join(", ")}`;
@@ -131,26 +134,24 @@ function handleStartGame() {
     gameState = "VILLAGE";
     dungeonFloor = 0;
     
-    // 初始化當局數據 (歸零 Lv.1)
     resetCurrentRunData();
     updateUI();
     renderVillageJobSelectors();
     renderVillageCookingWorkshop();
     
     document.getElementById('log-box').innerHTML = "";
-    addLog(`⛺ 勇者 <strong>${player.name}</strong> 在地表村莊清醒。請進行開局裝備或烹飪補給。`);
+    addLog(`⛺ 勇者 <strong>${accountMeta.name}</strong> 在地表村莊清醒。請進行開局裝備或烹飪補給。`);
 }
 
 function resetCurrentRunData() {
-    currentRun.lv = 1; currentRun.hp = 100; currentRun.maxHp = 100; currentRun.mp = 0; currentRun.maxMp = 50;
-    currentRun.mpRegen = 5; currentRun.atk = 15; currentRun.gold = 0; currentRun.exp = 0; currentRun.nextExp = 30;
+    currentRun.lv = 1; currentRun.hp = 100; currentRun.maxHp = 100; currentRun.mp = 15; currentRun.maxMp = 50;
+    currentRun.mpRegen = 15; currentRun.atk = 15; currentRun.gold = 0; currentRun.exp = 0; currentRun.nextExp = 30;
     currentRun.block = 0; currentRun.critChance = 0; currentRun.dodgeChance = 0; currentRun.skills = { "緊急治療": 1 };
     currentRun.inventory = []; currentRun.qteBuffDuration = 0;
 }
 
 function handleMainAction() {
     if (gameState === "VILLAGE") {
-        // 進入地下城
         gameState = "BATTLE";
         dungeonFloor = 1;
         document.getElementById('btn-secondary-action').style.display = "block";
@@ -158,7 +159,6 @@ function handleMainAction() {
         updateUI();
         runDungeonLoop();
     } else if (gameState === "BATTLE") {
-        // 局內前進下一層
         dungeonFloor++;
         updateUI();
         runDungeonLoop();
@@ -166,23 +166,16 @@ function handleMainAction() {
 }
 
 function handleSecondaryAction() {
-    // 局內任何時刻均可驚險撤退回地表村莊，強制歸零 Lv.1 但保留帶回來的 2 格食材
     addLog(`🏃【撤退】你驚險避開危險，成功撤退逃回地表村莊！當局等級重置歸零。`);
     gameState = "VILLAGE";
     document.getElementById('btn-secondary-action').style.display = "none";
     
-    // 結算：將極限背包內拿到的食材送入永久倉庫
     currentRun.inventory.forEach(item => {
         accountMeta.warehouse[item] = (accountMeta.warehouse[item] || 0) + 1;
     });
     uploadProgressToCloud();
     
     resetCurrentRunData();
-    // 檢查有沒有滿足永久轉職解鎖條件 (例如初心者到達 Lv.10 撤退或戰死)
-    if (currentRun.job === "novice" && player.lv >= 10 && !accountMeta.unlockedJobs.includes("swordsman")) {
-        // 這邊簡化判定，滿足條件即塞入
-    }
-    
     updateUI();
     renderVillageCookingWorkshop();
 }
@@ -204,7 +197,6 @@ function updateUI() {
     toggle('log-box', true);
     toggle('action-panel-box', true);
     
-    // 渲染通用頂部面板
     document.getElementById('p-name').innerText = accountMeta.name;
     document.getElementById('p-job').innerText = translateJob(currentRun.job);
     document.getElementById('p-lv').innerText = currentRun.lv;
@@ -221,11 +213,8 @@ function updateUI() {
     document.getElementById('hp-bar-fill').style.width = (currentRun.hp / currentRun.maxHp) * 100 + "%";
     document.getElementById('mp-bar-fill').style.width = (currentRun.mp / currentRun.maxMp) * 100 + "%";
     
-    // 渲染當前持有的招式名稱與等級
     let sList = Object.keys(currentRun.skills).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
     document.getElementById('p-skills-list').innerText = sList || "無";
-    
-    // 渲染極限 2 格背包
     document.getElementById('p-dungeon-bag').innerText = currentRun.inventory.length > 0 ? currentRun.inventory.join(" | ") : "空無一物";
 
     if (gameState === "VILLAGE") {
@@ -234,7 +223,7 @@ function updateUI() {
         document.getElementById('location-text').innerText = "🌍 目前位置：地表村莊";
         document.getElementById('btn-main-action').innerText = "🌀 啟動傳送門降臨深淵 B1F";
         document.getElementById('btn-main-action').disabled = false;
-        document.getElementById('dungeon-bag-row').style.display = "none"; // 村莊隱藏局內背包
+        document.getElementById('dungeon-bag-row').style.display = "none";
     } else if (gameState === "BATTLE") {
         toggle('village-panel-box', false);
         toggle('reward-panel-box', false);
@@ -265,11 +254,10 @@ function renderVillageJobSelectors() {
         btn.disabled = !isUnlocked;
         btn.onclick = () => {
             currentRun.job = j;
-            // 初始分配魔力面板上限
             if(j === "swordsman") { currentRun.maxMp = 50; currentRun.mpRegen = 5; currentRun.skills = { "狂擊": 1 }; }
             else if(j === "magician") { currentRun.maxMp = 150; currentRun.mpRegen = 20; currentRun.skills = { "火箭術": 1 }; }
             else if(j === "acolyte") { currentRun.maxMp = 90; currentRun.mpRegen = 10; currentRun.skills = { "治癒術": 1 }; }
-            else { currentRun.maxMp = 50; currentRun.mpRegen = 5; currentRun.skills = { "緊急治療": 1 }; }
+            else { currentRun.maxMp = 50; currentRun.mpRegen = 15; currentRun.skills = { "緊急治療": 1 }; }
             updateUI();
             renderVillageJobSelectors();
         };
@@ -287,15 +275,8 @@ function renderVillageCookingWorkshop() {
     RECIPES_DATABASE.forEach(recipe => {
         let btn = document.createElement('button');
         btn.className = "btn-game btn-cook";
-        
         let reqText = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
         btn.innerHTML = `<strong>${recipe.name}</strong> [需：${reqText}]<br><span style="color:#aaa;">${recipe.desc}</span>`;
-        
-        // 檢查素材夠不夠
-        let canCook = true;
-        for(let ing in recipe.ingredients) {
-            if((accountMeta.warehouse[ing] || 0) < recipe.ingredients[ing]) canCook = false;
-        }
         btn.disabled = !canCanCook(recipe.ingredients);
         btn.onclick = () => executeVillageCooking(recipe);
         rContainer.appendChild(btn);
@@ -309,29 +290,19 @@ function canCanCook(reqs) {
     return true;
 }
 
-// ==========================================
-// 🍳 料理烹飪大失敗與吃飽起手機制
-// ==========================================
 function executeVillageCooking(recipe) {
-    // 扣除材料
     for(let ing in recipe.ingredients) { accountMeta.warehouse[ing] -= recipe.ingredients[ing]; }
-    
     if (Math.random() > 0.75) {
-        // 25% 烹飪大失敗，產出「焦黑的未知物體」
         addLog(`💥【料理大失敗】魔力火候控制失準！所有投入的珍貴食材瞬間蒸發，化為一團黑炭：<strong>🪨 焦黑的未知物體</strong>！`);
-        // 大失敗產物強行塞入永久倉庫，允許帶下場當絕地興奮劑
         accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
     } else {
         addLog(`🍳【皇家烹飪成功】香氣四溢！你成功製作出了高階神聖料理：<strong>${recipe.name}</strong>！`);
-        
         if (recipe.type === "village_eat") {
-            // 局外長效進食效果，立刻覆蓋當局
             addLog(`🍴【開局進食補給】你當場吃下 ${recipe.name}！長效 Buff 注入血脈！`);
             if(recipe.name.includes("哥布林")) { currentRun.maxHp += 60; currentRun.hp += 60; }
             if(recipe.name.includes("發光奧術")) { currentRun.maxMp += 30; currentRun.mpRegen += 3; }
             if(recipe.name.includes("銀河蟹肉")) { currentRun.maxHp += 200; currentRun.hp += 200; }
         } else {
-            // 局內攜帶型，存入永久倉庫，進傳送門前由包包攜帶
             accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 1;
         }
     }
@@ -348,9 +319,7 @@ function triggerQteSystem(skillName, durationMs) {
         isQteActive = true;
         qteResolvePointer = resolve;
         
-        // 吃了焦黑物體後，QTE 時間強制加長延長，降低操作門檻
         let finalDuration = durationMs + (currentRun.qteBuffDuration || 0);
-        
         document.getElementById('qte-skill-name').innerText = `⚡ QTE 詠唱中：${skillName} ⚡`;
         document.getElementById('qte-overlay').style.display = 'flex';
         
@@ -390,19 +359,16 @@ function endQte(isSuccess) {
 async function runDungeonLoop() {
     document.getElementById('btn-main-action').disabled = true;
     
-    // 滾動生成怪物
     let mName = Object.keys(MONSTER_DROPS)[Math.floor(Math.random() * Object.keys(MONSTER_DROPS).length)];
     let monster = { name: mName, hp: 40 + dungeonFloor * 15, maxHp: 40 + dungeonFloor * 15, atk: 4 + dungeonFloor * 3 };
     
     addLog(`⚔️【遭遇戰】降臨 B${dungeonFloor}F！前方攔路魔物：<strong style="color:#ff4757;">${monster.name}</strong> (HP: ${monster.hp})`);
     
-    // 檢查法師被動【能量外套】
     let pShield = 0;
     if (currentRun.job === "magician" && currentRun.skills["能量外套"]) {
         pShield += 250 * currentRun.skills["能量外套"];
         addLog(`🟢【被動•能量外套】魔力固化成型！開局自動加載 🛡️ ${pShield} 點魔法奧術盾。`);
     }
-    // 檢查服事被動【天使之護】
     if (currentRun.skills["天使之護"]) {
         currentRun.block += 4 * currentRun.skills["天使之護"];
     }
@@ -422,43 +388,39 @@ async function runDungeonLoop() {
             addLog(`🟢【被動•快速回復】氣血湧動，細胞自動修復 +${hAmt} HP。`);
         }
 
-        // 3. 核心：主動技能判定 (輪詢學會的技能清單)
+        // 3. 核心：主動技能判定
         let activeTriggered = false;
         let skillKeys = Object.keys(currentRun.skills);
         
         for (let sName of skillKeys) {
-            // 找尋技能池資料庫
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
             if (!sMeta || sMeta.type !== "active") continue;
             
-            // 只要 MP 夠，且機率骰中，觸發 QTE 主動技能釋放
-            if (currentRun.mp >= sMeta.mp && Math.random() < 0.5) {
-                addLog(`🔮 勇者體內魔力激盪！正在引導詠唱 ➔ 【${sName} Lv.${currentRun.skills[sName]}】`);
+            // 💡 修正：測試版調高至 100% 機率，只要 MP 夠就必定發動 QTE 彈出！
+            if (currentRun.mp >= sMeta.mp && Math.random() < 1.0) {
+                addLog(`🔮 勇者體內魔力大激盪！正在引導詠唱 ➔ 【${sName} Lv.${currentRun.skills[sName]}】`);
                 activeTriggered = true;
                 
-                // 中斷戰鬥循環，喚醒 1.2 秒 QTE 按鈕
                 let isPerfect = await triggerQteSystem(sName, 1200);
                 
                 if (isPerfect) {
                     currentRun.mp -= sMeta.mp;
-                    // 計算不同技能的客製化公式效果
                     let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                     
                     if (eff.dmg) { monster.hp -= eff.dmg; addLog(`<span style="color:#2ecc71; font-weight:bold;">💥【QTE PERFECT】${sName} 完美重擊！重創魔物造成 -${eff.dmg} 點物理爆發傷！</span>`); }
                     if (eff.fireDmg) { monster.hp -= eff.fireDmg; addLog(`<span style="color:#e67e22; font-weight:bold;">🔥【QTE PERFECT】怒爆鬥氣燃燒！造成 -${eff.fireDmg} 火傷，附加烈焰附魔！</span>`); }
                     if (eff.blockBuff) { currentRun.block += eff.blockBuff; addLog(`<span style="color:#3498db; font-weight:bold;">🛡️【QTE PERFECT】鋼鐵神罡防線！固定減傷永久攀升 +${eff.blockBuff}！</span>`); }
-                    if (eff.healPercent) { let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h); addLog(`<span style="color:#2ecc71; font-weight:bold;">🩹【QTE PERFECT】聖光奇蹟大治癒！瘋狂快速救命回血 +${h} HP！</span>`); }
-                    if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`<span style="color:#1e90ff; font-weight:bold;">🔵【QTE PERFECT】禪心冥想大圓滿！魔力當場瘋狂回湧 +${eff.mpRestore} 點！</span>`); }
+                    if (eff.healPercent) { let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h); addLog(`<span style="color:#2ecc71; font-weight:bold;">🩹【QTE PERFECT】聖光奇蹟大治癒！成功回血 +${h} HP！</span>`); }
+                    if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`<span style="color:#1e90ff; font-weight:bold;">🔵【QTE PERFECT】禪心開啟！魔力當場充滿 +${eff.mpRestore} 點！</span>`); }
                 } else {
                     addLog(`<span style="color:#aaa;">⚠️【QTE MISS】手速超時或按錯！招式被打斷，本回合被迫退化成基礎普攻。</span>`);
                     monster.hp -= currentRun.atk;
                     addLog(`⚔️ 勇者步伐踉蹌揮劍，只造成基礎物理普攻 ${currentRun.atk} 點外傷。`);
                 }
-                break; // 每回合只能打出一招主動技能
+                break;
             }
         }
         
-        // 如果連 MP 技能都沒觸發，執行凡人基礎普通攻擊
         if (!activeTriggered) {
             monster.hp -= currentRun.atk;
             addLog(`⚔️ 勇者踏步橫斬，普通攻擊砍中魔物造成 ${currentRun.atk} 點物理外傷。`);
@@ -467,7 +429,7 @@ async function runDungeonLoop() {
         if (monster.hp <= 0) break;
         await new Promise(r => setTimeout(r, 800));
 
-        // 4. 魔物反擊回合
+        // 4. 魔物反擊
         let rawDmg = monster.atk;
         let finalDmg = Math.max(1, rawDmg - currentRun.block);
         
@@ -476,10 +438,9 @@ async function runDungeonLoop() {
             else { let over = finalDmg - pShield; pShield = 0; currentRun.hp -= over; addLog(`🔴 魔物擊碎魔法盾！餘威破裂肉身造成了 -${over} 點外傷！`); }
         } else {
             currentRun.hp -= finalDmg;
-            addLog(`🔴 [${monster.name}] 兇猛反撲撕咬！扣除固定減傷防線後，勇者肉身受創 -${finalDmg} HP！`);
+            addLog(`🔴 [${monster.name}] 兇猛反撲撕咬！勇者肉身受創 -${finalDmg} HP！`);
         }
         
-        // 檢查被動【堅毅不屈】
         if (finalDmg >= currentRun.maxHp * 0.25 && currentRun.skills["堅毅不屈"]) {
             let buffAtk = Math.floor(finalDmg * 0.3 * currentRun.skills["堅毅不屈"]);
             currentRun.atk += buffAtk;
@@ -493,31 +454,27 @@ async function runDungeonLoop() {
         await new Promise(r => setTimeout(r, 1000));
     }
 
-    // 5. 局內生死勝負總結結算
+    // 5. 局內勝負結算
     if (currentRun.hp > 0) {
         currentRun.gold += 20;
         currentRun.exp += 15;
         addLog(`🎉【大捷】成功徹底殲滅魔物！拾獲金幣 +20 G，經驗值 +15 點。`);
         
-        // 🎲 料理食材極低概率掉落模組 (12% 機率)
         if (Math.random() < 0.12) {
             let dropName = MONSTER_DROPS[monster.name] || "史萊姆核心黏液";
             if (currentRun.inventory.length < 2) {
                 currentRun.inventory.push(dropName);
-                addLog(`🎁【食材幸運掉落】魔物屍首解體！你幸運撿到了珍貴稀有食材：<strong>${dropName}</strong>（成功塞入局內背包 ${currentRun.inventory.length}/2 格）！`);
+                addLog(`🎁【食材幸運掉落】你幸運撿到了珍貴稀有食材：<strong>${dropName}</strong>（成功塞入局內背包 ${currentRun.inventory.length}/2 格）！`);
             } else {
-                addLog(`⚠️【背包已滿折損】地面掉落了 [${dropName}]，但你地下城背包 2 格限制已滿！你不得不痛苦被迫捨棄！`);
+                addLog(`⚠️【背包已滿折損】地面掉落了 [${dropName}]，但你地下城背包已滿！被迫捨棄！`);
             }
         }
         
         checkLevelUpAndTriggerSelect();
     } else {
-        // 戰鬥不能強制戰死歸零
         addLog(`☠️【魂歸深淵】你被魔物徹底擊潰終結！強制被皇家救護隊拖回村莊旅店。`);
-        // 局內所有材料蒸發
-        addLog(`💸 警告：因為你死在地下城，局內背包攜帶的材料全部碎裂丟失，無法帶回村莊。`);
+        addLog(`💸 警告：因為你死在地下城，局內背包攜帶的材料全部碎裂丟失。`);
         
-        // 檢查初心者是否滿足 Lv.10 永久轉職解鎖
         if (currentRun.job === "novice" && currentRun.lv >= 10 && !accountMeta.unlockedJobs.includes("swordsman")) {
             accountMeta.unlockedJobs.push("swordsman");
             accountMeta.unlockedJobs.push("magician");
@@ -534,7 +491,7 @@ async function runDungeonLoop() {
 }
 
 // ==========================================
-// 🎲 核心肉鴿升級：本職 10 大技能三選一機制
+// 🎲 核心肉鴿升級：三選一技能抽卡池
 // ==========================================
 function checkLevelUpAndTriggerSelect() {
     if (currentRun.exp >= currentRun.nextExp) {
@@ -546,7 +503,6 @@ function checkLevelUpAndTriggerSelect() {
         
         addLog(`✨👑 恭喜升級！勇者境界突破至 <strong>Lv.${currentRun.lv}</strong>！全狀態充滿奶滿。`);
         
-        // 喚醒肉鴿精髓：三選一技能抽卡池
         gameState = "REWARD";
         updateUI();
         triggerSkillSelectThreeOfOne();
@@ -560,14 +516,13 @@ function triggerSkillSelectThreeOfOne() {
     const container = document.getElementById('reward-choices-container');
     container.innerHTML = "";
     
-    // 抽取目前職業所屬的 10 大 core 技能池
-    let pool = SKILLS_DATABASE[currentRun.job] || SKILLS_DATABASE["swordsman"];
+    let pool = SKILLS_DATABASE[currentRun.job] || SKILLS_DATABASE["novice"];
     let shuffled = [...pool].sort(() => 0.5 - Math.random());
-    let choices = shuffled.slice(0, 3); // 3選1
+    let choices = shuffled.slice(0, Math.min(3, pool.length));
     
     choices.forEach(skill => {
         let btn = document.createElement('button');
-        btn.className = "btn-game btn-cook"; // 復用統一樣式
+        btn.className = "btn-game btn-cook";
         
         let hasSkill = currentRun.skills[skill.name];
         let nextLv = hasSkill ? hasSkill + 1 : 1;
@@ -579,13 +534,12 @@ function triggerSkillSelectThreeOfOne() {
             gameState = "BATTLE";
             document.getElementById('btn-main-action').disabled = false;
             updateUI();
-            checkLevelUpAndTriggerSelect(); // 遞迴檢查是否連續升級
+            checkLevelUpAndTriggerSelect();
         };
         container.appendChild(btn);
     });
 }
 
 window.onload = function() {
-    // 啟動首頁查詢
     checkCloudAccount();
 };
