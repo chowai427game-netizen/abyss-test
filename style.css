@@ -97,3 +97,33 @@ body {
 .shake-effect { animation: screenShake 0.15s ease-in-out; }
 .success-flash { background-color: #1b5e20 !important; transition: background 0.05s; }
 .fail-flash { background-color: #b71c1c !important; transition: background 0.05s; }
+
+/* 🎒 戰術背包專用樣式 */
+.bag-slot-container {
+    display: flex;
+    gap: 8px;
+    margin-top: 5px;
+}
+.btn-bag-slot {
+    flex: 1;
+    background: #25252b;
+    border: 1px dashed #555;
+    color: #aaa;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-bag-slot.has-item {
+    background: linear-gradient(135deg, #2d1f3d 0%, #1f253d 100%);
+    border: 1px solid #9b59b6;
+    color: #fff;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(155,89,182,0.2);
+}
+.btn-bag-slot.has-item:hover:not(:disabled) {
+    filter: brightness(1.2);
+}
+
