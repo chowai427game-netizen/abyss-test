@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>命運深淵：血脈傳承 - 完整分拆版</title>
+    <title>命運深淵：血脈傳承 - 全功能雲端動態肉鴿版</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,50 +12,92 @@
     <h2>⚔️ 命運深淵 ⚔️</h2>
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
 
-    <!-- 1. 📂 封面主面板 (TITLE STATE) -->
+    <!-- ================= 1. 📢 封面主頁面 (TITLE) ================= -->
     <div class="dynamic-panel title-panel-style" id="title-box">
-        <h1 style="color: #ffd700; font-size: 26px; margin: 0 0 5px 0;">命運深淵</h1>
-        <p style="color: #bbb; font-size: 12px; margin-bottom: 12px;">【QTE 動態肉鴿全新版】</p>
+        <h1 class="game-main-title">命運深淵</h1>
+        <p class="game-sub-title">【全球雲端聯網 • QTE動態肉鴿版】</p>
         
         <div class="notice-container">
-            <strong style="color: #ffd700;">📢 測試提示：</strong><br>
-            • 依家已經成功接入全新嘅 MP 魔力系統同戰鬥 QTE 動態判定！<br>
-            • 請輸入名字開啟你嘅全新冒險之旅。
+            <strong style="color: #ffd700;">📢 跨世代更新日誌 (v3.00)：</strong><br>
+            • 【🔥 核心重構】全面砍掉舊版怒氣制，更換為全新【主動控魔 MP 資源系統】！<br>
+            • 【🕹️ 戰術操作】主動技能全實裝 QTE 快速反應機制，成功 Perfect 觸發破格爆發！<br>
+            • 【🌿 局外繼承】引入【皇家料理工坊】，打怪低機率掉落珍貴食材，打包帶回村莊永久囤積！<br>
+            • 【🛡️ 職業解鎖】初心者封頂 Lv.10 執行一轉。只要一轉成功，未來開局直接選用該職業！
         </div>
 
-        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12">
+        <div id="legacy-box" class="legacy-container">請輸入名字以查詢雲端帳戶血脈...</div>
+        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12" value="gma" oninput="checkCloudAccount()">
         <br>
-        <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">開啟冒險之旅 🧭</button>
+        <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">載入雲端血脈並開啟旅程 🧭</button>
     </div>
 
-    <!-- 2. 📊 勇者個人數據面板 (預設隱藏，進遊戲後顯示) -->
+    <!-- ================= 2. 📊 勇者狀態數據面板 (全狀態通用) ================= -->
     <div class="status-panel" id="status-panel-box" style="display: none;">
-        <div class="status-item"><span>👤 勇者大名:</span> <span id="p-name">--</span></div>
-        <div class="status-item"><span>職業:</span> <span style="color: #00ffff; font-weight:bold;">初心者 (Lv.1)</span></div>
+        <div class="status-item"><span>👤 勇者大名:</span> <strong id="p-name">--</strong></div>
+        <div class="status-item"><span>🎭 當前職業:</span> <strong id="p-job" style="color: #00ffff;">初心者</strong></div>
+        <div class="status-item"><span>📈 當前等級:</span> <span id="p-lv" style="color: #2ed573; font-weight: bold;">1</span></div>
+        <div class="status-item"><span>🟩 經驗值:</span> <span id="p-exp-text" style="color: #2ecc71;">0 / 30</span></div>
         
         <!-- 血條 -->
         <div class="status-item full-row">
-            <div class="flex-space"><span>生命值:</span> <span><span id="p-hp">100</span> / 100</span></div>
+            <div class="flex-space"><span>❤️ 生命值 (HP):</span> <span><span id="p-hp">100</span> / <span id="p-maxhp">100</span></span></div>
             <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
         </div>
         
         <!-- 藍色 MP 條 -->
         <div class="status-item full-row">
-            <div class="flex-space"><span>魔力值 (MP):</span> <span><span id="p-mp">0</span> / 50</span></div>
+            <div class="flex-space"><span>🔵 魔力值 (MP):</span> <span><span id="p-mp">0</span> / <span id="p-maxmp">50</span></span></div>
             <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
         </div>
-        <div class="status-item"><span>擁有金幣:</span> <span class="gold" id="p-gold">0</span> G</div>
+        
+        <div class="status-item"><span>🪙 臨時金幣:</span> <span class="gold" id="p-gold">0</span> G</div>
+        <div class="status-item"><span>🧱 固定減傷:</span> <span id="p-block" style="color: #7f8c8d; font-weight: bold;">0</span></div>
+        <div class="status-item"><span>💥 暴擊機率:</span> <span id="p-crit" style="color: #e74c3c;">0%</span></div>
+        <div class="status-item"><span>🏃 完美閃避:</span> <span id="p-dodge" style="color: #3498db;">0%</span></div>
+        
+        <div class="status-item full-row" style="border-top: 1px dashed #333; padding-top: 5px; color: #9b59b6; font-size: 11px;">
+            🔮 已加載局內技能：<span id="p-skills-list">基本打擊</span>
+        </div>
+        <div class="status-item full-row" style="color: #ffa500; font-size: 11px;" id="dungeon-bag-row">
+            🎒 地下城極限背包 (限2格)：<span id="p-dungeon-bag">空無一物</span>
+        </div>
     </div>
 
-    <!-- 3. 📜 右側日誌打印台 (預設隱藏) -->
+    <!-- ================= 3. ⛺ 地表村莊專用面板 (VILLAGE) ================= -->
+    <div id="village-panel-box" style="display: none;">
+        <!-- 職業選擇模組 -->
+        <div class="dynamic-panel job-select-style">
+            <div class="panel-title">🎭 皇家職業聖殿</div>
+            <p style="font-size: 11px; color: #aaa; margin: 0 0 10px 0; text-align: center;">一旦局內成功晉升過該職業，未來開局即可直接跳過初心者選用！</p>
+            <div class="grid-layout" id="job-choices-container"></div>
+        </div>
+
+        <!-- 料理工坊模組 -->
+        <div class="dynamic-panel cooking-style">
+            <div class="panel-title">🍲 皇家料理烹飪工坊 (成功率 75%)</div>
+            <div class="notice-container" id="village-warehouse-display" style="margin-bottom: 10px;">
+                📦 雲端食材倉庫：載入中...
+            </div>
+            <div class="flex-layout" id="recipes-container"></div>
+        </div>
+    </div>
+
+    <!-- ================= 4. 🎁 升級/Boss 獎勵三選一專用面板 (REWARD) ================= -->
+    <div class="dynamic-panel reward-style" id="reward-panel-box" style="display: none;">
+        <div class="panel-title" id="reward-title-text" style="color: #ffd700;">✨ 命運抉擇：請選擇你獲得的靈魂賜福 ✨</div>
+        <div class="flex-layout" id="reward-choices-container"></div>
+    </div>
+
+    <!-- ================= 5. 📜 戰鬥日誌打印台 ================= -->
     <div class="log-panel" id="log-box" style="display: none;"></div>
 
-    <!-- 4. 🕹️ 動作控制面板 (預設隱藏) -->
-    <div class="action-panel" id="action-panel" style="display: none;">
-        <button id="btn-action1" type="button" onclick="handleAction1()" class="btn-game btn-explore">⚔️ 進入地下城</button>
+    <!-- ================= 6. 🕹️ 全局核心動作按鈕區 ================= -->
+    <div class="action-panel" id="action-panel-box" style="display: none;">
+        <button id="btn-main-action" type="button" onclick="handleMainAction()" class="btn-game btn-explore">⚔️ 踏入傳送門進入深淵</button>
+        <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest" style="display: none;">⛺ 在村莊全面歇息</button>
     </div>
 
-    <!-- 5. 🔮 獨立彈出層：動態 QTE 視窗 (預設隱藏) -->
+    <!-- ================= 7. 🔮 核心中斷層：全屏幕 QTE 判定視窗 ================= -->
     <div id="qte-overlay" style="display: none;">
         <div class="qte-box">
             <p id="qte-skill-name">⚡ 技能發動 ⚡</p>
