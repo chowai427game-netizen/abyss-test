@@ -492,48 +492,80 @@ body {
 }
 
 /* ==========================================================================
-   🖥️ PC 電腦寬螢幕優化：自動轉換「左右雙欄戰術儀表板」
+   🖥️ PC 寬螢幕終極雙欄儀表板佈局 (完美消滅頻繁捲動)
    ========================================================================== */
 @media (min-width: 850px) {
+    /* 讓整個遊戲在 PC 瀏覽器中完美垂直水平置中，像一款真正的獨立遊戲 */
+    body {
+        align-items: center;
+        padding: 30px 10px;
+        background: radial-gradient(circle at 50% 30%, #1c1c28 0%, #060608 100%);
+    }
+    
     .game-container {
-        max-width: 980px;  /* 大幅放寬主外殼，等電腦版有足夠橫向空間 */
+        max-width: 980px; /* 拓寬遊戲外殼面板，釋放橫向潛能 */
         display: grid;
-        grid-template-columns: 1fr 1.2fr; /* 左側 1 份空間擺數據控制，右側 1.2 份給高能日誌 */
+        grid-template-columns: 320px 1fr; /* 左欄固定 320px 放狀態與控制，右欄全彈性放主戰場 */
         gap: 20px;
-        align-items: start; /* 物件頂部對齊，避免被無謂拉伸 */
         padding: 25px;
     }
-
-    /* 讓頂部功能組件無條件橫跨左、右兩欄 */
+    
+    /* 頂部皇家標題、位置欄、環境力場警報條 ➔ 全寬橫跨兩欄 */
     .game-container > h2,
     .location-bar,
     #env-alert-bar {
         grid-column: 1 / -1;
+        margin-bottom: 5px;
     }
-
-    /* 封面主頁開局時，維持置中窄版高級感，不破壞排版 */
+    
+    /* 📢 封面歡迎頁（未開局前）：保持高貴的中央窄面板，防止被橫向拉扁 */
     #title-box {
         grid-column: 1 / -1;
         max-width: 460px;
-        margin: 10px auto 0 auto;
+        margin: 15px auto;
     }
-
-    /* 將所有數據、整備、抉擇面板同按鈕全部塞入【左側欄】自動依序向下堆疊 */
-    #status-panel-box,
-    #village-panel-box,
-    #reward-panel-box,
+    
+    /* 📊 左欄第一位：狀態數據面板（自動對齊左邊，取消底部邊距） */
+    #status-panel-box {
+        grid-column: 1;
+        margin-bottom: 0;
+        align-self: start;
+        background: rgba(0, 0, 0, 0.4);
+    }
+    
+    /* 🕹️ 左欄第二位：將操作按鈕與自動勾選框，直接移到左邊状态欄下方！
+       這樣你一邊看著血條，滑鼠就可以在同一個垂直區域直接點擊前進，再也不用拉到視窗最底！ */
     #action-panel-box {
         grid-column: 1;
+        align-self: start;
+        background: rgba(0, 0, 0, 0.25);
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.02);
+        box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
+    }
+    
+    /* 🌋 右欄上方：所有隨狀態切換的動態舞台（村莊烹飪工坊、三選一賜福） */
+    #village-panel-box,
+    #reward-panel-box {
+        grid-column: 2;
+        margin-bottom: 0;
+        align-self: start;
+    }
+    
+    /* 📜 右欄下方：戰鬥日誌打印台 */
+    #log-box {
+        grid-column: 2;
+        height: 320px; /* 電腦版固定高度，提供極佳的文字打擊感閱讀視窗 */
+        margin-bottom: 0;
     }
 
-    /* 🔮 核心變形魔法：將戰鬥日誌黑匣子移到【右側欄】，並強制與左邊並排直通到底 */
-    .log-panel {
-        grid-column: 2;
-        grid-row: 5 / 10; /* 從第 5 軌道開始鎖定，高度完美對齊左邊所有面板的總和 */
-        height: 100%;
-        min-height: 520px; /* 寬螢幕極限拉高視野！讓你一眼睇晒全部回合，唔使再撳滾輪 */
-        margin-bottom: 0;
-        background: rgba(0, 0, 0, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+    /* 調整村莊內職業跟料理的排版，在電腦上看起來更緊湊 */
+    .grid-layout {
+        gap: 8px;
+    }
+    .dynamic-panel {
+        padding: 14px;
+        margin-bottom: 15px;
     }
 }
