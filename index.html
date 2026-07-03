@@ -12,13 +12,13 @@
     <h2>⚔️ 命運深淵 ⚔️</h2>
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
     
-    <!-- 💡 新增：環境異變動態警報條 -->
-    <div id="env-alert-bar" class="env-zone-normal">✨ 當前環境力場：重力與空間表現穩定</div>
+    <!-- 💡 環境異變警報條：預設隱藏，只有進入副本戰鬥才動態顯示 -->
+    <div id="env-alert-bar" style="display: none;"></div>
 
     <!-- ================= 1. 📢 封面主頁面 (TITLE) ================= -->
     <div class="dynamic-panel title-panel-style" id="title-box">
         <h1 class="game-main-title">命運深淵</h1>
-        <p class="game-sub-title">【全球雲端聯網 • 環境異變前端版】</p>
+        <p class="game-sub-title">【全球雲端聯網 • 環境異變修復版】</p>
         
         <div class="notice-container">
             <strong style="color: #ffd700;">📢 測試提示：</strong><br>
@@ -58,11 +58,11 @@
         <div class="status-item"><span>🏃 完美閃避:</span> <span id="p-dodge" style="color: #3498db;">0%</span></div>
         
         <div class="status-item full-row" style="border-top: 1px dashed #333; padding-top: 5px; color: #9b59b6; font-size: 11px;">
-            🔮 已加載局內技能：<span id="p-skills-list">基本打擊</span>
+            🔮 已加載局內技能與狀態：<span id="p-skills-list">基本打擊</span>
         </div>
         <div class="status-item full-row" style="color: #ffa500; font-size: 11px;">
             🎒 戰術背包快捷鍵 (點擊道具即可在戰鬥中主動消耗)：
-            <span id="p-dungeon-bag"></span>
+            <div id="p-dungeon-bag"></div>
         </div>
     </div>
 
