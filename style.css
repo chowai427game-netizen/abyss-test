@@ -490,3 +490,50 @@ body {
     animation: logEnvTick 0.2s ease-out forwards !important;
     border-left: 2px solid #9b59b6 !important;
 }
+
+/* ==========================================================================
+   🖥️ PC 電腦寬螢幕優化：自動轉換「左右雙欄戰術儀表板」
+   ========================================================================== */
+@media (min-width: 850px) {
+    .game-container {
+        max-width: 980px;  /* 大幅放寬主外殼，等電腦版有足夠橫向空間 */
+        display: grid;
+        grid-template-columns: 1fr 1.2fr; /* 左側 1 份空間擺數據控制，右側 1.2 份給高能日誌 */
+        gap: 20px;
+        align-items: start; /* 物件頂部對齊，避免被無謂拉伸 */
+        padding: 25px;
+    }
+
+    /* 讓頂部功能組件無條件橫跨左、右兩欄 */
+    .game-container > h2,
+    .location-bar,
+    #env-alert-bar {
+        grid-column: 1 / -1;
+    }
+
+    /* 封面主頁開局時，維持置中窄版高級感，不破壞排版 */
+    #title-box {
+        grid-column: 1 / -1;
+        max-width: 460px;
+        margin: 10px auto 0 auto;
+    }
+
+    /* 將所有數據、整備、抉擇面板同按鈕全部塞入【左側欄】自動依序向下堆疊 */
+    #status-panel-box,
+    #village-panel-box,
+    #reward-panel-box,
+    #action-panel-box {
+        grid-column: 1;
+    }
+
+    /* 🔮 核心變形魔法：將戰鬥日誌黑匣子移到【右側欄】，並強制與左邊並排直通到底 */
+    .log-panel {
+        grid-column: 2;
+        grid-row: 5 / 10; /* 從第 5 軌道開始鎖定，高度完美對齊左邊所有面板的總和 */
+        height: 100%;
+        min-height: 520px; /* 寬螢幕極限拉高視野！讓你一眼睇晒全部回合，唔使再撳滾輪 */
+        margin-bottom: 0;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+}
