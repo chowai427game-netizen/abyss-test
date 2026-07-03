@@ -492,10 +492,9 @@ body {
 }
 
 /* ==========================================================================
-   🖥️ PC 寬螢幕終極雙欄儀表板佈局 (完美消滅頻繁捲動)
+   🖥️ PC 寬螢幕終極雙欄儀表板佈局 (完美對齊版 ── 修正行數塌陷 Bug)
    ========================================================================== */
 @media (min-width: 850px) {
-    /* 讓整個遊戲在 PC 瀏覽器中完美垂直水平置中，像一款真正的獨立遊戲 */
     body {
         align-items: center;
         padding: 30px 10px;
@@ -503,9 +502,9 @@ body {
     }
     
     .game-container {
-        max-width: 980px; /* 拓寬遊戲外殼面板，釋放橫向潛能 */
+        max-width: 980px;
         display: grid;
-        grid-template-columns: 320px 1fr; /* 左欄固定 320px 放狀態與控制，右欄全彈性放主戰場 */
+        grid-template-columns: 320px 1fr; /* 左欄固定數據控制，右欄全彈性主戰場 */
         gap: 20px;
         padding: 25px;
     }
@@ -518,25 +517,27 @@ body {
         margin-bottom: 5px;
     }
     
-    /* 📢 封面歡迎頁（未開局前）：保持高貴的中央窄面板，防止被橫向拉扁 */
+    /* 📢 封面歡迎頁 */
     #title-box {
         grid-column: 1 / -1;
+        grid-row: 4; /* 明確指定標題頁行數 */
         max-width: 460px;
         margin: 15px auto;
     }
     
-    /* 📊 左欄第一位：狀態數據面板（自動對齊左邊，取消底部邊距） */
+    /* 📊 【左欄上方】狀態數據面板 */
     #status-panel-box {
         grid-column: 1;
+        grid-row: 5; /* 💡 強制左欄起點為第 5 行 */
         margin-bottom: 0;
         align-self: start;
         background: rgba(0, 0, 0, 0.4);
     }
     
-    /* 🕹️ 左欄第二位：將操作按鈕與自動勾選框，直接移到左邊状态欄下方！
-       這樣你一邊看著血條，滑鼠就可以在同一個垂直區域直接點擊前進，再也不用拉到視窗最底！ */
+    /* 🕹️ 【左欄下方】操作按鈕與自動勾選框 */
     #action-panel-box {
         grid-column: 1;
+        grid-row: 6; /* 💡 緊貼在狀態欄正下方的第 6 行，消滅垂直大空隙 */
         align-self: start;
         background: rgba(0, 0, 0, 0.25);
         padding: 16px;
@@ -545,27 +546,21 @@ body {
         box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
     }
     
-    /* 🌋 右欄上方：所有隨狀態切換的動態舞台（村莊烹飪工坊、三選一賜福） */
+    /* 🌋 💡 【右欄核心魔法】強制右欄所有元件與左欄並排頂對齊 */
     #village-panel-box,
-    #reward-panel-box {
+    #reward-panel-box,
+    #log-box {
         grid-column: 2;
+        grid-row: 5 / span 2; /* 💡 強制跨越第 5 和第 6 行，不論誰顯示，都會從狀態欄頂部開始對齊！ */
         margin-bottom: 0;
         align-self: start;
     }
     
-    /* 📜 右欄下方：戰鬥日誌打印台 */
+    /* 📜 調整電腦版戰鬥日誌高度 */
     #log-box {
-        grid-column: 2;
-        height: 320px; /* 電腦版固定高度，提供極佳的文字打擊感閱讀視窗 */
-        margin-bottom: 0;
+        height: 380px; 
     }
 
-    /* 調整村莊內職業跟料理的排版，在電腦上看起來更緊湊 */
-    .grid-layout {
-        gap: 8px;
-    }
-    .dynamic-panel {
-        padding: 14px;
-        margin-bottom: 15px;
-    }
+    .grid-layout { gap: 8px; }
+    .dynamic-panel { padding: 14px; margin-bottom: 15px; }
 }
