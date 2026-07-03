@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ 命運深淵：核心控制、10層領主攔截與巨頭天賦獎勵引擎
+// 🕹️ 命運深淵：核心控制、10層領主攔截與巨頭天賦獎勵引擎 (修正完畢版)
 // ==========================================================================
 
 function handleToggleAuto(checkbox) {
@@ -149,46 +149,22 @@ function endQte(isSuccess) {
     if (qteResolvePointer) qteResolvePointer(isSuccess);
 }
 
-// ==========================================
-// ⚔️ 升級版：回合制戰鬥主循環 (支持每10層 Boss 遭遇)
-// ==========================================
 async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
-        
-        // 1. 環境異變滾動
         currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
         
         let isBossFloor = (dungeonFloor % 10 === 0);
-        let mName = "";
         
-        // 2. 魔物/領主載入分流
         if (isBossFloor) {
             let bossMeta = BOSS_DATABASE[dungeonFloor] || { name: `👹 深淵無名魔皇 Tier.${dungeonFloor/10}`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, dropItem: "史萊姆核心黏液" };
-            activeMonster = {
-                name: bossMeta.name,
-                hp: bossMeta.baseHp,
-                maxHp: bossMeta.baseHp,
-                atk: bossMeta.baseAtk,
-                freezeTurns: 0,
-                isSkipped: false,
-                isBoss: true,
-                fixedDrop: bossMeta.dropItem
-            };
+            activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
             addLog(`🚨🌋【領主降臨 B${dungeonFloor}F】警告！遭遇深淵大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
             let rollSeed = REGULAR_MONSTERS_POOL[Math.floor(Math.random() * REGULAR_MONSTERS_POOL.length)];
             let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * rollSeed.hpScale);
             let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * rollSeed.atkScale);
-            activeMonster = {
-                name: rollSeed.name,
-                hp: scaledHp,
-                maxHp: scaledHp,
-                atk: scaledAtk,
-                freezeTurns: 0,
-                isSkipped: false,
-                isBoss: false
-            };
+            activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, freezeTurns: 0, isSkipped: false, isBoss: false };
             addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
         }
         
@@ -225,7 +201,7 @@ async function runDungeonLoop() {
                     if (isPerfect) {
                         currentRun.mp -= sMeta.mp; let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                         if (sName === "火箭術" && currentEnvironment === "FIRE") { eff.baseFire = Math.floor(eff.baseFire * 1.5); addLog(`🌋【力場共鳴】火箭術爆發 1.5 倍！`, "deal"); }
-                        if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog PisPerfect ? `💥【完美釋放】造成 -${eff.dmg} 點傷害！` : "", "perfect"); }
+                        if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥【完美釋放】造成 -${eff.dmg} 點傷害！`, "perfect"); }
                         if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`🔥【完美釋放】怒爆火焰造成 -${eff.fireDmg} 火傷！`, "perfect"); }
                         if (eff.blockBuff) { currentRun.block += eff.blockBuff; addLog(`🛡️【完美釋放】固定減傷 +${eff.blockBuff}！`, "perfect"); }
                         if (eff.healPercent) {
@@ -260,25 +236,21 @@ async function runDungeonLoop() {
         }
         if (gameState !== "BATTLE") return;
 
-        // 3. 戰後結算
         if (currentRun.hp > 0) {
             currentRun.gold += isBossFloor ? 150 : 20; 
             currentRun.exp += isBossFloor ? 100 : 15;
             
             if (activeMonster.isSkipped) { 
-                addLog(`🔮 成功撕裂長空遁走...`); 
+                addLog("🔮 成功撕裂長空遁走..."); 
                 activeMonster = null; 
                 checkLevelUpAndTriggerSelect();
             } else {
                 if (isBossFloor) {
                     addLog(`🏆【史詩大捷】成功討伐大領主 [${activeMonster.name}]！金幣 +150 G，經驗 +100 點！`, "perfect");
-                    // Boss 必掉稀有高級食材原胚至雲端倉庫
                     let drop = activeMonster.fixedDrop;
                     accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
                     addLog(`🎁【領主血脈抽離】特殊戰利品已強制傳送回雲端永久倉庫 ➔ <strong>${drop} (x1)</strong>！`, "perfect");
-                    
                     activeMonster = null;
-                    // 💡 觸發每10層專屬的天賦獎勵機制
                     gameState = "REWARD";
                     updateUI();
                     triggerBossTalentReward();
@@ -301,16 +273,12 @@ async function runDungeonLoop() {
     } catch(err) { addLog(`🚨 地下城異常：${err.message}`, "take"); document.getElementById('btn-main-action').disabled = false; }
 }
 
-// ==========================================
-// 💡 ✨ 新增：每 10 層領主天賦永久加冕機制 (Boss Talent Rewards)
-// ==========================================
 function triggerBossTalentReward() {
     const container = document.getElementById('reward-choices-container');
     document.getElementById('reward-title-text').innerText = `✨ 討伐 B${dungeonFloor}F 領主大捷：請汲取一項深淵永久主宰天賦 ✨`;
     if (!container) return;
     container.innerHTML = "";
     
-    // 定義 3 個破格級別的對局被動天賦
     let perks = [
         { name: "👑 不滅巨魔血脈 (Troll Blood)", desc: "局內【固定減傷】面板直接永久暴增 +6 點！", run: () => { currentRun.block += 6; } },
         { name: "⚡ 狂暴神經反射 (Hyper Reflexes)", desc: "局內【完美閃避】機率永久 +8%，且QTE基礎安全詠唱時間延長 100ms！", run: () => { currentRun.dodgeChance += 8; currentRun.qteBuffDuration += 100; } },
@@ -322,15 +290,13 @@ function triggerBossTalentReward() {
         btn.className = "btn-game btn-cook";
         btn.innerHTML = `<strong>${perk.name}</strong><br><span style="color:#2ecc71; font-size:11px;">${perk.desc}</span>`;
         btn.onclick = () => {
-            perk.run(); // 注入屬性變更
+            perk.run();
             addLog(`👑【天賦覺醒】你融合了領主核心，成功加冕天賦：[${perk.name}]！`, "perfect");
-            
-            // 領主結算完成，重回戰鬥地圖，允許解鎖主前進按鈕
             gameState = "BATTLE";
             document.getElementById('btn-main-action').disabled = false;
             uploadProgressToCloud();
             updateUI();
-            checkLevelUpAndTriggerSelect(); // 補刷可能積壓的升級
+            checkLevelUpAndTriggerSelect();
         };
         container.appendChild(btn);
     });
@@ -353,3 +319,5 @@ function checkLevelUpAndTriggerSelect() {
     }
     updateUI();
 }
+
+window.onload = function() { checkCloudAccount(); };
