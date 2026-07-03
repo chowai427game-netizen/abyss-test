@@ -51,6 +51,44 @@ function handleToggleAuto(checkbox) {
     addLog(isAutoBattleMode ? "🤖 <b>【指令託管】自動戰鬥已開啟，系統將自動判定環境抗性。</b>" : "🎮 <b>【手動介入】自動戰鬥已關閉，環境力場考驗個人手速。</b>");
 }
 
+// ==========================================
+// 🗺️ 💡 新增：村莊地圖選單分區切換控制器
+// ==========================================
+function switchVillageLocation(targetZone) {
+    // 1. 隱藏所有村莊子區域
+    const subZones = ["gate", "cook", "plaza", "forge"];
+    subZones.forEach(z => {
+        const el = document.getElementById(`sub-zone-${z}`);
+        if (el) el.style.display = "none";
+    });
+    
+    // 2. 移除所有地圖按鈕的 active 高亮外觀
+    const navButtons = ["nav-town-gate", "nav-town-kitchen", "nav-town-plaza", "nav-town-forge"];
+    navButtons.forEach(b => {
+        const btn = document.getElementById(b);
+        if (btn) btn.classList.remove("active");
+    });
+    
+    // 3. 依據玩家點擊，獨立顯示目標區域，並激活按鈕高亮
+    if (targetZone === "GATE") {
+        document.getElementById("sub-zone-gate").style.display = "block";
+        document.getElementById("nav-town-gate").classList.add("active");
+        addLog("🏰 你來到了【村莊大門】，傳送門內魔力湧動，隨時可以啟程。");
+    } else if (targetZone === "COOK") {
+        document.getElementById("sub-zone-cook").style.display = "block";
+        document.getElementById("nav-town-kitchen").classList.add("active");
+        addLog("🍳 你走進了【皇家料理屋】，空氣中瀰漫著獸人肉雜碎湯的香味。");
+    } else if (targetZone === "PLAZA") {
+        document.getElementById("sub-zone-plaza").style.display = "block";
+        document.getElementById("nav-town-plaza").classList.add("active");
+        addLog(" fountain 你來到了【冒險者廣場】，工匠們正在鋪設地磚...");
+    } else if (targetZone === "WORKSHOP") {
+        document.getElementById("sub-zone-forge").style.display = "block";
+        document.getElementById("nav-town-forge").classList.add("active");
+        addLog("⚒️ 你來到了【裝備加工所】，熔爐尚未點燃，鐵砧靜靜佇立。");
+    }
+}
+
 async function checkCloudAccount() {
     let inputName = document.getElementById('player-name-input').value.trim();
     let legBox = document.getElementById('legacy-box');
