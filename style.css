@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🔮 命運深淵：皇家 CSS3 核心主題變數
+   🔮 ZONE 1: 皇家核心主題變數與全域底色重置
    ========================================================================== */
 :root {
     --bg-main: #0a0a0d;
@@ -18,7 +18,6 @@
     --clr-acolyte: #2ecc71;
 }
 
-/* 全域底色重置 */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: radial-gradient(circle at 50% 30%, #1a1a24 0%, var(--bg-main) 70%);
@@ -33,7 +32,7 @@ body {
 }
 
 /* ==========================================================================
-   🎮 遊戲主外殼 (Glassmorphism 輕量玻璃擬態)
+   🎮 ZONE 2: 應用程式外殼與通用基礎元件
    ========================================================================== */
 .game-container {
     width: 100%;
@@ -49,7 +48,6 @@ body {
     box-sizing: border-box;
 }
 
-/* 頂部大標題 */
 .game-container > h2 {
     font-size: 14px;
     letter-spacing: 4px;
@@ -71,8 +69,30 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
+.dynamic-panel {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 18px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    box-sizing: border-box;
+}
+
+.panel-title {
+    font-weight: bold;
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+.grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.flex-layout { display: flex; flex-direction: column; gap: 10px; }
+
 /* ==========================================================================
-   🌅 封面歡迎頁面 (TITLE PANEL) ── 骨灰級重製
+   🌅 ZONE 3: 封面歡迎與環境狀態監控模組
    ========================================================================== */
 .title-panel-style {
     background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.08) 0%, rgba(0,0,0,0) 70%);
@@ -81,7 +101,6 @@ body {
     text-align: center;
 }
 
-/* 驚艷嘅 CSS3 呼吸發光大標題 */
 .game-main-title {
     font-size: 42px;
     font-weight: 900;
@@ -108,7 +127,6 @@ body {
     100% { filter: drop-shadow(0 0 15px rgba(255,215,0,0.6)); }
 }
 
-/* 封面公告框 */
 .notice-container {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -120,46 +138,16 @@ body {
     line-height: 1.6;
 }
 
-.legacy-container {
-    font-size: 12px;
-    margin: 20px 0 10px 0;
-    color: var(--text-muted);
-}
+.legacy-container { font-size: 12px; margin: 20px 0 10px 0; color: var(--text-muted); }
 
-/* 高級輸入框 */
 .name-input {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    text-align: center;
-    margin-bottom: 20px;
-    box-sizing: border-box;
-    transition: all 0.3s;
+    width: 100%; padding: 14px; font-size: 16px; background: rgba(0, 0, 0, 0.5); color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; text-align: center;
+    margin-bottom: 20px; box-sizing: border-box; transition: all 0.3s;
 }
-.name-input:focus {
-    outline: none;
-    border-color: var(--gold-glow);
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
-    background: rgba(0, 0, 0, 0.7);
-}
+.name-input:focus { outline: none; border-color: var(--gold-glow); box-shadow: 0 0 12px rgba(255, 215, 0, 0.2); background: rgba(0, 0, 0, 0.7); }
 
-/* ==========================================================================
-   🚨 環境突變警報條
-   ========================================================================== */
-#env-alert-bar {
-    text-align: center;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-    transition: all 0.4s ease;
-}
+#env-alert-bar { text-align: center; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-bottom: 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); transition: all 0.4s ease; }
 .env-zone-normal { background: rgba(46, 213, 115, 0.1); color: #2ecc71; border: 1px solid rgba(46, 213, 115, 0.2); }
 .env-zone-fire { background: linear-gradient(90deg, rgba(231,76,60,0.2), rgba(120,40,31,0.4)); color: #ff4757; border: 1px solid #e74c3c; animation: envPulse 1s infinite alternate; }
 .env-zone-ice { background: linear-gradient(90deg, rgba(52,152,219,0.2), rgba(27,79,114,0.4)); color: #5dade2; border: 1px solid #3498db; }
@@ -172,327 +160,107 @@ body {
 }
 
 /* ==========================================================================
-   📊 勇者狀態面板 (精緻雙欄格線)
+   📊 ZONE 4: 狀態儀表、生命魔條與戰術背包
    ========================================================================== */
 .status-panel {
-    background: rgba(0, 0, 0, 0.3);
-    padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 16px;
+    background: rgba(0, 0, 0, 0.3); padding: 16px; border-radius: 14px; margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.03); display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px;
 }
-.status-item {
-    font-size: 13px;
-    color: #d1d1d6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+.status-item { font-size: 13px; color: #d1d1d6; display: flex; justify-content: space-between; align-items: center; }
 .status-item span { color: var(--text-muted); }
 .status-item strong { color: #fff; }
 .full-row { grid-column: span 2; display: block; }
 
-/* 血條與魔條設計 */
-.visual-bar-bg {
-    width: 100%;
-    height: 6px;
-    background: #1c1c1e;
-    border-radius: 3px;
-    overflow: hidden;
-    margin-top: 6px;
-}
-.visual-bar-fill {
-    height: 100%;
-    width: 100%;
-    border-radius: 3px;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.visual-bar-bg { width: 100%; height: 6px; background: #1c1c1e; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.visual-bar-fill { height: 100%; width: 100%; border-radius: 3px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .hp-color { background: var(--clr-hp); box-shadow: 0 0 8px rgba(255,65,108,0.5); }
 .mp-color { background: var(--clr-mp); box-shadow: 0 0 8px rgba(0,198,255,0.5); }
 
-/* ==========================================================================
-   🎒 戰術背包快捷按鈕
-   ========================================================================== */
-.bag-slot-container {
-    display: flex;
-    gap: 10px;
-    margin-top: 8px;
-}
+.bag-slot-container { display: flex; gap: 10px; margin-top: 8px; }
 .btn-bag-slot {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px dashed rgba(255, 255, 255, 0.15);
-    color: var(--text-muted);
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
+    flex: 1; background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.15);
+    color: var(--text-muted); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; transition: all 0.2s;
 }
-.btn-bag-slot.has-item {
-    background: linear-gradient(135deg, #231932 0%, #131932 100%);
-    border: 1px solid rgba(155, 89, 182, 0.4);
-    color: #fff;
-    font-weight: 600;
-    box-shadow: 0 4px 10px rgba(155,89,182,0.15);
-}
-.btn-bag-slot.has-item:hover {
-    transform: translateY(-1px);
-    border-color: #9b59b6;
-    box-shadow: 0 4px 12px rgba(155,89,182,0.3);
-}
+.btn-bag-slot.has-item { background: linear-gradient(135deg, #231932 0%, #131932 100%); border: 1px solid rgba(155, 89, 182, 0.4); color: #fff; font-weight: 600; box-shadow: 0 4px 10px rgba(155,89,182,0.15); }
+.btn-bag-slot.has-item:hover { transform: translateY(-1px); border-color: #9b59b6; box-shadow: 0 4px 12px rgba(155,89,182,0.3); }
 
 /* ==========================================================================
-   🧱 區塊通用面板 (村莊、烹飪、獎勵)
+   🗺️ ZONE 5: 村莊分區地圖選單導覽系統
    ========================================================================== */
-.dynamic-panel {
-    background: rgba(255, 255, 255, 0.01);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    padding: 18px;
-    border-radius: 14px;
-    margin-bottom: 25px;
-    box-sizing: border-box;
+.village-nav-bar, .town-map-nav {
+    display: flex; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 4px; border-radius: 10px; margin-bottom: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.03); overflow-x: auto; scrollbar-width: none;
 }
-.panel-title {
-    font-weight: bold;
-    text-align: center;
-    font-size: 13px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 15px;
-    color: #fff;
+.village-nav-bar::-webkit-scrollbar, .town-map-nav::-webkit-scrollbar { display: none; }
+
+.btn-nav-tab, .btn-map-node {
+    flex: 1; min-width: 90px; background: transparent; border: none; color: var(--text-muted);
+    padding: 10px 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 7px; white-space: nowrap; transition: all 0.2s;
+}
+.btn-nav-tab:hover, .btn-map-node:hover { color: #fff; background: rgba(255, 255, 255, 0.03); }
+
+.btn-nav-tab.active, .btn-map-node.active {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%);
+    color: var(--gold-glow); border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    text-shadow: 0 0 6px rgba(255,215,0,0.5); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.v-sub-loc-panel { animation: subLocFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes subLocFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
+
+.placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 30px 20px; text-align: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
+.placeholder-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #fff; letter-spacing: 1px; }
+.placeholder-status { display: inline-block; font-size: 10px; font-weight: bold; background: rgba(155, 89, 182, 0.15); color: #bb8fce; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(155, 89, 182, 0.3); margin: 0 0 20px 0; letter-spacing: 1px; }
+.placeholder-desc { font-size: 12px; color: var(--text-muted); line-height: 1.7; max-width: 360px; margin: 0 auto; }
+
+/* 流派樣式邊框 */
 .job-select-style { border-color: rgba(0, 206, 166, 0.15); background: linear-gradient(180deg, rgba(0,206,166,0.02) 0%, rgba(0,0,0,0) 100%); }
-.cooking-style { border-color: rgba(155, 89, 182, 0.15); background: linear-gradient(180deg, rgba(155,89,182,0.02) 0%, rgba(0,0,0,0) 100%); }
+.cooking-style { border-color: rgba(155, 89, 182, 0.15); background: linear-gradient(180deg, rgba(155, 89, 182, 0.02) 0%, rgba(0,0,0,0) 100%); }
 .reward-style { border: 1px solid var(--gold-glow); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
 
-.grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.flex-layout { display: flex; flex-direction: column; gap: 10px; }
-
 /* ==========================================================================
-   📜 戰鬥日誌黑匣子
+   🕹️ ZONE 6: 按鈕面板、QTE 引擎與戰鬥日誌打擊感
    ========================================================================== */
-.log-panel {
-    height: 250px;
-    overflow-y: auto;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    margin-bottom: 20px;
-    font-size: 12px;
-    line-height: 1.6;
-    box-sizing: border-box;
-}
-.log-row-box {
-    background: rgba(255,255,255,0.01);
-    border-radius: 6px;
-    padding: 6px 12px;
-    margin: 5px 0;
-    border-left: 2px solid rgba(255,255,255,0.1);
-    color: #d1d1d6;
-}
+.log-panel { height: 250px; overflow-y: auto; background: rgba(0, 0, 0, 0.4); padding: 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.03); margin-bottom: 20px; font-size: 12px; line-height: 1.6; box-sizing: border-box; }
+.log-row-box { background: rgba(255,255,255,0.01); border-radius: 6px; padding: 6px 12px; margin: 5px 0; border-left: 2px solid rgba(255,255,255,0.1); color: #d1d1d6; animation: logPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transform-origin: left center; }
 
-/* ==========================================================================
-   🕹️ 核心動作按鈕與按鈕美學
-   ========================================================================== */
-.btn-game {
-    color: white;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    border: none;
-    padding: 14px;
-    font-size: 14px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.btn-game { color: white; border-radius: 10px; cursor: pointer; font-weight: bold; border: none; padding: 14px; font-size: 14px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
 .btn-game:active { transform: scale(0.98); opacity: 0.9; }
 .btn-game:disabled { background: #2c2c2e !important; color: #555 !important; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
-
-.btn-explore {
-    background: linear-gradient(135deg, #2ed573 0%, #26af5f 100%);
-    box-shadow: 0 4px 15px rgba(46,213,115,0.25);
-}
+.btn-explore { background: linear-gradient(135deg, #2ed573 0%, #26af5f 100%); box-shadow: 0 4px 15px rgba(46,213,115,0.25); }
 .btn-explore:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(46,213,115,0.4); }
+.btn-rest { background: linear-gradient(135deg, #1e90ff 0%, #0070e3 100%); box-shadow: 0 4px 15px rgba(30,144,255,0.25); }
+.btn-job-choice { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 12px; padding: 12px 6px; }
+.btn-job-choice.active { background: linear-gradient(135deg, #00cea6 0%, #00a383 100%); color: #050507; border-color: #00cea6; box-shadow: 0 4px 12px rgba(0,206,166,0.3); }
+.btn-cook { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); text-align: left; font-size: 11px; }
+.btn-cook:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.15); }
 
-.btn-rest {
-    background: linear-gradient(135deg, #1e90ff 0%, #0070e3 100%);
-    box-shadow: 0 4px 15px rgba(30,144,255,0.25);
-}
-
-.btn-job-choice {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    font-size: 12px;
-    padding: 12px 6px;
-}
-.btn-job-choice.active {
-    background: linear-gradient(135deg, #00cea6 0%, #00a383 100%);
-    color: #050507;
-    border-color: #00cea6;
-    box-shadow: 0 4px 12px rgba(0,206,166,0.3);
-}
-
-.btn-cook {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    text-align: left;
-    font-size: 11px;
-}
-.btn-cook:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-/* ==========================================================================
-   🔮 全螢幕大招 QTE 儀表盤
-   ========================================================================== */
-#qte-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(5, 5, 7, 0.85);
-    backdrop-filter: blur(8px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-.qte-box {
-    background: #141419;
-    padding: 35px 25px;
-    border-radius: 24px;
-    border: 1px solid var(--gold-glow);
-    text-align: center;
-    width: 80%;
-    max-width: 300px;
-    box-shadow: 0 10px 40px rgba(255,215,0,0.15);
-}
-#qte-skill-name {
-    font-size: 14px;
-    letter-spacing: 2px;
-    color: #fff;
-    margin-top: 0;
-    margin-bottom: 25px;
-    text-transform: uppercase;
-}
-#qte-tap-btn {
-    background: linear-gradient(135deg, #ff4757 0%, #ff2a3b 100%);
-    color: white;
-    border: none;
-    padding: 30px;
-    font-size: 22px;
-    font-weight: bold;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 8px 25px rgba(255,71,87,0.4);
-    transition: transform 0.1s;
-}
+#qte-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 7, 0.85); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+.qte-box { background: #141419; padding: 35px 25px; border-radius: 24px; border: 1px solid var(--gold-glow); text-align: center; width: 80%; max-width: 300px; box-shadow: 0 10px 40px rgba(255,215,0,0.15); }
+#qte-skill-name { font-size: 14px; letter-spacing: 2px; color: #fff; margin-top: 0; margin-bottom: 25px; text-transform: uppercase; }
+#qte-tap-btn { background: linear-gradient(135deg, #ff4757 0%, #ff2a3b 100%); color: white; border: none; padding: 30px; font-size: 22px; font-weight: bold; border-radius: 50%; cursor: pointer; box-shadow: 0 8px 25px rgba(255,71,87,0.4); transition: transform 0.1s; }
 #qte-tap-btn:active { transform: scale(0.92); }
-
-.qte-timer-bg {
-    width: 100%; height: 4px; background: #25252b; border-radius: 2px; overflow: hidden; margin-top: 30px;
-}
+.qte-timer-bg { width: 100%; height: 4px; background: #25252b; border-radius: 2px; overflow: hidden; margin-top: 30px; }
 #qte-timer-fill { height: 100%; width: 100%; background: var(--gold-glow); }
 
-/* 特效重擊閃爍 */
-@keyframes screenShake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    20% { transform: translate(-2px, -1px) rotate(-1deg); }
-    40% { transform: translate(2px, 2px) rotate(1deg); }
-    100% { transform: translate(1px, 1px) rotate(0deg); }
-}
+/* 打擊感 Keyframes */
+@keyframes screenShake { 0% { transform: translate(1px, 1px) rotate(0deg); } 20% { transform: translate(-2px, -1px) rotate(-1deg); } 40% { transform: translate(2px, 2px) rotate(1deg); } 100% { transform: translate(1px, 1px) rotate(0deg); } }
 .shake-effect { animation: screenShake 0.15s ease-in-out; }
 .success-flash { background-color: #0f3d1b !important; transition: background 0.05s; }
 .fail-flash { background-color: #521111 !important; transition: background 0.05s; }
 
-/* ==========================================================================
-   💥 文字打擊感（Hit Impact Text Actions）核心動態
-   ========================================================================== */
+@keyframes logPopIn { 0% { transform: scale(0.9); opacity: 0; } 70% { transform: scale(1.02); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes logHeavyPunch { 0% { transform: scale(0.3) translateX(-30px) skewX(-15deg); filter: brightness(4); opacity: 0; } 40% { transform: scale(1.18) translateX(10px) skewX(5deg); filter: brightness(2); } 70% { transform: scale(0.95) translateX(-2px); } 100% { transform: scale(1) translateX(0) skewX(0); filter: brightness(1); opacity: 1; } }
+@keyframes logDamageShake { 0% { transform: translateX(0); background: rgba(231, 76, 60, 0.4); } 15% { transform: translateX(-8px) skewY(1deg); } 30% { transform: translateX(6px) skewY(-1deg); } 45% { transform: translateX(-5px); } 60% { transform: translateX(4px); } 85% { transform: translateX(-2px); } 100% { transform: translateX(0); background: rgba(255, 255, 255, 0.01); } }
+@keyframes logEnvTick { 0% { transform: translateY(-5px); filter: brightness(1.5); } 100% { transform: translateY(0); filter: brightness(1); } }
 
-/* 1. 基礎彈出動畫（所有文字進場時都有微微的彈性） */
-@keyframes logPopIn {
-    0% { transform: scale(0.9); opacity: 0; }
-    70% { transform: scale(1.02); }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-/* 2. 完美暴擊大招 ── 瞬間巨大化、高亮度、帶有扭曲衝擊感 */
-@keyframes logHeavyPunch {
-    0% { transform: scale(0.3) translateX(-30px) skewX(-15deg); filter: brightness(4); opacity: 0; }
-    40% { transform: scale(1.18) translateX(10px) skewX(5deg); filter: brightness(2); }
-    70% { transform: scale(0.95) translateX(-2px); }
-    100% { transform: scale(1) translateX(0) skewX(0); filter: brightness(1); opacity: 1; }
-}
-
-/* 3. 肉身受創 ── 劇烈左右撕裂震動，模擬被痛擊的晃動感 */
-@keyframes logDamageShake {
-    0% { transform: translateX(0); background: rgba(231, 76, 60, 0.4); }
-    15% { transform: translateX(-8px) skewY(1deg); }
-    30% { transform: translateX(6px) skewY(-1deg); }
-    45% { transform: translateX(-5px); }
-    60% { transform: translateX(4px); }
-    85% { transform: translateX(-2px); }
-    100% { transform: translateX(0); background: rgba(255, 255, 255, 0.01); }
-}
-
-/* 4. 環境跳毒扣血 ── 微弱向下沉重一擊 */
-@keyframes logEnvTick {
-    0% { transform: translateY(-5px); filter: brightness(1.5); }
-    100% { transform: translateY(0); filter: brightness(1); }
-}
+.log-perfect { animation: logHeavyPunch 0.35s cubic-bezier(0.215, 0.61, 0.355, 1) forwards !important; background: linear-gradient(90deg, rgba(46, 213, 115, 0.15) 0%, rgba(0,0,0,0) 100%) !important; border-left: 4px solid #2ecc71 !important; text-shadow: 0 0 8px #2ecc71, 0 0 15px rgba(46,213,115,0.4); font-weight: bold; font-size: 13px !important; color: #fff !important; }
+.log-deal-dmg { animation: logHeavyPunch 0.25s ease-out forwards !important; background: linear-gradient(90deg, rgba(255, 215, 0, 0.08) 0%, rgba(0,0,0,0) 100%) !important; border-left: 3px solid #ffd700 !important; text-shadow: 0 0 4px #ffd700; color: #fff; }
+.log-take-dmg { animation: logDamageShake 0.4s ease-in-out forwards !important; border-left: 4px solid #ff4757 !important; text-shadow: 0 0 6px #ff4757; font-weight: 500; color: #ff6b81 !important; }
+.log-env-tick { animation: logEnvTick 0.2s ease-out forwards !important; border-left: 2px solid #9b59b6 !important; }
 
 /* ==========================================================================
-   📥 打擊感分流類別樣式
-   ========================================================================== */
-.log-row-box {
-    animation: logPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    transform-origin: left center;
-    transition: all 0.2s;
-}
-
-/* 🟢 QTE Perfect 完美大招外觀 */
-.log-perfect {
-    animation: logHeavyPunch 0.35s cubic-bezier(0.215, 0.61, 0.355, 1) forwards !important;
-    background: linear-gradient(90deg, rgba(46, 213, 115, 0.15) 0%, rgba(0,0,0,0) 100%) !important;
-    border-left: 4px solid #2ecc71 !important;
-    text-shadow: 0 0 8px #2ecc71, 0 0 15px rgba(46,213,115,0.4);
-    font-weight: bold;
-    font-size: 13px !important;
-    color: #fff !important;
-}
-
-/* 🟡 勇者普通物理砍擊外觀 */
-.log-deal-dmg {
-    animation: logHeavyPunch 0.25s ease-out forwards !important;
-    background: linear-gradient(90deg, rgba(255, 215, 0, 0.08) 0%, rgba(0,0,0,0) 100%) !important;
-    border-left: 3px solid #ffd700 !important;
-    text-shadow: 0 0 4px #ffd700;
-    color: #fff;
-}
-
-/* 🔴 勇者受創/護盾碎裂外觀 */
-.log-take-dmg {
-    animation: logDamageShake 0.4s ease-in-out forwards !important;
-    border-left: 4px solid #ff4757 !important;
-    text-shadow: 0 0 6px #ff4757;
-    font-weight: 500;
-    color: #ff6b81 !important;
-}
-
-/* 🟣 環境燃燒/中毒跳字外觀 */
-.log-env-tick {
-    animation: logEnvTick 0.2s ease-out forwards !important;
-    border-left: 2px solid #9b59b6 !important;
-}
-
-/* ==========================================================================
-   🖥️ PC 寬螢幕終極雙欄儀表板佈局 (完美對齊版 ── 修正行數塌陷 Bug)
+   🖥️ ZONE 7: PC 寬螢幕終極雙欄太空艙儀表板佈局 (精確去重合併版)
    ========================================================================== */
 @media (min-width: 850px) {
     body {
@@ -509,7 +277,7 @@ body {
         padding: 25px;
     }
     
-    /* 頂部皇家標題、位置欄、環境力場警報條 ➔ 全寬橫跨兩欄 */
+    /* 頂部全寬橫跨兩欄元件 */
     .game-container > h2,
     .location-bar,
     #env-alert-bar {
@@ -520,7 +288,6 @@ body {
     /* 📢 封面歡迎頁 */
     #title-box {
         grid-column: 1 / -1;
-        grid-row: 4; /* 明確指定標題頁行數 */
         max-width: 460px;
         margin: 15px auto;
     }
@@ -528,16 +295,16 @@ body {
     /* 📊 【左欄上方】狀態數據面板 */
     #status-panel-box {
         grid-column: 1;
-        grid-row: 5; /* 💡 強制左欄起點為第 5 行 */
+        grid-row: auto; 
         margin-bottom: 0;
         align-self: start;
         background: rgba(0, 0, 0, 0.4);
     }
     
-    /* 🕹️ 【左欄下方】操作按鈕與自動勾選框 */
+    /* 🕹️ 【左欄下方】操作按鈕與自動勾選框 ── 完美吸附 */
     #action-panel-box {
         grid-column: 1;
-        grid-row: 6; /* 💡 緊貼在狀態欄正下方的第 6 行，消滅垂直大空隙 */
+        grid-row: auto; 
         align-self: start;
         background: rgba(0, 0, 0, 0.25);
         padding: 16px;
@@ -546,163 +313,23 @@ body {
         box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
     }
     
-    /* 🌋 💡 【右欄核心魔法】強制右欄所有元件與左欄並排頂對齊 */
+    /* 🌋 【右欄主舞台流動區】解除 row 硬性綁定，改為自然垂直流動，完美相容長料理列表 */
     #village-panel-box,
     #reward-panel-box,
-    #log-box {
+    #log-box,
+    .town-map-nav {
         grid-column: 2;
-        grid-row: 5 / span 2; /* 💡 強制跨越第 5 和第 6 行，不論誰顯示，都會從狀態欄頂部開始對齊！ */
+        grid-row: auto;
         margin-bottom: 0;
         align-self: start;
     }
     
-    /* 📜 調整電腦版戰鬥日誌高度 */
+    /* 📜 電腦版戰鬥日誌高彈性視窗 */
     #log-box {
         height: 380px; 
+        margin-top: 12px; /* 與上方分頁面板拉開優雅字體間距 */
     }
 
     .grid-layout { gap: 8px; }
     .dynamic-panel { padding: 14px; margin-bottom: 15px; }
 }
-
-/* ==========================================================================
-   🗺️ 村莊分區地圖選單 (Town Map Menu Navigation) CSS3 美學
-   ========================================================================== */
-.town-map-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    margin-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    scrollbar-width: none; /* 隱藏電腦版滾動條 */
-}
-.town-map-nav::-webkit-scrollbar { display: none; } /* 隱藏手機版滾動條 */
-
-.btn-map-node {
-    flex: 1;
-    min-width: 95px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: var(--text-muted);
-    padding: 10px 6px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: center;
-    white-space: nowrap;
-    transition: all 0.25s ease;
-}
-
-/* 鼠標懸停與點擊激活高亮狀態 */
-.btn-map-node:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.btn-map-node.active {
-    background: linear-gradient(135deg, #ffd700 0%, #b39700 100%);
-    color: #050507;
-    border-color: #ffd700;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
-}
-
-/* 電腦版大螢幕排版對齊微調 */
-@media (min-width: 850px) {
-    .town-map-nav {
-        grid-column: 2; /* 讓導航地圖橫條精準定位在右側主舞台頂部 */
-        margin-bottom: 10px;
-    }
-}
-
-/* ==========================================================================
-   🗺️ 村莊橫向導覽分頁（Village Navigation Tabs Style）
-   ========================================================================== */
-.village-nav-bar {
-    display: flex;
-    gap: 6px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 4px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    overflow-x: auto; /* 確保在極窄螢幕下可以滑動導覽列 */
-}
-
-/* 導覽頁按鈕基礎美學 */
-.btn-nav-tab {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    padding: 10px 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 7px;
-    white-space: nowrap;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.btn-nav-tab:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.03);
-}
-
-/* 激活狀態 ── 幻化高亮霓虹邊框 */
-.btn-nav-tab.active {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 215, 0, 0.05) 100%);
-    color: var(--gold-glow);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    text-shadow: 0 0 6px rgba(255,215,0,0.5);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* 子分流面板切換時的流暢淡入效果 */
-.v-sub-loc-panel {
-    animation: subLocFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-@keyframes subLocFadeIn {
-    0% { opacity: 0; transform: translateY(4px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-
-/* ==========================================================================
-   🚧 未開發區域期待卡片（Placeholder Cyber Card Style）
-   ========================================================================== */
-.placeholder-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%);
-    border: 1px dashed rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 30px 20px;
-    text-align: center;
-    box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
-}
-.placeholder-card h3 {
-    margin: 0 0 10px 0;
-    font-size: 16px;
-    color: #fff;
-    letter-spacing: 1px;
-}
-.placeholder-status {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: bold;
-    background: rgba(155, 89, 182, 0.15);
-    color: #bb8fce;
-    padding: 4px 10px;
-    border-radius: 20px;
-    border: 1px solid rgba(155, 89, 182, 0.3);
-    margin: 0 0 20px 0;
-    letter-spacing: 1px;
-}
-.placeholder-desc {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.7;
-    max-width: 360px;
-    margin: 0 auto;
-}
-
