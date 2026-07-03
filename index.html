@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>命運深淵：血脈傳承 - 環境異變終極前端版</title>
+    <title>命運深淵：血脈傳承 - 區域分流終極前端版</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
     <h2> Abyss of Destiny </h2>
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
     
-    <!-- 💡 環境異變動態警報條 -->
+    <!-- 環境異變動態警報條 -->
     <div id="env-alert-bar" class="env-zone-normal">✨ 當前環境力場：重力與空間表現穩定</div>
 
     <!-- ================= 1. 📢 封面主頁面 (TITLE) ================= -->
@@ -22,7 +22,7 @@
         
         <div class="notice-container">
             <strong style="color: #ffd700;">📢 測試提示：</strong><br>
-            • 地下城正式加載【環境異變房】！高樓層會隨機遭遇烈焰、永凍、劇毒與虛空壓制力場！<br>
+            • 地表村莊全面升級【地圖分流系統】！料理屋、加工所、廣場合理劃分，告別繁瑣捲動！<br>
             • 自動戰鬥託管功能已全面接入環境抗性判定，割草更具策略性！<br>
             • 請輸入勇者大名以開啟您的全新篇章。
         </div>
@@ -66,27 +66,26 @@
         </div>
     </div>
 
-    <!-- ================= 3. ⛺ 地表村莊專用面板 (地圖分區精裝版) ================= -->
+    <!-- ================= 3. ⛺ 地表村莊專用分流面板 ================= -->
     <div id="village-panel-box" style="display: none;">
-        
-        <!-- 🗺️ CSS3 皇家村莊地圖傳送帶 -->
-        <div class="town-map-nav">
-            <button id="nav-town-gate" onclick="switchVillageLocation('GATE')" class="btn-map-node active">🏰 村莊大門</button>
-            <button id="nav-town-kitchen" onclick="switchVillageLocation('COOK')" class="btn-map-node">🍳 皇家料理屋</button>
-            <button id="nav-town-plaza" onclick="switchVillageLocation('PLAZA')" class="btn-map-node"> fountain 冒險者廣場</button>
-            <button id="nav-town-forge" onclick="switchVillageLocation('WORKSHOP')" class="btn-map-node">⚒️ 裝備加工所</button>
+        <!-- 💡 新增：JRPG 風格地圖區域導覽列 -->
+        <div class="village-nav-bar">
+            <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
+            <button id="btn-tab-kitchen" class="btn-nav-tab" onclick="switchVillageLocation('KITCHEN')">🍳 料理屋</button>
+            <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">🏛️ 中央廣場</button>
+            <button id="btn-tab-workshop" class="btn-nav-tab" onclick="switchVillageLocation('WORKSHOP')">🛠️ 加工所</button>
         </div>
 
-        <!-- 🚪 區域 A：村莊大門 (負責轉職與傳送準備) -->
-        <div id="sub-zone-gate" class="town-sub-zone">
+        <!-- 子分流槽 A: 進入地下城/轉職大殿 -->
+        <div id="v-loc-gate" class="v-sub-loc-panel">
             <div class="dynamic-panel job-select-style">
-                <div class="panel-title">🎭 皇家職業聖殿 (請在此處轉職覺醒)</div>
+                <div class="panel-title">🎭 皇家職業聖殿</div>
                 <div class="grid-layout" id="job-choices-container"></div>
             </div>
         </div>
 
-        <!-- 🍳 區域 B：皇家料理屋 (專心做菜) -->
-        <div id="sub-zone-cook" class="town-sub-zone" style="display: none;">
+        <!-- 子分流槽 B: 料理屋 -->
+        <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
             <div class="dynamic-panel cooking-style">
                 <div class="panel-title">🍲 皇家料理烹飪工坊 (成功率 75%)</div>
                 <div class="notice-container" id="village-warehouse-display" style="margin-bottom: 10px;">📦 雲端倉庫載入中...</div>
@@ -94,32 +93,29 @@
             </div>
         </div>
 
-        <!-- ⛲ 區域 C：冒險者廣場 (未開發) -->
-        <div id="sub-zone-plaza" class="town-sub-zone" style="display: none;">
-            <div class="dynamic-panel" style="border-color: #3498db; background: rgba(52, 152, 219, 0.02); text-align: center; padding: 40px 20px;">
-                <h3 style="color: #3498db; margin: 0 0 10px 0;">⛲ 冒險者廣場</h3>
-                <p class="notice-container" style="text-align: center;">
-                    【🚧 區域建設中】<br><br>
-                    全服血脈勇者留言板、即時聊天大廳正在加緊趕工。<br>
-                    未來你將在此處與其他傳承始祖交流打怪心得與料理配方！
-                </p>
+        <!-- 子分流槽 C: 中央廣場 (未開發) -->
+        <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
+            <div class="placeholder-card">
+                <h3>🏛️ 中央交流廣場</h3>
+                <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
+                <div class="placeholder-desc">
+                    未來這裡將接入 Render 後端聯網引擎，提供全服玩家留言板、即時聊天室與傳承血脈戰力排行榜！
+                </div>
             </div>
         </div>
 
-        <!-- ⚒️ 區域 D：裝備加工所 (未開發) -->
-        <div id="sub-zone-forge" class="town-sub-zone" style="display: none;">
-            <div class="dynamic-panel" style="border-color: #e67e22; background: rgba(230, 126, 34, 0.02); text-align: center; padding: 40px 20px;">
-                <h3 style="color: #e67e22; margin: 0 0 10px 0;">⚒️ 裝備加工所</h3>
-                <p class="notice-container" style="text-align: center;">
-                    【🚧 區域建設中】<br><br>
-                    魔物骸骨熔煉、護盾晶體碎片強化、傳家寶神裝打造系統籌備中。<br>
-                    收集地下城稀有礦石，突破肉身攻擊力極限！
-                </p>
+        <!-- 子分流槽 D: 加工所 (未開發) -->
+        <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
+            <div class="placeholder-card">
+                <h3>🛠️ 皇家魔導加工所</h3>
+                <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
+                <div class="placeholder-desc">
+                    鐵匠正在打造熔爐！未來可在此處消耗地下城隨機掉落的稀有魔物食材原胚，進行傳承武器鍛造、神聖聖物精煉與特殊詞條洗練！
+                </div>
             </div>
         </div>
-
     </div>
-        
+
     <!-- ================= 4. 🎁 獎勵三選一專用面板 ================= -->
     <div class="dynamic-panel reward-style" id="reward-panel-box" style="display: none;">
         <div class="panel-title" id="reward-title-text" style="color: #ffd700;">✨ 抉擇靈魂賜福 ✨</div>
