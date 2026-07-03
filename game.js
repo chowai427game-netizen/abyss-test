@@ -200,6 +200,7 @@ function resetCurrentRunData() {
     playerShield = 0;
     activeMonster = null;
     playerStatusEffects = { burn: 0, poison: 0 };
+    switchVillageLocation('GATE');
 }
 
 function handleMainAction() {
@@ -230,6 +231,7 @@ function handleSecondaryAction() {
         clearTimeout(qteTimer);
         isQteActive = false;
         document.getElementById('qte-overlay').style.display = 'none';
+    switchVillageLocation('GATE');
     }
     
     addLog(`🏃【撤退】你驚險逃回地表村莊！力場異常狀態完全洗淨。當局臨時等級歸零。`);
