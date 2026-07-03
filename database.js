@@ -1,10 +1,10 @@
 // ==========================================================================
-// 🧱 命運深淵：皇家靜態資產與核心數據庫
+// 🧱 命運深淵：皇家靜態資產與核心數據庫 (語法修正安全版)
 // ==========================================================================
 
 const SKILLS_DATABASE = {
     novice: [
-        { name: "緊急治療", type: "active", mp: 15, desc: "基礎求生治療，聖光微現回復些許生命值。", run: (lv, atk, maxMp, hp) => ({ healPercent: 0.20, lostHp: (100 - hp) + 40 }) }
+        { name: "緊急治療", type: "active", mp: 15, desc: "基礎求生治療，聖光微現回復些許生命值。", run: (lv, atk, maxMp, hp) => ({ healPercent: 0.20, lostHp: (currentRun.maxHp - hp) + 40 }) }
     ],
     swordsman: [
         { name: "狂擊", type: "active", mp: 15, desc: "物理重擊造成 180% 傷害，機率使怪眩暈。", run: (lv, dmg) => ({ dmg: Math.floor(dmg * (1.4 + lv * 0.4)), stun: 20 + lv * 10 }) },
@@ -33,7 +33,7 @@ const SKILLS_DATABASE = {
     acolyte: [
         { name: "治癒術", type: "active", mp: 20, desc: "聖光降臨，立刻百分比回復自身已損失生命值的 25% 氣血。", run: (lv, maxHp, dummy, hp) => ({ healPercent: 0.17 + lv * 0.08, lostHp: maxHp - hp }) },
         { name: "天使之賜福", type: "active", mp: 40, desc: "神聖洗禮！本局冒險基礎攻擊永久 +10、最大生命上限永久 +50。", run: (lv) => ({ permAtk: 4 + lv * 6, permHp: 20 + lv * 30 }) },
-        { name: "加速術", type: "active", mp: 15, desc: "極限閃避！完美閃避率永久固定 +10%，且下一回合自身必定暴擊。", run: (lv) => ({ permDodge: 7 + ...js }) },
+        { name: "加速術", type: "active", mp: 15, desc: "極限閃避！完美閃避率永久固定 +10%，且下一回合自身必定暴擊。", run: (lv) => ({ permDodge: 7 + lv * 3 }) }, // 💡 呢度修正好啦！
         { name: "光之壁", type: "active", mp: 25, desc: "當魔物施展特技大招時，揉捏防御成功強行將該傷害抹除 50%。", run: (lv) => ({ bossDmgCut: 0.35 + lv * 0.15 }) },
         { name: "神聖之光", type: "active", mp: 15, desc: "射出破邪聖光造成 25 點真傷。對不死系或 B40F 以上魔物有 3倍傷。", run: (lv) => ({ holyBase: 10 + lv * 15, undeadMult: 2.0 + lv * 1.0 }) },
         { name: "天使之護", type: "passive", desc: "【自動被動】神聖鐵甲加護，勇者固定減傷面板直接永續增加 +4 點。" },
