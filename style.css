@@ -10,7 +10,6 @@ body {
     padding: 10px;
     box-sizing: border-box;
 }
-
 .game-container {
     width: 100%;
     max-width: 540px;
@@ -20,138 +19,75 @@ body {
     box-shadow: 0 15px 40px rgba(0,0,0,0.8); 
     border: 2px solid #2d2d35;
     box-sizing: border-box;
-    transition: all 0.3s ease;
+}
+.game-main-title { font-size: 28px; color: #ffd700; text-align: center; margin: 0 0 5px 0; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+.game-sub-title { font-size: 12px; color: #aaa; text-align: center; margin: 0 0 15px 0; }
+.location-bar { text-align: center; background: #0f0f12; padding: 12px; border-radius: 8px; margin-bottom: 6px; font-weight: bold; border: 1px solid #25252b; font-size: 14px; }
+
+/* 💡 新增：環境突變警報條自適應視覺效果 */
+#env-alert-bar {
+    text-align: center; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 15px;
+    border: 1px solid transparent; text-shadow: 0 1px 2px #000; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+}
+.env-zone-normal { background: #191922; color: #2ecc71; border-color: #27ae60 !important; }
+.env-zone-fire { background: linear-gradient(90deg, #78281f, #2c3e50); color: #e74c3c; border-color: #c0392b !important; animation: pulseGlow 1.5s infinite alternate; }
+.env-zone-ice { background: linear-gradient(90deg, #1b4f72, #2c3e50); color: #5dade2; border-color: #2980b9 !important; }
+.env-zone-poison { background: linear-gradient(90deg, #145a32, #2c3e50); color: #58d68d; border-color: #27ae60 !important; }
+.env-zone-void { background: linear-gradient(90deg, #4a235a, #2c3e50); color: #bb8fce; border-color: #8e44ad !important; }
+
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 4px rgba(231,76,60,0.4); }
+    100% { box-shadow: 0 0 12px rgba(231,76,60,0.8); }
 }
 
-/* 電腦大螢幕雙通道自適應排版 */
-@media (min-width: 900px) {
-    body { align-items: center; padding: 20px 10px; }
-    .game-container { max-width: 540px; }
-}
-
-.game-main-title { font-size: 28px; color: #ffd700; text-align: center; margin: 0 0 5px 0; text-shadow: 0 0 10px rgba(255,215,0,0.3); letter-spacing: 2px; }
-.game-sub-title { font-size: 12px; color: #aaa; text-align: center; margin: 0 0 15px 0; letter-spacing: 1px; }
-.location-bar { text-align: center; background: #0f0f12; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; border: 1px solid #25252b; font-size: 14px; letter-spacing: 1px; }
-
-/* 卡牌組件樣式 */
-.dynamic-panel { padding: 15px; border-radius: 12px; margin-bottom: 15px; box-sizing: border-box; width: 100%; border: 1px solid #2d2d35; }
+.dynamic-panel { padding: 15px; border-radius: 12px; margin-bottom: 15px; width: 100%; border: 1px solid #2d2d35; box-sizing: border-box; }
 .title-panel-style { background: linear-gradient(135deg, #16161a 0%, #243342 100%); border: 2px solid #ffd700; }
 .job-select-style { background: #151d24; border-color: #00cea6; }
 .cooking-style { background: #1a1625; border-color: #9b59b6; }
-.reward-style { background: linear-gradient(135deg, #1c2833 0%, #121212 100%); border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); }
-.panel-title { font-weight: bold; text-align: center; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px; color: #fff; }
+.reward-style { background: linear-gradient(135deg, #1c2833 0%, #121212 100%); border: 2px solid #ffd700; }
+.panel-title { font-weight: bold; text-align: center; font-size: 14px; margin-bottom: 12px; color: #fff; }
+.notice-container { background: rgba(0, 0, 0, 0.5); border: 1px solid #3d3d4a; border-radius: 8px; padding: 12px; font-size: 11px; text-align: left; color: #ccc; line-height: 1.6; }
+.name-input { width: 100%; padding: 12px; font-size: 15px; background: #0b0b0d; color: #fff; border: 1px solid #3d3d4a; border-radius: 8px; text-align: center; margin-bottom: 15px; box-sizing: border-box; }
 
-.notice-container { background: rgba(0, 0, 0, 0.5); border: 1px solid #3d3d4a; border-radius: 8px; padding: 12px; font-size: 11px; text-align: left; color: #ccc; line-height: 1.6; max-height: 120px; overflow-y: auto; }
-.name-input { width: 100%; padding: 12px; font-size: 15px; background: #0b0b0d; color: #fff; border: 1px solid #3d3d4a; border-radius: 8px; text-align: center; margin-bottom: 15px; outline: none; box-sizing: border-box; }
-.name-input:focus { border-color: #ffd700; }
-
-/* 網格與彈性排版 */
 .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .flex-layout { display: flex; flex-direction: column; gap: 10px; }
 .flex-space { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 
-/* 數據狀態欄 */
 .status-panel { background: #0b0b0d; padding: 14px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #22222a; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 15px; }
-.status-item { font-size: 13px; white-space: nowrap; }
+.status-item { font-size: 13px; }
 .full-row { grid-column: span 2; }
-
-/* 進度條組件 */
-.visual-bar-bg { width: 100%; height: 8px; background: #25252b; border-radius: 4px; overflow: hidden; margin-top: 5px; border: 1px solid #050507; position: relative; }
+.visual-bar-bg { width: 100%; height: 8px; background: #25252b; border-radius: 4px; overflow: hidden; margin-top: 5px; border: 1px solid #050507; }
 .visual-bar-fill { height: 100%; width: 100%; transition: width 0.2s ease; }
 .hp-color { background: linear-gradient(90deg, #ff4757, #ff6b81); }
 .mp-color { background: linear-gradient(90deg, #1e90ff, #54a0ff); }
+.gold { color: #ffa500; font-weight: bold; }
 
-/* 日誌控制台 */
 .log-panel { height: 260px; overflow-y: auto; background: #070709; padding: 12px; border-radius: 10px; border: 1px solid #1f1f26; margin-bottom: 15px; font-size: 12px; line-height: 1.6; box-sizing: border-box; }
 .log-row-box { background: rgba(255,255,255,0.02); border-radius: 6px; padding: 6px 10px; margin: 4px 0; border-left: 3px solid #555; word-break: break-all; }
 
-/* 按鈕大全 */
-.btn-game { color: white; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; padding: 14px; font-size: 15px; transition: all 0.2s ease; touch-action: manipulation; }
-.btn-game:disabled { background-color: #444 !important; color: #888 !important; cursor: not-allowed; box-shadow: none !important; }
-.btn-explore { background-color: #2ed573; box-shadow: 0 4px 12px rgba(46,213,115,0.2); }
-.btn-explore:hover:not(:disabled) { background-color: #26af5f; }
-.btn-rest { background-color: #1e90ff; box-shadow: 0 4px 12px rgba(30,144,255,0.2); }
-.btn-rest:hover:not(:disabled) { background-color: #1a7ae0; }
+.action-panel { display: flex; gap: 12px; width: 100%; }
+.btn-game { color: white; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; padding: 14px; font-size: 15px; }
+.btn-game:disabled { background-color: #444 !important; color: #888 !important; cursor: not-allowed; }
+.btn-explore { background-color: #2ed573; width: 100%; }
+.btn-rest { background-color: #1e90ff; width: 100%; }
 .btn-job-choice { background-color: #2c3e50; border: 1px solid #34495e; font-size: 12px; padding: 10px; }
-.btn-job-choice.active { background-color: #00cea6; border-color: #fff; color: #111; box-shadow: 0 0 10px rgba(0,206,166,0.4); }
+.btn-job-choice.active { background-color: #00cea6; color: #111; }
 .btn-cook { background-color: #4a235a; border: 1px solid #6c3483; text-align: left; font-size: 11px; line-height: 1.4; }
-.btn-cook:hover:not(:disabled) { background-color: #5b2c6f; }
 
-/* 🔮 全螢幕高優先級 QTE 渲染層 */
 #qte-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-.qte-box { background: #222227; padding: 30px; border-radius: 16px; border: 3px solid #ffd700; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 0 30px rgba(255,215,0,0.2); }
-#qte-tap-btn { background: #ff4757; color: white; border: none; padding: 25px 45px; font-size: 24px; font-weight: bold; border-radius: 50%; cursor: pointer; box-shadow: 0 0 20px rgba(255,71,87,0.6); user-select: none; transition: transform 0.05s; }
-#qte-tap-btn:active { transform: scale(0.92); }
-.qte-timer-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-top: 25px; overflow: hidden; border: 1px solid #000; }
-#qte-timer-fill { height: 100%; background: #2ecc71; width: 100%; }
+.qte-box { background: #222227; padding: 30px; border-radius: 16px; border: 3px solid #ffd700; text-align: center; width: 85%; max-width: 320px; }
+#qte-tap-btn { background: #ff4757; color: white; border: none; padding: 25px 45px; font-size: 24px; font-weight: bold; border-radius: 50%; cursor: pointer; box-shadow: 0 0 20px rgba(255,71,87,0.6); }
 
-/* 💥 肉鴿專用動態回饋動畫 */
+.bag-slot-container { display: flex; gap: 8px; margin-top: 5px; }
+.btn-bag-slot { flex: 1; background: #25252b; border: 1px dashed #555; color: #aaa; padding: 8px; border-radius: 6px; font-size: 11px; text-align: center; cursor: pointer; }
+.btn-bag-slot.has-item { background: linear-gradient(135deg, #2d1f3d 0%, #1f253d 100%); border: 1px solid #9b59b6; color: #fff; font-weight: bold; }
+
 @keyframes screenShake {
     0% { transform: translate(1px, 1px) rotate(0deg); }
     20% { transform: translate(-2px, -1px) rotate(-1deg); }
     40% { transform: translate(2px, 2px) rotate(1deg); }
-    60% { transform: translate(-1px, 1px) rotate(-1deg); }
-    80% { transform: translate(1px, -1px) rotate(0deg); }
     100% { transform: translate(1px, 1px) rotate(0deg); }
 }
 .shake-effect { animation: screenShake 0.15s ease-in-out; }
 .success-flash { background-color: #1b5e20 !important; transition: background 0.05s; }
 .fail-flash { background-color: #b71c1c !important; transition: background 0.05s; }
-
-/* 🎒 戰術背包專用樣式 */
-.bag-slot-container {
-    display: flex;
-    gap: 8px;
-    margin-top: 5px;
-}
-.btn-bag-slot {
-    flex: 1;
-    background: #25252b;
-    border: 1px dashed #555;
-    color: #aaa;
-    padding: 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-bag-slot.has-item {
-    background: linear-gradient(135deg, #2d1f3d 0%, #1f253d 100%);
-    border: 1px solid #9b59b6;
-    color: #fff;
-    font-weight: bold;
-    box-shadow: 0 2px 6px rgba(155,89,182,0.2);
-}
-.btn-bag-slot.has-item:hover:not(:disabled) {
-    filter: brightness(1.2);
-}
-
-/* 🎒 戰術背包專用樣式 */
-.bag-slot-container {
-    display: flex;
-    gap: 8px;
-    margin-top: 5px;
-}
-.btn-bag-slot {
-    flex: 1;
-    background: #25252b;
-    border: 1px dashed #555;
-    color: #aaa;
-    padding: 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-bag-slot.has-item {
-    background: linear-gradient(135deg, #2d1f3d 0%, #1f253d 100%);
-    border: 1px solid #9b59b6;
-    color: #fff;
-    font-weight: bold;
-    box-shadow: 0 2px 6px rgba(155,89,182,0.2);
-}
-.btn-bag-slot.has-item:hover:not(:disabled) {
-    filter: brightness(1.2);
-}
