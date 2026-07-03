@@ -564,3 +564,56 @@ body {
     .grid-layout { gap: 8px; }
     .dynamic-panel { padding: 14px; margin-bottom: 15px; }
 }
+
+/* ==========================================================================
+   🗺️ 村莊分區地圖選單 (Town Map Menu Navigation) CSS3 美學
+   ========================================================================== */
+.town-map-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    scrollbar-width: none; /* 隱藏電腦版滾動條 */
+}
+.town-map-nav::-webkit-scrollbar { display: none; } /* 隱藏手機版滾動條 */
+
+.btn-map-node {
+    flex: 1;
+    min-width: 95px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    padding: 10px 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+}
+
+/* 鼠標懸停與點擊激活高亮狀態 */
+.btn-map-node:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-map-node.active {
+    background: linear-gradient(135deg, #ffd700 0%, #b39700 100%);
+    color: #050507;
+    border-color: #ffd700;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
+}
+
+/* 電腦版大螢幕排版對齊微調 */
+@media (min-width: 850px) {
+    .town-map-nav {
+        grid-column: 2; /* 讓導航地圖橫條精準定位在右側主舞台頂部 */
+        margin-bottom: 10px;
+    }
+}
