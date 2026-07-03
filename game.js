@@ -24,7 +24,6 @@ let qteResolvePointer = null;
 let activeMonster = null; 
 let playerShield = 0;
 
-// 💡 新增：自動戰鬥指令全局狀態
 let isAutoBattleMode = false; 
 
 // ==========================================
@@ -53,7 +52,7 @@ const SKILLS_DATABASE = {
         { name: "聖靈召喚", type: "active", mp: 25, desc: "造成 45 點念動傷。此魔攻無條件穿透魔物晶體盾與減傷甲。", run: (lv) => ({ pierceMagic: 25 + lv * 20 }) },
         { name: "能量外套", type: "passive", desc: "【自動被動】進入戰鬥第 1 回合，體表自動化生成 250 點防禦魔法盾。" },
         { name: "心靈爆破", type: "active", mp: 50, desc: "發動精神爆破，造成自身當前 MP 殘餘值 80% 的無屬性魔法傷。", run: (lv, dummy, mp) => ({ mpToDmg: mp * (0.50 + lv * 0.30) }) },
-        { name: "禪心", type: "active", mp: 0, desc: "犧牲當前回合不發動任何揮砍攻擊，強行讓 MP 當場充滿 +80 點。", run: (lv) => ({ mpRestore: 55 + lv * 25 }) },
+        { name: "禪心", type: "active", mp: 0, desc: "犧牲當前回合不發動 any 揮砍攻擊，強行讓 MP 當場充滿 +80 點。", run: (lv) => ({ mpRestore: 55 + lv * 25 }) },
         { name: "火牆術", type: "active", mp: 45, desc: "立起 3 回合火牆。敵反擊時每回合開頭反噬受創 25 點並燃燒。", run: (lv) => ({ thornsFire: 15 + lv * 10, duration: 1 + lv }) },
         { name: "冰凍術", type: "active", mp: 20, desc: "將當前地下城異常環境力場，直接強制洗牌洗成【永凍冰原】2回合。", run: (lv) => ({ globalFreezeTurns: 1 + lv }) },
         { name: "雷爆術", type: "active", mp: 60, desc: "雷暴轟炸 80 傷害；魔物身上每有 1 層毒 or 火狀態，傷害加深 20%。", run: (lv) => ({ baseStorm: 50 + lv * 30, ampPerStatus: 0.15 + lv * 0.05 }) }
@@ -268,12 +267,12 @@ function executeUseDungeonItem(itemName, index) {
     } 
     else if (itemName.includes("永凍刨冰")) {
         activeMonster.freezeTurns = 2;
-        addLog(`<span style="color:#3498db; font-weight:bold;">❄️ 絕對零度擴散！攔路魔物 [${activeMonster.name}] 全身被無條件【凍結】2 回合，喪失吸血再生與反擊能力！</span>`);
+        addLog(`<span style="color:#3498db; font-weight:bold;">❄️ 絕對零度擴散！攔路魔物 [${activeMonster.name}] 全身被無條件【凍結】2 回合，威脅解除！</span>`);
     } 
     else if (itemName.includes("禁忌血釀")) {
         activeMonster.hp = 0;
         activeMonster.isSkipped = true; 
-        addLog(`<span style="color:#9b59b6; font-weight:bold;">🍷 空間秩序崩塌扭曲！你強行撕裂空間，化為一道流光強行跳過了此層戰鬥！</span>`);
+        addLog(`<span style="color:#9b59b6; font-weight:bold;">🍷 空間秩序崩塌扭曲！你強行撕裂空間，安全降臨下一層！</span>`);
     }
     
     currentRun.inventory.splice(index, 1);
@@ -343,6 +342,7 @@ function translateJob(j) {
     if(j === "magician") return "魔法師"; return "服事";
 }
 
+// 渲染村莊模組
 function renderVillageJobSelectors() {
     const container = document.getElementById('job-choices-container');
     container.innerHTML = "";
@@ -413,12 +413,12 @@ function canCanCook(reqs) {
 function executeVillageCooking(recipe) {
     for(let ing in recipe.ingredients) { accountMeta.warehouse[ing] -= recipe.ingredients[ing]; }
     if (Math.random() > 0.75) {
-        addLog(`💥【料理大失敗】魔力火候控制失準！化為一團黑炭：<strong>🪨 焦黑的未知物體</strong>！`);
+        addLog(`💥【料理大失敗】化為一團黑炭：<strong>🪨 焦黑的未知物體</strong>！`);
         accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
     } else {
         addLog(`🍳【皇家烹飪成功】你成功製作出了高階神聖料理：<strong>${recipe.name}</strong>！`);
         if (recipe.type === "village_eat") {
-            addLog(`🍴【開局進食補給】你當場吃下 ${recipe.name}！長效 Buff 注入血脈！`);
+            addLog(`🍴【開局進食補給】你當場吃下 ${recipe.name}！`);
             if(recipe.name.includes("哥布林")) { currentRun.maxHp += 60; currentRun.hp += 60; }
             if(recipe.name.includes("發光奧術")) { currentRun.maxMp += 30; currentRun.mpRegen += 3; }
             if(recipe.name.includes("銀河蟹肉")) { currentRun.maxHp += 200; currentRun.hp += 200; }
@@ -432,20 +432,16 @@ function executeVillageCooking(recipe) {
 }
 
 // ==========================================
-// 🕹 核心 QTE / 🤖 自動指令託管分流器
+// 🕹 QTE / 🤖 自動托管
 // ==========================================
 function triggerQteSystem(skillName, durationMs) {
     return new Promise((resolve) => {
-        // 💡 核心修改1：如果開啟了自動戰鬥，完全不彈出畫面，後台直接隨機判定！
         if (isAutoBattleMode) {
-            let isAutoSuccess = Math.random() < 0.75; // 🤖 自動戰鬥有 75% 成功機率
-            setTimeout(() => {
-                resolve(isAutoSuccess);
-            }, 150); // 微小的毫秒停頓讓戰鬥日誌保持跳躍節奏
+            let isAutoSuccess = Math.random() < 0.75; 
+            setTimeout(() => { resolve(isAutoSuccess); }, 150); 
             return;
         }
 
-        // 🎮 如果是手動，維持原本精彩的定格彈窗
         isQteActive = true;
         qteResolvePointer = resolve;
         
@@ -484,7 +480,7 @@ function endQte(isSuccess) {
 }
 
 // ==========================================
-// ⚔️ 回合制戰鬥循環引擎
+// ⚔️ 回合制戰鬥引擎 (掉寶率調整版)
 // ==========================================
 async function runDungeonLoop() {
     document.getElementById('btn-main-action').disabled = true;
@@ -524,18 +520,15 @@ async function runDungeonLoop() {
             }
         }
 
-        // 1. MP 回復
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + currentRun.mpRegen);
         updateUI();
         
-        // 2. 檢查被動【快速回復】
         if (currentRun.skills["快速回復"]) {
             let hAmt = Math.floor(currentRun.maxHp * 0.08 * currentRun.skills["快速回復"]);
             currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hAmt);
             addLog(`🟢【被動•快速回復】體力自動修復 +${hAmt} HP。`);
         }
 
-        // 3. 主動技能與普通攻擊分配判定
         let activeTriggered = false;
         let skillKeys = Object.keys(currentRun.skills);
         
@@ -543,8 +536,6 @@ async function runDungeonLoop() {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
             if (!sMeta || sMeta.type !== "active") continue;
             
-            // 💡 核心修改2：將技能發動機率由 100% 下調回健康的平衡點：40%！
-            // 這確保了勇者魔力滿的時候，依然有 60% 機率打出普通攻擊，找回普攻與大招的錯落感！
             if (currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
                 if (gameState !== "BATTLE") return;
 
@@ -558,31 +549,30 @@ async function runDungeonLoop() {
                     currentRun.mp -= sMeta.mp;
                     let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                     
-                    if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`<span style="color:#2ecc71; font-weight:bold;">💥【${isAutoBattleMode?'🤖自動':'完美'}釋放】${sName} 轟鳴破防！重創造成 -${eff.dmg} 點傷害！</span>`); }
-                    if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`<span style="color:#e67e22; font-weight:bold;">🔥【${isAutoBattleMode?'🤖自動':'完美'}釋放】怒爆火焰重擊！造成 -${eff.fireDmg} 火傷！</span>`); }
-                    if (eff.blockBuff) { currentRun.block += eff.blockBuff; addLog(`<span style="color:#3498db; font-weight:bold;">🛡️【${isAutoBattleMode?'🤖自動':'完美'}釋放】固定減傷永續增加 +${eff.blockBuff}！</span>`); }
-                    if (eff.healPercent) { let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h); addLog(`<span style="color:#2ecc71; font-weight:bold;">🩹【${isAutoBattleMode?'🤖自動':'完美'}釋放】聖光之術回復 +${h} HP！</span>`); }
-                    if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`<span style="color:#1e90ff; font-weight:bold;">🔵【${isAutoBattleMode?'🤖自動':'完美'}釋放】禪心開啟充能 +${eff.mpRestore} 點！</span>`); }
+                    if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`<span style="color:#2ecc71; font-weight:bold;">💥【${isAutoBattleMode?'🤖自動':'完美'}釋放】${sName} 造成 -${eff.dmg} 點傷害！</span>`); }
+                    if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`<span style="color:#e67e22; font-weight:bold;">🔥【${isAutoBattleMode?'🤖自動':'完美'}釋放】怒爆造成 -${eff.fireDmg} 火傷！</span>`); }
+                    if (eff.blockBuff) { currentRun.block += eff.blockBuff; addLog(`<span style="color:#3498db; font-weight:bold;">🛡️【${isAutoBattleMode?'🤖自動':'完美'}釋放】固定減傷增加 +${eff.blockBuff}！</span>`); }
+                    if (eff.healPercent) { let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h); addLog(`<span style="color:#2ecc71; font-weight:bold;">🩹【${isAutoBattleMode?'🤖自動':'完美'}釋放】治癒術回復 +${h} HP！</span>`); }
+                    if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`<span style="color:#1e90ff; font-weight:bold;">🔵【${isAutoBattleMode?'🤖自動':'完美'}釋放】禪心回復 +${eff.mpRestore} 點！</span>`); }
                 } else {
-                    addLog(`<span style="color:#aaa;">⚠️【${isAutoBattleMode?'🤖自動':'手動'}打斷】引導被打斷！本回合退化成基礎普攻。</span>`);
+                    addLog(`<span style="color:#aaa;">⚠️【${isAutoBattleMode?'🤖自動':'手動'}打斷】引導被打斷！退化成基礎普攻。</span>`);
                     activeMonster.hp -= currentRun.atk;
-                    addLog(`⚔️ 勇者步伐踉蹌揮劍，只造成基礎物理普攻 ${currentRun.atk} 點外傷。`);
+                    addLog(`⚔️ 勇者造成基礎物理普攻 ${currentRun.atk} 點外傷。`);
                 }
                 break;
             }
         }
         
-        // 如果 40% 的技能機率沒有被骰中，執行傳統的「基礎普通物理攻擊」
         if (!activeTriggered) {
             activeMonster.hp -= currentRun.atk;
-            addLog(`⚔️ 勇者踏步橫斬，普通攻擊砍中魔物造成 ${currentRun.atk} 點物理外傷。`);
+            addLog(`⚔️ 勇者普通攻擊砍中魔物造成 ${currentRun.atk} 點物理外傷。`);
         }
         
         if (activeMonster.hp <= 0) break;
         await new Promise(r => setTimeout(r, 800));
         if (gameState !== "BATTLE") return;
 
-        // 4. 魔物反擊
+        // 魔物反擊
         if (activeMonster.freezeTurns > 0) {
             addLog(`❄️【魔物凍結】[${activeMonster.name}] 被堅冰封印無法動彈！（剩餘: ${activeMonster.freezeTurns} 回合）`);
             activeMonster.freezeTurns--;
@@ -614,7 +604,7 @@ async function runDungeonLoop() {
 
     if (gameState !== "BATTLE") return;
 
-    // 5. 戰後結算
+    // 戰後結算
     if (currentRun.hp > 0) {
         currentRun.gold += 20;
         currentRun.exp += 15;
@@ -624,13 +614,14 @@ async function runDungeonLoop() {
         } else {
             addLog(`🎉【大捷】成功殲滅魔物！金幣 +20 G，經驗值 +15 點。`);
             
-            if (Math.random() < 0.20) { 
+            // 💡 核心修改：掉落機率再加 5% ➔ 目前正式調整為 25%！
+            if (Math.random() < 0.25) { 
                 let dropName = MONSTER_DROPS[activeMonster.name] || "史萊姆核心黏液";
                 if (currentRun.inventory.length < 2) {
                     currentRun.inventory.push(dropName);
                     addLog(`🎁【食材幸運掉落】你撿到了珍貴食材：<strong>${dropName}</strong>（塞入背包格）！`);
                 } else {
-                    addLog(`⚠️【背包已滿】地面掉落了 [${dropName}]，但背包已滿被迫捨棄！`);
+                    addLog(`⚠️【背包已滿】地面掉落了 [${dropName}]，但你背包已滿被迫捨棄！`);
                 }
             }
         }
@@ -651,7 +642,7 @@ async function runDungeonLoop() {
 }
 
 // ==========================================
-// 🎲 核心肉鴿升級：三選一控制閥
+// 🎲 核心肉鴿升級
 // ==========================================
 function checkLevelUpAndTriggerSelect() {
     let leveledUp = false;
