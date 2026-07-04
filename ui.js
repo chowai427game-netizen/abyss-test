@@ -182,6 +182,7 @@ function updateUI() {
     
     renderDungeonInventoryUI();
 
+    // 💡 修正後嘅四向遊戲狀態介面分流器
     if (gameState === "VILLAGE") {
         toggle('village-panel-box', true); toggle('reward-panel-box', false);
         let locText = "🌍 目前位置：地表村莊";
@@ -199,6 +200,11 @@ function updateUI() {
         document.getElementById('btn-main-action').innerText = `🪜 前進探險 B${dungeonFloor + 1}F`;
     } else if (gameState === "REWARD") {
         toggle('village-panel-box', false); toggle('reward-panel-box', true);
+        document.getElementById('btn-main-action').disabled = true;
+    } else if (gameState === "ENCOUNTER") {
+        // 💡 新增：當遭遇奇遇事件時，隱藏村莊，展開中央抉擇面板，並強行鎖定探險按鈕
+        toggle('village-panel-box', false); toggle('reward-panel-box', true);
+        document.getElementById('location-text').innerText = `🌌 深淵神祕奇遇 B${dungeonFloor}F`;
         document.getElementById('btn-main-action').disabled = true;
     }
 }
