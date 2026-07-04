@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ 命運深淵：核心控制、10層領主攔截與巨頭天賦獎勵引擎 (終極無錯版)
+// 🕹️ 命運深淵：核心控制、10層領主攔截與隨機奇遇黑市引擎 (終極完美通路版)
 // ==========================================================================
 
 function handleToggleAuto(checkbox) {
@@ -152,10 +152,25 @@ function endQte(isSuccess) {
 async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
+        
+        // 💡 【奇遇事件攔截器】如果不是 10 層 Boss，且滾到 25% 機率，強行切換至奇遇
+        let isBossFloor = (dungeonFloor % 10 === 0);
+        if (!isBossFloor && Math.random() < 0.25 && gameState !== "ENCOUNTER_RESOLVED") {
+            gameState = "ENCOUNTER";
+            updateUI();
+            triggerRandomAbyssEvent(); 
+            return; 
+        }
+        
+        // 如果從奇遇結算回來，校正狀態
+        if (gameState === "ENCOUNTER_RESOLVED") {
+            gameState = "BATTLE";
+        }
+
+        // 滾動環境力場
         currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
         
-        let isBossFloor = (dungeonFloor % 10 === 0);
-        
+        // 根據層數加載魔物（已移除重複宣告的 let）
         if (isBossFloor) {
             let bossMeta = BOSS_DATABASE[dungeonFloor] || { name: `👹 深淵無名魔皇 Tier.${dungeonFloor/10}`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, dropItem: "史萊姆核心黏液" };
             activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
@@ -321,3 +336,115 @@ function checkLevelUpAndTriggerSelect() {
 }
 
 window.onload = function() { checkCloudAccount(); };
+
+// ==========================================================================
+// 🌌 命運深淵：奇遇事件路由與抉擇結果處理核心
+// ==========================================================================
+
+function triggerRandomAbyssEvent() {
+    const container = document.getElementById('reward-choices-container');
+    const title = document.getElementById('reward-title-text');
+    if (!container || !title) return;
+    container.innerHTML = "";
+
+    let eventType = Math.floor(Math.random() * 3);
+
+    if (eventType === 0) {
+        title.innerText = "🛒 流浪黑市商人 • 冥河折扣 🛒";
+        addLog(`🌌【深淵奇遇 B${dungeonFloor}F】虛空裂縫打開，一位披著破爛斗篷的流浪商人向你展示了禁忌物資。`);
+        let rolledGoods = [...MARKET_ITEMS_POOL].sort(() => 0.5 - Math.random()).slice(0, 2);
+        buildBlackMarketUI(rolledGoods);
+    } 
+    else if (eventType === 1) {
+        title.innerText = "🩸 命運邪神祭壇 • 血脈契約 🩸";
+        addLog(`🌌【深淵奇遇 B${dungeonFloor}F】亂石堆中聳立著一座流淌著黑血的古老祭壇，地底傳來索取祭品的低語。`);
+        
+        let btnDeal = document.createElement('button');
+        btnDeal.className = "btn-game btn-cook";
+        btnDeal.innerHTML = `<strong>🩸 簽訂血脈契約</strong><br><span style="color:#ff4757;">代價：扣減生命上限 Max HP -25 ➔ 報酬：永久灌注 +15 基礎攻擊力！</span>`;
+        btnDeal.onclick = () => {
+            currentRun.maxHp = Math.max(15, currentRun.maxHp - 25);
+            currentRun.hp = Math.min(currentRun.hp, currentRun.maxHp);
+            currentRun.atk += 15;
+            addLog(`🩸【邪神交易完成】你切開了手腕，獻祭生命源泉！雖然身體一陣虛弱，但無盡的殺意充盈靈魂 (+15 ATK)！`, "take");
+            resolveAbyssEvent();
+        };
+        container.appendChild(btnDeal);
+
+        let btnLeave = document.createElement('button');
+        btnLeave.className = "btn-game btn-rest";
+        btnLeave.innerHTML = "🧘 保持理智，無視誘惑離開";
+        btnLeave.onclick = () => {
+            addLog(`🧘 你守住了靈魂的清明，握緊長劍，大步繞過了邪神祭壇。`);
+            resolveAbyssEvent();
+        };
+        container.appendChild(btnLeave);
+    } 
+    else {
+        title.innerText = "✨ 深淵流螢神泉 • 命運的昂貴代價 ✨";
+        addLog(`🌌【深淵奇遇 B${dungeonFloor}F】前方亂石後傳來泉水聲，一片散發著治癒微光的魔導神泉出現在眼前。`);
+        
+        let btnDrink = document.createElement('button');
+        btnDrink.className = "btn-game btn-cook";
+        btnDrink.innerHTML = `<strong>🧪 痛飲不老神泉</strong><br><span style="color:#2ecc71;">報酬：氣血當場奶滿 +80 HP！➔ 代價：下 3 回合 QTE 判定安全時間暴跌 300ms！</span>`;
+        btnDrink.onclick = () => {
+            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 80);
+            currentRun.qteBuffDuration -= 300; 
+            currentRun.qteBuffTurns = 3;       
+            addLog(`✨【神泉滋養完成】泉水修復了你肉身的重創 (+80 HP)，但強烈的舒適感讓你的神經反射短暫變得有些恍惚遲鈍！`, "perfect");
+            resolveAbyssEvent();
+        };
+        container.appendChild(btnDrink);
+
+        let btnLeave = document.createElement('button');
+        btnLeave.className = "btn-game btn-rest";
+        btnLeave.innerHTML = "🏃 擔心泉水有詐，直接路過";
+        btnLeave.onclick = () => {
+            addLog(`🏃 謹慎至上，你只是用泉水洗淨了臉上的血漬，並未飲用，踏步離開。`);
+            resolveAbyssEvent();
+        };
+        container.appendChild(btnLeave);
+    }
+    updateUI();
+}
+
+function buildBlackMarketUI(goodsList) {
+    const container = document.getElementById('reward-choices-container');
+    if (!container) return;
+    container.innerHTML = "";
+
+    goodsList.forEach(item => {
+        let btn = document.createElement('button');
+        btn.className = "btn-game btn-cook";
+        btn.innerHTML = `🪙 <b>購買：[${item.name}]</b><br><span style="color:#aaa;">${item.desc}</span><br><span style="color:#ffd700; font-weight:bold;">售價：${item.price} 臨時金幣</span> (當前財富: ${currentRun.gold}G)`;
+        
+        btn.onclick = () => {
+            if (currentRun.gold < item.price) { alert("🪙 局內臨時金幣不足，無法交易！"); return; }
+            if (currentRun.inventory.length >= 2) { alert("🎒 你的戰術背包快捷欄已經爆滿！"); return; }
+            
+            currentRun.gold -= item.price;
+            currentRun.inventory.push(item.name);
+            addLog(`🛒【黑市交易成功】你付出了 ${item.price} G 臨時金幣，購入了 <strong>${item.name}</strong> 放入戰術背包！`);
+            
+            buildBlackMarketUI(goodsList);
+            updateUI();
+        };
+        container.appendChild(btn);
+    });
+
+    let btnExit = document.createElement('button');
+    btnExit.className = "btn-game btn-rest";
+    btnExit.innerHTML = "🏃 結束交易，收起背包繼續出發";
+    btnExit.onclick = () => {
+        addLog(`🏃 你收起裝備，向流浪商人致意告別，繼續踏上深淵征途。`);
+        resolveAbyssEvent();
+    };
+    container.appendChild(btnExit);
+}
+
+function resolveAbyssEvent() {
+    gameState = "ENCOUNTER_RESOLVED";
+    document.getElementById('btn-main-action').disabled = false;
+    updateUI();
+    runDungeonLoop(); 
+}
