@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ 命運深淵：核心控制、10層領主攔截與隨機奇遇黑市引擎 (終極完美通路版)
+// 🕹️ 命運深淵：核心控制、10層領主攔截與全分流文字打擊特效引擎 (終極版)
 // ==========================================================================
 
 function handleToggleAuto(checkbox) {
@@ -153,7 +153,6 @@ async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
         
-        // 💡 【奇遇事件攔截器】如果不是 10 層 Boss，且滾到 25% 機率，強行切換至奇遇
         let isBossFloor = (dungeonFloor % 10 === 0);
         if (!isBossFloor && Math.random() < 0.25 && gameState !== "ENCOUNTER_RESOLVED") {
             gameState = "ENCOUNTER";
@@ -162,15 +161,12 @@ async function runDungeonLoop() {
             return; 
         }
         
-        // 如果從奇遇結算回來，校正狀態
         if (gameState === "ENCOUNTER_RESOLVED") {
             gameState = "BATTLE";
         }
 
-        // 滾動環境力場
         currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
         
-        // 根據層數加載魔物（已移除重複宣告的 let）
         if (isBossFloor) {
             let bossMeta = BOSS_DATABASE[dungeonFloor] || { name: `👹 深淵無名魔皇 Tier.${dungeonFloor/10}`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, dropItem: "史萊姆核心黏液" };
             activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
@@ -213,37 +209,66 @@ async function runDungeonLoop() {
                     let isPerfect = await triggerQteSystem(sName, 1200);
                     if (gameState !== "BATTLE") return;
                     if (currentEnvironment === "POISON") { playerStatusEffects.poison++; addLog(`🧪【沼澤毒化】引導魔法深度感染！`, "env"); }
+                    
+                    // 💥 根據職業動態決定 QTE 斬擊/爆破特效
+                    let hitClass = currentRun.job === "swordsman" || currentRun.job === "novice" ? "strike-slash" : (currentRun.job === "magician" ? "strike-magic" : "strike-holy");
+                    let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+
                     if (isPerfect) {
                         currentRun.mp -= sMeta.mp; let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                         if (sName === "火箭術" && currentEnvironment === "FIRE") { eff.baseFire = Math.floor(eff.baseFire * 1.5); addLog(`🌋【力場共鳴】火箭術爆發 1.5 倍！`, "deal"); }
-                        if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥【完美釋放】造成 -${eff.dmg} 點傷害！`, "perfect"); }
-                        if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`🔥【完美釋放】怒爆火焰造成 -${eff.fireDmg} 火傷！`, "perfect"); }
+                        
+                        if (eff.dmg) { 
+                            activeMonster.hp -= eff.dmg; 
+                            addLog(`💥【完美釋放】核心技轟鳴！使 <span class="${hitClass}">[${activeMonster.name}]</span> 爆開裂痕！<span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect"); 
+                        }
+                        if (eff.fireDmg) { 
+                            activeMonster.hp -= eff.fireDmg; 
+                            addLog(`🔥【完美釋放】怒爆烈焰！使 <span class="${hitClass}">[${activeMonster.name}]</span> 全身引燃！<span class="num-popup num-m-dmg">-${eff.fireDmg} HP</span>`, "perfect"); 
+                        }
                         if (eff.blockBuff) { currentRun.block += eff.blockBuff; addLog(`🛡️【完美釋放】固定減傷 +${eff.blockBuff}！`, "perfect"); }
                         if (eff.healPercent) {
                             let h = Math.floor(eff.lostHp * eff.healPercent);
                             if (currentEnvironment === "ICE" && !currentRun.activeVillageBuffs.includes("🍲 皇家銀河蟹肉宴")) h = Math.floor(h * 0.4);
-                            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h); addLog(`🩹【完美釋放】血量大回復 +${h} HP！`, "perfect");
+                            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
+                            let selfHitClass = currentRun.job === "acolyte" ? "strike-holy" : "strike-slash";
+                            addLog(`🩹【完美釋放】神聖洗禮！勇者 <span class="${selfHitClass}">[${accountMeta.name}]</span> 聖光圍繞！<span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
                         }
                         if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`🔵【完美釋放】禪心回湧 +${eff.mpRestore}！`, "perfect"); }
                         if (eff.cureStatus) { playerStatusEffects.burn = 0; playerStatusEffects.poison = 0; addLog(`🩹【聖水淨化】異常狀態斬斷！`, "perfect"); }
                         if (eff.globalFreezeTurns) { currentEnvironment = "ICE"; addLog(`❄️【人為氣候】轉化為【永凍冰原】！`, "perfect"); }
                     } else {
-                        activeMonster.hp -= currentRun.atk; addLog(`⚔️ 普攻突刺造成 ${currentRun.atk} 點傷害。`, "deal");
+                        activeMonster.hp -= currentRun.atk; 
+                        addLog(`⚔️ 普攻突刺！使 <span class="${hitClass}">[${activeMonster.name}]</span> 鮮血濺出！<span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
                     }
                     break;
                 }
             }
-            if (!activeTriggered) { activeMonster.hp -= currentRun.atk; addLog(`⚔️ 普攻揮砍造成 ${currentRun.atk} 點傷害.`, "deal"); }
+            
+            // ⚔️ 基礎物理普通攻擊
+            if (!activeTriggered) { 
+                activeMonster.hp -= currentRun.atk; 
+                let hitClass = currentRun.job === "swordsman" || currentRun.job === "novice" ? "strike-slash" : (currentRun.job === "magician" ? "strike-magic" : "strike-holy");
+                let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                addLog(`⚔️ 普攻揮砍！使 <span class="${hitClass}">[${activeMonster.name}]</span> 被正面重劈！<span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal"); 
+            }
             if (activeMonster.hp <= 0) break;
             await new Promise(r => setTimeout(r, 800)); if (gameState !== "BATTLE") return;
 
+            // 🔴 怪物反擊回合
             if (activeMonster.freezeTurns > 0) { addLog(`❄️ 魔物冰封中無法動彈。`); activeMonster.freezeTurns--; } 
             else {
                 let finalDmg = Math.max(1, activeMonster.atk - currentRun.block);
                 if (playerShield > 0) {
                     if (finalDmg <= playerShield) { playerShield -= finalDmg; addLog(`🛡️ 魔物重撞！被護盾抵消。`, "deal"); }
-                    else { let over = finalDmg - playerShield; playerShield = 0; currentRun.hp -= over; addLog(`🔴 護盾碎裂！承受 -${over} 外傷！`, "take"); }
-                } else { currentRun.hp -= finalDmg; addLog(`🔴 反擊承受 -${finalDmg} HP！`, "take"); }
+                    else { 
+                        let over = finalDmg - playerShield; playerShield = 0; currentRun.hp -= over; 
+                        addLog(`🔴 護盾粉碎！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 慘遭重擊！<span class="num-popup num-boss-strike">-${over} HP</span>`, "take"); 
+                    }
+                } else { 
+                    currentRun.hp -= finalDmg; 
+                    addLog(`🔴 魔物暴虐反噬！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 肉身承受痛擊！<span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
+                }
             }
             if (currentEnvironment === "FIRE" && !currentRun.activeVillageBuffs.includes("🍧 萬年永凍刨冰")) { currentRun.hp = Math.max(1, currentRun.hp - 8); addLog(`🌋 熔岩灼燒受到 -8 火傷。`, "env"); }
             updateUI(); if (currentRun.hp <= 0) break;
@@ -357,7 +382,7 @@ function triggerRandomAbyssEvent() {
     } 
     else if (eventType === 1) {
         title.innerText = "🩸 命運邪神祭壇 • 血脈契約 🩸";
-        addLog(`🌌【深淵奇遇 B${dungeonFloor}F】亂石堆中聳立著一座流淌著黑血的古老祭壇，地底傳來索取祭品的低語。`);
+        addLog(`🌌【深淵奇遇 B${dungeonFloor}F】亂石堆中聳立著一座流淌著黑血的古老祭壇，地底傳來索取祭品品嘅低語。`);
         
         let btnDeal = document.createElement('button');
         btnDeal.className = "btn-game btn-cook";
