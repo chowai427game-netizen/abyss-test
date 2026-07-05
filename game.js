@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ 命運深淵：核心控制、10層領主攔截與全分流文字打擊特效引擎 (終極版)
+// 🕹️ 命運深淵：核心控制、10層領主攔截與全分流文字打擊特效引擎 (完美體版)
 // ==========================================================================
 
 function handleToggleAuto(checkbox) {
@@ -190,15 +190,25 @@ async function runDungeonLoop() {
             addLog(`<span style="color:#888;">[第 ${round} 回合]</span>`);
             if (currentRun.qteBuffTurns > 0 && --currentRun.qteBuffTurns === 0) { currentRun.qteBuffDuration = 0; addLog(`ℹ️ 興奮劑藥效宣告結束。`); }
             
-            if (playerStatusEffects.burn > 0) { currentRun.hp = Math.max(1, currentRun.hp - playerStatusEffects.burn * 3); addLog(`🔥【異常燃燒】烈火灼燒肉身，受到點數火傷。`, "env"); }
-            if (playerStatusEffects.poison > 0) { let pDmg = Math.floor(currentRun.maxHp * 0.06 * playerStatusEffects.poison); currentRun.hp = Math.max(1, currentRun.hp - pDmg); addLog(`🧪【異常劇毒】毒素攻心，受到 -${pDmg} 點毒傷。`, "env"); }
+            // 💡 修正：燃燒與劇毒跳字效果同步注入打擊動態 class
+            if (playerStatusEffects.burn > 0) { 
+                let bDmg = playerStatusEffects.burn * 3;
+                currentRun.hp = Math.max(1, currentRun.hp - bDmg); 
+                addLog(`🔥【異常燃燒】烈火灼燒！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 全身焦黑！<span class="num-popup num-boss-strike">-${bDmg} HP</span>`, "env"); 
+            }
+            if (playerStatusEffects.poison > 0) { 
+                let pDmg = Math.floor(currentRun.maxHp * 0.06 * playerStatusEffects.poison); 
+                currentRun.hp = Math.max(1, currentRun.hp - pDmg); 
+                addLog(`🧪【異常劇毒】毒素攻心！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 體力崩解！<span class="num-popup num-boss-strike">-${pDmg} HP</span>`, "env"); 
+            }
             
             currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + currentRun.mpRegen); updateUI();
             
             if (currentRun.skills["快速回復"]) {
                 let hAmt = Math.floor(currentRun.maxHp * 0.08 * currentRun.skills["快速回復"]);
                 if (currentEnvironment === "ICE" && !currentRun.activeVillageBuffs.includes("🍲 皇家銀河蟹肉宴")) { hAmt = Math.floor(hAmt * 0.4); addLog(`❄️【冰原禁制】被動回復力受到壓制！`, "env"); }
-                currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hAmt); addLog(`🟢【開局被動】細胞自動修復 +${hAmt} HP。`);
+                currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hAmt);
+                addLog(`🟢【開局被動】細胞自動修復！勇者 <span class="strike-holy">[${accountMeta.name}]</span> 聖光圍繞！<span class="num-popup num-h-heal">+${hAmt} HP</span>`);
             }
 
             let activeTriggered = false;
@@ -210,7 +220,6 @@ async function runDungeonLoop() {
                     if (gameState !== "BATTLE") return;
                     if (currentEnvironment === "POISON") { playerStatusEffects.poison++; addLog(`🧪【沼澤毒化】引導魔法深度感染！`, "env"); }
                     
-                    // 💥 根據職業動態決定 QTE 斬擊/爆破特效
                     let hitClass = currentRun.job === "swordsman" || currentRun.job === "novice" ? "strike-slash" : (currentRun.job === "magician" ? "strike-magic" : "strike-holy");
                     let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
 
@@ -238,6 +247,7 @@ async function runDungeonLoop() {
                         if (eff.cureStatus) { playerStatusEffects.burn = 0; playerStatusEffects.poison = 0; addLog(`🩹【聖水淨化】異常狀態斬斷！`, "perfect"); }
                         if (eff.globalFreezeTurns) { currentEnvironment = "ICE"; addLog(`❄️【人為氣候】轉化為【永凍冰原】！`, "perfect"); }
                     } else {
+                        // 💡 修正：QTE 失敗時的普通突刺，精準灌注職業特效與跳字
                         activeMonster.hp -= currentRun.atk; 
                         addLog(`⚔️ 普攻突刺！使 <span class="${hitClass}">[${activeMonster.name}]</span> 鮮血濺出！<span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
                     }
@@ -245,7 +255,7 @@ async function runDungeonLoop() {
                 }
             }
             
-            // ⚔️ 基礎物理普通攻擊
+            // 💡 修正：基礎物理普通攻擊（包含初心者），全面灌注職業打擊感 class 與 Impact 跳字
             if (!activeTriggered) { 
                 activeMonster.hp -= currentRun.atk; 
                 let hitClass = currentRun.job === "swordsman" || currentRun.job === "novice" ? "strike-slash" : (currentRun.job === "magician" ? "strike-magic" : "strike-holy");
@@ -255,7 +265,7 @@ async function runDungeonLoop() {
             if (activeMonster.hp <= 0) break;
             await new Promise(r => setTimeout(r, 800)); if (gameState !== "BATTLE") return;
 
-            // 🔴 怪物反擊回合
+            // 🔴 魔物反擊回合（全面包裹 strike-monster 與大字彈窗 num-boss-strike）
             if (activeMonster.freezeTurns > 0) { addLog(`❄️ 魔物冰封中無法動彈。`); activeMonster.freezeTurns--; } 
             else {
                 let finalDmg = Math.max(1, activeMonster.atk - currentRun.block);
@@ -391,7 +401,7 @@ function triggerRandomAbyssEvent() {
             currentRun.maxHp = Math.max(15, currentRun.maxHp - 25);
             currentRun.hp = Math.min(currentRun.hp, currentRun.maxHp);
             currentRun.atk += 15;
-            addLog(`🩸【邪神交易完成】你切開了手腕，獻祭生命源泉！雖然身體一陣虛弱，但無盡的殺意充盈靈魂 (+15 ATK)！`, "take");
+            addLog(`🩸【邪神交易完成】你切開了手腕，獻祭生命源泉！身體虛弱，但無盡的殺意充盈靈魂 (+15 ATK)！`, "take");
             resolveAbyssEvent();
         };
         container.appendChild(btnDeal);
