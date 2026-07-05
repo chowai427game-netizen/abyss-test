@@ -224,7 +224,6 @@ body {
 .log-panel { height: 250px; overflow-y: auto; background: rgba(0, 0, 0, 0.4); padding: 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.03); margin-bottom: 20px; font-size: 12px; line-height: 1.6; box-sizing: border-box; }
 .log-row-box { background: rgba(255,255,255,0.01); border-radius: 6px; padding: 6px 12px; margin: 5px 0; border-left: 2px solid rgba(255,255,255,0.1); color: #d1d1d6; animation: logPopIn 0.2s ease-out forwards; transform-origin: left center; }
 
-/* 🌟 修正：移除父級整行的大幅度變形與偏轉，避免吃掉內部文字的斬擊效果 */
 @keyframes logPopIn { 
     0% { transform: scale(0.96) translateX(-10px); opacity: 0; } 
     100% { transform: scale(1) translateX(0); opacity: 1; } 
@@ -237,15 +236,12 @@ body {
 .log-take-dmg { animation: logDamageShake 0.4s ease-in-out forwards !important; border-left: 4px solid #ff4757 !important; text-shadow: 0 0 6px #ff4757; font-weight: 500; color: #ff6b81 !important; }
 .log-env-tick { animation: logEnvTick 0.2s ease-out forwards !important; border-left: 2px solid #9b59b6 !important; }
 
-
 /* ==========================================================================
    💥 ZONE 6.5 (重製版): 全職業打擊姿態與街機像素步進跳字系統
    ========================================================================== */
-
-/* ⚔️ 初心者 / 劍士普攻：爆發鮮紅斬擊！且最終固定停留在 -15° 偏轉的受創狀態 */
 .strike-slash {
     display: inline-block;
-    color: #ff3838 !important; /* 👈 修正：直接改成鮮紅色，告別白色盲區！ */
+    color: #ff3838 !important; /* 鮮紅斬擊基底 */
     font-weight: 900 !important;
     transform-origin: center;
     animation: textSlash 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -254,10 +250,9 @@ body {
     0% { transform: scale(1) skewX(0deg); filter: brightness(4); }
     30% { transform: scale(1.4) skewX(-35deg); color: #ffffff !important; text-shadow: 0 0 12px #ff2a3b, 0 0 25px #ff4757; }
     60% { transform: scale(1.05) skewX(-18deg); color: #ff3838 !important; }
-    100% { transform: scale(1.1) skewX(-15deg); color: #ff4757 !important; text-shadow: 0 0 6px #ff2a3b; } /* 👈 結尾保持微斜，模擬被砍中的切線傷痕 */
+    100% { transform: scale(1.1) skewX(-15deg); color: #ff4757 !important; text-shadow: 0 0 6px #ff2a3b; }
 }
 
-/* 🔮 魔法師：元素震盪魔能爆破 */
 .strike-magic {
     display: inline-block;
     color: #00e5ff !important;
@@ -270,7 +265,6 @@ body {
     100% { transform: scale(1.1) rotate(0deg); text-shadow: 0 0 8px #9b59b6; }
 }
 
-/* 👼 服事：聖光裁決 */
 .strike-holy {
     display: inline-block;
     color: #ffd700 !important;
@@ -283,15 +277,19 @@ body {
     100% { transform: translateY(0) scale(1.1); }
 }
 
-/* 🔴 魔物反擊：重擊碎骨 */
 .strike-monster {
     display: inline-block;
     color: #ff4757 !important;
     font-weight: 900 !important;
     text-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+    animation: textMonster 0.3s linear forwards;
+}
+@keyframes textMonster {
+    0% { transform: translate(2px, 3px); filter: brightness(3); }
+    20% { transform: translate(-4px, -2px) scale(1.2); text-shadow: 0 0 15px #ff4757; }
+    100% { transform: translate(0, 0) scale(1); filter: brightness(1); }
 }
 
-/* 📊 皇家浮動損害數字（基礎框架） */
 .num-popup {
     display: inline-block;
     font-family: 'Impact', 'Arial Black', sans-serif;
@@ -301,7 +299,6 @@ body {
     transform-origin: center;
 }
 
-/* 🧱 物理與魔法扣血彈窗：採用爆裂彈出 */
 .num-p-dmg, .num-m-dmg, .num-boss-strike {
     animation: numFloating 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards;
 }
@@ -315,15 +312,13 @@ body {
     100% { transform: scale(1.1) translateY(-3px); opacity: 1; }
 }
 
-/* 🟢 修正【綠色點點像素上升效果】 */
-/* 使用等寬字體模擬點陣感，搭配 steps(6) 幀定格函數，讓數字像像素方塊一樣一格一格跳躍上升！ */
 .num-h-heal {
     color: #2ecc71 !important;
-    font-family: 'Courier New', Courier, monospace, sans-serif; /* 👈 像素風等寬字體 */
+    font-family: 'Courier New', Courier, monospace, sans-serif;
     font-weight: bold;
     font-size: 15px;
-    text-shadow: 0 2px 0 #1b5e20, 2px 0 0 #1b5e20, -2px 0 0 #1b5e20, 0 -2px 0 #1b5e20; /* 👈 復古像素描邊 */
-    animation: pixelFloatUp 0.8s steps(6) forwards !important; /* 👈 steps(6) 徹底消滅平滑感，實現像素格跳動上升 */
+    text-shadow: 0 2px 0 #1b5e20, 2px 0 0 #1b5e20, -2px 0 0 #1b5e20, 0 -2px 0 #1b5e20;
+    animation: pixelFloatUp 0.8s steps(6) forwards !important;
 }
 
 @keyframes pixelFloatUp {
@@ -331,12 +326,12 @@ body {
     15% { transform: translateY(6px); opacity: 1; }
     40% { transform: translateY(0px); }
     70% { transform: translateY(-8px); opacity: 1; filter: brightness(1.2); }
-    100% { transform: translateY(-16px); opacity: 0; } /* 👈 逐格升天消失 */
+    100% { transform: translateY(-16px); opacity: 0; }
 }
+
 /* ==========================================================================
-   🖥️ ZONE 7: 獨立直欄雙軌制佈局 (徹底根除重疊、錯位與滾動 Bug)
+   🖥️ ZONE 7: 獨立直欄雙軌制佈局
    ========================================================================== */
-/* 預設手機版：由上至下垂直乾淨排列 */
 .game-layout-split {
     display: flex;
     flex-direction: column;
@@ -350,7 +345,6 @@ body {
     width: 100%;
 }
 
-/* 🖥️ 電腦版大螢幕：解鎖獨立雙欄太空艙 */
 @media (min-width: 850px) {
     body {
         align-items: center;
@@ -359,26 +353,24 @@ body {
     }
     
     .game-container {
-        max-width: 980px; /* 拓寬遊戲面板，釋放橫向潛能 */
+        max-width: 980px;
     }
     
     .game-layout-split {
         display: grid;
-        grid-template-columns: 320px 1fr; /* 左軌 320px 固定，右軌彈性擴展 */
+        grid-template-columns: 320px 1fr;
         gap: 24px;
-        align-items: start; /* 確保兩邊各自從頂部對齊，不互相拉扯高度 */
+        align-items: start;
     }
     
-    /* ➡️ 右軌內部元件彈性流動：當村莊隱藏時，戰鬥日誌會無縫、完美地頂到最上方！ */
     .right-layout-column {
         display: flex;
         flex-direction: column;
         gap: 16px;
     }
     
-    /* 📜 電腦版戰鬥日誌高彈性視窗 */
     #log-box {
-        height: 380px; /* 提供極佳的文字打擊感閱讀視窗 */
+        height: 380px;
         margin-bottom: 0;
     }
     
@@ -390,87 +382,3 @@ body {
     .grid-layout { gap: 8px; }
     .dynamic-panel { padding: 14px; margin-bottom: 0; }
 }
-
-/* ==========================================================================
-   💥 ZONE 6.5: 全職業與魔物動態文字打擊感外觀（Text-Hit Impact Styles）
-   ========================================================================== */
-/* ⚔️ 初心者 / 劍士：銳利橫向斬擊（物理骨折感） */
-.strike-slash {
-    display: inline-block;
-    color: #fff !important;
-    font-weight: 900 !important;
-    animation: textSlash 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    text-shadow: 0 0 8px #ff4757, 0 0 20px #ff2a3b;
-}
-@keyframes textSlash {
-    0% { transform: scale(1) skewX(0deg); filter: brightness(3); }
-    30% { transform: scale(1.35) skewX(-25deg); color: #ff4757 !important; }
-    70% { transform: scale(0.95) skewX(5deg); }
-    100% { transform: scale(1) skewX(0deg); filter: brightness(1); }
-}
-
-/* 🔮 魔法師：元素震盪魔能爆破（高頻率顫動） */
-.strike-magic {
-    display: inline-block;
-    color: #fff !important;
-    font-weight: 900 !important;
-    animation: textMagic 0.35s ease-out forwards;
-}
-@keyframes textMagic {
-    0% { transform: scale(0.7); filter: brightness(5); text-shadow: 0 0 25px #00c6ff; }
-    25% { transform: scale(1.25) rotate(-3deg); text-shadow: 0 0 15px #00e5ff, 0 0 30px #9b59b6; color: #bb8fce !important; }
-    50% { transform: rotate(3deg); }
-    100% { transform: scale(1) rotate(0deg); filter: brightness(1); color: #9b59b6 !important; }
-}
-
-/* 👼 服事：聖光裁決與治癒共鳴（天國極光擴散） */
-.strike-holy {
-    display: inline-block;
-    color: #fff !important;
-    font-weight: 900 !important;
-    animation: textHoly 0.4s ease-in-out forwards;
-}
-@keyframes textHoly {
-    0% { transform: translateY(4px); filter: brightness(4); text-shadow: 0 0 30px #ffd700; }
-    40% { transform: translateY(-6px) scale(1.2); text-shadow: 0 0 20px #fff, 0 0 35px #2ecc71; color: #ffd700 !important; }
-    100% { transform: translateY(0) scale(1); filter: brightness(1); }
-}
-
-/* 🔴 魔物反擊：重擊碎骨裂屏（狂暴晃動） */
-.strike-monster {
-    display: inline-block;
-    color: #ff4757 !important;
-    font-weight: 900 !important;
-    animation: textMonster 0.3s linear forwards;
-}
-@keyframes textMonster {
-    0% { transform: translate(2px, 3px); filter: brightness(3); }
-    20% { transform: translate(-4px, -2px) scale(1.28); text-shadow: 0 0 15px #ff4757, 0 0 30px #000; }
-    40% { transform: translate(3px, -1px); }
-    60% { transform: translate(-2px, 2px); }
-    100% { transform: translate(0, 0) scale(1); filter: brightness(1); }
-}
-
-/* 📊 皇家浮動損害數字（Floating Damage Text Popups） */
-.num-popup {
-    display: inline-block;
-    font-family: 'Impact', 'Arial Black', sans-serif;
-    font-size: 15px;
-    font-style: italic;
-    margin-left: 8px;
-    transform-origin: center;
-    animation: numFloating 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.5) forwards;
-}
-@keyframes numFloating {
-    0% { transform: scale(0.2) translateY(12px); opacity: 0; }
-    40% { transform: scale(1.5) translateY(-10px); opacity: 1; }
-    70% { transform: scale(0.9) translateY(-2px); }
-    100% { transform: scale(1) translateY(-4px); opacity: 1; }
-}
-
-/* 損害數字換裝分流 */
-.num-p-dmg { color: #ff2a3b !important; text-shadow: 0 2px 4px #000, 0 0 8px #ff4757; }         /* 物理斬擊紅 */
-.num-m-dmg { color: #00e5ff !important; text-shadow: 0 2px 4px #000, 0 0 10px #9b59b6; }        /* 魔法爆破藍 */
-.num-h-heal { color: #2ecc71 !important; text-shadow: 0 2px 4px #000, 0 0 8px #2ecc71; }         /* 聖光回復綠 */
-.num-boss-strike { color: #ff7675 !important; text-shadow: 0 2px 6px #000, 0 0 12px #ff0000; font-size: 17px; } /* 怪物反擊重創 */
-
