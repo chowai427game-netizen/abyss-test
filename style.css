@@ -318,71 +318,85 @@ body {
 }
 
 /* ==========================================================================
-   💥 DLC 新增：JRPG 文字打擊感 ── 銀光斬擊、紅閃與浮空扣血數字
+   💥 ZONE 6.5: 全職業與魔物動態文字打擊感外觀（Text-Hit Impact Styles）
    ========================================================================== */
-
-/* 1. 怪物名稱受創框：瞬間放大、抖動、強行變紅 */
-.combat-target-hit {
+/* ⚔️ 初心者 / 劍士：銳利橫向斬擊（物理骨折感） */
+.strike-slash {
     display: inline-block;
-    position: relative;
-    color: #ff4757 !important; /* 挨打瞬間強制化為血紅色 */
-    text-shadow: 0 0 8px #ff4757, 0 0 15px rgba(255, 71, 87, 0.6);
-    font-weight: 900;
-    transform-origin: center;
-    animation: monsterHitFlash 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    color: #fff !important;
+    font-weight: 900 !important;
+    animation: textSlash 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    text-shadow: 0 0 8px #ff4757, 0 0 20px #ff2a3b;
+}
+@keyframes textSlash {
+    0% { transform: scale(1) skewX(0deg); filter: brightness(3); }
+    30% { transform: scale(1.35) skewX(-25deg); color: #ff4757 !important; }
+    70% { transform: scale(0.95) skewX(5deg); }
+    100% { transform: scale(1) skewX(0deg); filter: brightness(1); }
 }
 
-/* 2. 核心魔法：利用偽元素做出一條銀青色的「斜向撕裂斬擊線」 */
-.combat-target-hit::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: -15%;
-    width: 130%;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, #ffffff 50%, transparent);
-    box-shadow: 0 0 8px #ffffff, 0 0 18px #00ffff; /* 銀白內核，青藍色劍氣斬擊光芒 */
-    transform: rotate(-12deg) scaleX(0); /* 預設旋轉斜角，長度為 0 */
-    transform-origin: left center;
-    animation: textSlashLine 0.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+/* 🔮 魔法師：元素震盪魔能爆破（高頻率顫動） */
+.strike-magic {
+    display: inline-block;
+    color: #fff !important;
+    font-weight: 900 !important;
+    animation: textMagic 0.35s ease-out forwards;
+}
+@keyframes textMagic {
+    0% { transform: scale(0.7); filter: brightness(5); text-shadow: 0 0 25px #00c6ff; }
+    25% { transform: scale(1.25) rotate(-3deg); text-shadow: 0 0 15px #00e5ff, 0 0 30px #9b59b6; color: #bb8fce !important; }
+    50% { transform: rotate(3deg); }
+    100% { transform: scale(1) rotate(0deg); filter: brightness(1); color: #9b59b6 !important; }
 }
 
-/* 3. 浮空扣血數字：像傳統 RPG 一樣從怪物頭上爆發、往上彈跳並漸隱 */
-.damage-popup {
+/* 👼 服事：聖光裁決與治癒共鳴（天國極光擴散） */
+.strike-holy {
+    display: inline-block;
+    color: #fff !important;
+    font-weight: 900 !important;
+    animation: textHoly 0.4s ease-in-out forwards;
+}
+@keyframes textHoly {
+    0% { transform: translateY(4px); filter: brightness(4); text-shadow: 0 0 30px #ffd700; }
+    40% { transform: translateY(-6px) scale(1.2); text-shadow: 0 0 20px #fff, 0 0 35px #2ecc71; color: #ffd700 !important; }
+    100% { transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+/* 🔴 魔物反擊：重擊碎骨裂屏（狂暴晃動） */
+.strike-monster {
+    display: inline-block;
+    color: #ff4757 !important;
+    font-weight: 900 !important;
+    animation: textMonster 0.3s linear forwards;
+}
+@keyframes textMonster {
+    0% { transform: translate(2px, 3px); filter: brightness(3); }
+    20% { transform: translate(-4px, -2px) scale(1.28); text-shadow: 0 0 15px #ff4757, 0 0 30px #000; }
+    40% { transform: translate(3px, -1px); }
+    60% { transform: translate(-2px, 2px); }
+    100% { transform: translate(0, 0) scale(1); filter: brightness(1); }
+}
+
+/* 📊 皇家浮動損害數字（Floating Damage Text Popups） */
+.num-popup {
     display: inline-block;
     font-family: 'Impact', 'Arial Black', sans-serif;
-    font-size: 16px;
-    font-weight: 900;
-    color: #ff2a3b;
-    text-shadow: 0 0 3px #000000, 0 0 8px #ff2a3b;
-    margin-left: 6px;
+    font-size: 15px;
+    font-style: italic;
+    margin-left: 8px;
     transform-origin: center;
-    animation: damageNumberPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: numFloating 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.5) forwards;
+}
+@keyframes numFloating {
+    0% { transform: scale(0.2) translateY(12px); opacity: 0; }
+    40% { transform: scale(1.5) translateY(-10px); opacity: 1; }
+    70% { transform: scale(0.9) translateY(-2px); }
+    100% { transform: scale(1) translateY(-4px); opacity: 1; }
 }
 
-/* ==========================================
-   🎬 打擊感特效動畫幀 (Keyframes)
-   ========================================== */
-/* 怪物名受擊抖動 */
-@keyframes monsterHitFlash {
-    0% { transform: scale(1.3) translateX(-4px) rotate(3deg); filter: brightness(2); }
-    30% { transform: scale(0.9) translateX(4px) rotate(-2deg); }
-    70% { transform: scale(1.05) translateX(-2px); }
-    100% { transform: scale(1) translateX(0) rotate(0deg); filter: brightness(1); }
-}
-
-/* 劍氣斬擊線：由左至右像閃電一樣劃過 */
-@keyframes textSlashLine {
-    0% { transform: rotate(-12deg) scaleX(0); opacity: 1; }
-    40% { transform: rotate(-12deg) scaleX(1); opacity: 1; filter: brightness(2); }
-    100% { transform: rotate(-12deg) scaleX(1.1); opacity: 0; } /* 瞬間劃完並淡出 */
-}
-
-/* 傷害數字彈跳 */
-@keyframes damageNumberPop {
-    0% { transform: scale(0.4) translateY(5px); opacity: 0; }
-    30% { transform: scale(1.4) translateY(-12px); opacity: 1; }
-    70% { transform: scale(1) translateY(-18px); opacity: 0.8; }
-    100% { transform: scale(0.9) translateY(-25px); opacity: 0; } /* 往上方飄移並完全透明 */
-}
+/* 損害數字換裝分流 */
+.num-p-dmg { color: #ff2a3b !important; text-shadow: 0 2px 4px #000, 0 0 8px #ff4757; }         /* 物理斬擊紅 */
+.num-m-dmg { color: #00e5ff !important; text-shadow: 0 2px 4px #000, 0 0 10px #9b59b6; }        /* 魔法爆破藍 */
+.num-h-heal { color: #2ecc71 !important; text-shadow: 0 2px 4px #000, 0 0 8px #2ecc71; }         /* 聖光回復綠 */
+.num-boss-strike { color: #ff7675 !important; text-shadow: 0 2px 6px #000, 0 0 12px #ff0000; font-size: 17px; } /* 怪物反擊重創 */
 
