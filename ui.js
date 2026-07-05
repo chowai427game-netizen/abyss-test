@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🎨 命運深淵：DOM 渲染、介面對齊與打擊感日誌輸出
+// 🎨 命運深淵：DOM 渲染、介面對齊與打擊感日誌輸出 (動態節點修正版)
 // ==========================================================================
 
 function addLog(msg, type = "normal") {
@@ -12,7 +12,12 @@ function addLog(msg, type = "normal") {
     else if (type === "take") impactClass += " log-take-dmg";
     else if (type === "env") impactClass += " log-env-tick";
     
-    box.innerHTML += `<div class="${impactClass}">${msg}</div>`;
+    // 💡 修正：不再使用 innerHTML +=，改用 createElement 確保 CSS @keyframes 動畫不會被後續日誌摧毀重置
+    const row = document.createElement('div');
+    row.className = impactClass;
+    row.innerHTML = msg;
+    
+    box.appendChild(row);
     box.scrollTop = box.scrollHeight;
 }
 
@@ -182,7 +187,6 @@ function updateUI() {
     
     renderDungeonInventoryUI();
 
-    // 💡 修正後嘅四向遊戲狀態介面分流器
     if (gameState === "VILLAGE") {
         toggle('village-panel-box', true); toggle('reward-panel-box', false);
         let locText = "🌍 目前位置：地表村莊";
@@ -202,7 +206,6 @@ function updateUI() {
         toggle('village-panel-box', false); toggle('reward-panel-box', true);
         document.getElementById('btn-main-action').disabled = true;
     } else if (gameState === "ENCOUNTER") {
-        // 💡 新增：當遭遇奇遇事件時，隱藏村莊，展開中央抉擇面板，並強行鎖定探險按鈕
         toggle('village-panel-box', false); toggle('reward-panel-box', true);
         document.getElementById('location-text').innerText = `🌌 深淵神祕奇遇 B${dungeonFloor}F`;
         document.getElementById('btn-main-action').disabled = true;
