@@ -202,6 +202,7 @@ function updateUI() {
     document.getElementById('p-gold').innerText = currentRun.gold;
     document.getElementById('p-block').innerText = currentRun.block;
     document.getElementById('p-crit').innerText = currentRun.critChance + "%";
+    document.getElementById('p-spd').innerText = currentRun.spd; // 👈 新增這行綁定速度
     document.getElementById('p-dodge').innerText = currentRun.dodgeChance + "%";
     document.getElementById('p-exp-text').innerText = `${currentRun.exp} / ${currentRun.nextExp}`;
     
