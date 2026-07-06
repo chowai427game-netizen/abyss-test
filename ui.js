@@ -12,6 +12,7 @@ function addLog(msg, type = "normal") {
     else if (type === "deal") impactClass += " log-deal-dmg";
     else if (type === "take") impactClass += " log-take-dmg";
     else if (type === "env") impactClass += " log-env-tick";
+    else if (type === "victory-badge") impactClass += " log-victory-badge"; // 👈 新增呢一行！
     
     // 💡 修正：不再使用 innerHTML +=，改用 createElement 確保 CSS @keyframes 動畫不會被後續日誌摧毀重置
     const row = document.createElement('div');
