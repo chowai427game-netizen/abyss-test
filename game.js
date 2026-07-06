@@ -209,7 +209,7 @@ async function runDungeonLoop() {
                 let hAmt = Math.floor(currentRun.maxHp * 0.08 * currentRun.skills["快速回復"]);
                 if (currentEnvironment === "ICE" && !currentRun.activeVillageBuffs.includes("🍲 皇家銀河蟹肉宴")) { hAmt = Math.floor(hAmt * 0.4); addLog(`❄️【冰原禁制】被動回復力受到壓制！`, "env"); }
                 currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hAmt);
-                addLog(`🟢【開局被動】細胞自動修復！勇者 <span class="strike-holy">[${accountMeta.name}]</span> 聖光圍繞！<span class="num-popup num-h-heal">+${hAmt} HP</span>`);
+                addLog(`🟢【開局被動】細胞自動修復！勇者 <span class="heal-effect">[${accountMeta.name}]</span> 聖光圍繞！<span class="num-popup num-h-heal">+${hAmt} HP</span>`);
             }
 
             let activeTriggered = false;
@@ -241,7 +241,7 @@ async function runDungeonLoop() {
                             let h = Math.floor(eff.lostHp * eff.healPercent);
                             if (currentEnvironment === "ICE" && !currentRun.activeVillageBuffs.includes("🍲 皇家銀河蟹肉宴")) h = Math.floor(h * 0.4);
                             currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
-                            let selfHitClass = currentRun.job === "acolyte" ? "strike-holy" : "strike-slash";
+                            let selfHitClass = "heal-effect"; /* 👈 徹底斬斷 strike-slash 降臨，杜絕回血斬擊線 */
                             addLog(`🩹【完美釋放】神聖洗禮！勇者 <span class="${selfHitClass}">[${accountMeta.name}]</span> 聖光圍繞！<span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
                         }
                         if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`🔵【完美釋放】禪心回湧 +${eff.mpRestore}！`, "perfect"); }
