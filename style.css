@@ -296,110 +296,145 @@ body {
 .btn-nav-tab:hover { color: #fff !important; background: rgba(255,255,255,0.05) !important; }
 
 /* ==========================================================================
-   💥 ZONE 6.5 (頂級重製版): 瞬逝流體斬擊線 & 皇家同步街機字體系統
+   💥 ZONE 6.5 (頂級重製版): 新月弧形刀芒與微觀治癒粒子系統
    ========================================================================== */
 
-/* ⚔️ 初心者 / 劍士普攻：文字基底保持鮮紅受創感 */
-.strike-slash {
-    position: relative;
+/* ⚪ 兩方名字基礎外觀：全部採用純白字作為基礎 */
+.strike-slash, .strike-monster, .heal-effect {
     display: inline-block;
-    color: #ff4757 !important; 
+    position: relative;
+    color: #ffffff !important; /* 👈 基礎純白 */
     font-weight: 900 !important;
-    text-shadow: 0 0 6px rgba(255, 71, 87, 0.4);
+    text-shadow: none;
     padding: 0 4px;
+    transform-origin: center;
 }
 
-/* 🗡️ 完美流體斬線：變細、銳利、絲滑切過後向右飛出並消失 */
+/* ⚔️ 物理斬擊：觸發名字【白 ➔ 紅 ➔ 白】動態變色 */
+.strike-slash {
+    animation: textRedFlash 0.4s ease-in-out forwards;
+}
+
+/* 🔴 魔物重擊：同樣觸發【白 ➔ 紅 ➔ 白】變色，外加微量受創晃動 */
+.strike-monster {
+    animation: textRedFlash 0.4s ease-in-out forwards, monsterPunchShake 0.3s linear forwards;
+}
+
+@keyframes textRedFlash {
+    0% { color: #ffffff !important; text-shadow: none; }
+    25% { color: #ff3838 !important; text-shadow: 0 0 10px #ff2a3b, 0 0 20px #ff4757; }
+    100% { color: #ffffff !important; text-shadow: none; }
+}
+@keyframes monsterPunchShake {
+    0% { transform: translate(0, 0); }
+    20% { transform: translate(-3px, -1px); }
+    40% { transform: translate(3px, 1px); }
+    60% { transform: translate(-2px, 2px); }
+    100% { transform: translate(0, 0); }
+}
+
+/* 🗡️ 完美流體刀光軌跡 (100% 還原圖片_4.png 弧形流線型) */
 .strike-slash::after {
     content: "";
     position: absolute;
-    top: 50%;
-    left: -20%;
-    width: 0%;
-    height: 1.5px; /* 👈 厚度大幅降低，變得更似鋒利劍氣 */
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.9) 20%, 
-        #ff2a3b 70%,
-        transparent 100%
-    );
-    transform: rotate(-15deg) translateY(-50%);
-    box-shadow: 0 0 8px #ff2a3b;
-    filter: blur(0.5px);
-    animation: slashAndVanish 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    top: -60%; /* 擴大高寬範圍，包覆名字周邊 */
+    left: -25%;
+    width: 140%;
+    height: 220%;
+    border-radius: 50%; /* 👈 利用圓弧度建立流線型軌跡 */
+    border-bottom: 2.5px solid rgba(255, 255, 255, 0.95); /* 核心雪白刀刃光線 */
+    box-shadow: 0 6px 14px #ff2a3b, inset 0 -4px 10px #ff4757; /* 刀芒外圍嘅帶狀紅光殘影 */
+    transform: rotate(-35deg) scale(0.4);
+    opacity: 0;
+    filter: blur(0.3px);
+    pointer-events: none;
+    animation: cinematicArcSlash 0.32s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
 }
 
-@keyframes slashAndVanish {
-    0% { width: 0%; left: -20%; opacity: 0; }
-    30% { width: 100%; left: -10%; opacity: 1; }
-    70% { width: 140%; left: 10%; opacity: 0.8; }
-    100% { width: 30%; left: 110%; opacity: 0; } /* 👈 斬過名字後，劍氣向右方飛出並徹底消散 */
+@keyframes cinematicArcSlash {
+    0% { transform: rotate(-40deg) scale(0.5) translateX(-20px); opacity: 0; }
+    30% { transform: rotate(-12deg) scale(1.1) translateX(0); opacity: 1; filter: brightness(2); }
+    70% { transform: rotate(18deg) scale(1.05); opacity: 0.8; }
+    100% { transform: rotate(45deg) scale(0.8) translateX(20px); opacity: 0; filter: blur(5px); } /* 👈 橫掃過去後完美消散 */
 }
 
-/* 🔮 魔法師：元素震盪 */
-.strike-magic {
-    display: inline-block;
-    color: #00e5ff !important;
-    font-weight: 900 !important;
-    animation: textMagic 0.3s ease-out forwards;
-}
-@keyframes textMagic {
-    0% { transform: scale(0.6); filter: brightness(4); }
-    30% { transform: scale(1.3) rotate(-4deg); text-shadow: 0 0 20px #00c6ff, 0 0 40px #9b59b6; }
-    100% { transform: scale(1.1) rotate(0deg); text-shadow: 0 0 8px #9b59b6; }
+
+/* ==========================================================================
+   🟢 🧪 治癒共鳴模組：拔除斬擊線，啟動多點綠色「+」升空特效
+   ========================================================================== */
+
+/* 🩹 治癒狀態：觸發名字【白 ➔ 綠 ➔ 白】動態變色 */
+.heal-effect {
+    animation: textGreenFlash 0.6s ease-in-out forwards;
 }
 
-/* 👼 服事：聖光裁決 */
-.strike-holy {
-    display: inline-block;
-    color: #ffd700 !important;
-    font-weight: 900 !important;
-    animation: textHoly 0.35s ease-in-out forwards;
-}
-@keyframes textHoly {
-    0% { transform: translateY(5px); filter: brightness(4); }
-    40% { transform: translateY(-5px) scale(1.25); text-shadow: 0 0 20px #fff, 0 0 30px #ffd700; }
-    100% { transform: translateY(0) scale(1.1); }
+@keyframes textGreenFlash {
+    0% { color: #ffffff !important; text-shadow: none; }
+    30% { color: #2ecc71 !important; text-shadow: 0 0 10px #2ecc71, 0 0 20px #27ae60; }
+    100% { color: #ffffff !important; text-shadow: none; }
 }
 
-/* 🔴 魔物反擊外觀 */
-.strike-monster {
-    display: inline-block;
-    color: #ff4757 !important;
-    font-weight: 900 !important;
-    text-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+/* 🧪 利用偽元素建立多個在名字附近擴散升起、淡出嘅綠色「+」號 */
+.heal-effect::before, .heal-effect::after {
+    position: absolute;
+    color: #2ecc71;
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0;
+    text-shadow: 0 0 6px rgba(46, 204, 113, 0.8);
+    pointer-events: none;
 }
 
-/* 📊 彈窗數字基礎框架（物理扣血、魔法扣血、魔物重擊、聖光回血全體同步） */
+/* 左側交錯雙加號 */
+.heal-effect::before {
+    content: "+  +";
+    left: -20px;
+    top: 5px;
+    animation: healParticleLeft 0.65s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* 右側滯後單加號 */
+.heal-effect::after {
+    content: "+";
+    right: -12px;
+    top: -2px;
+    animation: healParticleRight 0.55s cubic-bezier(0.25, 1, 0.5, 1) 0.08s forwards; /* 帶有微量延遲 */
+}
+
+@keyframes healParticleLeft {
+    0% { transform: translateY(10px) translateX(0) scale(0.5); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translateY(-22px) translateX(-6px) scale(1.1); opacity: 0; }
+}
+
+@keyframes healParticleRight {
+    0% { transform: translateY(8px) translateX(0) scale(0.6); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translateY(-26px) translateX(8px) scale(1.2); opacity: 0; }
+}
+
+
+/* 📊 損害與回復大字彈窗（結構維持不變） */
 .num-popup {
     display: inline-block;
-    font-family: 'Impact', 'Arial Black', sans-serif; /* 👈 全面鎖定硬核街機體 */
+    font-family: 'Impact', 'Arial Black', sans-serif;
     font-size: 16px;
     font-style: italic;
     margin-left: 10px;
     transform-origin: center;
-    animation: numFloatingStay 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards; /* 👈 統一使用爆裂彈跳動畫 */
+    animation: numFloatingStay 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards;
 }
-
-/* 📊 統一的緩緩彈起、永不消失影格結構 */
 @keyframes numFloatingStay {
     0% { transform: scale(0.2) translateY(10px); opacity: 0; }
     50% { transform: scale(1.4) translateY(-6px); opacity: 1; }
     100% { transform: scale(1.1) translateY(-3px); opacity: 1; }
 }
-
-/* 🎨 損害類型換裝分流（字體結構完全一致，僅顏色與光暈分流） */
 .num-p-dmg { color: #ff2a3b !important; text-shadow: 0 2px 4px #000, 0 0 8px #ff4757; }
 .num-m-dmg { color: #00e5ff !important; text-shadow: 0 2px 4px #000, 0 0 10px #9b59b6; }
+.num-h-heal { color: #2ecc71 !important; text-shadow: 0 2px 4px #000, 0 0 10px #2ecc71; }
 .num-boss-strike { color: #ff7675 !important; text-shadow: 0 2px 6px #000, 0 0 12px #ff0000; font-size: 17px; }
 
-/* 🟢 修正：回血字體完全對齊扣血字體 (Impact 街機風) */
-.num-h-heal { 
-    color: #2ecc71 !important; 
-    font-family: 'Impact', 'Arial Black', sans-serif !important; /* 👈 強制套用粗體街機字 */
-    font-style: italic;
-    text-shadow: 0 2px 4px #000, 0 0 10px #2ecc71; 
-}
 
 /* ==========================================================================
    🖥️ ZONE 7: 獨立直欄雙軌制佈局
