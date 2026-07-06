@@ -69,9 +69,14 @@
                 <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 13px; color: #ffd700; cursor: pointer; user-select: none;">
                     <input type="checkbox" id="auto-battle-checkbox" onchange="handleToggleAuto(this)" style="width:16px; height:16px; cursor:pointer;"> 🤖 開啟自動戰鬥指令 (託管 QTE 判定)
                 </label>
-                <div style="display: flex; gap: 12px; width: 100%;">
-                    <button id="btn-main-action" type="button" onclick="handleMainAction()" class="btn-game btn-explore">⚔️ 踏入傳送門進入深淵</button>
-                    <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest" style="display: none;">⛺ 逃回村莊</button>
+                <!-- index.html 的控制台按鈕區重構 -->
+                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                    <div style="display: flex; gap: 12px; width: 100%;">
+                        <button id="btn-main-action" type="button" onclick="handleMainAction()" class="btn-game btn-explore" style="flex: 14;">⚔️ 前進探險</button>
+                        <!-- 💡 新增：戰術重巡安全整備按鈕，預設隱藏 -->
+                        <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun" style="display: none; flex: 11;">🔄 重巡本層整備</button>
+                    </div>
+                    <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest" style="display: none; width: 100%;">⛺ 逃回村莊</button>
                 </div>
             </div>
 
