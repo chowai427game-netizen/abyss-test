@@ -1,10 +1,10 @@
+// 2.game.js
 // ==========================================================================
 // 🕹️ 命運深淵：核心控制、10層領主攔截與全分流文字打擊特效引擎 (完美體版)
 // ==========================================================================
-let isAutoBattleMode = false; // 預設關閉託管
 
 function handleToggleAuto(checkbox) {
-    isAutoBattleMode = checkbox.checked;
+    isAutoBattleMode = checkbox;
     addLog(isAutoBattleMode ? "🤖 <b>【指令託管】自動戰鬥已開啟，系統將自動判定環境抗性。</b>" : "🎮 <b>【手動介入】自動戰鬥已關閉，環境力場考驗個人手速。</b>");
 }
 
