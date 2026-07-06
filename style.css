@@ -572,3 +572,154 @@ body {
     .grid-layout { gap: 8px; }
     .dynamic-panel { padding: 14px; margin-bottom: 0; }
 }
+
+/* ==========================================================================
+   🏆 ZONE 8: 皇家金色戰役勝利視覺過場與小勝利日誌系統
+   ========================================================================== */
+
+/* 🥇 1. 常規戰鬥「金黃色小勝利」日誌橫條 */
+.log-victory-badge {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(0, 0, 0, 0.4) 80%) !important;
+    border-left: 4px solid #ffd700 !important;
+    border-right: 1px solid rgba(212, 175, 55, 0.1);
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    animation: goldPopVictory 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.gold-victory-text {
+    color: #ffd700 !important;
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6), 0 2px 2px #000;
+    font-weight: bold;
+}
+
+@keyframes goldPopVictory {
+    0% { transform: scale(0.96) translateY(10px); filter: brightness(2); opacity: 0; }
+    60% { transform: scale(1.02) translateY(-2px); filter: brightness(1.3); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* 👑 2. 全螢幕 Boss 戰大勝利遮罩面板 */
+#boss-victory-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: radial-gradient(circle at 50% 45%, rgba(26, 20, 5, 0.98) 0%, #050402 100%);
+    z-index: 100000; /* 覆蓋在加載遮罩之上的極致置頂層 */
+    display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
+    opacity: 0;
+    animation: overlayFadeIn 0.5s ease-out forwards;
+}
+
+@keyframes overlayFadeIn {
+    0% { opacity: 0; } 100% { opacity: 1; }
+}
+
+/* 金色環境粒子霧化殘影 */
+.victory-cloud-shimmer {
+    position: absolute;
+    width: 130%; height: 130%;
+    background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.08) 0%, transparent 65%);
+    animation: cloudPulse 6s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes cloudPulse {
+    0% { transform: scale(0.9) rotate(0deg); opacity: 0.7; }
+    100% { transform: scale(1.1) rotate(15deg); opacity: 1; }
+}
+
+/* 聖殿水晶容器外殼 */
+.victory-crystal-container {
+    text-align: center; width: 90%; max-width: 520px;
+    padding: 40px 30px; border-radius: 24px;
+    background: rgba(15, 13, 10, 0.65);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), 
+                inset 0 0 30px rgba(212, 175, 55, 0.05),
+                0 0 40px rgba(212, 175, 55, 0.1);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    transform: scale(0.7); opacity: 0;
+    animation: crystalZoomUp 0.6s cubic-bezier(0.15, 0.85, 0.35, 1.1) 0.15s forwards;
+}
+
+@keyframes crystalZoomUp {
+    0% { transform: scale(0.7); opacity: 0; filter: blur(4px); }
+    100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+
+/* 桂冠王者圖章 */
+.victory-laurel-crown {
+    font-size: 45px; margin-bottom: 10px;
+    filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.6));
+    animation: crownFloat 2s ease-in-out infinite;
+}
+
+@keyframes crownFloat {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-6px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+/* 史詩金色大標題 */
+.victory-grand-title {
+    font-family: 'Georgia', serif; font-size: 48px; font-weight: 900;
+    letter-spacing: 12px; margin: 0; padding-left: 12px; /* 修正字距偏移 */
+    background: linear-gradient(180deg, #ffffff 0%, #fff4cc 30%, #ffd700 70%, #b39200 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
+    animation: titleGleam 3s infinite linear;
+}
+
+/* 奢華金絲分割線 */
+.victory-divider-line {
+    width: 0%; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, #ffd700 50%, transparent 100%);
+    margin: 18px auto;
+    animation: lineStretch 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards;
+}
+
+@keyframes lineStretch {
+    0% { width: 0%; opacity: 0; }
+    100% { width: 100%; opacity: 1; }
+}
+
+/* 被斬殺領主標籤副標題 */
+.victory-target-sub {
+    font-size: 14px; color: #e3e3e6; letter-spacing: 3px;
+    text-transform: uppercase; margin: 0 0 15px 0; font-weight: 600;
+}
+
+.victory-scroll-fluff {
+    font-size: 12px; color: #a2a2a7; line-height: 1.8;
+    max-width: 320px; margin: 0 auto 25px auto; letter-spacing: 0.5px;
+}
+
+/* 勳章容器列 */
+.victory-reward-badge-row {
+    display: flex; gap: 12px; justify-content: center; margin-bottom: 30px;
+}
+
+.v-badge {
+    font-size: 11px; font-weight: bold; padding: 6px 14px; border-radius: 6px;
+    letter-spacing: 0.5px;
+}
+.gold-glint {
+    background: rgba(255, 215, 0, 0.1); color: #ffd700;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+.warehouse-sync {
+    background: rgba(46, 213, 115, 0.1); color: #2ecc71;
+    border: 1px solid rgba(46, 213, 115, 0.3);
+}
+
+/* 提示任意點擊關閉 */
+.victory-click-prompt {
+    font-size: 11px; color: #636366; letter-spacing: 1px;
+    animation: blinkPrompt 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes blinkPrompt {
+    0% { opacity: 0.3; } 100% { opacity: 0.9; }
+}
