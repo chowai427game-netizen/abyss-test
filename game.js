@@ -371,7 +371,69 @@ function checkLevelUpAndTriggerSelect() {
     updateUI();
 }
 
-window.onload = function() { checkCloudAccount(); };
+// ==========================================================================
+// 📡 命運深淵：魔導冷啟動喚醒引擎 (解決 Render 免費版延遲神經機制)
+// ==========================================================================
+
+const LOADING_FLAVOR_TEXTS = [
+    "正在通訊虛空裂縫，喚醒沉睡中的 Render 冥河伺服器...",
+    "正在解鎖遠古魔導傳承，正在重構 GMA 勇者基因...",
+    "正在掃描雲端永久倉庫（正在數埋有幾多條半獸人後腿肉）...",
+    "黑市商人正在整理披風，鐵匠正在點燃加工所熔爐...",
+    "正在清除地下城 B1F 至 B40F 的殘留重力變異力場...",
+    "正在為深淵安全裝置適應器補給奧術能量（進度條在動就沒死機）...",
+    "命運編織中……魔物們正在穿戴裝備與黏液準備攔截...",
+    "正在注入皇家料理食譜（正在研發大快活厚牛巨堡配方）..."
+];
+
+window.onload = function() {
+    executeMagitechWakeupSequence();
+};
+
+async function executeMagitechWakeupSequence() {
+    const txtNode = document.getElementById('loading-flavor-text');
+    const barFill = document.getElementById('loading-bar-fill');
+    const overlay = document.getElementById('loading-overlay');
+    
+    // 1. 啟動定時器：每 3.5 秒更換一次中二風味文本
+    let textIndex = 0;
+    const textTimer = setInterval(() => {
+        if (txtNode) {
+            textIndex = (textIndex + 1) % LOADING_FLAVOR_TEXTS.length;
+            txtNode.innerText = LOADING_FLAVOR_TEXTS[textIndex];
+        }
+    }, 3500);
+
+    try {
+        // 2. 實時向後端發送一次輕量級「喚醒 Ping」
+        // 這裡借用預設名字 gma 發送讀取請求，強行激活動態伺服器
+        let wakeName = "gma";
+        await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(wakeName)}`);
+        
+        // 3. 後端成功回應！代表伺服器已經清醒，將進度條強制拉滿至 100%
+        if (barFill) barFill.classList.add('complete');
+        if (txtNode) txtNode.innerHTML = "✨ <b>血脈矩陣對接成功！冥河通道已解鎖！</b>";
+        
+        // 4. 短暫延遲 400ms 讓玩家睇到滿條嘅爽快感，然後絲滑淡出
+        setTimeout(() => {
+            clearInterval(textTimer); // 清除文字計時器
+            if (overlay) overlay.classList.add('fade-out');
+            
+            // 5. 通道已醒，順手幫首頁刷一次雲端帳戶檢查，展示已有血脈
+            checkCloudAccount();
+            addLog("📡 <b>【命運網路】已成功對接 Render 雲端魔導核心。</b>", "perfect");
+        }, 4000); // 這裡預留 400ms 的視覺緩衝
+
+    } catch (err) {
+        // 即使網絡超時或失敗，也不要鎖死玩家，5秒後強制放行讓玩家可以玩單機局內模式
+        console.warn("後端喚醒逾時，轉為局內本地離線沙盒模式行進");
+        clearInterval(textTimer);
+        if (barFill) barFill.style.width = "100%";
+        if (overlay) overlay.classList.add('fade-out');
+        const legBox = document.getElementById('legacy-box');
+        if(legBox) legBox.innerHTML = "⚠️ <b>雲端同步受阻</b>：已啟動臨時局內離線記憶體。";
+    }
+}
 
 // ==========================================================================
 // 🌌 命運深淵：奇遇事件路由與抉擇結果處理核心
