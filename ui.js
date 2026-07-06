@@ -143,27 +143,53 @@ function renderVillageCookingWorkshop() {
     }
 }
 
+// ui.js - 優化後的介面力場分流隱藏邏輯
 function updateUI() {
     const toggle = (id, show) => { const el = document.getElementById(id); if(el) el.style.display = show ? "block" : "none"; };
     const envBar = document.getElementById('env-alert-bar');
     
+    // 📢 1. 封面狀態：完全蒸發力場警報列
     if (gameState === "TITLE") {
         toggle('title-box', true); toggle('status-panel-box', false); toggle('village-panel-box', false); toggle('log-box', false); toggle('action-panel-box', false);
+        toggle('env-alert-bar', false); /* 👈 強制隱藏 */
         document.getElementById('location-text').innerText = "🔮 命運的起點";
-        if(envBar) { envBar.className = "env-zone-normal"; envBar.innerHTML = "✨ 當前環境力場：穩定"; }
         return;
     }
     
     toggle('title-box', false); toggle('status-panel-box', true); toggle('log-box', true); toggle('action-panel-box', true);
     
-    if (envBar) {
-        if (currentEnvironment === "NORMAL") { envBar.className = "env-zone-normal"; envBar.innerHTML = "✨ 當前環境力場：重力與空間表現穩定"; }
-        else if (currentEnvironment === "FIRE") { envBar.className = "env-zone-fire"; envBar.innerHTML = "🌋 警告：進入【烈焰焦土地核】每回合反噬燒血！火法克制"; }
-        else if (currentEnvironment === "ICE") { envBar.className = "env-zone-ice"; envBar.innerHTML = "❄️ 警告：進入【萬年永凍冰原】常駐強效治癒禁制！"; }
-        else if (currentEnvironment === "POISON") { envBar.className = "env-zone-poison"; envBar.innerHTML = "🧪 警告：進入【瘴氣劇毒沼澤】引導主動技能將深度感染！"; }
-        else if (currentEnvironment === "VOID") { envBar.className = "env-zone-void"; envBar.innerHTML = "🌀 警告：進入【重力虛空壓制】主動 QTE 判定時間瘋狂縮短！"; }
+    // 🌍 2. 地表村莊狀態：同樣全面關閉環境力場顯示，確保後勤整備的純粹性
+    if (gameState === "VILLAGE") {
+        toggle('village-panel-box', true); toggle('reward-panel-box', false);
+        toggle('env-alert-bar', false); /* 👈 隱藏村莊內的力場條，消除玩家焦慮 */
+        
+        let locText = "🌍 目前位置：地表村莊";
+        if(currentVillageLocation === "GATE") locText += " ➔ 🚪 傳送大殿";
+        if(currentVillageLocation === "KITCHEN") locText += " ➔ 🍳 皇家料理屋";
+        if(currentVillageLocation === "SQUARE") locText += " ➔ 🏛️ 中央廣場";
+        if(currentVillageLocation === "WORKSHOP") locText += " ➔ 🛠️ 加工所";
+        
+        document.getElementById('location-text').innerText = locText;
+        document.getElementById('btn-main-action').innerText = "🌀 啟動傳送門降臨深淵 B1F";
+        document.getElementById('btn-main-action').disabled = false;
+        
+        // 隱藏重巡按鈕（村莊內不需重巡）
+        const rBtn = document.getElementById('btn-rerun-action');
+        if(rBtn) rBtn.style.display = "none";
+        
+    } else {
+        // 🚨 3. 只有身處戰鬥（BATTLE/ENCOUNTER）等地下城環境，才開啟力場條
+        toggle('env-alert-bar', true);
+        if (envBar) {
+            if (currentEnvironment === "NORMAL") { envBar.className = "env-zone-normal"; envBar.innerHTML = "✨ 當前環境力場：重力與空間表現穩定"; }
+            else if (currentEnvironment === "FIRE") { envBar.className = "env-zone-fire"; envBar.innerHTML = "🌋 警告：進入【烈焰焦土地核】每回合反噬燒血！火法克制"; }
+            else if (currentEnvironment === "ICE") { envBar.className = "env-zone-ice"; envBar.innerHTML = "❄️ 警告：進入【萬年永凍冰原】常駐強效治癒禁制！"; }
+            else if (currentEnvironment === "POISON") { envBar.className = "env-zone-poison"; envBar.innerHTML = "🧪 警告：進入【瘴氣劇毒沼澤】引導主動技能將深度感染！"; }
+            else if (currentEnvironment === "VOID") { envBar.className = "env-zone-void"; envBar.innerHTML = "🌀 警告：進入【重力虛空壓制】主動 QTE 判定時間瘋狂縮短！"; }
+        }
     }
     
+    // 更新基礎核心數據
     document.getElementById('p-name').innerText = accountMeta.name;
     document.getElementById('p-job').innerText = translateJob(currentRun.job);
     document.getElementById('p-lv').innerText = currentRun.lv;
@@ -187,27 +213,34 @@ function updateUI() {
     
     renderDungeonInventoryUI();
 
-    if (gameState === "VILLAGE") {
-        toggle('village-panel-box', true); toggle('reward-panel-box', false);
-        let locText = "🌍 目前位置：地表村莊";
-        if(currentVillageLocation === "GATE") locText += " ➔ 🚪 傳送大殿";
-        if(currentVillageLocation === "KITCHEN") locText += " ➔ 🍳 皇家料理屋";
-        if(currentVillageLocation === "SQUARE") locText += " ➔ 🏛️ 中央廣場";
-        if(currentVillageLocation === "WORKSHOP") locText += " ➔ 🛠️ 加工所";
-        
-        document.getElementById('location-text').innerText = locText;
-        document.getElementById('btn-main-action').innerText = "🌀 啟動傳送門降臨深淵 B1F";
-        document.getElementById('btn-main-action').disabled = false;
-    } else if (gameState === "BATTLE") {
+    // 4. 地下城深層狀態分流控制
+    if (gameState === "BATTLE") {
         toggle('village-panel-box', false); toggle('reward-panel-box', false);
         document.getElementById('location-text').innerText = `🚨 當前位置：地下城 B${dungeonFloor}F`;
-        document.getElementById('btn-main-action').innerText = `🪜 前進探險 B${dungeonFloor + 1}F`;
-    } else if (gameState === "REWARD") {
+        
+        // 💡 特殊檢測：如果前進的下一層是 BOSS 關卡 (例如目前 9, 19, 29 層)，啟動雙軌安全整備按鈕
+        if ((dungeonFloor + 1) % 10 === 0) {
+            document.getElementById('btn-main-action').innerText = `☠️ 挑戰大領主 B${dungeonFloor + 1}F`;
+            // 呼叫動態增幅函數，展開重巡按鈕
+            injectRerunButtonUI();
+        } else {
+            document.getElementById('btn-main-action').innerText = `🪜 前進探險 B${dungeonFloor + 1}F`;
+            const rBtn = document.getElementById('btn-rerun-action');
+            if(rBtn) rBtn.style.display = "none";
+        }
+    } else if (gameState === "REWARD" || gameState === "ENCOUNTER") {
         toggle('village-panel-box', false); toggle('reward-panel-box', true);
         document.getElementById('btn-main-action').disabled = true;
-    } else if (gameState === "ENCOUNTER") {
-        toggle('village-panel-box', false); toggle('reward-panel-box', true);
-        document.getElementById('location-text').innerText = `🌌 深淵神祕奇遇 B${dungeonFloor}F`;
-        document.getElementById('btn-main-action').disabled = true;
+        const rBtn = document.getElementById('btn-rerun-action');
+        if(rBtn) rBtn.style.display = "none";
+    }
+}
+// ui.js 尾部追加函數
+function injectRerunButtonUI() {
+    const rerunBtn = document.getElementById('btn-rerun-action');
+    if (rerunBtn) {
+        rerunBtn.style.display = "block";
+        rerunBtn.disabled = false;
+        rerunBtn.innerText = `🔄 重巡 B${dungeonFloor}F 安全整備`;
     }
 }
