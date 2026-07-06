@@ -237,6 +237,64 @@ body {
 .log-env-tick { animation: logEnvTick 0.2s ease-out forwards !important; border-left: 2px solid #9b59b6 !important; }
 
 /* ==========================================================================
+   🕹️ ZONE 6 (按鈕矩陣全面重製)
+   ========================================================================== */
+.btn-game { 
+    color: #fff; 
+    border-radius: 10px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    border: 1px solid rgba(255, 255, 255, 0.08); 
+    padding: 14px; 
+    font-size: 14px; 
+    background: linear-gradient(135deg, #1c1c24 0%, #111116 100%);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 4px 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+
+/* 🟢 主前進探險按鈕：深邃翡翠霓虹光（完美覆蓋原版白塊） */
+.btn-explore { 
+    background: linear-gradient(135deg, #16a085 0%, #0a5c4c 100%) !important; 
+    border: 1px solid #1abc9c !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    box-shadow: 0 4px 15px rgba(22, 160, 133, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.btn-explore:hover:not(:disabled) { 
+    filter: brightness(1.15);
+    box-shadow: 0 6px 20px rgba(26, 188, 156, 0.5);
+    transform: translateY(-2px);
+}
+
+/* 🔄 戰術重巡按鈕：熔岩琥珀光暈 */
+.btn-rerun {
+    background: linear-gradient(135deg, #d35400 0%, #962d00 100%) !important;
+    border: 1px solid #e67e22 !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    box-shadow: 0 4px 15px rgba(211, 84, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.btn-rerun:hover:not(:disabled) {
+    filter: brightness(1.15);
+    box-shadow: 0 6px 20px rgba(230, 126, 34, 0.5);
+    transform: translateY(-2px);
+}
+
+/* 🏃 撤退逃跑按鈕 */
+.btn-rest { 
+    background: linear-gradient(135deg, #2980b9 0%, #1a5276 100%) !important; 
+    border: 1px solid #3498db !important;
+    box-shadow: 0 4px 12px rgba(41, 128, 185, 0.2);
+}
+.btn-rest:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+
+/* 未選中標籤分頁美化（提升暗部細節可讀性） */
+.btn-nav-tab {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.03) !important;
+    color: #8e8e93 !important;
+}
+.btn-nav-tab:hover { color: #fff !important; background: rgba(255,255,255,0.05) !important; }
+
+/* ==========================================================================
    💥 ZONE 6.5 (重製版): 全職業打擊姿態與街機像素步進跳字系統
    ========================================================================== */
 .strike-slash {
@@ -318,15 +376,50 @@ body {
     font-weight: bold;
     font-size: 15px;
     text-shadow: 0 2px 0 #1b5e20, 2px 0 0 #1b5e20, -2px 0 0 #1b5e20, 0 -2px 0 #1b5e20;
-    animation: pixelFloatUp 0.8s steps(6) forwards !important;
+    animation: pixelFloatUpStay 0.6s steps(5) forwards !important;
 }
 
-@keyframes pixelFloatUp {
-    0% { transform: translateY(12px); opacity: 0; }
-    15% { transform: translateY(6px); opacity: 1; }
-    40% { transform: translateY(0px); }
-    70% { transform: translateY(-8px); opacity: 1; filter: brightness(1.2); }
-    100% { transform: translateY(-16px); opacity: 0; }
+@keyframes pixelFloatUpStay {
+    0% { transform: translateY(10px); opacity: 0; }
+    20% { transform: translateY(5px); opacity: 1; }
+    50% { transform: translateY(0px); }
+    100% { transform: translateY(-4px); opacity: 1; filter: brightness(1.1); } /* 👈 結尾鎖定亮度，不進行淡出消失 */
+}
+
+/* ==========================================================================
+   💥 ZONE 6.5 (物理橫切弧光內核)
+   ========================================================================== */
+.strike-slash {
+    position: relative; /* 鎖定絕對定位基準 */
+    display: inline-block;
+    color: #ff4757 !important; 
+    font-weight: 900 !important;
+    text-shadow: 0 0 4px rgba(255, 71, 87, 0.5);
+    padding: 0 4px;
+}
+
+/* 🗡️ 橫切動態實體線：直接覆蓋於名字上方 */
+.strike-slash::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -10%;
+    width: 0%;
+    height: 3px; /* 斬擊線厚度 */
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        #ffffff 50%, 
+        #ff2a3b 100%
+    );
+    transform: rotate(-12deg) translateY(-50%); /* 頃斜切角 */
+    box-shadow: 0 0 8px #ff2a3b, 0 0 15px #ff4757;
+    animation: realSlashCut 0.22s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes realSlashCut {
+    0% { width: 0%; left: -10%; opacity: 1; }
+    50% { width: 120%; opacity: 1; filter: brightness(2); }
+    100% { width: 120%; left: -5%; opacity: 0.9; } /* 斬擊線停留在名字上，維持受創視覺 */
 }
 
 /* ==========================================================================
