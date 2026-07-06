@@ -483,3 +483,21 @@ function resolveAbyssEvent() {
     updateUI();
     runDungeonLoop(); 
 }
+// game.js - 注入重巡大腦控制器
+async function handleRerunAction() {
+    try {
+        // 鎖定所有按鈕防止連點 Bug
+        document.getElementById('btn-main-action').disabled = true;
+        document.getElementById('btn-rerun-action').disabled = true;
+        
+        addLog(`🔄【戰術重巡】勇者無視了領主房間的咆哮，悄悄折返 B${dungeonFloor}F 安全通道重新掃蕩整備！`, "deal");
+        
+        // 核心邏輯：層數 dungeonFloor 保持不變，直接重新執行地下城生成大循環
+        await runDungeonLoop();
+        
+    } catch(err) {
+        addLog(`🚨 重巡力場干擾崩潰：${err.message}`, "take");
+        document.getElementById('btn-main-action').disabled = false;
+        document.getElementById('btn-rerun-action').disabled = false;
+    }
+}
