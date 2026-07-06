@@ -1,10 +1,10 @@
+// 5.state.js
+
 // ==========================================================================
 // 📡 命運深淵：運行時全域狀態機與遠端雲端鏈接
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
-
-let isAutoBattleMode = false; // 預設關閉託管
 
 let accountMeta = { name: "無名勇者", unlockedJobs: ["novice"], warehouse: {} };
 
@@ -27,7 +27,7 @@ let qteResolvePointer = null;
 
 let activeMonster = null; 
 let playerShield = 0;
-let isAutoBattleMode = false; 
+let isAutoBattleMode = false; // 👈 統一保留喺呢度，作為全域開關
 
 let currentEnvironment = "NORMAL"; 
 let playerStatusEffects = { burn: 0, poison: 0 }; 
