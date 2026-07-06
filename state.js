@@ -4,6 +4,8 @@
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 
+let isAutoBattleMode = false; // 預設關閉託管
+
 let accountMeta = { name: "無名勇者", unlockedJobs: ["novice"], warehouse: {} };
 
 let currentRun = {
