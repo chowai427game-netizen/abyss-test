@@ -6,7 +6,14 @@
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 
-let accountMeta = { name: "無名勇者", unlockedJobs: ["novice"], warehouse: {} };
+// 1. 請將頂部的 accountMeta 宣告修改為包含裝備槽：
+let accountMeta = { 
+    name: "無名勇者", 
+    unlockedJobs: ["novice"], 
+    warehouse: {},
+    // ⚔️ 傳承神裝槽：一經裝備，永久保留，出征時將灌注給 currentRun
+    equipment: { weapon: null, armor: null } 
+};
 
 let currentRun = {
     job: "novice",
@@ -35,6 +42,7 @@ let playerStatusEffects = { burn: 0, poison: 0 };
 let currentVillageLocation = "GATE";
 
 function resetCurrentRunData() {
+    // 基礎屬性歸位
     currentRun.lv = 1; currentRun.hp = 100; currentRun.maxHp = 100; currentRun.mp = 20; currentRun.maxMp = 50;
     currentRun.mpRegen = 15; currentRun.atk = 15; currentRun.spd = 20; currentRun.gold = 0; currentRun.exp = 0; currentRun.nextExp = 30;
     currentRun.block = 0; currentRun.critChance = 0; currentRun.dodgeChance = 0; currentRun.skills = { "緊急治療": 1 };
@@ -43,6 +51,25 @@ function resetCurrentRunData() {
     playerShield = 0;
     activeMonster = null;
     playerStatusEffects = { burn: 0, poison: 0 };
+
+    // ⚔️ 核心傳承：如果雲端帳戶有著武器/防具，出征前將屬性瘋狂灌注！
+    if (accountMeta.equipment.weapon) {
+        let wBlueprint = CRAFTING_BLUEPRINTS.find(b => b.name === accountMeta.equipment.weapon);
+        if (wBlueprint) {
+            if (wBlueprint.stats.atk) currentRun.atk += wBlueprint.stats.atk;
+            if (wBlueprint.stats.spd) currentRun.spd += wBlueprint.stats.spd;
+            if (wBlueprint.stats.mpRegen) currentRun.mpRegen += wBlueprint.stats.mpRegen;
+        }
+    }
+    if (accountMeta.equipment.armor) {
+        let aBlueprint = CRAFTING_BLUEPRINTS.find(b => b.name === accountMeta.equipment.armor);
+        if (aBlueprint) {
+            if (aBlueprint.stats.block) currentRun.block += aBlueprint.stats.block;
+            if (aBlueprint.stats.maxHp) { currentRun.maxHp += aBlueprint.stats.maxHp; currentRun.hp = currentRun.maxHp; }
+            if (aBlueprint.stats.spd) currentRun.spd += aBlueprint.stats.spd;
+            if (aBlueprint.stats.dodgeChance) currentRun.dodgeChance += aBlueprint.stats.dodgeChance;
+        }
+    }
 }
 
 async function checkCloudAccount() {
