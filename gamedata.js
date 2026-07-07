@@ -3,21 +3,21 @@
 // 🌋 命淵生態圈：地下城魔物、每 10 層領主與料理數據庫
 // ==========================================================================
 
-// 1. 普通小怪數據庫（隨機遭遇）
+// 1. 普通小怪數據庫（加入 baseSpd）
 const REGULAR_MONSTERS_POOL = [
-    { name: "💧 藍色史萊姆", baseHp: 40, hpScale: 14, baseAtk: 4, atkScale: 2.5 },
-    { name: "👺 綠皮哥布林", baseHp: 45, hpScale: 15, baseAtk: 5, atkScale: 2.8 },
-    { name: "🐗 荒野半獸人", baseHp: 55, hpScale: 18, baseAtk: 6, atkScale: 3.2 },
-    { name: "👻 迷途哭泣怨靈", baseHp: 38, hpScale: 13, baseAtk: 5, atkScale: 3.0 },
-    { name: "🧱 古墓巨石守衛", baseHp: 70, hpScale: 22, baseAtk: 4, atkScale: 2.2 }
+    { name: "💧 藍色史萊姆", baseHp: 40, hpScale: 14, baseAtk: 4, atkScale: 2.5, baseSpd: 14 },
+    { name: "👺 綠皮哥布林", baseHp: 45, hpScale: 15, baseAtk: 5, atkScale: 2.8, baseSpd: 26 }, /* 哥布林極快 */
+    { name: "🐗 荒野半獸人", baseHp: 55, hpScale: 18, baseAtk: 6, atkScale: 3.2, baseSpd: 12 }, /* 半獸人較慢 */
+    { name: "👻 迷途哭泣怨靈", baseHp: 38, hpScale: 13, baseAtk: 5, atkScale: 3.0, baseSpd: 22 },
+    { name: "🧱 古墓巨石守衛", baseHp: 70, hpScale: 22, baseAtk: 4, atkScale: 2.2, baseSpd: 8 }  /* 石頭人超慢 */
 ];
 
-// 2. 每 10 層定點攔截的「深淵領主 Boss」數據庫
+// 2. 領主 Boss 數據庫（加入 baseSpd）
 const BOSS_DATABASE = {
-    10: { name: "👑 哥布林暴君 • 狂怒者", baseHp: 250, baseAtk: 35, dropItem: "哥布林乾癟香料", desc: "深淵前層的殘暴統治者，巨槌帶有粉碎性震盪！" },
-    20: { name: "🧙 深淵墮落大祭司 • 莫爾", baseHp: 500, baseAtk: 55, dropItem: "墮落祭司禁忌血清", desc: "詠唱黑暗禁咒的古老祭司，防禦壁障極厚！" },
-    30: { name: "🌌 虛空秩序扭曲者 • 零", baseHp: 900, baseAtk: 85, dropItem: "秩序扭曲者核心", desc: "撕裂空間的虛空生物，其存在本身就在干擾 QTE 力場！" },
-    40: { name: "🌊 深淵巨鎧領主 • Scylla", baseHp: 1500, baseAtk: 120, dropItem: "🦀 帝王蟹巨腿", desc: "鎮守深淵 40 層的海棲霸主，蟹螯擁有斷鋼級物理外傷！" }
+    10: { name: "👑 哥布林暴君", baseHp: 250, baseAtk: 35, baseSpd: 28, dropItem: "哥布林乾癟香料", desc: "狂暴連擊的暴君！" },
+    20: { name: "🧙 墮落大祭司", baseHp: 500, baseAtk: 55, baseSpd: 18, dropItem: "墮落祭司禁忌血清", desc: "高防禦但詠唱慢！" },
+    30: { name: "🌌 秩序扭曲者", baseHp: 900, baseAtk: 85, baseSpd: 35, dropItem: "秩序扭曲者核心", desc: "撕裂空間，行動極快！" },
+    40: { name: "🌊 巨鎧領主 Scylla", baseHp: 1500, baseAtk: 120, baseSpd: 15, dropItem: "🦀 帝王蟹巨腿", desc: "重裝鎮守，一擊致命！" }
 };
 
 // 3. 皇家廚藝配方數據庫
