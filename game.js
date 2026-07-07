@@ -1,14 +1,26 @@
 // 2.game.js
 // ==========================================================================
-// 🕹️ 命運深淵：即時流體文字回合制、雙軌戰鬥小勝利與全螢幕領主討伐過場引擎
+// 🕹️ 命運深淵：真・ATB 異步運算與動態戰局核心引擎 (完美修復版)
 // ==========================================================================
 
-let combatTickerTimer = null; // 即時戰鬥瀑布流異步時鐘指針
+let combatTickerTimer = null; // 即時戰鬥運算時鐘指針
 let combatRoundCounter = 1;   // 當前局內戰鬥回合計數
+
+let playerAtb = 0;
+let monsterAtb = 0;
+let envAtb = 0;
+let battleTimeElapsed = 0;
 
 function handleStartGame() {
     let inputName = document.getElementById('player-name-input').value.trim();
-    accountMeta.name = inputName || "gma";
+    
+    // 👤 完美剔除預設名字，如果沒輸入就叫「無名勇者」或彈出提示
+    if (!inputName) {
+        alert("🧙 勇者啊，請先在輸入框刻下你的大名，才能喚醒雲端血脈！");
+        return;
+    }
+    
+    accountMeta.name = inputName;
     gameState = "VILLAGE";
     dungeonFloor = 0;
     currentEnvironment = "NORMAL";
@@ -41,7 +53,6 @@ function handleMainAction() {
 }
 
 function handleSecondaryAction() {
-    // 終止當前正在瘋狂滾動的即時戰鬥時鐘，防止逃跑後日誌繼續打印
     clearInterval(combatTickerTimer);
     
     gameState = "VILLAGE";
@@ -126,13 +137,8 @@ function executeVillageCooking(recipe) {
 }
 
 // ==========================================================================
-// ⚔️ 真・ATB 異步運算引擎 (Active Time Battle)
+// ⏳ ATB 主時間流軸推演引擎
 // ==========================================================================
-
-let playerAtb = 0;
-let monsterAtb = 0;
-let envAtb = 0;
-let battleTimeElapsed = 0;
 
 async function runDungeonLoop() {
     try {
@@ -166,40 +172,23 @@ async function runDungeonLoop() {
         if (currentRun.job === "magician" && currentRun.skills["能量外套"]) { playerShield += 250 * currentRun.skills["能量外套"]; addLog(`🟢【被動】奧術防護盾啟動 🛡️ +${playerShield}`); }
         if (currentRun.skills["天使之護"]) { currentRun.block += 4 * currentRun.skills["天使之護"]; }
 
-        // 重置 ATB 時鐘 (0~100)
         playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
         if(combatTickerTimer) clearInterval(combatTickerTimer);
 
-        // 🌟 時鐘滴答：每 250 毫秒推演一次戰場時間
+        // ⏱️ 異步推演時鐘 (每 250ms 進前一步)
         combatTickerTimer = setInterval(() => {
             if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
                 clearInterval(combatTickerTimer); return;
             }
             
             battleTimeElapsed += 0.25;
-            
-            // 速度轉化為行動條增長
             playerAtb += currentRun.spd;
             monsterAtb += activeMonster.spd;
-            envAtb += 15; // 環境力場固定流逝速度
+            envAtb += 15;
 
-            // 1. 環境力場結算 (當環境條滿 100)
-            if (envAtb >= 100) {
-                envAtb -= 100;
-                executeEnvironmentTick();
-            }
-
-            // 2. 玩家行動結算 (當玩家條滿 100)
-            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) {
-                playerAtb -= 100; // 扣除行動力
-                executePlayerActionTick();
-            }
-
-            // 3. 魔物行動結算 (當魔物條滿 100)
-            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) {
-                monsterAtb -= 100;
-                executeMonsterActionTick();
-            }
+            if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
+            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) { playerAtb -= 100; executePlayerActionTick(); }
+            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) { monsterAtb -= 100; executeMonsterActionTick(); }
             
             updateUI();
         }, 250);
@@ -210,7 +199,31 @@ async function runDungeonLoop() {
     }
 }
 
-// ⏱️ 玩家專屬攻擊結算
+// ⏱️ 3.1 環境與週期被動結算
+function executeEnvironmentTick() {
+    currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + Math.floor(currentRun.mpRegen / 2));
+    
+    if (playerStatusEffects.burn > 0) { 
+        let bDmg = playerStatusEffects.burn * 3; currentRun.hp = Math.max(1, currentRun.hp - bDmg); 
+        addLog(`🔥 烈火灼燒！受到 <span class="num-popup num-boss-strike">-${bDmg} HP</span>`, "env"); 
+    }
+    if (playerStatusEffects.poison > 0) { 
+        let pDmg = Math.floor(currentRun.maxHp * 0.05 * playerStatusEffects.poison); currentRun.hp = Math.max(1, currentRun.hp - pDmg); 
+        addLog(`🧪 毒素攻心！受到 <span class="num-popup num-boss-strike">-${pDmg} HP</span>`, "env"); 
+    }
+    if (currentEnvironment === "FIRE" && !currentRun.activeVillageBuffs.includes("🍧 萬年永凍刨冰")) { 
+        currentRun.hp = Math.max(1, currentRun.hp - 5); addLog(`🌋 熔岩環境灼燒 -5 火傷。`, "env"); 
+    }
+    if (currentRun.skills["快速回復"]) {
+        let hAmt = Math.floor(currentRun.maxHp * 0.04 * currentRun.skills["快速回復"]);
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hAmt);
+        addLog(`🟢【被動修復】<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${hAmt} HP</span>`);
+    }
+    
+    if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
+}
+
+// ⏱️ 3.2 玩家專屬攻擊結算
 function executePlayerActionTick() {
     addLog(`<span style="color:#666; font-size:10px;">[戰鬥經過 ${battleTimeElapsed.toFixed(1)}s]</span>`);
     
@@ -221,7 +234,7 @@ function executePlayerActionTick() {
             addLog(`🔮 引導【${sName} Lv.${currentRun.skills[sName]}】`); 
             activeTriggered = true;
             
-            let isPerfect = (Math.random() < 0.75); // 預設 75% 成功率
+            let isPerfect = (Math.random() < 0.75);
             if (currentEnvironment === "POISON") playerStatusEffects.poison++;
             let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
 
@@ -254,14 +267,14 @@ function executePlayerActionTick() {
     if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
 }
 
-// ⏱️ 魔物專屬反擊結算
+// ⏱️ 3.3 魔物專屬反擊結算
 function executeMonsterActionTick() {
     if (activeMonster.freezeTurns > 0) { 
         addLog(`❄️ 魔物冰封中無法行動！(剩餘 ${activeMonster.freezeTurns} 次)`); 
         activeMonster.freezeTurns--; 
         return;
     }
-
+    
     let finalDmg = Math.max(1, activeMonster.atk - currentRun.block);
     if (playerShield > 0) {
         if (finalDmg <= playerShield) { 
@@ -278,9 +291,8 @@ function executeMonsterActionTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
-
 // ==========================================================================
-// 🏆 戰役勝利分流結算內核 (小勝利黃金橫條 vs 領主史詩大捷遮罩)
+// 🏆 戰役勝利分流結算內核
 // ==========================================================================
 
 function executeDungeonVictorySequence() {
@@ -296,27 +308,22 @@ function executeDungeonVictorySequence() {
     }
 
     if (isBossFloor) {
-        // 🛑 觸發：全螢幕新月耀金 Boss 勝利過場機制
         const bOverlay = document.getElementById('boss-victory-overlay');
         const bNameNode = document.getElementById('victory-boss-name');
         if (bNameNode) bNameNode.innerText = activeMonster.name;
         if (bOverlay) {
             bOverlay.style.display = "flex";
-            // 點擊任意位置可以立刻釋放過場
             bOverlay.onclick = () => { dismissBossVictoryCinematic(); };
         }
         
-        // 打印終極日誌
         addLog(`🏆【史詩大捷】成功討伐大領主 [${activeMonster.name}]！`, "perfect");
         let drop = activeMonster.fixedDrop;
         accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
         addLog(`🎁【領主血脈抽離】戰利品傳送 ➔ <strong>${drop} (x1)</strong>！`, "perfect");
         
-        // 4秒後如果玩家沒手動點擊，自動解鎖過場進入三選一面板
         setTimeout(() => { dismissBossVictoryCinematic(); }, 4000);
 
     } else {
-        // 🥇 觸發：常規戰鬥金黃色街機小勝利橫條日誌
         addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 殲滅魔物！臨時金幣 <span class="gold-victory-text">+20 G</span>，經驗值 <span class="gold-victory-text">+15 點</span>。`, "victory-badge");
         
         if (Math.random() < 0.25) { 
@@ -331,7 +338,6 @@ function executeDungeonVictorySequence() {
     }
 }
 
-// 關閉領主大捷畫面，切換至獎勵抉擇區
 function dismissBossVictoryCinematic() {
     const bOverlay = document.getElementById('boss-victory-overlay');
     if (!bOverlay || bOverlay.style.display === "none") return;
@@ -397,7 +403,6 @@ function checkLevelUpAndTriggerSelect() {
     }
     if (gameState === "BATTLE") {
         document.getElementById('btn-main-action').disabled = false;
-        // 開放重巡整備按鈕
         if ((dungeonFloor + 1) % 10 === 0) {
             const rBtn = document.getElementById('btn-rerun-action');
             if(rBtn) rBtn.disabled = false;
@@ -405,7 +410,6 @@ function checkLevelUpAndTriggerSelect() {
     }
     updateUI();
 }
-
 
 // ==========================================================================
 // 🌌 命運深淵：奇遇事件路由與抉擇結果處理核心
