@@ -32,29 +32,32 @@ function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
     // 1. 先安全隱藏所有村莊子面板
-    const panels = ['v-loc-gate', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
+    const panels = ['v-loc-gate', 'v-loc-kitchen', 'v-loc-workshop'];
     panels.forEach(p => {
         const el = document.getElementById(p);
         if (el) el.style.display = 'none';
     });
     
+    // 💡 核心安全修正：先提取頂部文字節點，做安全防禦保護
+    const navTextEl = document.getElementById('v-nav-text');
+    
     // 2. 根據目的地，精準顯示面板並同步變更頂部導航文字
     if (targetLoc === "GATE") {
         const el = document.getElementById('v-loc-gate');
         if (el) el.style.display = 'block';
-        document.getElementById('v-nav-text').innerHTML = "⛺ 傳送大殿";
+        if (navTextEl) navTextEl.innerHTML = "⛺ 傳送大殿"; // 👈 加上安全檢查，搵唔到都唔會死機
         renderVillageJobSelectors();
     } 
     else if (targetLoc === "KITCHEN") {
         const el = document.getElementById('v-loc-kitchen');
         if (el) el.style.display = 'block';
-        document.getElementById('v-nav-text').innerHTML = "🍳 料理屋";
+        if (navTextEl) navTextEl.innerHTML = "🍳 料理屋";    // 👈 加上安全檢查
         renderVillageCookingWorkshop();
     } 
     else if (targetLoc === "WORKSHOP") {
         const el = document.getElementById('v-loc-workshop');
         if (el) el.style.display = 'block';
-        document.getElementById('v-nav-text').innerHTML = "🛠️ 加工所"; // 👈 確保這行能順利執行！
+        if (navTextEl) navTextEl.innerHTML = "🛠️ 加工所";   // 👈 加上安全檢查
         renderVillageWorkshop();
     }
     
