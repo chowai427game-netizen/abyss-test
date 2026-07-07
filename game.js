@@ -259,6 +259,23 @@ function executePlayerActionTick() {
         let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
         addLog(`⚔️ 揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal"); 
     }
+    // 💡 請將這段「流派附魔公式」塞在 executePlayerActionTick() 函數的最尾端，就在判定怪物死亡的前面：
+
+    // 🩹 1. 飾品流派：物理吸血 (Vampirism)
+    if (currentRun.vampRate > 0 && currentRun.hp > 0 && activeMonster.hp > 0) {
+        let vAmt = Math.floor(currentRun.atk * (currentRun.vampRate / 100));
+        if (vAmt > 0) {
+            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vAmt);
+            addLog(`🩸【血脈吸吮】<span class="heal-effect">[${accountMeta.name}]</span> 刀刃飲血！觸發吸血 <span class="num-popup num-h-heal">+${vAmt} HP</span>`);
+        }
+    }
+
+    // ⚔️ 2. 飾品流派：雙擊狂暴連段 (Double Strike)
+    if (currentRun.doubleStrike > 0 && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
+        let extraDmg = Math.floor(currentRun.atk * 0.85); // 連擊造成 85% 追擊傷
+        activeMonster.hp -= extraDmg;
+        addLog(`⚡【殘影追擊】雙鳴殘響！勇者極速揮出第二刀！使 <span class="strike-slash">[${activeMonster.name}]</span> 追加受創 <span class="num-popup num-p-dmg">-${extraDmg} HP</span>`, "deal");
+    }
     
     if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
 }
@@ -415,6 +432,7 @@ function triggerRandomAbyssEvent() {
     if (!container || !title) return;
     container.innerHTML = "";
 
+    // 🎲 隨機分流：0=黑市，1=邪神祭壇，2=深淵古寶箱降臨！
     let eventType = Math.floor(Math.random() * 3);
 
     if (eventType === 0) {
@@ -434,7 +452,7 @@ function triggerRandomAbyssEvent() {
             currentRun.maxHp = Math.max(15, currentRun.maxHp - 25);
             currentRun.hp = Math.min(currentRun.hp, currentRun.maxHp);
             currentRun.atk += 15;
-            addLog(`🩸【邪神交易完成】你切開了手腕，獻祭生命源泉！身體虛弱，但無盡的殺意充盈靈魂 (+15 ATK)！`, "take");
+            addLog(`🩸【邪神交易完成】你切開了手腕，獻祭生命源泉！身體虛弱，但無盡的殺意充煙靈魂 (+15 ATK)！`, "take");
             resolveAbyssEvent();
         };
         container.appendChild(btnDeal);
@@ -449,29 +467,35 @@ function triggerRandomAbyssEvent() {
         container.appendChild(btnLeave);
     } 
     else {
-        title.innerText = "✨ 深淵流螢神泉 • 命運的昂貴代價 ✨";
-        addLog(`🌌【深淵奇遇 B${dungeonFloor}F】前方亂石後傳來泉水聲，一片散發著治癒微光的魔導神泉出現在眼前。`);
+        // 🎁 ⚙️ 終極激活：【皇家深淵璀璨寶箱】開箱大作戰！
+        let isGolden = (Math.random() < 0.30 || dungeonFloor > 20); // 30%機率或20層以上觸發耀金寶箱
+        let chest = isGolden ? TREASURE_CHESTS_POOL[1] : TREASURE_CHESTS_POOL[0];
         
-        let btnDrink = document.createElement('button');
-        btnDrink.className = "btn-game btn-cook";
-        btnDrink.innerHTML = `<strong>🧪 痛飲不老神泉</strong><br><span style="color:#2ecc71;">報酬：氣血當場奶滿 +80 HP！➔ 代價：下 3 回合冷卻判定安全時間暴跌 300ms！</span>`;
-        btnDrink.onclick = () => {
-            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 80);
-            currentRun.qteBuffDuration -= 300; 
-            currentRun.qteBuffTurns = 3;       
-            addLog(`✨【神泉滋養完成】泉水修復了你肉身的重創 (+80 HP)，但強烈的舒適感讓你的神經反射短暫變得有些恍惚遲鈍！`, "perfect");
+        title.innerText = `🎁 發現古老遺蹟：[${chest.name}] 🎁`;
+        addLog(`🌌【深淵奇遇 B${dungeonFloor}F】前方的碎石堆中散發出微光，你竟然掘出了一個 ${chest.name}！`);
+        
+        let btnOpen = document.createElement('button');
+        btnOpen.className = "btn-game btn-explore";
+        btnOpen.style.width = "100%";
+        btnOpen.style.marginBottom = "8px";
+        btnOpen.innerHTML = `🔑 砸開寶箱鎖扣（強行開啟）`;
+        btnOpen.onclick = () => {
+            // 運算隨機臨時金幣獎勵
+            let rolledGold = Math.floor(Math.random() * (chest.maxGold - chest.minGold + 1)) + chest.minGold;
+            currentRun.gold += rolledGold;
+            
+            addLog(`👑【開箱大捷】你一腳踢碎鎖扣！寶箱內金光四射：臨時金幣 <span class="gold-victory-text">+${rolledGold} G</span>！`, "perfect");
+            
+            // 耀金寶箱 50% 機率直接空投稀有最終 BOSS 素材入倉庫！
+            if (isGolden && Math.random() < 0.50) {
+                let highTierMaterials = ["秩序扭曲者核心", "🦀 帝王蟹巨腿", "萬年永凍冰晶", "墮落祭司禁忌血清"];
+                let drop = highTierMaterials[Math.floor(Math.random() * highTierMaterials.length)];
+                accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
+                addLog(`🎁【遺蹟奇蹟】寶箱夾層內發現古代遺跡素材！傳送回村莊倉庫 ➔ <strong>${drop} (x1)</strong>！`, "perfect");
+            }
             resolveAbyssEvent();
         };
-        container.appendChild(btnDrink);
-
-        let btnLeave = document.createElement('button');
-        btnLeave.className = "btn-game btn-rest";
-        btnLeave.innerHTML = "🏃 擔心泉水有詐，直接路過";
-        btnLeave.onclick = () => {
-            addLog(`🏃 謹慎至上，你只是用泉水洗淨了臉上的血漬，並未飲用，踏步離開。`);
-            resolveAbyssEvent();
-        };
-        container.appendChild(btnLeave);
+        container.appendChild(btnOpen);
     }
     updateUI();
 }
