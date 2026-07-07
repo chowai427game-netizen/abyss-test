@@ -119,10 +119,21 @@
                     </div>
                 </div>
 
+                <!-- 🍳 料理屋分頁外殼 -->
                 <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
-                        <div class="panel-title">🍲 皇家料理烹飪工坊 (成功率 75%)</div>
-                        <div class="notice-container" id="village-warehouse-display" style="margin-bottom: 10px;">📦 雲端倉庫庫存載入中...</div>
+                        <div class="panel-title">🍳 皇家後勤料理屋</div>
+        
+                        <!-- 💡 料理屋專屬：層數範圍分頁標籤群組 -->
+                        <div class="tab-filter-row" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <button class="btn-game btn-rerun" onclick="changeCookingTab('1-10')">B1-B10F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('11-20')">B11-B20F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('21-30')">B21-B30F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('31-40')">B31-B40F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('41-50')">B41-B50F</button>
+                        </div>
+
+                        <div class="notice-container" id="kitchen-warehouse-display">📦 雲端倉庫載入中...</div>
                         <div class="flex-layout" id="recipes-container"></div>
                     </div>
                 </div>
@@ -135,15 +146,32 @@
                     </div>
                 </div>
 
-                <!-- ⚙️ 換成全新加工所外殼 -->
+                <!-- 🛠️ 皇家魔導加工所外殼 -->
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
-                        <div class="notice-container" id="workshop-warehouse-display" style="margin-bottom: 10px;">📦 雲端永久庫存載入中...</div>
+        
+                        <!-- 💡 加工所篩選軌道 1：裝備部位類別 (Weapon, Armor, Accessory) -->
+                        <div class="tab-filter-row" id="workshop-cat-row" style="display: flex; gap: 6px; margin-bottom: 8px;">
+                            <button class="btn-game btn-rerun" onclick="changeCraftingCat('all')">👁️ 顯示全部部位</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingCat('weapon')">🗡️ 武器藍圖</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingCat('armor')">👕 防具板甲</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingCat('accessory')">💍 飾品核心</button>
+                        </div>
+
+                        <!-- 💡 加工所篩選軌道 2：需求鍛造等級範圍 (Lv.1 - Lv.50) -->
+                        <div class="tab-filter-row" id="workshop-lvl-row" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <button class="btn-game btn-rerun" onclick="changeCraftingLvl('1-10')">Lv.1-10</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('11-20')">Lv.11-20</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('21-30')">Lv.21-30</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('31-40')">Lv.31-40</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('41-50')">Lv.41-50</button>
+                        </div>
+
+                        <div class="notice-container" id="workshop-warehouse-display">📦 雲端永久庫存載入中...</div>
                         <div class="flex-layout" id="blueprints-container"></div>
                     </div>
                 </div>
-            </div>
 
             <!-- 🎁 4. 獎勵三選一專用面板 -->
             <div class="dynamic-panel reward-style" id="reward-panel-box" style="display: none;">
