@@ -11,6 +11,7 @@ let accountMeta = { name: "無名勇者", unlockedJobs: ["novice"], warehouse: {
 let currentRun = {
     job: "novice",
     lv: 1, hp: 100, maxHp: 100, mp: 20, maxMp: 50, mpRegen: 15, atk: 15, gold: 0, exp: 0, nextExp: 30,
+    spd: 20, //👈 新增基礎速度
     block: 0, critChance: 0, dodgeChance: 0, vampRate: 0, regenPower: 0, doubleStrike: 0,
     skills: { "緊急治療": 1 }, 
     inventory: [],            
@@ -35,7 +36,7 @@ let currentVillageLocation = "GATE";
 
 function resetCurrentRunData() {
     currentRun.lv = 1; currentRun.hp = 100; currentRun.maxHp = 100; currentRun.mp = 20; currentRun.maxMp = 50;
-    currentRun.mpRegen = 15; currentRun.atk = 15; currentRun.gold = 0; currentRun.exp = 0; currentRun.nextExp = 30;
+    currentRun.mpRegen = 15; currentRun.atk = 15; currentRun.spd = 20; currentRun.gold = 0; currentRun.exp = 0; currentRun.nextExp = 30;
     currentRun.block = 0; currentRun.critChance = 0; currentRun.dodgeChance = 0; currentRun.skills = { "緊急治療": 1 };
     currentRun.inventory = []; currentRun.qteBuffDuration = 0; currentRun.qteBuffTurns = 0;
     currentRun.activeVillageBuffs = [];
