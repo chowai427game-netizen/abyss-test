@@ -42,8 +42,9 @@ function switchVillageLocation(targetLoc) {
         }
     });
 
-    if (targetLoc === "GATE") renderVillageJobSelectors();
-    if (targetLoc === "KITCHEN") renderVillageCookingWorkshop();
+    if (targetLoc === "GATE") renderVillageJobSelectors(); 
+    if (targetLoc === "KITCHEN") renderVillageCookingWorkshop(); //廚房
+    if (targetLoc === "WORKSHOP") renderVillageWorkshop();// 👈 新增這一行加工！
     updateUI();
 }
 
@@ -206,6 +207,8 @@ function updateUI() {
     document.getElementById('p-spd').innerText = currentRun.spd; // 👈 新增這行綁定速度
     document.getElementById('p-dodge').innerText = currentRun.dodgeChance + "%";
     document.getElementById('p-exp-text').innerText = `${currentRun.exp} / ${currentRun.nextExp}`;
+    document.getElementById('p-equip-weapon').innerText = accountMeta.equipment.weapon || "🎚️ 拳頭空手";
+    document.getElementById('p-equip-armor').innerText = accountMeta.equipment.armor || "👕 布衣新手";
     
     document.getElementById('hp-bar-fill').style.width = (currentRun.hp / currentRun.maxHp) * 100 + "%";
     document.getElementById('mp-bar-fill').style.width = (currentRun.mp / currentRun.maxMp) * 100 + "%";
@@ -247,4 +250,82 @@ function injectRerunButtonUI() {
         rerunBtn.disabled = false;
         rerunBtn.innerText = `🔄 重巡 B${dungeonFloor}F 安全整備`;
     }
+}
+
+// ==========================================================================
+// 🛠️ ui.js 尾部追加：加工所鍛造與穿戴按鈕動態生成器
+// ==========================================================================
+
+function renderVillageWorkshop() {
+    const wBox = document.getElementById('workshop-warehouse-display');
+    if (!wBox) return;
+    let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
+    wBox.innerHTML = `📦 <strong>雲端永久食材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
+    
+    const bContainer = document.getElementById('blueprints-container');
+    if (!bContainer) return;
+    bContainer.innerHTML = "";
+    
+    CRAFTING_BLUEPRINTS.forEach(blueprint => {
+        let btnWrapper = document.createElement('div');
+        btnWrapper.style.background = "rgba(0,0,0,0.2)";
+        btnWrapper.style.padding = "14px";
+        btnWrapper.style.borderRadius = "12px";
+        btnWrapper.style.border = "1px solid rgba(255,255,255,0.04)";
+        btnWrapper.style.marginBottom = "10px";
+        btnWrapper.style.textAlign = "left";
+
+        let reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
+        
+        let statText = Object.keys(blueprint.stats).map(k => {
+            let name = k === "atk" ? "攻擊" : k === "spd" ? "速度" : k === "mpRegen" ? "回魔" : k === "block" ? "減傷" : k === "maxHp" ? "生命" : "閃避";
+            let val = blueprint.stats[k];
+            return `${name} ${val > 0 ? '+' : ''}${val}`;
+        }).join(", ");
+
+        let titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
+        
+        let infoP = document.createElement('p');
+        infoP.style.margin = "0 0 10px 0";
+        infoP.style.fontSize = "12px";
+        infoP.style.color = "#babcbf";
+        infoP.style.lineHeight = "1.5";
+        infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
+        btnWrapper.appendChild(infoP);
+
+        // 🔘 控制鈕 1: 打造按鈕
+        let btnForge = document.createElement('button');
+        btnForge.className = "btn-game btn-explore";
+        btnForge.style.padding = "6px 12px";
+        btnForge.style.fontSize = "11px";
+        btnForge.style.marginRight = "8px";
+        btnForge.innerHTML = "🔨 消耗材料打造";
+        btnForge.disabled = !canCanCook(blueprint.ingredients); // 複用材料檢查函數
+        btnForge.onclick = () => { executeForgeEquipment(blueprint); };
+        btnWrapper.appendChild(btnForge);
+
+        // 🔘 控制鈕 2: 穿上/脫下 狀態機判定
+        let isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name);
+        let hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
+
+        if (isEquipped) {
+            let btnUnequip = document.createElement('button');
+            btnUnequip.className = "btn-game btn-rest";
+            btnUnequip.style.padding = "6px 12px";
+            btnUnequip.style.fontSize = "11px";
+            btnUnequip.innerHTML = "❌ 卸下神裝";
+            btnUnequip.onclick = () => { executeEquipAction(blueprint.name, "unequip"); };
+            btnWrapper.appendChild(btnUnequip);
+        } else if (hasInWarehouse) {
+            let btnEquip = document.createElement('button');
+            btnEquip.className = "btn-game btn-rerun";
+            btnEquip.style.padding = "6px 12px";
+            btnEquip.style.fontSize = "11px";
+            btnEquip.innerHTML = "⚡ 穿戴上身";
+            btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
+            btnWrapper.appendChild(btnEquip);
+        }
+
+        bContainer.appendChild(btnWrapper);
+    });
 }
