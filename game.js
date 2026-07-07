@@ -185,11 +185,15 @@ async function runDungeonLoop() {
             playerAtb += currentRun.spd;
             monsterAtb += activeMonster.spd;
             envAtb += 15;
-
+            // ⚙️ 請將 game.js 裡面這段時鐘判斷修改為安全模式：
             if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
-            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) { playerAtb -= 100; executePlayerActionTick(); }
-            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) { monsterAtb -= 100; executeMonsterActionTick(); }
-            
+            // 💡 加上 activeMonster && 確保怪物未死先至執行後面嘅 .hp 檢查
+            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                playerAtb -= 100; executePlayerActionTick(); 
+            }
+            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                monsterAtb -= 100; executeMonsterActionTick(); 
+            }
             updateUI();
         }, 250);
 
@@ -224,7 +228,7 @@ function executeEnvironmentTick() {
 }
 
 // ⏱️ 3.2 玩家專屬攻擊結算
-function executePlayerActionTick() {
+function  {
     addLog(`<span style="color:#666; font-size:10px;">[戰鬥經過 ${battleTimeElapsed.toFixed(1)}s]</span>`);
     
     let activeTriggered = false;
@@ -243,16 +247,16 @@ function executePlayerActionTick() {
                 let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                 
                 if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg}</span>`, "perfect"); }
-                if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`🔥 怒爆！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-m-dmg">-${eff.fireDmg}</span>`, "perfect"); }
+                if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`🔥 怒爆！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-m-dmg">-${eff.fireDmg} HP</span>`, "perfect"); }
                 if (eff.healPercent) {
                     let h = Math.floor(eff.lostHp * eff.healPercent);
                     currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
-                    addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h}</span>`, "perfect");
+                    addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
                 }
                 if (eff.globalFreezeTurns) { activeMonster.freezeTurns += 2; addLog(`❄️【永凍冰原】魔物被凍結 2 次行動！`, "perfect"); }
             } else {
                 activeMonster.hp -= currentRun.atk; 
-                addLog(`⚔️ 普攻突刺！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk}</span>`, "deal");
+                addLog(`⚔️ 普攻突刺！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
             }
             break;
         }
@@ -261,7 +265,7 @@ function executePlayerActionTick() {
     if (!activeTriggered) { 
         activeMonster.hp -= currentRun.atk; 
         let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-        addLog(`⚔️ 揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk}</span>`, "deal"); 
+        addLog(`⚔️ 揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal"); 
     }
     
     if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
