@@ -81,26 +81,36 @@ function tryEquipItemToBag(itemName) {
     if(currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
 }
 
+// ==========================================================================
+// ⚡ 戰術快捷包物資微操模組 (字符串精簡對齊)
+// ==========================================================================
+
 function executeUseDungeonItem(itemName, index) {
     if (gameState !== "BATTLE" || !activeMonster) return;
     addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
+    
     if (itemName.includes("未知物體")) {
         let dmg = currentEnvironment === "POISON" ? 30 : 15;
         currentRun.hp = Math.max(1, currentRun.hp - dmg);
         currentRun.qteBuffDuration = currentEnvironment === "POISON" ? 800 : 500; 
         currentRun.qteBuffTurns = 3;      
-        addLog(`🪨 焦黑物體反噬扣血！`, "take");
-    } else if (itemName.includes("厚牛巨堡")) {
+        addLog(`🪨 焦黑物體反噬扣血！但神經受到特大刺激，冷卻判定安全時間延長！`, "take");
+    } 
+    else if (itemName.includes("厚牛巨堡")) { // 💡 與精簡後的 "🌭 大快活厚牛巨堡" 完美相容
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 100);
         playerShield += 80;
-        addLog(`🌭 厚牛巨堡熱量充能！血量回復 +100 HP，生成 80 點物理防盾！`, "perfect");
-    } else if (itemName.includes("永凍刨冰")) {
-        activeMonster.freezeTurns = 2;
-        addLog(`❄️ 寒氣狂飆！魔物被凍結 2 回合，無法再生！`, "perfect");
-    } else if (itemName.includes("禁忌血釀")) {
+        addLog(`🌭 大快活熱量充能！血量回復 +100 HP，生成 80 點物理防盾！`, "perfect");
+    } 
+    else if (itemName.includes("永凍刨冰")) { // 💡 與精簡後的 "🍧 萬年永凍刨冰" 完美相容
+        let fTurns = currentEnvironment === "ICE" ? 4 : 2;
+        activeMonster.freezeTurns = fTurns;
+        addLog(`❄️ 寒氣狂飆！魔物被凍結 ${fTurns} 回合，無法反擊與再生！`, "perfect");
+    } 
+    else if (itemName.includes("禁忌血釀")) { // 💡 與精簡後的 "🍷 逆轉禁忌血釀" 完美相容
         activeMonster.hp = 0; activeMonster.isSkipped = true; 
         addLog(`🍷 秩序崩壞！空間扭曲，你強行蒸發該層魔物遁走！`, "perfect");
     }
+    
     currentRun.inventory.splice(index, 1);
     updateUI();
 }
