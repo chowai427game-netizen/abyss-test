@@ -538,3 +538,54 @@ async function handleRerunAction() {
         document.getElementById('btn-rerun-action').disabled = false;
     }
 }
+
+// ==========================================================================
+// 🛠️ game.js 尾部追加：皇家加工所打造、穿戴與永久屬性灌注算法
+// ==========================================================================
+
+function executeForgeEquipment(blueprint) {
+    // 1. 安全扣除倉庫素材
+    for(let ing in blueprint.ingredients) { 
+        accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; 
+    }
+    
+    // 2. 100% 打造成功，送入永久倉庫
+    addLog(`🛠️【加工所大勝利】火花四濺！熔爐轟鳴！你成功鑄造了神裝：<strong>${blueprint.name}</strong>！`, "perfect");
+    accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
+    
+    uploadProgressToCloud(); 
+    updateUI(); 
+    if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
+function executeEquipAction(equipName, actionType) {
+    let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName);
+    if (!blueprint) return;
+
+    let slot = blueprint.type; // 判定是 "weapon" 還是 "armor"
+
+    if (actionType === "equip") {
+        // 💡 如果原本該位置已經有著神裝，先脫下來送回倉庫
+        if (accountMeta.equipment[slot]) {
+            let oldEquip = accountMeta.equipment[slot];
+            accountMeta.warehouse[oldEquip] = (accountMeta.warehouse[oldEquip] || 0) + 1;
+        }
+        // 扣除新裝備庫存，套入神裝槽
+        accountMeta.warehouse[equipName]--;
+        accountMeta.equipment[slot] = equipName;
+        addLog(`⚡【神裝繼承】勇者裝備了 <strong>${equipName}</strong>！遠古血脈力量共鳴，永久屬性已灌注！`, "perfect");
+    } 
+    else if (actionType === "unequip") {
+        // 卸下裝備，回收到永久倉庫
+        accountMeta.equipment[slot] = null;
+        accountMeta.warehouse[equipName] = (accountMeta.warehouse[equipName] || 0) + 1;
+        addLog(`❌【神裝卸下】你卸下了 <strong>${equipName}</strong>，裝備被妥善存回雲端永久物資庫。`);
+    }
+
+    // 🌟 關鍵：換裝後，強制執行數值重新灌注，刷新 currentRun 冒險數據！
+    resetCurrentRunData();
+    uploadProgressToCloud(); 
+    updateUI(); 
+    if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
