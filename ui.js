@@ -96,10 +96,11 @@ function renderVillageJobSelectors() {
         btn.disabled = !isUnlocked;
         btn.onclick = () => {
             currentRun.job = j;
-            if(j === "swordsman") { currentRun.maxMp = 50; currentRun.mpRegen = 5; currentRun.skills = { "狂擊": 1 }; }
-            else if(j === "magician") { currentRun.maxMp = 150; currentRun.mpRegen = 20; currentRun.skills = { "火箭術": 1 }; }
-            else if(j === "acolyte") { currentRun.maxMp = 90; currentRun.mpRegen = 10; currentRun.skills = { "治癒術": 1 }; }
-            else { currentRun.maxMp = 50; currentRun.mpRegen = 15; currentRun.skills = { "緊急治療": 1 }; }
+            // 替換這段舊代碼
+            if(j === "swordsman") { currentRun.maxMp = 50; currentRun.mpRegen = 5; currentRun.skills = { "狂擊": 1 }; currentRun.spd = 18; } /* 劍士稍慢但力大 */
+            else if(j === "magician") { currentRun.maxMp = 150; currentRun.mpRegen = 20; currentRun.skills = { "火箭術": 1 }; currentRun.spd = 15; } /* 法師需詠唱最慢 */
+            else if(j === "acolyte") { currentRun.maxMp = 90; currentRun.mpRegen = 10; currentRun.skills = { "治癒術": 1 }; currentRun.spd = 22; } /* 服事身輕如燕 */
+            else { currentRun.maxMp = 50; currentRun.mpRegen = 15; currentRun.skills = { "緊急治療": 1 }; currentRun.spd = 20; } /* 初心者平均 */
             updateUI(); renderVillageJobSelectors();
         };
         container.appendChild(btn);
