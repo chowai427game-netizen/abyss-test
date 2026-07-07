@@ -224,7 +224,9 @@ function updateUI() {
     document.getElementById('p-dodge').innerText = currentRun.dodgeChance + "%";
     document.getElementById('p-exp-text').innerText = `${currentRun.exp} / ${currentRun.nextExp}`;
     document.getElementById('p-equip-weapon').innerText = accountMeta.equipment.weapon || "🎚️ 拳頭空手";
-    document.getElementById('p-equip-armor').innerText = accountMeta.equipment.armor || "👕 布衣新手";
+    document.getElementById('p-equip-armor').innerText = accountMeta.equipment.armor || "👕 新手衣服";
+    const accEl = document.getElementById('p-equip-accessory');
+    if (accEl) accEl.innerText = accountMeta.equipment.accessory || "📿 脖子空空";
     
     document.getElementById('hp-bar-fill').style.width = (currentRun.hp / currentRun.maxHp) * 100 + "%";
     document.getElementById('mp-bar-fill').style.width = (currentRun.mp / currentRun.maxMp) * 100 + "%";
@@ -330,7 +332,11 @@ function renderVillageWorkshop() {
         btnWrapper.appendChild(btnForge);
 
         // 🔘 控制鈕 2: 穿上/脫下 狀態機判定
-        let isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name);
+        let isEquipped = (
+            accountMeta.equipment.weapon === blueprint.name || 
+            accountMeta.equipment.armor === blueprint.name ||
+            accountMeta.equipment.accessory === blueprint.name // 👈 新增這一行判定
+        );
         let hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
 
         if (isEquipped) {
