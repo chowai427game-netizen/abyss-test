@@ -227,8 +227,8 @@ function executeEnvironmentTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
-// ⏱️ 3.2 玩家專屬攻擊結算
-function  {
+// ⏱️ 3.2 玩家專屬攻擊結算 (已補回 HP 字眼版)
+function executePlayerActionTick() {
     addLog(`<span style="color:#666; font-size:10px;">[戰鬥經過 ${battleTimeElapsed.toFixed(1)}s]</span>`);
     
     let activeTriggered = false;
@@ -246,7 +246,8 @@ function  {
                 currentRun.mp -= sMeta.mp; 
                 let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                 
-                if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg}</span>`, "perfect"); }
+                // 💡 下面全部加上了 HP 字眼
+                if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect"); }
                 if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`🔥 怒爆！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-m-dmg">-${eff.fireDmg} HP</span>`, "perfect"); }
                 if (eff.healPercent) {
                     let h = Math.floor(eff.lostHp * eff.healPercent);
