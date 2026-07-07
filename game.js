@@ -261,7 +261,7 @@ function executeMonsterActionTick() {
         activeMonster.freezeTurns--; 
         return;
     }
-    
+
     let finalDmg = Math.max(1, activeMonster.atk - currentRun.block);
     if (playerShield > 0) {
         if (finalDmg <= playerShield) { 
@@ -277,125 +277,7 @@ function executeMonsterActionTick() {
     
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
-    
-    // 1. 環境力場與異常扣血判定
-    if (playerStatusEffects.burn > 0) { 
-        let bDmg = playerStatusEffects.burn * 3;
-        currentRun.hp = Math.max(1, currentRun.hp - bDmg); 
-        addLog(`🔥【異常燃燒】烈火灼燒！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 全身焦黑！<span class="num-popup num-boss-strike">-${bDmg} HP</span>`, "env"); 
-    }
-    if (playerStatusEffects.poison > 0) { 
-        let pDmg = Math.floor(currentRun.maxHp * 0.06 * playerStatusEffects.poison); 
-        currentRun.hp = Math.max(1, currentRun.hp - pDmg); 
-        addLog(`🧪【異常劇毒】毒素攻心！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 體力崩解！<span class="num-popup num-boss-strike">-${pDmg} HP</span>`, "env"); 
-    }
-    
-    currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + currentRun.mpRegen);
-    
-    // 2. 被動快速回復處理 (套用純綠色粒子特效)
-    if (currentRun.skills["快速回復"]) {
-        let hAmt = Math.floor(currentRun.maxHp * 0.08 * currentRun.skills["快速回復"]);
-        if (currentEnvironment === "ICE" && !currentRun.activeVillageBuffs.includes("🍲 皇家銀河蟹肉宴")) { hAmt = Math.floor(hAmt * 0.4); addLog(`❄️【冰原禁制】回復受到壓制！`, "env"); }
-        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hAmt);
-        addLog(`🟢【開局被動】細胞修復！勇者 <span class="heal-effect">[${accountMeta.name}]</span> 聖光圍繞！<span class="num-popup num-h-heal">+${hAmt} HP</span>`);
-    }
 
-    // 3. 玩家行動邏輯 (自動化神經網絡技能配對判定)
-    let activeTriggered = false;
-    for (let sName of Object.keys(currentRun.skills)) {
-        let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
-        if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
-            addLog(`🔮 魔力大激盪 ➔ 引導【${sName} Lv.${currentRun.skills[sName]}】`); 
-            activeTriggered = true;
-            
-            // 🤖 在即時自動戰鬥架構下，QTE 被託管神經元接管，預設 75% 完美成功率
-            let isPerfect = (Math.random() < 0.75);
-            if (currentEnvironment === "POISON") { playerStatusEffects.poison++; addLog(`🧪【沼澤毒化】引導魔法深度感染！`, "env"); }
-            
-            let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-
-            if (isPerfect) {
-                currentRun.mp -= sMeta.mp; 
-                let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
-                if (sName === "火箭術" && currentEnvironment === "FIRE") { eff.baseFire = Math.floor(eff.baseFire * 1.5); addLog(`🌋【力場共鳴】火箭術爆發 1.5 倍！`, "deal"); }
-                
-                if (eff.dmg) { 
-                    activeMonster.hp -= eff.dmg; 
-                    addLog(`💥【完美釋放】核心技轟鳴！使 <span class="strike-slash">[${activeMonster.name}]</span> 爆開裂痕！<span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect"); 
-                }
-                if (eff.fireDmg) { 
-                    activeMonster.hp -= eff.fireDmg; 
-                    addLog(`🔥【完美釋放】怒爆烈焰！使 <span class="strike-slash">[${activeMonster.name}]</span> 全身引燃！<span class="num-popup num-m-dmg">-${eff.fireDmg} HP</span>`, "perfect"); 
-                }
-                if (eff.blockBuff) { currentRun.block += eff.blockBuff; addLog(`🛡️【完美釋放】固定減傷 +${eff.blockBuff}！`, "perfect"); }
-                if (eff.healPercent) {
-                    let h = Math.floor(eff.lostHp * eff.healPercent);
-                    if (currentEnvironment === "ICE" && !currentRun.activeVillageBuffs.includes("🍲 皇家銀河蟹肉宴")) h = Math.floor(h * 0.4);
-                    currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
-                    let selfHitClass = "heal-effect"; // 強制套用純白轉綠粒子，不觸發刀弧線
-                    addLog(`🩹【完美釋放】神聖洗禮！勇者 <span class="${selfHitClass}">[${accountMeta.name}]</span> 聖光圍繞！<span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
-                }
-                if (eff.mpRestore) { currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore); addLog(`🔵【完美釋放】禪心回湧 +${eff.mpRestore}！`, "perfect"); }
-                if (eff.cureStatus) { playerStatusEffects.burn = 0; playerStatusEffects.poison = 0; addLog(`🩹【聖水淨化】異常狀態斬斷！`, "perfect"); }
-                if (eff.globalFreezeTurns) { currentEnvironment = "ICE"; addLog(`❄️【人為氣候】轉化為【永凍冰原】！`, "perfect"); }
-            } else {
-                activeMonster.hp -= currentRun.atk; 
-                addLog(`⚔️ 普攻突刺！使 <span class="strike-slash">[${activeMonster.name}]</span> 鮮血濺出！<span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
-            }
-            break;
-        }
-    }
-    
-    // 4. 基礎物理揮砍 (包含全職業基礎攻擊，名字全回歸純白基礎色，閃爍變紅，伴隨新月流體刀光)
-    if (!activeTriggered) { 
-        activeMonster.hp -= currentRun.atk; 
-        let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-        addLog(`⚔️ 普攻揮砍！使 <span class="strike-slash">[${activeMonster.name}]</span> 被正面重劈！<span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal"); 
-    }
-    
-    // 檢測怪物是否當場暴斃
-    if (activeMonster.hp <= 0) {
-        clearInterval(combatTickerTimer);
-        executeDungeonVictorySequence();
-        return;
-    }
-
-    // 5. 魔物反擊晶體波段
-    if (activeMonster.freezeTurns > 0) { 
-        addLog(`❄️ 魔物冰封中無法動彈。`); 
-        activeMonster.freezeTurns--; 
-    } else {
-        let finalDmg = Math.max(1, activeMonster.atk - currentRun.block);
-        if (playerShield > 0) {
-            if (finalDmg <= playerShield) { 
-                playerShield -= finalDmg; 
-                addLog(`🛡️ 魔物重撞！被護盾抵消。`, "deal"); 
-            } else { 
-                let over = finalDmg - playerShield; playerShield = 0; currentRun.hp -= over; 
-                addLog(`🔴 護盾粉碎！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 慘遭重擊！<span class="num-popup num-boss-strike">-${over} HP</span>`, "take"); 
-            }
-        } else { 
-            currentRun.hp -= finalDmg; 
-            addLog(`🔴 魔物暴虐反噬！勇者 <span class="strike-monster">[${accountMeta.name}]</span> 肉身承受痛擊！<span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
-        }
-    }
-    
-    if (currentEnvironment === "FIRE" && !currentRun.activeVillageBuffs.includes("🍧 萬年永凍刨冰")) { 
-        currentRun.hp = Math.max(1, currentRun.hp - 8); 
-        addLog(`🌋 熔岩灼燒受到 -8 火傷。`, "env"); 
-    }
-    
-    updateUI();
-    
-    // 檢測玩家是否陣亡
-    if (currentRun.hp <= 0) {
-        clearInterval(combatTickerTimer);
-        executeDungeonDefeatSequence();
-        return;
-    }
-    
-    combatRoundCounter++;
-}
 
 // ==========================================================================
 // 🏆 戰役勝利分流結算內核 (小勝利黃金橫條 vs 領主史詩大捷遮罩)
