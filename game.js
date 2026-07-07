@@ -6,11 +6,6 @@
 let combatTickerTimer = null; // 即時戰鬥瀑布流異步時鐘指針
 let combatRoundCounter = 1;   // 當前局內戰鬥回合計數
 
-function handleToggleAuto(checkbox) {
-    isAutoBattleMode = checkbox.checked;
-    addLog(isAutoBattleMode ? "🤖 <b>【指令託管】自動戰鬥已開啟，系統將自動判定環境抗性。</b>" : "🎮 <b>【手動介入】自動戰鬥已關閉，環境力場考驗個人手速。</b>");
-}
-
 function handleStartGame() {
     let inputName = document.getElementById('player-name-input').value.trim();
     accountMeta.name = inputName || "gma";
@@ -215,7 +210,7 @@ async function runDungeonLoop() {
     }
 }
 
-/ ⏱️ 玩家專屬攻擊結算
+// ⏱️ 玩家專屬攻擊結算
 function executePlayerActionTick() {
     addLog(`<span style="color:#666; font-size:10px;">[戰鬥經過 ${battleTimeElapsed.toFixed(1)}s]</span>`);
     
@@ -527,60 +522,6 @@ function checkLevelUpAndTriggerSelect() {
         }
     }
     updateUI();
-}
-
-// ==========================================================================
-// 📡 命運深淵：魔導冷啟動喚醒引擎 (解決 Render 免費版延遲神經機制)
-// ==========================================================================
-
-const LOADING_FLAVOR_TEXTS = [
-    "正在通訊虛空裂縫，喚醒沉睡中的 Render 冥河伺服器...",
-    "正在解鎖遠古魔導傳承，正在重構勇者基因...",
-    "正在掃描雲端永久倉庫（正在數埋有幾多條半獸人後腿肉）...",
-    "黑市商人正在整理披風，鐵匠正在點燃加工所熔爐...",
-    "正在清除地下城 B1F 至 B40F 的殘留重力變異力場...",
-    "命運編織中……魔物們正在穿戴裝備與黏液準備攔截..."
-];
-
-window.onload = function() {
-    executeMagitechWakeupSequence();
-};
-
-async function executeMagitechWakeupSequence() {
-    const txtNode = document.getElementById('loading-flavor-text');
-    const barFill = document.getElementById('loading-bar-fill');
-    const overlay = document.getElementById('loading-overlay');
-    
-    let textIndex = 0;
-    const textTimer = setInterval(() => {
-        if (txtNode) {
-            textIndex = (textIndex + 1) % LOADING_FLAVOR_TEXTS.length;
-            txtNode.innerText = LOADING_FLAVOR_TEXTS[textIndex];
-        }
-    }, 3500);
-
-    try {
-        let wakeName = "gma";
-        await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(wakeName)}`);
-        
-        if (barFill) barFill.classList.add('complete');
-        if (txtNode) txtNode.innerHTML = "✨ <b>血脈矩陣對接成功！冥河通道已解鎖！</b>";
-        
-        setTimeout(() => {
-            clearInterval(textTimer);
-            if (overlay) overlay.classList.add('fade-out');
-            checkCloudAccount();
-            addLog("📡 <b>【命運網路】已成功對接 Render 雲端魔導核心。</b>", "perfect");
-        }, 4000); 
-
-    } catch (err) {
-        console.warn("後端喚醒逾時，轉為局內本地離線沙盒模式行進");
-        clearInterval(textTimer);
-        if (barFill) barFill.style.width = "100%";
-        if (overlay) overlay.classList.add('fade-out');
-        const legBox = document.getElementById('legacy-box');
-        if(legBox) legBox.innerHTML = "⚠️ <b>雲端同步受阻</b>：已啟動臨時局內離線記憶體。";
-    }
 }
 
 
