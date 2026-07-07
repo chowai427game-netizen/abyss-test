@@ -131,64 +131,83 @@ function executeVillageCooking(recipe) {
 }
 
 // ==========================================================================
-// ⚔️ 核心重塑：全新即時瀑布流戰鬥引擎控制器 (ATB Dynamic Flow)
+// ⚔️ 真・ATB 異步運算引擎 (Active Time Battle)
 // ==========================================================================
+
+let playerAtb = 0;
+let monsterAtb = 0;
+let envAtb = 0;
+let battleTimeElapsed = 0;
 
 async function runDungeonLoop() {
     try {
-        // 鎖定主按鈕，防止玩家狂點造成副本層數跳躍的嚴重 Bug
         document.getElementById('btn-main-action').disabled = true;
         const rerunBtn = document.getElementById('btn-rerun-action');
         if(rerunBtn) rerunBtn.disabled = true;
 
         let isBossFloor = (dungeonFloor % 10 === 0);
         
-        // 常規層機率遭遇隨機地穴奇遇（Boss 層免疫奇遇阻攔）
         if (!isBossFloor && Math.random() < 0.25 && gameState !== "ENCOUNTER_RESOLVED") {
-            gameState = "ENCOUNTER";
-            updateUI();
-            triggerRandomAbyssEvent(); 
-            return; 
+            gameState = "ENCOUNTER"; updateUI(); triggerRandomAbyssEvent(); return; 
         }
-        
-        if (gameState === "ENCOUNTER_RESOLVED") {
-            gameState = "BATTLE";
-        }
+        if (gameState === "ENCOUNTER_RESOLVED") { gameState = "BATTLE"; }
 
-        // 刷新當前樓層的環境異常力場
         currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
         
-        // 初始化怪物實體
         if (isBossFloor) {
-            let bossMeta = BOSS_DATABASE[dungeonFloor] || { name: `👹 深淵無名魔皇 Tier.${dungeonFloor/10}`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, dropItem: "史萊姆核心黏液" };
-            activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
-            addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】警告！遭遇深淵大領主：<strong>${activeMonster.name}</strong>！`, "take");
+            let bossMeta = BOSS_DATABASE[dungeonFloor] || { name: `👹 深淵無名魔皇`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, baseSpd: 20, dropItem: "史萊姆核心黏液" };
+            activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, spd: bossMeta.baseSpd, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
+            addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！(速度: ${activeMonster.spd})`, "take");
         } else {
             let rollSeed = REGULAR_MONSTERS_POOL[Math.floor(Math.random() * REGULAR_MONSTERS_POOL.length)];
             let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * rollSeed.hpScale);
             let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * rollSeed.atkScale);
-            activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, freezeTurns: 0, isSkipped: false, isBoss: false };
-            addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
+            activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, spd: rollSeed.baseSpd, freezeTurns: 0, isSkipped: false, isBoss: false };
+            addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong> (速度: ${activeMonster.spd})`);
         }
         
         updateUI();
         
-        // 被動加載判定
-        if (currentRun.job === "magician" && currentRun.skills["能量外套"]) { playerShield += 250 * currentRun.skills["能量外套"]; addLog(`🟢【被動•能量外套】奧術防護盾啟動 🛡️ +${playerShield}`); }
+        if (currentRun.job === "magician" && currentRun.skills["能量外套"]) { playerShield += 250 * currentRun.skills["能量外套"]; addLog(`🟢【被動】奧術防護盾啟動 🛡️ +${playerShield}`); }
         if (currentRun.skills["天使之護"]) { currentRun.block += 4 * currentRun.skills["天使之護"]; }
 
-        // 重置時鐘與計數器
-        combatRoundCounter = 1;
+        // 重置 ATB 時鐘 (0~100)
+        playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
         if(combatTickerTimer) clearInterval(combatTickerTimer);
 
-        // 🌟 核心異步發動機：每 750 毫秒自動平滑推進一回合戰鬥，日誌如瀑布般傾瀉
-        combatTickerTimer = setInterval(async () => {
+        // 🌟 時鐘滴答：每 250 毫秒推演一次戰場時間
+        combatTickerTimer = setInterval(() => {
             if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
-                clearInterval(combatTickerTimer);
-                return;
+                clearInterval(combatTickerTimer); return;
             }
-            await executeOneCombatTickRealtime();
-        }, 750);
+            
+            battleTimeElapsed += 0.25;
+            
+            // 速度轉化為行動條增長
+            playerAtb += currentRun.spd;
+            monsterAtb += activeMonster.spd;
+            envAtb += 15; // 環境力場固定流逝速度
+
+            // 1. 環境力場結算 (當環境條滿 100)
+            if (envAtb >= 100) {
+                envAtb -= 100;
+                executeEnvironmentTick();
+            }
+
+            // 2. 玩家行動結算 (當玩家條滿 100)
+            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) {
+                playerAtb -= 100; // 扣除行動力
+                executePlayerActionTick();
+            }
+
+            // 3. 魔物行動結算 (當魔物條滿 100)
+            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster.hp > 0) {
+                monsterAtb -= 100;
+                executeMonsterActionTick();
+            }
+            
+            updateUI();
+        }, 250);
 
     } catch(err) { 
         addLog(`🚨 地下城異常：${err.message}`, "take"); 
@@ -196,9 +215,73 @@ async function runDungeonLoop() {
     }
 }
 
-// ⏱️ 單一回合即時運算內核
-async function executeOneCombatTickRealtime() {
-    addLog(`<span style="color:#666;">[第 ${combatRoundCounter} 回合]</span>`);
+/ ⏱️ 玩家專屬攻擊結算
+function executePlayerActionTick() {
+    addLog(`<span style="color:#666; font-size:10px;">[戰鬥經過 ${battleTimeElapsed.toFixed(1)}s]</span>`);
+    
+    let activeTriggered = false;
+    for (let sName of Object.keys(currentRun.skills)) {
+        let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
+        if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
+            addLog(`🔮 引導【${sName} Lv.${currentRun.skills[sName]}】`); 
+            activeTriggered = true;
+            
+            let isPerfect = (Math.random() < 0.75); // 預設 75% 成功率
+            if (currentEnvironment === "POISON") playerStatusEffects.poison++;
+            let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+
+            if (isPerfect) {
+                currentRun.mp -= sMeta.mp; 
+                let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
+                
+                if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg}</span>`, "perfect"); }
+                if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`🔥 怒爆！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-m-dmg">-${eff.fireDmg}</span>`, "perfect"); }
+                if (eff.healPercent) {
+                    let h = Math.floor(eff.lostHp * eff.healPercent);
+                    currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
+                    addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h}</span>`, "perfect");
+                }
+                if (eff.globalFreezeTurns) { activeMonster.freezeTurns += 2; addLog(`❄️【永凍冰原】魔物被凍結 2 次行動！`, "perfect"); }
+            } else {
+                activeMonster.hp -= currentRun.atk; 
+                addLog(`⚔️ 普攻突刺！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk}</span>`, "deal");
+            }
+            break;
+        }
+    }
+    
+    if (!activeTriggered) { 
+        activeMonster.hp -= currentRun.atk; 
+        let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+        addLog(`⚔️ 揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk}</span>`, "deal"); 
+    }
+    
+    if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
+}
+
+// ⏱️ 魔物專屬反擊結算
+function executeMonsterActionTick() {
+    if (activeMonster.freezeTurns > 0) { 
+        addLog(`❄️ 魔物冰封中無法行動！(剩餘 ${activeMonster.freezeTurns} 次)`); 
+        activeMonster.freezeTurns--; 
+        return;
+    }
+    
+    let finalDmg = Math.max(1, activeMonster.atk - currentRun.block);
+    if (playerShield > 0) {
+        if (finalDmg <= playerShield) { 
+            playerShield -= finalDmg; addLog(`🛡️ 魔物重撞！被護盾抵消。`, "deal"); 
+        } else { 
+            let over = finalDmg - playerShield; playerShield = 0; currentRun.hp -= over; 
+            addLog(`🔴 護盾粉碎！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${over} HP</span>`, "take"); 
+        }
+    } else { 
+        currentRun.hp -= finalDmg; 
+        addLog(`🔴 魔物暴虐反噬！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
+    }
+    
+    if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
+}
     
     // 1. 環境力場與異常扣血判定
     if (playerStatusEffects.burn > 0) { 
