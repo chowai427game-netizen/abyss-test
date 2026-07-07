@@ -300,7 +300,7 @@ function renderVillageWorkshop() {
         btnForge.style.fontSize = "11px";
         btnForge.style.marginRight = "8px";
         btnForge.innerHTML = "🔨 消耗材料打造";
-        btnForge.disabled = !canCanCook(blueprint.ingredients); // 複用材料檢查函數
+        btnForge.disabled = !canForge; // 複用材料檢查函數
         btnForge.onclick = () => { executeForgeEquipment(blueprint); };
         btnWrapper.appendChild(btnForge);
 
