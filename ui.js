@@ -30,21 +30,34 @@ function translateJob(j) {
 
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
-    const locations = ["GATE", "KITCHEN", "SQUARE", "WORKSHOP"];
     
-    locations.forEach(loc => {
-        const panel = document.getElementById(`v-loc-${loc.toLowerCase()}`);
-        const tabBtn = document.getElementById(`btn-tab-${loc.toLowerCase()}`);
-        if (panel) panel.style.display = (loc === targetLoc) ? "block" : "none";
-        if (tabBtn) {
-            if (loc === targetLoc) tabBtn.classList.add("active");
-            else tabBtn.classList.remove("active");
-        }
+    // 1. 先安全隱藏所有村莊子面板
+    const panels = ['v-loc-gate', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
+    panels.forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.style.display = 'none';
     });
-
-    if (targetLoc === "GATE") renderVillageJobSelectors(); 
-    if (targetLoc === "KITCHEN") renderVillageCookingWorkshop(); //廚房
-    if (targetLoc === "WORKSHOP") renderVillageWorkshop();// 👈 新增這一行加工！
+    
+    // 2. 根據目的地，精準顯示面板並同步變更頂部導航文字
+    if (targetLoc === "GATE") {
+        const el = document.getElementById('v-loc-gate');
+        if (el) el.style.display = 'block';
+        document.getElementById('v-nav-text').innerHTML = "⛺ 傳送大殿";
+        renderVillageJobSelectors();
+    } 
+    else if (targetLoc === "KITCHEN") {
+        const el = document.getElementById('v-loc-kitchen');
+        if (el) el.style.display = 'block';
+        document.getElementById('v-nav-text').innerHTML = "🍳 料理屋";
+        renderVillageCookingWorkshop();
+    } 
+    else if (targetLoc === "WORKSHOP") {
+        const el = document.getElementById('v-loc-workshop');
+        if (el) el.style.display = 'block';
+        document.getElementById('v-nav-text').innerHTML = "🛠️ 加工所"; // 👈 確保這行能順利執行！
+        renderVillageWorkshop();
+    }
+    
     updateUI();
 }
 
@@ -259,6 +272,7 @@ function injectRerunButtonUI() {
 function renderVillageWorkshop() {
     const wBox = document.getElementById('workshop-warehouse-display');
     if (!wBox) return;
+    
     let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
     wBox.innerHTML = `📦 <strong>雲端永久食材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
     
@@ -274,13 +288,13 @@ function renderVillageWorkshop() {
         btnWrapper.style.border = "1px solid rgba(255,255,255,0.04)";
         btnWrapper.style.marginBottom = "10px";
         btnWrapper.style.textAlign = "left";
+        btnWrapper.style.width = "100%";
 
         let reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
         
         let statText = Object.keys(blueprint.stats).map(k => {
             let name = k === "atk" ? "攻擊" : k === "spd" ? "速度" : k === "mpRegen" ? "回魔" : k === "block" ? "減傷" : k === "maxHp" ? "生命" : "閃避";
-            let val = blueprint.stats[k];
-            return `${name} ${val > 0 ? '+' : ''}${val}`;
+            return `${name} ${blueprint.stats[k] > 0 ? '+' : ''}${blueprint.stats[k]}`;
         }).join(", ");
 
         let titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
@@ -293,6 +307,14 @@ function renderVillageWorkshop() {
         infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
         btnWrapper.appendChild(infoP);
 
+        // 💡 核心修復：使用 let 宣告，明確鎖定 canForge 的生命週期與本地運算
+        let canForge = true;
+        for (let ing in blueprint.ingredients) {
+            if ((accountMeta.warehouse[ing] || 0) < blueprint.ingredients[ing]) {
+                canForge = false;
+            }
+        }
+
         // 🔘 控制鈕 1: 打造按鈕
         let btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
@@ -300,7 +322,7 @@ function renderVillageWorkshop() {
         btnForge.style.fontSize = "11px";
         btnForge.style.marginRight = "8px";
         btnForge.innerHTML = "🔨 消耗材料打造";
-        btnForge.disabled = !canForge; // 複用材料檢查函數
+        btnForge.disabled = !canForge; 
         btnForge.onclick = () => { executeForgeEquipment(blueprint); };
         btnWrapper.appendChild(btnForge);
 
@@ -327,5 +349,5 @@ function renderVillageWorkshop() {
         }
 
         bContainer.appendChild(btnWrapper);
-    });
+    }); 
 }
