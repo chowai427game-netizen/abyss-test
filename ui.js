@@ -370,3 +370,214 @@ function renderVillageWorkshop() {
         bContainer.appendChild(btnWrapper);
     });
 }
+
+// ==========================================================================
+// 🎛️ ui.js 尾部追加：多維度動態分頁與交互式高亮切換矩陣
+// ==========================================================================
+
+// 1. 全域動態篩選狀態計數器
+let activeCookingRange = "1-10";
+let activeCraftingCategory = "all";
+let activeCraftingLvlRange = "1-10";
+
+// 2. 料理屋分頁切換與按鈕高亮驅動
+function changeCookingTab(selectedRange) {
+    activeCookingRange = selectedRange;
+    
+    // 遍歷料理屋容器內的所有 Button，進行高亮樣式重置
+    const container = document.getElementById('v-loc-kitchen');
+    if (container) {
+        const btns = container.querySelectorAll('.tab-filter-row button');
+        btns.forEach(btn => {
+            if (btn.getAttribute('onclick').includes(`'${selectedRange}'`)) {
+                btn.className = "btn-game btn-rerun"; // 高亮耀金
+            } else {
+                btn.className = "btn-game btn-rest";  // 暗色沉澱
+            }
+        });
+    }
+    renderVillageCookingWorkshop();
+}
+
+// 3. 加工所部位類別切換驅動
+function changeCraftingCat(selectedCat) {
+    activeCraftingCategory = selectedCat;
+    
+    const row = document.getElementById('workshop-cat-row');
+    if (row) {
+        const btns = row.querySelectorAll('button');
+        btns.forEach(btn => {
+            if (btn.getAttribute('onclick').includes(`'${selectedCat}'`)) {
+                btn.className = "btn-game btn-rerun";
+            } else {
+                btn.className = "btn-game btn-rest";
+            }
+        });
+    }
+    renderVillageWorkshop();
+}
+
+// 4. 加工所需求等級範圍切換驅動
+function changeCraftingLvl(selectedLvl) {
+    activeCraftingLvlRange = selectedLvl;
+    
+    const row = document.getElementById('workshop-lvl-row');
+    if (row) {
+        const btns = row.querySelectorAll('button');
+        btns.forEach(btn => {
+            if (btn.getAttribute('onclick').includes(`'${selectedLvl}'`)) {
+                btn.className = "btn-game btn-rerun";
+            } else {
+                btn.className = "btn-game btn-rest";
+            }
+        });
+    }
+    renderVillageWorkshop();
+}
+
+// 5. 複寫與升級原有的料理屋渲染器 (注入層數過濾功能)
+function renderVillageCookingWorkshop() {
+    const wBox = document.getElementById('kitchen-warehouse-display');
+    if (!wBox) return;
+    
+    let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
+    wBox.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${wItems || "暫無任何行軍素材"}`;
+    
+    const rContainer = document.getElementById('recipes-container');
+    if (!rContainer) return;
+    rContainer.innerHTML = "";
+
+    // 💡 關鍵：只篩選出與當前激活分頁範圍相符合的料理
+    const filteredRecipes = RECIPES_DATABASE.filter(r => r.range === activeCookingRange);
+
+    filteredRecipes.forEach(recipe => {
+        let card = document.createElement('div');
+        card.style.background = "rgba(0,0,0,0.25)";
+        card.style.padding = "12px";
+        card.style.borderRadius = "10px";
+        card.style.border = "1px solid rgba(255,255,255,0.03)";
+        card.style.marginBottom = "8px";
+        card.style.width = "100%";
+        card.style.textAlign = "left";
+
+        let ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
+        
+        let hasIngredients = true;
+        for (let ing in recipe.ingredients) {
+            if ((accountMeta.warehouse[ing] || 0) < recipe.ingredients[ing]) hasIngredients = false;
+        }
+
+        card.innerHTML = `
+            <strong style="color:#2ecc71; font-size:13px;">${recipe.name}</strong>
+            <p style="margin:4px 0; font-size:12px; color:#aaa;">${recipe.desc}</p>
+            <span style="font-size:11px; color:#8e8e93;">🌾 所需配料：${ingList}</span>
+            <div style="margin-top:8px;"></div>
+        `;
+
+        let btnCook = document.createElement('button');
+        btnCook.className = "btn-game btn-cook";
+        btnCook.style.padding = "4px 10px";
+        btnCook.style.fontSize = "11px";
+        btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪納入戰術背包";
+        btnCook.disabled = !hasIngredients;
+        btnCook.onclick = () => { executeVillageCooking(recipe); };
+        
+        card.appendChild(btnCook);
+        rContainer.appendChild(card);
+    });
+}
+
+// 6. 複寫與升級原有的加工所渲染器 (注入類別 + 等級範圍雙重交叉過濾功能)
+function renderVillageWorkshop() {
+    const wBox = document.getElementById('workshop-warehouse-display');
+    if (!wBox) return;
+    
+    let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
+    wBox.innerHTML = `📦 <strong>雲端永久素材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
+    
+    const bContainer = document.getElementById('blueprints-container');
+    if (!bContainer) return;
+    bContainer.innerHTML = "";
+    
+    // 💡 核心雙軌交叉過濾算法：同時核對 category 類別與 levelRange 等級段
+    const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
+        const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
+        const matchLvl = (b.range === activeCraftingLvlRange);
+        return matchCat && matchLvl;
+    });
+
+    if (filteredBlueprints.length === 0) {
+        bContainer.innerHTML = `<div style="color:#666; font-size:12px; padding:20px; width:100%; text-align:center;">🔍 該篩選條件下，皇家大圖書館暫未記載任何神裝藍圖。</div>`;
+        return;
+    }
+
+    filteredBlueprints.forEach(blueprint => {
+        let btnWrapper = document.createElement('div');
+        btnWrapper.style.background = "rgba(0,0,0,0.2)";
+        btnWrapper.style.padding = "14px";
+        btnWrapper.style.borderRadius = "12px";
+        btnWrapper.style.border = "1px solid rgba(255,255,255,0.04)";
+        btnWrapper.style.marginBottom = "10px";
+        btnWrapper.style.textAlign = "left";
+        btnWrapper.style.width = "100%";
+
+        let reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
+        
+        let statText = Object.keys(blueprint.stats).map(k => {
+            let name = k === "atk" ? "攻擊" : k === "spd" ? "速度" : k === "mpRegen" ? "回魔" : k === "block" ? "減傷" : k === "maxHp" ? "生命" : "閃避";
+            return `${name} ${blueprint.stats[k] > 0 ? '+' : ''}${blueprint.stats[k]}`;
+        }).join(", ");
+
+        let titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
+        
+        let infoP = document.createElement('p');
+        infoP.style.margin = "0 0 10px 0";
+        infoP.style.fontSize = "12px";
+        infoP.style.color = "#babcbf";
+        infoP.style.lineHeight = "1.5";
+        infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
+        btnWrapper.appendChild(infoP);
+
+        let canForge = true;
+        for (let ing in blueprint.ingredients) {
+            if ((accountMeta.warehouse[ing] || 0) < blueprint.ingredients[ing]) {
+                canForge = false;
+            }
+        }
+
+        // 🔘 控制鈕 1: 打造按鈕
+        let btnForge = document.createElement('button');
+        btnForge.className = "btn-game btn-explore";
+        btnForge.style.padding = "6px 12px";
+        btnForge.style.fontSize = "11px";
+        btnForge.style.marginRight = "8px";
+        btnForge.innerHTML = "🔨 消耗材料打造";
+        btnForge.disabled = !canForge; 
+        btnForge.onclick = () => { executeForgeEquipment(blueprint); };
+        btnWrapper.appendChild(btnForge);
+
+        // 🔘 控制鈕 2: 穿上/脫下 狀態機判定
+        let isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
+        let hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
+
+        if (isEquipped) {
+            let btnUnequip = document.createElement('button');
+            btnUnequip.className = "btn-game btn-rest";
+            btnUnequip.style.padding = "6px 12px";
+            btnUnequip.style.fontSize = "11px";
+            btnUnequip.innerHTML = "❌ 卸下神裝";
+            btnUnequip.onclick = () => { executeEquipAction(blueprint.name, "unequip"); };
+            btnWrapper.appendChild(btnUnequip);
+        } else if (hasInWarehouse) {
+            let btnEquip = document.createElement('button');
+            btnEquip.className = "btn-game btn-rerun";
+            btnEquip.style.padding = "6px 12px";
+            btnEquip.style.fontSize = "11px";
+            btnEquip.innerHTML = "⚡ 穿戴上身";
+            btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
+            btnWrapper.appendChild(btnEquip);
+        }
+
+        bContainer.appendChild(btnWrapper);
+    });
+}
