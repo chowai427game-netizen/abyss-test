@@ -76,6 +76,10 @@
                 </div>
                 <div class="status-item full-row" style="color: #ffa500; font-size: 11px;">
                     🎒 戰術背包快捷鍵：<span id="p-dungeon-bag"></span>
+                    <!-- 加在 p-dungeon-bag 這一行的正下方 -->
+                    <div class="status-item full-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; color: #f1c40f; font-size: 11px;">
+                        🗡️ 武器: <strong id="p-equip-weapon" style="color: #fff;">🎚️ 空手</strong> | 🛡️ 防具: <strong id="p-equip-armor" style="color: #fff;">👕 布衣</strong>
+                    </div>
                 </div>
             </div>
             
@@ -129,11 +133,12 @@
                     </div>
                 </div>
 
+                <!-- ⚙️ 換成全新加工所外殼 -->
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
-                    <div class="placeholder-card">
-                        <h3>🛠️ 皇家魔導加工所</h3>
-                        <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
-                        <div class="placeholder-desc">鐵匠正在打造熔爐！未來可在此處消耗魔物食材進行傳承武器精煉！</div>
+                    <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
+                        <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
+                        <div class="notice-container" id="workshop-warehouse-display" style="margin-bottom: 10px;">📦 雲端永久庫存載入中...</div>
+                        <div class="flex-layout" id="blueprints-container"></div>
                     </div>
                 </div>
             </div>
