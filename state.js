@@ -11,8 +11,8 @@ let accountMeta = {
     name: "無名勇者", 
     unlockedJobs: ["novice"], 
     warehouse: {},
-    // ⚔️ 傳承神裝槽：一經裝備，永久保留，出征時將灌注給 currentRun
-    equipment: { weapon: null, armor: null } 
+    // ⚔️ 傳承神裝槽：擴充至三個格仔
+    equipment: { weapon: null, armor: null, accessory: null } 
 };
 
 let currentRun = {
@@ -52,22 +52,36 @@ function resetCurrentRunData() {
     activeMonster = null;
     playerStatusEffects = { burn: 0, poison: 0 };
 
-    // ⚔️ 核心傳承：如果雲端帳戶有著武器/防具，出征前將屬性瘋狂灌注！
+    // 💡 新增：全域特殊流派係數重置 (為吸血、連擊鋪路)
+    currentRun.vampRate = 0;       // 吸血百分比
+    currentRun.doubleStrike = 0;   // 連擊率百分比
+
+    // ⚔️ 核心傳承：灌注 [武器] [防具] [飾品] 三神裝屬性
     if (accountMeta.equipment.weapon) {
-        let wBlueprint = CRAFTING_BLUEPRINTS.find(b => b.name === accountMeta.equipment.weapon);
-        if (wBlueprint) {
-            if (wBlueprint.stats.atk) currentRun.atk += wBlueprint.stats.atk;
-            if (wBlueprint.stats.spd) currentRun.spd += wBlueprint.stats.spd;
-            if (wBlueprint.stats.mpRegen) currentRun.mpRegen += wBlueprint.stats.mpRegen;
+        let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.weapon);
+        if (b) {
+            if (b.stats.atk) currentRun.atk += b.stats.atk;
+            if (b.stats.spd) currentRun.spd += b.stats.spd;
+            if (b.stats.mpRegen) currentRun.mpRegen += b.stats.mpRegen;
         }
     }
     if (accountMeta.equipment.armor) {
-        let aBlueprint = CRAFTING_BLUEPRINTS.find(b => b.name === accountMeta.equipment.armor);
-        if (aBlueprint) {
-            if (aBlueprint.stats.block) currentRun.block += aBlueprint.stats.block;
-            if (aBlueprint.stats.maxHp) { currentRun.maxHp += aBlueprint.stats.maxHp; currentRun.hp = currentRun.maxHp; }
-            if (aBlueprint.stats.spd) currentRun.spd += aBlueprint.stats.spd;
-            if (aBlueprint.stats.dodgeChance) currentRun.dodgeChance += aBlueprint.stats.dodgeChance;
+        let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.armor);
+        if (b) {
+            if (b.stats.block) currentRun.block += b.stats.block;
+            if (b.stats.maxHp) { currentRun.maxHp += b.stats.maxHp; currentRun.hp = currentRun.maxHp; }
+            if (b.stats.spd) currentRun.spd += b.stats.spd;
+            if (b.stats.dodgeChance) currentRun.dodgeChance += b.stats.dodgeChance;
+        }
+    }
+    if (accountMeta.equipment.accessory) {
+        let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.accessory);
+        if (b) {
+            if (b.stats.critChance) currentRun.critChance += b.stats.critChance;
+            if (b.stats.dodgeChance) currentRun.dodgeChance += b.stats.dodgeChance;
+            if (b.stats.spd) currentRun.spd += b.stats.spd;
+            if (b.stats.vampRate) currentRun.vampRate += b.stats.vampRate;          // 灌注吸血
+            if (b.stats.doubleStrike) currentRun.doubleStrike += b.stats.doubleStrike;  // 灌注連擊
         }
     }
 }
