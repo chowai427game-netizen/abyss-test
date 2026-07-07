@@ -1,6 +1,6 @@
 // 2.game.js
 // ==========================================================================
-// 🕹️ 命運深淵：真・ATB 異步運算與動態戰局核心引擎 (完美修復版)
+// 🕹️ 命運深淵：真・ATB 異步運算與動態戰局核心引擎 (全面修正版)
 // ==========================================================================
 
 let combatTickerTimer = null; // 即時戰鬥運算時鐘指針
@@ -14,7 +14,6 @@ let battleTimeElapsed = 0;
 function handleStartGame() {
     let inputName = document.getElementById('player-name-input').value.trim();
     
-    // 👤 完美剔除預設名字，如果沒輸入就叫「無名勇者」或彈出提示
     if (!inputName) {
         alert("🧙 勇者啊，請先在輸入框刻下你的大名，才能喚醒雲端血脈！");
         return;
@@ -175,7 +174,6 @@ async function runDungeonLoop() {
         playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
         if(combatTickerTimer) clearInterval(combatTickerTimer);
 
-        // ⏱️ 異步推演時鐘 (每 250ms 進前一步)
         combatTickerTimer = setInterval(() => {
             if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
                 clearInterval(combatTickerTimer); return;
@@ -185,15 +183,11 @@ async function runDungeonLoop() {
             playerAtb += currentRun.spd;
             monsterAtb += activeMonster.spd;
             envAtb += 15;
-            // ⚙️ 請將 game.js 裡面這段時鐘判斷修改為安全模式：
+
             if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
-            // 💡 加上 activeMonster && 確保怪物未死先至執行後面嘅 .hp 檢查
-            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
-                playerAtb -= 100; executePlayerActionTick(); 
-            }
-            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
-                monsterAtb -= 100; executeMonsterActionTick(); 
-            }
+            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { playerAtb -= 100; executePlayerActionTick(); }
+            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { monsterAtb -= 100; executeMonsterActionTick(); }
+            
             updateUI();
         }, 250);
 
@@ -203,7 +197,6 @@ async function runDungeonLoop() {
     }
 }
 
-// ⏱️ 3.1 環境與週期被動結算
 function executeEnvironmentTick() {
     currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + Math.floor(currentRun.mpRegen / 2));
     
@@ -227,7 +220,6 @@ function executeEnvironmentTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
-// ⏱️ 3.2 玩家專屬攻擊結算 (已補回 HP 字眼版)
 function executePlayerActionTick() {
     addLog(`<span style="color:#666; font-size:10px;">[戰鬥經過 ${battleTimeElapsed.toFixed(1)}s]</span>`);
     
@@ -246,7 +238,6 @@ function executePlayerActionTick() {
                 currentRun.mp -= sMeta.mp; 
                 let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                 
-                // 💡 下面全部加上了 HP 字眼
                 if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect"); }
                 if (eff.fireDmg) { activeMonster.hp -= eff.fireDmg; addLog(`🔥 怒爆！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-m-dmg">-${eff.fireDmg} HP</span>`, "perfect"); }
                 if (eff.healPercent) {
@@ -272,7 +263,6 @@ function executePlayerActionTick() {
     if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
 }
 
-// ⏱️ 3.3 魔物專屬反擊結算
 function executeMonsterActionTick() {
     if (activeMonster.freezeTurns > 0) { 
         addLog(`❄️ 魔物冰封中無法行動！(剩餘 ${activeMonster.freezeTurns} 次)`); 
@@ -296,16 +286,12 @@ function executeMonsterActionTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
-// ==========================================================================
-// 🏆 戰役勝利分流結算內核
-// ==========================================================================
-
 function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
     currentRun.gold += isBossFloor ? 150 : 20; 
     currentRun.exp += isBossFloor ? 100 : 15;
     
-    if (activeMonster.isSkipped) { 
+    if (activeMonster && activeMonster.isSkipped) { 
         addLog("🔮 成功撕裂長空遁走..."); 
         activeMonster = null; 
         checkLevelUpAndTriggerSelect();
@@ -315,23 +301,25 @@ function executeDungeonVictorySequence() {
     if (isBossFloor) {
         const bOverlay = document.getElementById('boss-victory-overlay');
         const bNameNode = document.getElementById('victory-boss-name');
-        if (bNameNode) bNameNode.innerText = activeMonster.name;
+        if (bNameNode && activeMonster) bNameNode.innerText = activeMonster.name;
         if (bOverlay) {
             bOverlay.style.display = "flex";
             bOverlay.onclick = () => { dismissBossVictoryCinematic(); };
         }
         
-        addLog(`🏆【史詩大捷】成功討伐大領主 [${activeMonster.name}]！`, "perfect");
-        let drop = activeMonster.fixedDrop;
-        accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
-        addLog(`🎁【領主血脈抽離】戰利品傳送 ➔ <strong>${drop} (x1)</strong>！`, "perfect");
+        if (activeMonster) {
+            addLog(`🏆【史詩大捷】成功討伐大領主 [${activeMonster.name}]！`, "perfect");
+            let drop = activeMonster.fixedDrop;
+            accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
+            addLog(`🎁【領主血脈抽離】戰利品傳送 ➔ <strong>${drop} (x1)</strong>！`, "perfect");
+        }
         
         setTimeout(() => { dismissBossVictoryCinematic(); }, 4000);
 
     } else {
         addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 殲滅魔物！臨時金幣 <span class="gold-victory-text">+20 G</span>，經驗值 <span class="gold-victory-text">+15 點</span>。`, "victory-badge");
         
-        if (Math.random() < 0.25) { 
+        if (activeMonster && Math.random() < 0.25) { 
             let dropName = MONSTER_DROPS[activeMonster.name] || "史萊姆核心黏液";
             if (currentRun.inventory.length < 2) { 
                 currentRun.inventory.push(dropName); 
@@ -354,6 +342,7 @@ function dismissBossVictoryCinematic() {
     triggerBossTalentReward();
 }
 
+// 檢測玩家是否陣亡歸城
 function executeDungeonDefeatSequence() {
     addLog(`☠️【魂歸深淵】肉身支撐已達極限，物資遺失，強制歸還地表。`, "take");
     gameState = "VILLAGE"; 
@@ -544,17 +533,11 @@ async function handleRerunAction() {
     }
 }
 
-// ==========================================================================
-// 🛠️ game.js 尾部追加：皇家加工所打造、穿戴與永久屬性灌注算法
-// ==========================================================================
-
 function executeForgeEquipment(blueprint) {
-    // 1. 安全扣除倉庫素材
     for(let ing in blueprint.ingredients) { 
         accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; 
     }
     
-    // 2. 100% 打造成功，送入永久倉庫
     addLog(`🛠️【加工所大勝利】火花四濺！熔爐轟鳴！你成功鑄造了神裝：<strong>${blueprint.name}</strong>！`, "perfect");
     accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
     
@@ -567,30 +550,25 @@ function executeEquipAction(equipName, actionType) {
     let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName);
     if (!blueprint) return;
 
-    let slot = blueprint.type; // 判定是 "weapon" 還是 "armor"
+    let slot = blueprint.type;
 
     if (actionType === "equip") {
-        // 💡 如果原本該位置已經有著神裝，先脫下來送回倉庫
         if (accountMeta.equipment[slot]) {
             let oldEquip = accountMeta.equipment[slot];
             accountMeta.warehouse[oldEquip] = (accountMeta.warehouse[oldEquip] || 0) + 1;
         }
-        // 扣除新裝備庫存，套入神裝槽
         accountMeta.warehouse[equipName]--;
         accountMeta.equipment[slot] = equipName;
         addLog(`⚡【神裝繼承】勇者裝備了 <strong>${equipName}</strong>！遠古血脈力量共鳴，永久屬性已灌注！`, "perfect");
     } 
     else if (actionType === "unequip") {
-        // 卸下裝備，回收到永久倉庫
         accountMeta.equipment[slot] = null;
         accountMeta.warehouse[equipName] = (accountMeta.warehouse[equipName] || 0) + 1;
         addLog(`❌【神裝卸下】你卸下了 <strong>${equipName}</strong>，裝備被妥善存回雲端永久物資庫。`);
     }
 
-    // 🌟 關鍵：換裝後，強制執行數值重新灌注，刷新 currentRun 冒險數據！
     resetCurrentRunData();
     uploadProgressToCloud(); 
     updateUI(); 
     if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
-
