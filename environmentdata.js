@@ -11,3 +11,17 @@ const ENVIRONMENT_DATABASE = {
     "VOID": { className: "env-zone-void", logText: "🌀 警告：進入【重力虛空壓制】主動時間流速發生變異！" }
 };
 
+const deepFreeze = (obj) => {
+    Object.keys(obj).forEach(prop => {
+        if (typeof obj[prop] === 'object' && obj[prop] !== null) {
+            deepFreeze(obj[prop]);
+        }
+    });
+    return Object.freeze(obj);
+};
+
+// 凍結環境資料庫
+deepFreeze(ENVIRONMENT_DATABASE);
+// 凍結技能庫
+deepFreeze(SKILLS_DATABASE);
+
