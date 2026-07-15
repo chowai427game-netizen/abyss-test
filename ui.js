@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復死鎖版)
+// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復版)
 // ==========================================================================
 
 let activeCookingRange = "1-10";
@@ -47,26 +47,6 @@ function switchVillageLocation(targetLoc) {
     
     updateUI();
 }
-// === 實時同步雙方 ATB 條 ===
-    const pAtbRow = document.getElementById('p-atb-row');
-    if (pAtbRow) {
-        if (gameState === "VILLAGE") {
-            pAtbRow.style.display = "none";
-        } else {
-            pAtbRow.style.display = "block";
-            let pAtbPercent = Math.min(100, Math.max(0, playerAtb));
-            document.getElementById('p-atb-text').innerText = Math.floor(pAtbPercent);
-            document.getElementById('p-atb-bar-fill').style.width = `${pAtbPercent}%`;
-        }
-    }
-
-    const mAtbBar = document.getElementById('m-atb-bar-fill');
-    if (mAtbBar && activeMonster) {
-        let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
-        document.getElementById('m-atb-text').innerText = Math.floor(mAtbPercent);
-        mAtbBar.style.width = `${mAtbPercent}%`;
-    }
-
 
 function updateUI() {
     const titleBox = document.getElementById('title-box');
@@ -103,6 +83,19 @@ function updateUI() {
     document.getElementById('hp-bar-fill').style.width = `${Math.max(0, (currentRun.hp / currentRun.maxHp) * 100)}%`;
     document.getElementById('mp-bar-fill').style.width = `${Math.max(0, (currentRun.mp / currentRun.maxMp) * 100)}%`;
     
+    // ⚡【新功能】實時同步玩家 ATB 條 (移入 updateUI 防止未定義錯誤)
+    const pAtbRow = document.getElementById('p-atb-row');
+    if (pAtbRow) {
+        if (gameState === "VILLAGE") {
+            pAtbRow.style.display = "none";
+        } else {
+            pAtbRow.style.display = "block";
+            let pAtbPercent = Math.min(100, Math.max(0, playerAtb));
+            document.getElementById('p-atb-text').innerText = Math.floor(pAtbPercent);
+            document.getElementById('p-atb-bar-fill').style.width = `${pAtbPercent}%`;
+        }
+    }
+
     document.getElementById('p-gold').innerText = currentRun.gold;
     document.getElementById('p-block').innerText = currentRun.block;
     document.getElementById('p-crit').innerText = `${currentRun.critChance}%`;
@@ -146,7 +139,6 @@ function updateUI() {
         if (envBar) envBar.style.display = "none";
         if (autoBtn) autoBtn.style.display = "none"; 
         
-        // 🔮 核心修正：戰敗回村後，釋放傳送門按鈕鎖定！
         const mainActionBtn = document.getElementById('btn-main-action');
         if (mainActionBtn) {
             mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
@@ -184,8 +176,21 @@ function updateUI() {
             document.getElementById('m-hp-bar').style.width = `${Math.max(0, (activeMonster.hp / activeMonster.maxHp) * 100)}%`;
             document.getElementById('m-atk').innerText = activeMonster.atk;
             document.getElementById('m-spd').innerText = activeMonster.spd;
+
+            // ⚡【新功能】實時同步魔物 ATB 條
+            const mAtbRow = document.getElementById('m-atb-row');
+            if (mAtbRow) {
+                mAtbRow.style.display = "block";
+                let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
+                const mAtbText = document.getElementById('m-atb-text');
+                const mAtbBar = document.getElementById('m-atb-bar-fill');
+                if (mAtbText) mAtbText.innerText = Math.floor(mAtbPercent);
+                if (mAtbBar) mAtbBar.style.width = `${mAtbPercent}%`;
+            }
         } else if(monBox) {
             monBox.style.display = "none";
+            const mAtbRow = document.getElementById('m-atb-row');
+            if (mAtbRow) mAtbRow.style.display = "none";
         }
 
         if (rewardBox) {
