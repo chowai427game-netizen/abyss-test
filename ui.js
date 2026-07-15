@@ -47,6 +47,26 @@ function switchVillageLocation(targetLoc) {
     
     updateUI();
 }
+// === 實時同步雙方 ATB 條 ===
+    const pAtbRow = document.getElementById('p-atb-row');
+    if (pAtbRow) {
+        if (gameState === "VILLAGE") {
+            pAtbRow.style.display = "none";
+        } else {
+            pAtbRow.style.display = "block";
+            let pAtbPercent = Math.min(100, Math.max(0, playerAtb));
+            document.getElementById('p-atb-text').innerText = Math.floor(pAtbPercent);
+            document.getElementById('p-atb-bar-fill').style.width = `${pAtbPercent}%`;
+        }
+    }
+
+    const mAtbBar = document.getElementById('m-atb-bar-fill');
+    if (mAtbBar && activeMonster) {
+        let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
+        document.getElementById('m-atb-text').innerText = Math.floor(mAtbPercent);
+        mAtbBar.style.width = `${mAtbPercent}%`;
+    }
+
 
 function updateUI() {
     const titleBox = document.getElementById('title-box');
