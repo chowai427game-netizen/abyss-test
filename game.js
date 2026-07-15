@@ -228,6 +228,9 @@ function triggerVillageQte(type, targetData, successCallback) {
     overlay.style.display = "flex";
     isQteActive = true;
 
+    // 🔒 鎖定網頁滾動，不論你當前滾動到邊度，都不會被干擾
+    document.body.style.overflow = "hidden";
+
     if (type === "COOK") {
         title.innerHTML = `🍳 正在熬製：<strong>${targetData.name}</strong> 🍳<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美敲擊區間：[65% - 85%]</span>`;
     } else {
@@ -257,6 +260,9 @@ function triggerVillageQte(type, targetData, successCallback) {
     function resolveQteResult(rating) {
         isQteActive = false;
         overlay.style.display = "none";
+        
+        // 🔓 解除網頁鎖定，恢復正常滾動
+        document.body.style.overflow = ""; 
         successCallback(rating);
     }
 
