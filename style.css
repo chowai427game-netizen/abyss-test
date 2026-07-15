@@ -899,3 +899,159 @@ body {
 #recipes-container::-webkit-scrollbar-thumb:hover {
     background: var(--gold-glow); /* Hover 時亮金色 */
 }
+/* ==========================================================================
+   ⚡ 勇者資訊面板極致壓縮樣式 
+   ========================================================================== */
+.status-header-row {
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 12px;
+}
+
+.bars-container-row {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.mini-bar-box {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.mini-bar-box .visual-bar-bg {
+    height: 4px;
+    margin-top: 4px;
+}
+
+.stats-mini-grid {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+}
+
+.grid-cell {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 5px;
+    font-size: 11px;
+    text-align: center;
+    color: #d1d1d6;
+}
+
+.quick-bag-row {
+    padding: 6px 10px !important;
+    background: rgba(255, 165, 0, 0.03) !important;
+    border: 1px dashed rgba(255, 165, 0, 0.15) !important;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+
+/* 📂 摺疊收納架樣式 */
+.char-details-folder {
+    grid-column: span 2;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.char-details-folder[open] {
+    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.05);
+}
+
+.char-details-folder summary {
+    font-size: 11px;
+    color: var(--gold-glow);
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    outline: none;
+    background: rgba(255, 255, 255, 0.01);
+    list-style: none;
+}
+
+.char-details-folder summary::-webkit-details-marker {
+    display: none;
+}
+
+.char-details-folder summary:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.folder-content {
+    padding: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    animation: folderExpand 0.2s ease-out;
+}
+
+@keyframes folderExpand {
+    0% { opacity: 0; transform: translateY(-5px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.folder-item {
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1.4;
+}
+
+.folder-label {
+    color: var(--text-muted);
+}
+
+.gear-summary {
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    padding-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* 📱 手機端排版調整：讓戰鬥按鈕與畫面置頂，資訊面板置底 */
+@media (max-width: 849px) {
+    .game-layout-split {
+        display: flex;
+        flex-direction: column;
+    }
+    .left-layout-column {
+        order: 2; /* 狀態欄放到下面 */
+    }
+    .right-layout-column {
+        order: 1; /* 戰鬥與按鈕放到上面 */
+    }
+    .action-panel {
+        position: sticky;
+        bottom: 10px;
+        z-index: 999;
+        background: rgba(10, 10, 15, 0.95) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.8) !important;
+        border-radius: 12px;
+        padding: 10px !important;
+    }
+}
