@@ -867,3 +867,35 @@ body {
     transition: width 0.025s linear;
 }
 
+/* ==========================================================================
+   📦 物品與料理清單空間壓縮優化 (防止頁面拉到無限長)
+   ========================================================================== */
+#blueprints-container, 
+#recipes-container {
+    max-height: 480px;      /* 限制容器最高 480px，超過會自動收納 */
+    overflow-y: auto;       /* 超出時自動啟用內部垂直滾動 */
+    padding-right: 8px;     /* 留少許空間給滾動條，防止遮擋文字 */
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+/* 🎨 微調與美化滾動條，使其符合極簡魔導風格 */
+#blueprints-container::-webkit-scrollbar, 
+#recipes-container::-webkit-scrollbar {
+    width: 6px;
+}
+#blueprints-container::-webkit-scrollbar-track, 
+#recipes-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.01);
+}
+#blueprints-container::-webkit-scrollbar-thumb, 
+#recipes-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.15); /* 金色半透明 */
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+#blueprints-container::-webkit-scrollbar-thumb:hover, 
+#recipes-container::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-glow); /* Hover 時亮金色 */
+}
