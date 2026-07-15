@@ -2,6 +2,45 @@
 // 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復版)
 // ==========================================================================
 
+// ui_cache.js 或在 ui.js 頂部聲明
+const DOM = {
+    isInitialized: false,
+    elements: {},
+    init() {
+        if (this.isInitialized) return;
+        const keys = [
+            'p-name', 'p-job', 'p-lv', 'p-exp-text', 'p-hp', 'p-maxhp', 'p-mp', 'p-maxmp',
+            'hp-bar-fill', 'mp-bar-fill', 'p-atb-row', 'p-atb-text', 'p-atb-bar-fill',
+            'p-gold', 'p-block', 'p-crit', 'p-spd', 'p-dodge', 'p-skills-list', 'p-dungeon-bag',
+            'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory', 'btn-main-action',
+            'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle', 'env-alert-bar',
+            'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar', 'm-atb-row', 'm-atb-text',
+            'm-atb-bar-fill', 'm-atk', 'm-spd', 'reward-panel-box', 'log-box', 'title-box',
+            'status-panel-box', 'action-panel-box', 'village-panel-box'
+        ];
+        keys.forEach(key => {
+            this.elements[key] = document.getElementById(key);
+        });
+        this.isInitialized = true;
+    },
+    get(key) {
+        if (!this.isInitialized) this.init();
+        return this.elements[key];
+    }
+};
+
+// 使用範例：
+function updateUI() {
+    if (gameState === "TITLE") {
+        DOM.get('title-box').style.display = "block";
+        // ... 其他隱藏邏輯
+        return;
+    }
+    // 快速讀取快取，避免重複進行 DOM Tree 檢索
+    DOM.get('p-name').innerText = accountMeta.name;
+    DOM.get('p-job').innerText = getJobChineseName(currentRun.job);
+}
+
 let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
