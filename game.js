@@ -1,6 +1,5 @@
-// 2.game.js
 // ==========================================================================
-// 🕹️ 命運深淵：真・ATB 異步運算與動態戰局核心引擎 (完美修正對齊版)
+// 🕹️ game.js：真・ATB 運算、智慧自動戰鬥 AI、裝備升星拆解與生產 QTE 內核
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -48,11 +47,10 @@ function handleMainAction() {
     }
 }
 
-// 💡 實裝：戰術重巡機制 (安全重刷本層整備)
 function handleRerunAction() {
     try {
         clearInterval(combatTickerTimer);
-        addLog(`🔄【重巡整備】你決定留在深淵 B${dungeonFloor}F 進行重巡狩獵，戰局重新載入！`, "perfect");
+        addLog(`🔄【重巡整備】你留在深淵 B${dungeonFloor}F 進行重巡狩獵，戰局重新載入！`, "perfect");
         gameState = "BATTLE";
         updateUI();
         runDungeonLoop();
@@ -67,7 +65,6 @@ function handleSecondaryAction() {
     currentEnvironment = "NORMAL";
     document.getElementById('btn-secondary-action').style.display = "none";
     if (isQteActive) {
-        clearTimeout(qteTimer);
         isQteActive = false;
         document.getElementById('qte-overlay').style.display = 'none';
     }
@@ -94,9 +91,6 @@ function tryEquipItemToBag(itemName) {
     if(currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
 }
 
-// ==========================================================================
-// ⚡ 戰術快捷包物資微操模組
-// ==========================================================================
 function executeUseDungeonItem(itemName, index) {
     if (gameState !== "BATTLE" || !activeMonster) return;
     addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
@@ -127,31 +121,260 @@ function executeUseDungeonItem(itemName, index) {
     updateUI();
 }
 
-function canCanCook(reqs) {
-    for(let ing in reqs) { if((accountMeta.warehouse[ing] || 0) < reqs[ing]) return false; }
-    return true;
+// ==========================================================================
+// 🤖 自動戰鬥戰術開關與 AI 智商決策
+// ==========================================================================
+function toggleAutoBattle() {
+    isAutoBattleMode = !isAutoBattleMode;
+    let autoBtn = document.getElementById('btn-auto-battle');
+    if (autoBtn) {
+        if (isAutoBattleMode) {
+            autoBtn.innerText = "🤖 自動戰鬥: 開";
+            autoBtn.style.background = "linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important";
+            autoBtn.style.borderColor = "#2ecc71 !important";
+            addLog(`🤖 <b>【AI 自動決策】系統已成功對接！自動出招、殘血嗑藥及自愈激活。</b>`, "perfect");
+        } else {
+            autoBtn.innerText = "🤖 自動戰鬥: 關";
+            autoBtn.style.background = "linear-gradient(135deg, #7f8c8d 0%, #2c3e50 100%) !important";
+            autoBtn.style.borderColor = "#95a5a6 !important";
+            addLog(`🤖 <b>【AI 自動決策】系統已離線，切換回手動看戲模式。</b>`);
+        }
+    }
+}
+
+function executeAutoBattleAiTurn() {
+    let hpRatio = currentRun.hp / currentRun.maxHp;
+    
+    // 1. 🚨 緊急背包藥水自救 (HP 低於 35%)
+    if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
+        let mealIndex = currentRun.inventory.findIndex(item => item.includes("厚牛巨堡"));
+        if (mealIndex !== -1) {
+            executeUseDungeonItem(currentRun.inventory[mealIndex], mealIndex);
+            return true; 
+        }
+    }
+
+    // 2. 🩹 醫療法術自愈 (HP 低於 45%，優先使用職業自愈技)
+    let healSkill = null;
+    if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
+    else if (currentRun.skills["緊急治療"] && currentRun.mp >= 15) healSkill = "緊急治療";
+
+    if (hpRatio < 0.45 && healSkill) {
+        let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === healSkill);
+        if (sMeta) {
+            currentRun.mp -= sMeta.mp;
+            let eff = sMeta.run(currentRun.skills[healSkill], currentRun.atk, currentRun.maxMp, currentRun.hp);
+            let h = Math.floor(eff.lostHp * eff.healPercent); 
+            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
+            addLog(`🩹🤖【AI 智能自愈】引導【${healSkill}】！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
+            return true;
+        }
+    }
+
+    // 3. 💥 進攻技能智能連攜 (挑選耗魔最高的強力技，保留治癒系)
+    let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
+    activeSkills.sort((a, b) => b.mp - a.mp); 
+
+    for (let sMeta of activeSkills) {
+        if (currentRun.mp >= sMeta.mp) {
+            currentRun.mp -= sMeta.mp;
+            let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+            let eff = sMeta.run ? sMeta.run(currentRun.skills[sMeta.name], currentRun.atk, currentRun.maxMp, currentRun.hp) : null;
+            
+            addLog(`🔮🤖【AI 戰術突擊】施展【${sMeta.name}】！`);
+            if (eff && eff.dmg) {
+                activeMonster.hp -= eff.dmg;
+                addLog(`💥 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect");
+            } else {
+                let calcDmg = Math.floor(currentRun.atk * 1.5);
+                activeMonster.hp -= calcDmg;
+                addLog(`💥 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${calcDmg} HP</span>`, "perfect");
+            }
+            return true;
+        }
+    }
+
+    return false; // 沒觸發任何特例，直接進行普攻
+}
+
+// ==========================================================================
+// 🍳🔨 料理屋及加工所：兩用 QTE 喚起引擎
+// ==========================================================================
+function triggerVillageQte(type, targetData, successCallback) {
+    const overlay = document.getElementById('qte-overlay');
+    const title = document.getElementById('qte-skill-name');
+    const tapBtn = document.getElementById('qte-tap-btn');
+    const qteFill = document.getElementById('qte-timer-fill');
+
+    if (!overlay || !title || !tapBtn || !qteFill) return;
+
+    overlay.style.display = "flex";
+    isQteActive = true;
+
+    if (type === "COOK") {
+        title.innerHTML = `🍳 正在熬製：<strong>${targetData.name}</strong> 🍳<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美敲擊區間：[65% - 85%]</span>`;
+    } else {
+        title.innerHTML = `🔨 正在熔煉：<strong>${targetData.name}</strong> 🔨<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美錘擊區間：[65% - 85%]</span>`;
+    }
+
+    let progress = 0;
+    qteFill.style.width = "0%";
+    tapBtn.innerText = "🎯 點擊判定 (0%)";
+
+    let step = 2.4; 
+    let qteInterval = setInterval(() => {
+        if (!isQteActive) {
+            clearInterval(qteInterval);
+            return;
+        }
+        progress += step;
+        if (progress >= 100) {
+            clearInterval(qteInterval);
+            resolveQteResult("MISS");
+        } else {
+            qteFill.style.width = progress + "%";
+            tapBtn.innerText = `🎯 點擊判定 (${Math.floor(progress)}%)`;
+        }
+    }, 25);
+
+    function resolveQteResult(rating) {
+        isQteActive = false;
+        overlay.style.display = "none";
+        successCallback(rating);
+    }
+
+    tapBtn.onclick = () => {
+        if (!isQteActive) return;
+        clearInterval(qteInterval);
+        let rating = "MISS";
+        if (progress >= 65 && progress <= 85) {
+            rating = "PERFECT";
+        } else if (progress >= 40 && progress <= 95) {
+            rating = "GOOD";
+        }
+        resolveQteResult(rating);
+    };
 }
 
 function executeVillageCooking(recipe) {
     for(let ing in recipe.ingredients) { accountMeta.warehouse[ing] -= recipe.ingredients[ing]; }
-    if (Math.random() > 0.75) {
-        addLog(`💥【料理大失敗】化為一團黑炭：<strong>🪨 焦黑的未知物體</strong>！`, "take");
-        accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
-    } else {
-        addLog(`🍳【皇家烹飪成功】製作出了高級料理：<strong>${recipe.name}</strong>！`, "perfect");
-        if (recipe.type === "village_eat") {
-            addLog(`🍴【開局進食】你吃下 ${recipe.name}，長效抗性灌注全身！`);
-            currentRun.activeVillageBuffs.push(recipe.name);
-            if(recipe.name.includes("哥布林")) { currentRun.maxHp += 60; currentRun.hp += 60; }
-            if(recipe.name.includes("發光奧術")) { currentRun.maxMp += 30; currentRun.mpRegen += 3; }
-            if(recipe.name.includes("銀河蟹肉")) { currentRun.maxHp += 200; currentRun.hp += 200; }
-        } else {
-            accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 1;
+    
+    // 🍳 喚醒料理 QTE
+    triggerVillageQte("COOK", recipe, (rating) => {
+        if (rating === "PERFECT") {
+            addLog(`🍳👑【皇家廚神・大成功】雙倍成品！獲得 <strong>${recipe.name} x2</strong>！`, "perfect");
+            if (recipe.type === "village_eat") {
+                addLog(`🍴【完美開局進食】香氣撲鼻！神級 Buff 效果加強 1.5 倍！`, "perfect");
+                currentRun.activeVillageBuffs.push(recipe.name);
+                if(recipe.name.includes("哥布林")) { currentRun.maxHp += 100; currentRun.hp += 100; }
+                if(recipe.name.includes("發光奧術")) { currentRun.maxMp += 50; currentRun.mpRegen += 5; }
+                if(recipe.name.includes("銀河蟹肉")) { currentRun.maxHp += 300; currentRun.hp += 300; }
+            } else {
+                accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 2;
+            }
+        } 
+        else if (rating === "GOOD") {
+            addLog(`🍳【料理烹飪成功】獲得 <strong>${recipe.name} (x1)</strong>！`, "perfect");
+            if (recipe.type === "village_eat") {
+                addLog(`🍴【開局進食】你吃下 ${recipe.name}，長效抗性灌注全身！`);
+                currentRun.activeVillageBuffs.push(recipe.name);
+                if(recipe.name.includes("哥布林")) { currentRun.maxHp += 60; currentRun.hp += 60; }
+                if(recipe.name.includes("發光奧術")) { currentRun.maxMp += 30; currentRun.mpRegen += 3; }
+                if(recipe.name.includes("銀河蟹肉")) { currentRun.maxHp += 200; currentRun.hp += 200; }
+            } else {
+                accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 1;
+            }
+        } 
+        else {
+            addLog(`💥【料理大失敗】湯汁溢出熔毀，化為：<strong>🪨 焦黑的未知物體</strong>！`, "take");
+            accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
         }
-    }
-    uploadProgressToCloud(); updateUI(); renderVillageCookingWorkshop();
+        uploadProgressToCloud(); updateUI(); renderVillageCookingWorkshop();
+    });
 }
 
+function executeForgeEquipment(blueprint) {
+    for(let ing in blueprint.ingredients) { accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; }
+    
+    // 🔨 喚醒打鐵 QTE
+    triggerVillageQte("FORGE", blueprint, (rating) => {
+        if (rating === "PERFECT") {
+            addLog(`🔨🌟【神匠顯靈・完美大成功】精工鑄造神裝：<strong>${blueprint.name}</strong>！`, "perfect");
+            accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
+            
+            // 完美鑄造額外隨機返還一項核心素材！
+            let keys = Object.keys(blueprint.ingredients);
+            let luckyRefund = keys[Math.floor(Math.random() * keys.length)];
+            accountMeta.warehouse[luckyRefund] = (accountMeta.warehouse[luckyRefund] || 0) + 1;
+            addLog(`🎁【神匠回饋】大成功使核心材料獲得保溫返還：<strong>${luckyRefund} x1</strong>！`, "perfect");
+        } 
+        else if (rating === "GOOD") {
+            addLog(`🛠️【鍛造成功】成功鑄造神裝：<strong>${blueprint.name}</strong>！`, "perfect");
+            accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
+        } 
+        else {
+            addLog(`🚨【鍛造失敗】爐火熄滅，淬火爆裂，化為一堆廢鐵：<strong>🪨 焦黑的未知物體</strong>！`, "take");
+            accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
+        }
+        uploadProgressToCloud(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+    });
+}
+
+// ==========================================================================
+// 🌟 裝備部位升星與拆解模組 (100% 永久繼承)
+// ==========================================================================
+function getStarUpCost(slot, currentStar) {
+    let nextStar = currentStar + 1;
+    if (slot === "weapon") {
+        return { "獸人後腿肉": nextStar * 2, "史萊姆黏液": nextStar };
+    } else if (slot === "armor") {
+        return { "巨石苔蘚": nextStar * 2, "哥布林香料": nextStar };
+    } else { 
+        return { "怨靈淚晶": nextStar * 2, "祭司血清": nextStar };
+    }
+}
+
+function executeSlotStarUp(slot) {
+    let currentStar = accountMeta.equipmentStars[slot];
+    if (currentStar >= 5) return;
+    let cost = getStarUpCost(slot, currentStar);
+    
+    for (let ing in cost) {
+        accountMeta.warehouse[ing] -= cost[ing];
+    }
+    
+    accountMeta.equipmentStars[slot]++;
+    addLog(`🌟【槽位精煉成功】你的 <strong>[${slot === 'weapon' ? '武器' : slot === 'armor' ? '防具' : '飾品'}]</strong> 部位升星至 ⭐ x${accountMeta.equipmentStars[slot]}！`, "perfect");
+    
+    resetCurrentRunData();
+    uploadProgressToCloud();
+    updateUI();
+    if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
+function executeDismantle(equipName) {
+    let b = CRAFTING_BLUEPRINTS.find(x => x.name === equipName);
+    if (!b) return;
+    
+    accountMeta.warehouse[equipName]--;
+    
+    // 拆解無條件進位返還 50% 材料
+    let refunded = [];
+    for (let ing in b.ingredients) {
+        let refundQty = Math.ceil(b.ingredients[ing] * 0.5);
+        accountMeta.warehouse[ing] = (accountMeta.warehouse[ing] || 0) + refundQty;
+        refunded.push(`${ing} x${refundQty}`);
+    }
+    
+    addLog(`♻️【拆解回收】你成功拆解了 [${equipName}]，獲得回收原料 ➔ ${refunded.join(", ")}。`, "perfect");
+    uploadProgressToCloud();
+    updateUI();
+    if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
+// ==========================================================================
+// ⚔️ 核心冒險與回合邏輯
+// ==========================================================================
 async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
@@ -219,33 +442,40 @@ function executeEnvironmentTick() {
 
 function executePlayerActionTick() {
     let activeTriggered = false;
-    for (let sName of Object.keys(currentRun.skills)) {
-        let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
-        if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
-            addLog(`🔮 引導【${sName}】`); activeTriggered = true;
-            let isPerfect = (Math.random() < 0.75);
-            let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-            if (isPerfect) {
-                currentRun.mp -= sMeta.mp; 
-                let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
-                if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect"); }
-                if (eff.healPercent) {
-                    let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
-                    addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
+
+    // 🤖 整合自動戰鬥決策 AI
+    if (isAutoBattleMode) {
+        activeTriggered = executeAutoBattleAiTurn();
+    } else {
+        // 👤 手動模式常規技能釋放邏輯
+        for (let sName of Object.keys(currentRun.skills)) {
+            let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
+            if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
+                addLog(`🔮 引導【${sName}】`); activeTriggered = true;
+                let isPerfect = (Math.random() < 0.75);
+                let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                if (isPerfect) {
+                    currentRun.mp -= sMeta.mp; 
+                    let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
+                    if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect"); }
+                    if (eff.healPercent) {
+                        let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
+                        addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
+                    }
+                } else {
+                    activeMonster.hp -= currentRun.atk; addLog(`⚔️ 普攻突刺！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
                 }
-            } else {
-                activeMonster.hp -= currentRun.atk; addLog(`⚔️ 普攻突刺！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
+                break;
             }
-            break;
         }
     }
+
     if (!activeTriggered) { 
         activeMonster.hp -= currentRun.atk; 
         let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
         addLog(`⚔️ 揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal"); 
     }
     
-    // 吸血與連擊計算
     if (currentRun.vampRate > 0 && currentRun.hp > 0 && activeMonster.hp > 0) {
         let vAmt = Math.floor(currentRun.atk * (currentRun.vampRate / 100));
         if (vAmt > 0) { currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vAmt); addLog(`🩸【血脈吸吮】吸血 <span class="num-popup num-h-heal">+${vAmt} HP</span>`); }
@@ -357,7 +587,6 @@ function triggerRandomAbyssEvent() {
             let rolledGold = Math.floor(Math.random() * (chest.maxGold - chest.minGold + 1)) + chest.minGold; currentRun.gold += rolledGold;
             addLog(`👑 獲得臨時金幣 +${rolledGold} G！`, "perfect");
             if (isGolden && Math.random() < 0.50) {
-                // 💡 核心安全修正：對齊 itemdata.js 精簡後的素材字串名稱
                 let highTier = ["虛空核心", "帝王蟹腿", "永凍冰晶", "祭司血清"];
                 let drop = highTier[Math.floor(Math.random() * highTier.length)]; accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
                 addLog(`🎁 獲得稀有素材：<strong>${drop}</strong>！`, "perfect");
@@ -386,12 +615,7 @@ function buildBlackMarketUI(goodsList) {
 }
 
 function resolveAbyssEvent() { gameState = "ENCOUNTER_RESOLVED"; document.getElementById('btn-main-action').disabled = false; updateUI(); runDungeonLoop(); }
-function executeForgeEquipment(blueprint) {
-    for(let ing in blueprint.ingredients) { accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; }
-    addLog(`🛠️ 成功鑄造神裝：<strong>${blueprint.name}</strong>！`, "perfect");
-    accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
-    uploadProgressToCloud(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
-}
+
 function executeEquipAction(equipName, actionType) {
     let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName); if (!blueprint) return;
     let slot = blueprint.type;
