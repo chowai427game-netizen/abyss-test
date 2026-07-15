@@ -1,456 +1,196 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復版)
+// 📡 state.js：運行時全域狀態機與遠端雲端鏈接 (部位精煉星級適應版)
 // ==========================================================================
 
-let activeCookingRange = "1-10";
-let activeCraftingCategory = "all";
-let activeCraftingLvlRange = "1-10";
+const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 
-function switchVillageLocation(targetLoc) {
-    currentVillageLocation = targetLoc;
-    
-    const panels = ['v-loc-gate', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
-    panels.forEach(p => {
-        const el = document.getElementById(p);
-        if (el) el.style.display = 'none';
-    });
-    
-    const tabs = { 'GATE': 'btn-tab-gate', 'KITCHEN': 'btn-tab-kitchen', 'SQUARE': 'btn-tab-square', 'WORKSHOP': 'btn-tab-workshop' };
-    Object.keys(tabs).forEach(k => {
-        const tBtn = document.getElementById(tabs[k]);
-        if (tBtn) {
-            if (k === targetLoc) tBtn.classList.add('active');
-            else tBtn.classList.remove('active');
-        }
-    });
-    
-    const locTextEl = document.getElementById('location-text');
-    if (targetLoc === "GATE") {
-        const el = document.getElementById('v-loc-gate'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "⛺ 地表村莊 ➔ 傳送大殿";
-        renderVillageJobSelectors();
-    } 
-    else if (targetLoc === "KITCHEN") {
-        const el = document.getElementById('v-loc-kitchen'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "🍳 地表村莊 ➔ 皇家料理屋";
-        renderVillageCookingWorkshop();
-    } 
-    else if (targetLoc === "SQUARE") {
-        const el = document.getElementById('v-loc-square'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "🏛️ 地表村莊 ➔ 中央廣場";
-    }
-    else if (targetLoc === "WORKSHOP") {
-        const el = document.getElementById('v-loc-workshop'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "🛠️ 地表村莊 ➔ 魔導加工所";
-        renderVillageWorkshop();
-    }
-    
-    updateUI();
-}
+let accountMeta = { 
+    name: "無名勇者", 
+    unlockedJobs: ["novice"], 
+    warehouse: {},
+    equipment: { weapon: null, armor: null, accessory: null },
+    // 🌟 部位永久升星槽位（0⭐-5⭐，永久繼承換裝不受影響）
+    equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
+};
 
-function updateUI() {
-    const titleBox = document.getElementById('title-box');
-    const statusBox = document.getElementById('status-panel-box');
-    const actionBox = document.getElementById('action-panel-box');
-    const villageBox = document.getElementById('village-panel-box');
-    const rewardBox = document.getElementById('reward-panel-box');
-    const logBox = document.getElementById('log-box');
-    const envBar = document.getElementById('env-alert-bar');
-    const autoBtn = document.getElementById('btn-auto-battle');
+let currentRun = {
+    job: "novice",
+    lv: 1, hp: 100, maxHp: 100, mp: 20, maxMp: 50, mpRegen: 15, atk: 15, gold: 0, exp: 0, nextExp: 30,
+    spd: 20, 
+    block: 0, critChance: 0, dodgeChance: 0, vampRate: 0, regenPower: 0, doubleStrike: 0,
+    skills: { "緊急治療": 1 }, 
+    inventory: [],            
+    qteBuffDuration: 0,       
+    qteBuffTurns: 0,
+    activeVillageBuffs: []    
+};
 
-    if (gameState === "TITLE") {
-        if (titleBox) titleBox.style.display = "block";
-        if (statusBox) statusBox.style.display = "none";
-        if (actionBox) actionBox.style.display = "none";
-        if (villageBox) villageBox.style.display = "none";
-        if (rewardBox) rewardBox.style.display = "none";
-        if (logBox) logBox.style.display = "none";
-        if (envBar) envBar.style.display = "none";
-        if (autoBtn) autoBtn.style.display = "none";
-        return;
-    }
-    
-    if (titleBox) titleBox.style.display = "none";
-    document.getElementById('p-name').innerText = accountMeta.name;
-    document.getElementById('p-job').innerText = getJobChineseName(currentRun.job);
-    document.getElementById('p-lv').innerText = currentRun.lv;
-    document.getElementById('p-exp-text').innerText = `${currentRun.exp} / ${currentRun.nextExp}`;
-    document.getElementById('p-hp').innerText = currentRun.hp;
-    document.getElementById('p-maxhp').innerText = currentRun.maxHp;
-    document.getElementById('p-mp').innerText = currentRun.mp;
-    document.getElementById('p-maxmp').innerText = currentRun.maxMp;
-    
-    document.getElementById('hp-bar-fill').style.width = `${Math.max(0, (currentRun.hp / currentRun.maxHp) * 100)}%`;
-    document.getElementById('mp-bar-fill').style.width = `${Math.max(0, (currentRun.mp / currentRun.maxMp) * 100)}%`;
-    
-    // ⚡【新功能】實時同步玩家 ATB 條 (移入 updateUI 防止未定義錯誤)
-    const pAtbRow = document.getElementById('p-atb-row');
-    if (pAtbRow) {
-        if (gameState === "VILLAGE") {
-            pAtbRow.style.display = "none";
-        } else {
-            pAtbRow.style.display = "block";
-            let pAtbPercent = Math.min(100, Math.max(0, playerAtb));
-            document.getElementById('p-atb-text').innerText = Math.floor(pAtbPercent);
-            document.getElementById('p-atb-bar-fill').style.width = `${pAtbPercent}%`;
+let gameState = "TITLE"; 
+let dungeonFloor = 0;
+let isQteActive = false;
+let qteTimer = null;
+let qteResolvePointer = null;
+
+let activeMonster = null; 
+let playerShield = 0;
+let isAutoBattleMode = false; // 🤖 掛機自動戰鬥開關
+
+let currentEnvironment = "NORMAL"; 
+let playerStatusEffects = { burn: 0, poison: 0 }; 
+let currentVillageLocation = "GATE";
+
+function resetCurrentRunData() {
+    currentRun.lv = 1; currentRun.hp = 100; currentRun.maxHp = 100; currentRun.mp = 20; currentRun.maxMp = 50;
+    currentRun.mpRegen = 15; currentRun.atk = 15; currentRun.spd: 20; currentRun.gold = 0; currentRun.exp = 0; currentRun.nextExp = 30;
+    currentRun.block = 0; currentRun.critChance = 0; currentRun.dodgeChance = 0; currentRun.skills = { "緊急治療": 1 };
+    currentRun.inventory = []; currentRun.qteBuffDuration = 0; currentRun.qteBuffTurns = 0;
+    currentRun.activeVillageBuffs = [];
+    playerShield = 0;
+    activeMonster = null;
+    playerStatusEffects = { burn: 0, poison: 0 };
+    currentRun.vampRate = 0;       
+    currentRun.doubleStrike = 0;   
+
+    // 🗡️ 武器注入 (乘上星級額外加乘：每 1⭐ +15% 屬性)
+    if (accountMeta.equipment.weapon) {
+        let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.weapon);
+        if (b) {
+            let mult = 1 + (accountMeta.equipmentStars.weapon * 0.15);
+            if (b.stats.atk) currentRun.atk += Math.floor(b.stats.atk * mult);
+            if (b.stats.spd) currentRun.spd += Math.floor(b.stats.spd * mult);
+            if (b.stats.mpRegen) currentRun.mpRegen += Math.floor(b.stats.mpRegen * mult);
         }
     }
-
-    document.getElementById('p-gold').innerText = currentRun.gold;
-    document.getElementById('p-block').innerText = currentRun.block;
-    document.getElementById('p-crit').innerText = `${currentRun.critChance}%`;
-    document.getElementById('p-spd').innerText = currentRun.spd;
-    document.getElementById('p-dodge').innerText = `${currentRun.dodgeChance}%`;
-    
-    let skList = Object.keys(currentRun.skills).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
-    const skillListEl = document.getElementById('p-skills-list');
-    if (skillListEl) skillListEl.innerText = skList || "基本打擊";
-    
-    let wStar = accountMeta.equipmentStars.weapon > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
-    let aStar = accountMeta.equipmentStars.armor > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
-    let cStar = accountMeta.equipmentStars.accessory > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
-
-    if(document.getElementById('p-equip-weapon')) document.getElementById('p-equip-weapon').innerText = (accountMeta.equipment.weapon || "🎚️ 空手") + wStar;
-    if(document.getElementById('p-equip-armor')) document.getElementById('p-equip-armor').innerText = (accountMeta.equipment.armor || "👕 布衣") + aStar;
-    if(document.getElementById('p-equip-accessory')) document.getElementById('p-equip-accessory').innerText = (accountMeta.equipment.accessory || "📿 無") + cStar;
-
-    let bagBox = document.getElementById('p-dungeon-bag');
-    if (bagBox) {
-        bagBox.innerHTML = "";
-        currentRun.inventory.forEach((item, index) => {
-            let sBtn = document.createElement('button');
-            sBtn.className = "btn-game btn-cook";
-            sBtn.style.margin = "2px 4px";
-            sBtn.style.padding = "4px 8px";
-            sBtn.style.fontSize = "11px";
-            sBtn.innerHTML = item;
-            sBtn.onclick = () => { executeUseDungeonItem(item, index); };
-            bagBox.appendChild(sBtn);
-        });
-        if(currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
-    }
-
-    if (gameState === "VILLAGE") {
-        if (statusBox) statusBox.style.display = "grid";
-        if (actionBox) actionBox.style.display = "flex";
-        if (villageBox) villageBox.style.display = "block";
-        if (rewardBox) rewardBox.style.display = "none";
-        if (logBox) logBox.style.display = "none";
-        if (envBar) envBar.style.display = "none";
-        if (autoBtn) autoBtn.style.display = "none"; 
-        
-        const mainActionBtn = document.getElementById('btn-main-action');
-        if (mainActionBtn) {
-            mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
-            mainActionBtn.disabled = false; 
-        }
-        document.getElementById('btn-rerun-action').style.display = "none";
-    } 
-    else {
-        if (statusBox) statusBox.style.display = "grid";
-        if (actionBox) actionBox.style.display = "flex";
-        if (villageBox) villageBox.style.display = "none";
-        if (logBox) logBox.style.display = "block";
-        if (envBar) envBar.style.display = "block";
-        if (autoBtn) autoBtn.style.display = "block"; 
-        
-        let actBtn = document.getElementById('btn-main-action');
-        if(actBtn) {
-            actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
-        }
-        let rerunBtn = document.getElementById('btn-rerun-action');
-        if (rerunBtn) {
-            rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
-        }
-
-        if (envBar && ENVIRONMENT_DATABASE[currentEnvironment]) {
-            envBar.className = ENVIRONMENT_DATABASE[currentEnvironment].className;
-            envBar.innerHTML = `${ENVIRONMENT_DATABASE[currentEnvironment].logText} (B${dungeonFloor}F)`;
-        }
-
-        let monBox = document.getElementById('monster-status-card');
-        if (activeMonster && monBox) {
-            monBox.style.display = "block";
-            document.getElementById('m-name').innerText = activeMonster.name;
-            document.getElementById('m-hp-text').innerText = `${activeMonster.hp} / ${activeMonster.maxHp}`;
-            document.getElementById('m-hp-bar').style.width = `${Math.max(0, (activeMonster.hp / activeMonster.maxHp) * 100)}%`;
-            document.getElementById('m-atk').innerText = activeMonster.atk;
-            document.getElementById('m-spd').innerText = activeMonster.spd;
-
-            // ⚡【新功能】實時同步魔物 ATB 條
-            const mAtbRow = document.getElementById('m-atb-row');
-            if (mAtbRow) {
-                mAtbRow.style.display = "block";
-                let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
-                const mAtbText = document.getElementById('m-atb-text');
-                const mAtbBar = document.getElementById('m-atb-bar-fill');
-                if (mAtbText) mAtbText.innerText = Math.floor(mAtbPercent);
-                if (mAtbBar) mAtbBar.style.width = `${mAtbPercent}%`;
+    // 👕 防具注入
+    if (accountMeta.equipment.armor) {
+        let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.armor);
+        if (b) {
+            let mult = 1 + (accountMeta.equipmentStars.armor * 0.15);
+            if (b.stats.block) currentRun.block += Math.floor(b.stats.block * mult);
+            if (b.stats.maxHp) { 
+                currentRun.maxHp += Math.floor(b.stats.maxHp * mult); 
+                currentRun.hp = currentRun.maxHp; 
             }
-        } else if(monBox) {
-            monBox.style.display = "none";
-            const mAtbRow = document.getElementById('m-atb-row');
-            if (mAtbRow) mAtbRow.style.display = "none";
-        }
-
-        if (rewardBox) {
-            rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
+            if (b.stats.spd) currentRun.spd += Math.floor(b.stats.spd * mult);
+            if (b.stats.dodgeChance) currentRun.dodgeChance += Math.floor(b.stats.dodgeChance * mult);
         }
     }
-}
-
-function getJobChineseName(j) {
-    if(j === "novice") return "初心者";
-    if(j === "swordsman") return "劍士";
-    if(j === "magician") return "魔法師";
-    if(j === "acolyte") return "服事";
-    return j;
-}
-
-function changeCookingTab(selectedRange) {
-    activeCookingRange = selectedRange;
-    const container = document.getElementById('v-loc-kitchen');
-    if (container) {
-        const btns = container.querySelectorAll('.tab-filter-row button');
-        btns.forEach(btn => {
-            if (btn.getAttribute('onclick').includes(`'${selectedRange}'`)) btn.className = "btn-game btn-rerun";
-            else btn.className = "btn-game btn-rest";
-        });
+    // 💍 飾品注入
+    if (accountMeta.equipment.accessory) {
+        let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.accessory);
+        if (b) {
+            let mult = 1 + (accountMeta.equipmentStars.accessory * 0.15);
+            if (b.stats.critChance) currentRun.critChance += Math.floor(b.stats.critChance * mult);
+            if (b.stats.dodgeChance) currentRun.dodgeChance += Math.floor(b.stats.dodgeChance * mult);
+            if (b.stats.spd) currentRun.spd += Math.floor(b.stats.spd * mult);
+            if (b.stats.vampRate) currentRun.vampRate += Math.floor(b.stats.vampRate * mult);          
+            if (b.stats.doubleStrike) currentRun.doubleStrike += Math.floor(b.stats.doubleStrike * mult);  
+        }
     }
-    renderVillageCookingWorkshop();
 }
 
-function changeCraftingCat(selectedCat) {
-    activeCraftingCategory = selectedCat;
-    const row = document.getElementById('workshop-cat-row');
-    if (row) {
-        const btns = row.querySelectorAll('button');
-        btns.forEach(btn => {
-            if (btn.getAttribute('onclick').includes(`'${selectedCat}'`)) btn.className = "btn-game btn-rerun";
-            else btn.className = "btn-game btn-rest";
-        });
-    }
-    renderVillageWorkshop();
-}
-
-function changeCraftingLvl(selectedLvl) {
-    activeCraftingLvlRange = selectedLvl;
-    const row = document.getElementById('workshop-lvl-row');
-    if (row) {
-        const btns = row.querySelectorAll('button');
-        btns.forEach(btn => {
-            if (btn.getAttribute('onclick').includes(`'${selectedLvl}'`)) btn.className = "btn-game btn-rerun";
-            else btn.className = "btn-game btn-rest";
-        });
-    }
-    renderVillageWorkshop();
-}
-
-function renderVillageCookingWorkshop() {
-    const wBox = document.getElementById('kitchen-warehouse-display');
-    if (!wBox) return;
-    
-    let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-    wBox.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${wItems || "暫無任何行軍素材"}`;
-    
-    const rContainer = document.getElementById('recipes-container');
-    if (!rContainer) return;
-    rContainer.innerHTML = "";
-
-    const filteredRecipes = RECIPES_DATABASE.filter(r => r.range === activeCookingRange);
-
-    if(filteredRecipes.length === 0) {
-        rContainer.innerHTML = `<div style="color:#555; font-size:12px; padding:15px; width:100%; text-align:center;">🌿 該層數配方尚在通訊重構中...</div>`;
+async function checkCloudAccount() {
+    let inputName = document.getElementById('player-name-input').value.trim();
+    let legBox = document.getElementById('legacy-box');
+    if (!inputName) {
+        legBox.innerHTML = "請輸入名字以查詢雲端帳戶血脈...";
         return;
     }
-
-    filteredRecipes.forEach(recipe => {
-        let card = document.createElement('div');
-        card.style.background = "rgba(0,0,0,0.25)";
-        card.style.padding = "12px";
-        card.style.borderRadius = "10px";
-        card.style.border = "1px solid rgba(255,255,255,0.03)";
-        card.style.marginBottom = "8px";
-        card.style.width = "100%";
-        card.style.textAlign = "left";
-
-        let ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
-        let hasIngredients = true;
-        for (let ing in recipe.ingredients) {
-            if ((accountMeta.warehouse[ing] || 0) < recipe.ingredients[ing]) hasIngredients = false;
+    try {
+        let response = await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(inputName)}`);
+        let res = await response.json();
+        if (res.success && res.activeChar) {
+            accountMeta.unlockedJobs = res.activeChar.unlockedJobs || ["novice"];
+            accountMeta.warehouse = res.activeChar.warehouse || {};
+            accountMeta.equipment = res.activeChar.equipment || { weapon: null, armor: null, accessory: null };
+            accountMeta.equipmentStars = res.activeChar.equipmentStars || { weapon: 0, armor: 0, accessory: 0 };
+            legBox.innerHTML = `🟢 <strong>偵測到雲端血脈！</strong> 職業：${accountMeta.unlockedJobs.join(", ")}`;
+        } else {
+            // 🌟 核心修正：新玩家大禮包放喺度！保證完全避開「Unreachable Code」錯誤
+            accountMeta.unlockedJobs = ["novice"];
+            accountMeta.warehouse = {
+                "史萊姆黏液": 5,
+                "巨石苔蘚": 3
+            };
+            accountMeta.equipment = { weapon: null, armor: null, accessory: null };
+            accountMeta.equipmentStars = { weapon: 0, armor: 0, accessory: 0 };
+            currentRun.gold = 300; // 贈送 300 金幣啟動資金
+            
+            legBox.innerHTML = `🎁 <strong>新勇者福利已啟動：</strong> 贈送 300G 資金與基礎素材（史萊姆黏液x5, 巨石苔蘚x3）！可直接去加工所打造第一把神兵！`;
         }
-
-        card.innerHTML = `
-            <strong style="color:#2ecc71; font-size:13px;">${recipe.name}</strong>
-            <p style="margin:4px 0; font-size:12px; color:#aaa;">${recipe.desc}</p>
-            <span style="font-size:11px; color:#8e8e93;">🌾 所需配料：${ingList}</span>
-            <div style="margin-top:8px;"></div>
-        `;
-
-        let btnCook = document.createElement('button');
-        btnCook.className = "btn-game btn-cook";
-        btnCook.style.padding = "4px 10px";
-        btnCook.style.fontSize = "11px";
-        btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪納入快捷欄";
-        btnCook.disabled = !hasIngredients;
-        btnCook.onclick = () => { executeVillageCooking(recipe); };
-        
-        card.appendChild(btnCook);
-        rContainer.appendChild(card);
-    });
+    } catch(e) { legBox.innerHTML = `📡 正在同步雲端資料庫...`; }
 }
 
-function renderStarUpRow(slot, displayName, currentStar) {
-    let starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
-    let upgradeBtn = "";
+async function uploadProgressToCloud() {
+    try {
+        await fetch(`${SERVER_URL}/api/active/save`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                name: accountMeta.name, 
+                activeChar: { 
+                    unlockedJobs: accountMeta.unlockedJobs, 
+                    warehouse: accountMeta.warehouse,
+                    equipment: accountMeta.equipment,
+                    equipmentStars: accountMeta.equipmentStars
+                } 
+            })
+        });
+    } catch (e) { console.error("雲端存檔同步逾時"); }
+}
+
+// ==========================================================================
+// 📡 命運深淵：魔導冷啟動喚醒引擎
+// ==========================================================================
+
+const LOADING_FLAVOR_TEXTS = [
+    "正在通訊虛空裂縫，喚醒沉睡中的 Render 冥河伺服器...",
+    "正在解鎖遠古魔導傳承，正在重構勇者基因...",
+    "正在掃描雲端永久倉庫...",
+    "黑市商人正在整理披風，鐵匠正在點燃加工所熔爐...",
+    "正在清除地下城 B1F 至 B40F 的殘留重力變異力場...",
+    "命運編織中……魔物們正在穿戴裝備與黏液準備攔截..."
+];
+
+window.onload = function() {
+    executeMagitechWakeupSequence();
+};
+
+async function executeMagitechWakeupSequence() {
+    const txtNode = document.getElementById('loading-flavor-text');
+    const barFill = document.getElementById('loading-bar-fill');
+    const overlay = document.getElementById('loading-overlay');
     
-    if (currentStar >= 5) {
-        upgradeBtn = `<span style="color: #ffd700; font-size: 11px; font-weight: bold;">[已臻滿星]</span>`;
-    } else {
-        let cost = getStarUpCost(slot, currentStar);
-        let costText = Object.keys(cost).map(k => `${k} x${cost[k]}`).join(", ");
-        
-        let canUpgrade = true;
-        for (let ing in cost) {
-            if ((accountMeta.warehouse[ing] || 0) < cost[ing]) canUpgrade = false;
+    let textIndex = 0;
+    const textTimer = setInterval(() => {
+        if (txtNode) {
+            textIndex = (textIndex + 1) % LOADING_FLAVOR_TEXTS.length;
+            txtNode.innerText = LOADING_FLAVOR_TEXTS[textIndex];
         }
+    }, 3500);
+
+    try {
+        let warmupName = "warmup_net_core";
+        await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(warmupName)}`);
         
-        upgradeBtn = `
-            <button class="btn-game btn-rerun" style="padding: 4px 8px; font-size: 11px;" ${canUpgrade ? "" : "disabled"} onclick="executeSlotStarUp('${slot}')">
-                🔥 升星 (需 ${costText})
-            </button>
-        `;
+        if (barFill) barFill.classList.add('complete');
+        if (txtNode) txtNode.innerHTML = "✨ <b>血脈矩陣對接成功！冥河通道已解鎖！</b>";
+        
+        setTimeout(() => {
+            clearInterval(textTimer);
+            if (overlay) overlay.classList.add('fade-out');
+            let inputName = document.getElementById('player-name-input').value.trim();
+            if (inputName) {
+                checkCloudAccount();
+            }
+            addLog("📡 <b>【命運網路】已成功對接 Render 雲端魔導核心。</b>", "perfect");
+        }, 4000); 
+
+    } catch (err) {
+        console.warn("後端喚醒逾時，轉為局內本地離線沙盒模式行進");
+        clearInterval(textTimer);
+        if (barFill) barFill.style.width = "100%";
+        if (overlay) overlay.classList.add('fade-out');
+        const legBox = document.getElementById('legacy-box');
+        if(legBox) legBox.innerHTML = "⚠️ <b>雲端同步受阻</b>：已啟動臨時局內離線記憶體。";
     }
-    
-    return `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px;">
-            <span style="font-size: 12px; font-weight: bold; color: #fff;">${displayName} [${starsStr}]</span>
-            ${upgradeBtn}
-        </div>
-    `;
-}
-
-function renderVillageWorkshop() {
-    const wBox = document.getElementById('workshop-warehouse-display');
-    if (!wBox) return;
-    
-    let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-    wBox.innerHTML = `📦 <strong>雲端永久素材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
-    
-    const bContainer = document.getElementById('blueprints-container');
-    if (!bContainer) return;
-    bContainer.innerHTML = "";
-    
-    let starPanel = document.createElement('div');
-    starPanel.className = "dynamic-panel reward-style";
-    starPanel.style.border = "1px solid rgba(212, 175, 55, 0.4)";
-    starPanel.style.background = "rgba(15, 13, 10, 0.5)";
-    starPanel.style.marginBottom = "15px";
-    starPanel.style.padding = "12px";
-    starPanel.style.width = "100%";
-    
-    starPanel.innerHTML = `
-        <div class="panel-title" style="color: #ffd700; margin-bottom: 8px;">🌟 皇家部位星級精煉台 (永久繼承) 🌟</div>
-        <p style="font-size: 11px; color: #8e8e93; text-align: center; margin: 0 0 10px 0;">部位強化屬性永久提升：每⭐提升對應部位屬性額外加乘 +15%</p>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${renderStarUpRow("weapon", "🗡️ 武器槽位", accountMeta.equipmentStars.weapon)}
-            ${renderStarUpRow("armor", "👕 防具槽位", accountMeta.equipmentStars.armor)}
-            ${renderStarUpRow("accessory", "💍 飾品槽位", accountMeta.equipmentStars.accessory)}
-        </div>
-    `;
-    bContainer.appendChild(starPanel);
-
-    const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
-        const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
-        const matchLvl = (b.range === activeCraftingLvlRange);
-        return matchCat && matchLvl;
-    });
-
-    if (filteredBlueprints.length === 0) {
-        let emptyDiv = document.createElement('div');
-        emptyDiv.innerHTML = `<div style="color:#555; font-size:12px; padding:20px; width:100%; text-align:center;">🔨 該級別無此分類神裝，等待神匠開拓藍圖...</div>`;
-        bContainer.appendChild(emptyDiv);
-        return;
-    }
-
-    filteredBlueprints.forEach(blueprint => {
-        let btnWrapper = document.createElement('div');
-        btnWrapper.style.background = "rgba(0,0,0,0.2)";
-        btnWrapper.style.padding = "14px";
-        btnWrapper.style.borderRadius = "12px";
-        btnWrapper.style.border = "1px solid rgba(255,255,255,0.04)";
-        btnWrapper.style.marginBottom = "10px";
-        btnWrapper.style.textAlign = "left";
-        btnWrapper.style.width = "100%";
-
-        let reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
-        let statText = Object.keys(blueprint.stats).map(k => {
-            let name = k === "atk" ? "攻擊" : k === "spd" ? "速度" : k === "mpRegen" ? "回魔" : k === "block" ? "減傷" : k === "maxHp" ? "生命" : "閃避";
-            return `${name} ${blueprint.stats[k] > 0 ? '+' : ''}${blueprint.stats[k]}`;
-        }).join(", ");
-
-        let titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
-        let infoP = document.createElement('p');
-        infoP.style.margin = "0 0 10px 0"; infoP.style.fontSize = "12px"; infoP.style.color = "#babcbf"; infoP.style.lineHeight = "1.5";
-        infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
-        btnWrapper.appendChild(infoP);
-
-        let canForge = true;
-        for (let ing in blueprint.ingredients) {
-            if ((accountMeta.warehouse[ing] || 0) < blueprint.ingredients[ing]) canForge = false;
-        }
-
-        let btnForge = document.createElement('button');
-        btnForge.className = "btn-game btn-explore";
-        btnForge.style.padding = "6px 12px"; btnForge.style.fontSize = "11px"; btnForge.style.marginRight = "8px";
-        btnForge.innerHTML = "🔨 消耗材料打造";
-        btnForge.disabled = !canForge; 
-        btnForge.onclick = () => { executeForgeEquipment(blueprint); };
-        btnWrapper.appendChild(btnForge);
-
-        let isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
-        let hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
-
-        if (isEquipped) {
-            let btnUnequip = document.createElement('button');
-            btnUnequip.className = "btn-game btn-rest"; btnUnequip.style.padding = "6px 12px"; btnUnequip.style.fontSize = "11px";
-            btnUnequip.innerHTML = "❌ 卸下神裝";
-            btnUnequip.onclick = () => { executeEquipAction(blueprint.name, "unequip"); };
-            btnWrapper.appendChild(btnUnequip);
-        } else if (hasInWarehouse) {
-            let btnEquip = document.createElement('button');
-            btnEquip.className = "btn-game btn-rerun"; btnEquip.style.padding = "6px 12px"; btnEquip.style.fontSize = "11px";
-            btnEquip.innerHTML = "⚡ 穿戴上身";
-            btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
-            btnWrapper.appendChild(btnEquip);
-
-            let btnDismantle = document.createElement('button');
-            btnDismantle.className = "btn-game btn-rest"; 
-            btnDismantle.style.padding = "6px 12px"; btnDismantle.style.fontSize = "11px"; btnDismantle.style.marginLeft = "6px";
-            btnDismantle.style.background = "linear-gradient(135deg, #c0392b 0%, #962d00 100%) !important";
-            btnDismantle.innerHTML = "♻️ 拆解回收";
-            btnDismantle.onclick = () => { executeDismantle(blueprint.name); };
-            btnWrapper.appendChild(btnDismantle);
-        }
-
-        bContainer.appendChild(btnWrapper);
-    });
-}
-
-function renderVillageJobSelectors() {}
-
-function addLog(msg, type = "deal") {
-    let box = document.getElementById('log-box');
-    if (!box) return;
-    let className = "log-row-box";
-    if (type === "take") className += " log-take-dmg";
-    if (type === "perfect") className += " log-perfect";
-    if (type === "env") className += " log-env-tick";
-    if (type === "victory-badge") className += " log-victory-badge";
-    
-    let p = document.createElement('div');
-    p.className = className;
-    p.innerHTML = msg;
-    box.appendChild(p);
-    box.scrollTop = box.scrollHeight;
 }
