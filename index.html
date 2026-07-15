@@ -198,15 +198,18 @@
             <div class="log-panel" id="log-box" style="display: none; width: 100%;"></div>
 
         </div> <!-- 右側直欄結束 -->
-    </div> <!-- 雙欄核心分流包殼容器結束 -->
+    </div> <!-- 雙欄核心分流包殼容器結束 (.game-layout-split) -->
+</div> <!-- 整個遊戲主容器結束 (#main-game-shell) -->
 
-    <!-- 🔮 8. 全屏幕 QTE 視窗 (打鐵及料理兩用) -->
-    <div id="qte-overlay" style="display: none;">
-        <div class="qte-box">
-            <p id="qte-skill-name">⚡ QTE ⚡</p>
-            <button id="qte-tap-btn">🟢 撳我！</button>
-            <div class="qte-timer-bg"><div id="qte-timer-fill"></div></div>
-        </div>
+<!-- ========================================================================== -->
+<!-- 🔮 移到呢度！擺喺最外層 body，不受任何 parent filter 影響，百分百鎖死螢幕正中 -->
+<!-- ========================================================================== -->
+<!-- 1. 全屏幕 QTE 視窗 -->
+<div id="qte-overlay" style="display: none;">
+    <div class="qte-box">
+        <p id="qte-skill-name">⚡ QTE ⚡</p>
+        <button id="qte-tap-btn">🟢 撳我！</button>
+        <div class="qte-timer-bg"><div id="qte-timer-fill"></div></div>
     </div>
 </div>
 
@@ -215,7 +218,7 @@
     <div class="victory-cloud-shimmer"></div>
     <div class="victory-crystal-container">
         <div class="victory-laurel-crown">👑</div>
-        <h1 class="victory-grand-title">討 伐 大 捷</h1>
+        <h1 class="victory-grand-title">討 伐 勝 利</h1>
         <div class="victory-divider-line"></div>
         <h2 id="victory-boss-name" class="victory-target-sub">LEGENDARY BOSS DEFEATED</h2>
         <p class="victory-scroll-fluff">深淵領主核心已遭碎裂，命運秩序重新編織……</p>
@@ -226,7 +229,8 @@
         <div class="victory-click-prompt">點擊任意位置或等待通道釋放...</div>
     </div>
 </div>
-
+    
+<!-- JavaScript 檔案載入 -->
 <script src="monsterdata.js"></script>
 <script src="itemdata.js"></script>
 <script src="eventdata.js"></script>
