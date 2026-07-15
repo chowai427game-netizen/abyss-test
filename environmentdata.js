@@ -11,8 +11,3 @@ const ENVIRONMENT_DATABASE = {
     "VOID": { className: "env-zone-void", logText: "🌀 警告：進入【重力虛空壓制】主動時間流速發生變異！" }
 };
 
-// 2. 隨機寶箱流派儲備列 (留空便於未來打鐵舖更新完後，直接在此擴充寶箱裝備藍圖)
-const TREASURE_CHESTS_POOL = [
-    { tier: "WOODEN", name: "🪵 生鏽的舊木箱", minGold: 10, maxGold: 30 },
-    { tier: "GOLDEN", name: "👑 皇家耀金璀璨寶箱", minGold: 80, maxGold: 200 }
-];
