@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：真・ATB 運算、智慧自動戰鬥 AI、裝備升星拆解與生產 QTE 內核
+// 🕹/ game.js：真・ATB 運算、智慧自動戰鬥 AI、裝備升星拆解與生產 QTE 內核 (優化版)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -145,7 +145,6 @@ function toggleAutoBattle() {
 function executeAutoBattleAiTurn() {
     let hpRatio = currentRun.hp / currentRun.maxHp;
     
-    // 1. 🚨 緊急背包藥水自救 (HP 低於 35%)
     if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
         let mealIndex = currentRun.inventory.findIndex(item => item.includes("厚牛巨堡"));
         if (mealIndex !== -1) {
@@ -154,7 +153,6 @@ function executeAutoBattleAiTurn() {
         }
     }
 
-    // 2. 🩹 醫療法術自愈 (HP 低於 45%，優先使用職業自愈技)
     let healSkill = null;
     if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
     else if (currentRun.skills["緊急治療"] && currentRun.mp >= 15) healSkill = "緊急治療";
@@ -171,7 +169,6 @@ function executeAutoBattleAiTurn() {
         }
     }
 
-    // 3. 💥 進攻技能智能連攜 (挑選耗魔最高的強力技，保留治癒系)
     let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
     activeSkills.sort((a, b) => b.mp - a.mp); 
 
@@ -194,11 +191,11 @@ function executeAutoBattleAiTurn() {
         }
     }
 
-    return false; // 沒觸發任何特例，直接進行普攻
+    return false; 
 }
 
 // ==========================================================================
-// 🍳🔨 料理屋及加工所：兩用 QTE 喚起引擎
+// 🍳🔨 料理屋及加工所：兩用 QTE 喚起引擎 (修正顯示與崩潰 Bug)
 // ==========================================================================
 function triggerVillageQte(type, targetData, successCallback) {
     const overlay = document.getElementById('qte-overlay');
@@ -259,7 +256,6 @@ function triggerVillageQte(type, targetData, successCallback) {
 function executeVillageCooking(recipe) {
     for(let ing in recipe.ingredients) { accountMeta.warehouse[ing] -= recipe.ingredients[ing]; }
     
-    // 🍳 喚醒料理 QTE
     triggerVillageQte("COOK", recipe, (rating) => {
         if (rating === "PERFECT") {
             addLog(`🍳👑【皇家廚神・大成功】雙倍成品！獲得 <strong>${recipe.name} x2</strong>！`, "perfect");
@@ -296,13 +292,11 @@ function executeVillageCooking(recipe) {
 function executeForgeEquipment(blueprint) {
     for(let ing in blueprint.ingredients) { accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; }
     
-    // 🔨 喚醒打鐵 QTE
     triggerVillageQte("FORGE", blueprint, (rating) => {
         if (rating === "PERFECT") {
             addLog(`🔨🌟【神匠顯靈・完美大成功】精工鑄造神裝：<strong>${blueprint.name}</strong>！`, "perfect");
             accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
             
-            // 完美鑄造額外隨機返還一項核心素材！
             let keys = Object.keys(blueprint.ingredients);
             let luckyRefund = keys[Math.floor(Math.random() * keys.length)];
             accountMeta.warehouse[luckyRefund] = (accountMeta.warehouse[luckyRefund] || 0) + 1;
@@ -358,7 +352,6 @@ function executeDismantle(equipName) {
     
     accountMeta.warehouse[equipName]--;
     
-    // 拆解無條件進位返還 50% 材料
     let refunded = [];
     for (let ing in b.ingredients) {
         let refundQty = Math.ceil(b.ingredients[ing] * 0.5);
@@ -443,11 +436,9 @@ function executeEnvironmentTick() {
 function executePlayerActionTick() {
     let activeTriggered = false;
 
-    // 🤖 整合自動戰鬥決策 AI
     if (isAutoBattleMode) {
         activeTriggered = executeAutoBattleAiTurn();
     } else {
-        // 👤 手動模式常規技能釋放邏輯
         for (let sName of Object.keys(currentRun.skills)) {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
             if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
