@@ -50,43 +50,58 @@
             
             <!-- 📊 2. 勇者狀態數據面板 -->
             <div class="status-panel" id="status-panel-box" style="display: none;">
-                <div class="status-item"><span>👤 勇者大名:</span> <strong id="p-name">--</strong></div>
-                <div class="status-item"><span>🎭 當前職業:</span> <strong id="p-job" style="color: #00ffff;">初心者</strong></div>
-                <div class="status-item"><span>📈 當前等級:</span> <span id="p-lv" style="color: #2ed573; font-weight: bold;">1</span></div>
-                <div class="status-item"><span>🟩 經驗值:</span> <span id="p-exp-text" style="color: #2ecc71;">0 / 30</span></div>
                 
-                <div class="status-item full-row">
-                    <div class="flex-space"><span>❤️ 生命值 (HP):</span> <strong><span id="p-hp">100</span> / <span id="p-maxhp">100</span></strong></div>
-                    <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
+                <div class="status-header-row">
+                    <span>👤 <strong id="p-name">--</strong></span>
+                    <span style="color: #00ffff;">🎭 <strong id="p-job">初心者</strong></span>
+                    <span>📈 <strong id="p-lv">1</strong> <span style="color: var(--text-muted); font-size:10px;">Lv</span></span>
+                    <span style="color: #2ecc71; font-size: 11px;">🟩 <span id="p-exp-text">0/30</span></span>
                 </div>
                 
-                <div class="status-item full-row">
-                    <div class="flex-space"><span>🔵 魔力值 (MP):</span> <strong><span id="p-mp">0</span> / <span id="p-maxmp">50</span></strong></div>
-                    <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
+                <div class="bars-container-row">
+                    <div class="mini-bar-box">
+                        <div class="flex-space" style="font-size: 11px;"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
+                        <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
+                    </div>
+                    <div class="mini-bar-box">
+                        <div class="flex-space" style="font-size: 11px;"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
+                        <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
+                    </div>
+                </div>
+
+                <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
+                    <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動準備 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
+                    <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
                 </div>
                 
-                <div class="status-item full-row" id="p-atb-row" style="display: none;">
-                    <div class="flex-space"><span>⚡ 行動準備 (ATB):</span> <strong><span id="p-atb-text">0</span>%</strong></div>
-                    <div class="visual-bar-bg"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
+                <div class="stats-mini-grid">
+                    <div class="grid-cell">🪙 <span class="gold" id="p-gold">0</span> G</div>
+                    <div class="grid-cell">🛡️ 減傷: <span id="p-block">0</span></div>
+                    <div class="grid-cell">⚡ 攻速: <span id="p-spd">20</span></div>
+                    <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
+                    <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
                 </div>
-                
-                <div class="status-item"><span>🪙 臨時金幣:</span> <span class="gold" id="p-gold">0</span> G</div>
-                <div class="status-item"><span>🧱 固定減傷:</span> <span id="p-block" style="color: #7f8c8d; font-weight: bold;">0</span></div>
-                <div class="status-item"><span>💥 暴擊機率:</span> <span id="p-crit" style="color: #e74c3c;">0%</span></div>
-                <div class="status-item"><span>⚡ 攻擊速度:</span> <span id="p-spd" style="color: #f1c40f; font-weight: bold;">20</span></div>
-                <div class="status-item"><span>🏃 完美閃避:</span> <span id="p-dodge" style="color: #3498db;">0%</span></div>
-                
-                <div class="status-item full-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; color: #9b59b6; font-size: 11px;">
-                    🔮 已加載局內技能：<span id="p-skills-list">基本打擊</span>
+
+                <div class="status-item full-row quick-bag-row">
+                    <span style="color: #ffa500; font-size: 11px; font-weight: bold;">🎒 背包：</span>
+                    <span id="p-dungeon-bag"><span style='color:#666;'>[空]</span></span>
                 </div>
-                <div class="status-item full-row" style="color: #ffa500; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-                    🎒 戰術背包快捷鍵：<span id="p-dungeon-bag"><span style='color:#666;'>[空]</span></span>
-                </div>
-                <div class="status-item full-row" style="color: #f1c40f; font-size: 11px; padding-top: 4px;">
-                    🗡️ 武器: <strong id="p-equip-weapon" style="color: #fff;">🎚️ 空手</strong> | 
-                    🛡️ 防具: <strong id="p-equip-armor" style="color: #fff;">👕 布衣</strong> | 
-                    💍 飾品: <strong id="p-equip-accessory" style="color: #fff;">📿 無</strong>
-                </div>
+
+                <details class="char-details-folder">
+                    <summary>🔍 展開查看 技能與裝備面板</summary>
+                    <div class="folder-content">
+                        <div class="folder-item">
+                            <span class="folder-label">🔮 已加載技能：</span>
+                            <span id="p-skills-list" style="color: #9b59b6;">基本打擊</span>
+                        </div>
+                        <div class="folder-item gear-summary">
+                            <div>🗡️ 武器: <strong id="p-equip-weapon" style="color: #fff;">空手</strong></div>
+                            <div>👕 防具: <strong id="p-equip-armor" style="color: #fff;">布衣</strong></div>
+                            <div>💍 飾品: <strong id="p-equip-accessory" style="color: #fff;">無</strong></div>
+                        </div>
+                    </div>
+                </details>
+
             </div>
             
             <!-- 🕹️ 3. 全局動作按鈕區 -->
