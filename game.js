@@ -482,6 +482,16 @@ function executePlayerActionTick() {
                     activeMonster.hp -= currentRun.atk; addLog(`⚔️ 普攻突刺！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
                 }
                 break;
+                // 玩家普攻/技能未觸發時的常規物理揮砍
+                if (!activeTriggered) { 
+                    let monsterDef = Math.floor(dungeonFloor * 1.2); // 魔物防禦力隨層數提升
+                    let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
+                    activeMonster.hp -= dmgRes.damage;
+        
+                    let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                    let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                    addLog(`⚔️ ${critText}揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
+                }        
             }
         }
     }
@@ -505,10 +515,13 @@ function executePlayerActionTick() {
 
 function executeMonsterActionTick() {
     if (activeMonster.freezeTurns > 0) { activeMonster.freezeTurns--; return; }
-    let finalDmg = Math.max(1, activeMonster.atk - currentRun.block);
+    // 🛡️ 使用新公式：玩家的 Block 當作 Defense 防禦力運算
+    let dmgRes = calculateDamage(activeMonster.atk, currentRun.block, false);
+    let finalDmg = dmgRes.damage;;
     currentRun.hp -= finalDmg; 
     addLog(`🔴 魔物暴虐反噬！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
+    
 }
 
 function executeDungeonVictorySequence() {
