@@ -407,14 +407,20 @@ async function runDungeonLoop() {
             activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, spd: bossMeta.baseSpd, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
             addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
-            let rollSeed = REGULAR_MONSTERS_POOL[Math.floor(Math.random() * REGULAR_MONSTERS_POOL.length)];
+            // 🎯【重磅優化】根據當前樓層 (dungeonFloor) 過濾對應層數範圍的常規魔物
+            let availableMonsters = REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor);
+            
+            // 防空保護：如果該層數沒有配怪，則後備調用全局小怪
+            if (availableMonsters.length === 0) availableMonsters = REGULAR_MONSTERS_POOL;
+            
+            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
             let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * rollSeed.hpScale);
             let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * rollSeed.atkScale);
             
-            // 🌟 1. 新手保護機制 (Anti-Ragequit)：B1F-B3F 怪物速度與屬性適度壓制
+            // 🌟 新手保護機制：B1F-B3F 怪物速度與屬性適度壓制
             let finalSpd = rollSeed.baseSpd;
             if (dungeonFloor <= 3) {
-                finalSpd = Math.max(10, Math.floor(finalSpd * 0.65)); // 壓制魔物出手速度，讓玩家能先攻
+                finalSpd = Math.max(10, Math.floor(finalSpd * 0.65));
                 scaledHp = Math.max(20, Math.floor(scaledHp * 0.75));
                 scaledAtk = Math.max(3, Math.floor(scaledAtk * 0.7));
             }
@@ -422,7 +428,7 @@ async function runDungeonLoop() {
             activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, spd: finalSpd, freezeTurns: 0, isSkipped: false, isBoss: false };
             addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
             
-            // 🌟 2. 新手地表生存引導：第一次進入 B1F 給予明確撤退指引
+            // 新手引導
             if (dungeonFloor === 1) {
                 addLog("💡【勇者生存提示】：若戰局不妙，請果斷點擊「⛺ 逃回村莊」，這能安全帶回你快捷背包中的所有珍貴素材！", "perfect");
             }
@@ -617,35 +623,83 @@ function checkLevelUpAndTriggerSelect() {
 function triggerRandomAbyssEvent() {
     const container = document.getElementById('reward-choices-container');
     const title = document.getElementById('reward-title-text');
-    if (!container || !title) return; container.innerHTML = "";
-    let eventType = Math.floor(Math.random() * 3);
+    if (!container || !title) return; 
+    container.innerHTML = "";
+    
+    // 🎲 50% 觸發 40種隨機奇遇 / 50% 觸發 40種隨機寶箱
+    let isChestEvent = Math.random() < 0.5;
 
-    if (eventType === 0) {
-        title.innerText = "🛒 流浪黑市商人 • 冥河折扣 🛒";
-        let rolledGoods = [...MARKET_ITEMS_POOL].sort(() => 0.5 - Math.random()).slice(0, 2);
-        buildBlackMarketUI(rolledGoods);
-    } 
-    else if (eventType === 1) {
-        title.innerText = "🩸 命運邪神祭壇 • 血脈契約 🩸";
-        let btnDeal = document.createElement('button'); btnDeal.className = "btn-game btn-cook";
-        btnDeal.innerHTML = `<strong>🩸 簽訂血脈契約</strong><br><span style="color:#ff4757;">代價：Max HP -25 ➔ 報酬：+15 攻擊力！</span>`;
-        btnDeal.onclick = () => { currentRun.maxHp = Math.max(15, currentRun.maxHp - 25); currentRun.hp = Math.min(currentRun.hp, currentRun.maxHp); currentRun.atk += 15; resolveAbyssEvent(); };
-        container.appendChild(btnDeal);
+    if (!isChestEvent) {
+        // ==========================================
+        // 🌌 觸發 40種隨機奇遇
+        // ==========================================
+        let randomEvent = ABYSS_EVENTS_DATABASE[Math.floor(Math.random() * ABYSS_EVENTS_DATABASE.length)];
+        title.innerHTML = randomEvent.title;
+        
+        let descP = document.createElement('p');
+        descP.style.fontSize = "12px";
+        descP.style.color = "#babcbf";
+        descP.style.lineHeight = "1.6";
+        descP.style.marginBottom = "15px";
+        descP.innerHTML = randomEvent.desc;
+        container.appendChild(descP);
+
+        randomEvent.choices.forEach(choice => {
+            let btn = document.createElement('button');
+            btn.className = "btn-game btn-cook";
+            btn.style.width = "100%";
+            btn.style.marginBottom = "8px";
+            btn.style.fontSize = "11px";
+            btn.innerHTML = choice.text;
+            btn.onclick = () => {
+                let resultLog = choice.run(currentRun, accountMeta);
+                addLog(resultLog, "perfect");
+                resolveAbyssEvent();
+            };
+            container.appendChild(btn);
+        });
     } 
     else {
-        let isGolden = (Math.random() < 0.30 || dungeonFloor > 20);
-        let chest = isGolden ? TREASURE_CHESTS_POOL[1] : TREASURE_CHESTS_POOL[0];
-        title.innerText = `🎁 發現古老遺蹟：[${chest.name}] 🎁`;
-        let btnOpen = document.createElement('button'); btnOpen.className = "btn-game btn-explore"; btnOpen.style.width = "100%";
+        // ==========================================
+        // 🎁 觸發 40種隨機寶箱/陷阱/擬態怪
+        // ==========================================
+        // 根據層數微調：前層更容易出木箱，20層後更容易出耀金/機關寶箱
+        let rolledChest = TREASURE_CHESTS_POOL[Math.floor(Math.random() * TREASURE_CHESTS_POOL.length)];
+        title.innerHTML = `🎁 發現古老遺蹟：[${rolledChest.name}] 🎁`;
+
+        let descP = document.createElement('p');
+        descP.style.fontSize = "12px";
+        descP.style.color = "#babcbf";
+        descP.style.lineHeight = "1.6";
+        descP.style.marginBottom = "15px";
+        descP.innerHTML = `地面上靜靜躺著一個【${rolledChest.name}】。你可以選擇強行砸開鎖扣，或者小心地引導魔力拆解。`;
+        container.appendChild(descP);
+
+        let btnOpen = document.createElement('button');
+        btnOpen.className = "btn-game btn-explore";
+        btnOpen.style.width = "100%";
         btnOpen.innerHTML = `🔑 砸開寶箱鎖扣`;
         btnOpen.onclick = () => {
-            let rolledGold = Math.floor(Math.random() * (chest.maxGold - chest.minGold + 1)) + chest.minGold; currentRun.gold += rolledGold;
-            addLog(`👑 獲得臨時金幣 +${rolledGold} G！`, "perfect");
-            if (isGolden && Math.random() < 0.50) {
-                let highTier = ["虛空核心", "帝王蟹腿", "永凍冰晶", "祭司血清"];
-                let drop = highTier[Math.floor(Math.random() * highTier.length)]; accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
-                addLog(`🎁 獲得稀有素材：<strong>${drop}</strong>！`, "perfect");
+            // 💰 計算金幣產出
+            let rolledGold = Math.floor(Math.random() * (rolledChest.maxGold - rolledChest.minGold + 1)) + rolledChest.minGold;
+            currentRun.gold += rolledGold;
+            addLog(`🪙 獲得臨時金幣 +${rolledGold} G！`);
+            addLog(`📢 箱內迴響：${rolledChest.msg}`, rolledChest.isTrap ? "take" : "perfect");
+
+            // ☠️ 處理陷阱/擬態怪扣血
+            if (rolledChest.isTrap && rolledChest.dmg) {
+                currentRun.hp = Math.max(1, currentRun.hp - rolledChest.dmg);
             }
+
+            // 💎 25% 隨機產出當前樓層對應的「永久素材」進入倉庫
+            if (Math.random() < 0.25) {
+                // 根據當前層數產出合適的素材
+                let activeDrops = Object.values(MONSTER_DROPS);
+                let randDrop = activeDrops[Math.floor(Math.random() * activeDrops.length)];
+                accountMeta.warehouse[randDrop] = (accountMeta.warehouse[randDrop] || 0) + 1;
+                addLog(`🎁 箱底夾層傳送出永久素材 ➔ <strong>${randDrop} (x1)</strong>！`, "perfect");
+            }
+
             resolveAbyssEvent();
         };
         container.appendChild(btnOpen);
