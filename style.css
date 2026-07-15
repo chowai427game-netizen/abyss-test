@@ -723,3 +723,165 @@ body {
 @keyframes blinkPrompt {
     0% { opacity: 0.3; } 100% { opacity: 0.9; }
 }
+
+/* ==========================================================================
+   ⚡ 勇者資訊欄極致壓縮美化 (Anti-Overload Styles)
+   ========================================================================== */
+
+/* 1. 頂部基本資訊橫行 */
+.status-header-row {
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+/* 2. HP & MP 左右並排條 */
+.bars-container-row {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.mini-bar-box {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+.mini-bar-box .visual-bar-bg {
+    height: 4px; /* 變幼一點，更精緻 */
+    margin-top: 4px;
+}
+
+/* 3. 屬性網格 3 欄排版 */
+.stats-mini-grid {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin-top: 2px;
+}
+.grid-cell {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 11px;
+    text-align: center;
+    color: #d1d1d6;
+}
+
+/* 4. 戰術背包精簡橫排 */
+.quick-bag-row {
+    padding: 4px 8px !important;
+    background: rgba(255, 165, 0, 0.03) !important;
+    border: 1px dashed rgba(255, 165, 0, 0.15) !important;
+    border-radius: 8px;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+}
+
+/* 5. 摺疊收納資料夾 (Details Widget) */
+.char-details-folder {
+    grid-column: span 2;
+    margin-top: 4px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+.char-details-folder[open] {
+    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.05);
+}
+.char-details-folder summary {
+    font-size: 11px;
+    color: var(--gold-glow);
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    outline: none;
+    background: rgba(255, 255, 255, 0.01);
+    list-style: none; /* 隱藏預設箭頭 */
+    transition: background 0.2s;
+}
+.char-details-folder summary::-webkit-details-marker {
+    display: none; /* Safari 隱藏預設箭頭 */
+}
+.char-details-folder summary:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+.folder-content {
+    padding: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    animation: folderExpand 0.2s ease-out;
+}
+@keyframes folderExpand {
+    0% { opacity: 0; transform: translateY(-5px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+.folder-item {
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1.4;
+}
+.folder-label {
+    color: var(--text-muted);
+}
+.gear-summary {
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    padding-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* ==========================================================================
+   📱 手機版佈局大優化 (Responsive Reordering)
+   ========================================================================== */
+@media (max-width: 849px) {
+    /* 1. 將主操作按鈕置頂（或放於狀態欄上方） */
+    .game-layout-split {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* 讓左側欄（包含名字、血條）排在最底，戰鬥畫面同按鈕排先！ */
+    .left-layout-column {
+        order: 2; /* 移到下方 */
+    }
+    .right-layout-column {
+        order: 1; /* 戰鬥、按鈕、Log 移到上方 */
+    }
+
+    /* 2. 手機版戰鬥按鈕浮動/置底，極致爽快操作 */
+    .action-panel {
+        position: sticky;
+        bottom: 10px;
+        z-index: 999;
+        background: rgba(10, 10, 15, 0.95) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.8) !important;
+        border-radius: 12px;
+        padding: 10px !important;
+    }
+}
