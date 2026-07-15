@@ -95,6 +95,10 @@ async function checkCloudAccount() {
     if (!inputName) {
         legBox.innerHTML = "請輸入名字以查詢雲端帳戶血脈...";
         return;
+        // 贈送 300 金幣與少量新手素材，讓新勇者能立刻去加工所打造第一把武器！
+        accountMeta.warehouse["史萊姆黏液"] = 5;
+        accountMeta.warehouse["巨石苔蘚"] = 3;
+        currentRun.gold = 300;
     }
     try {
         let response = await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(inputName)}`);
