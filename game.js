@@ -1,6 +1,6 @@
 // 2.game.js
 // ==========================================================================
-// 🕹️ 命運深淵：真・ATB 異步運算與動態戰局核心引擎 (簡化名稱與分類適應版)
+// 🕹️ 命運深淵：真・ATB 異步運算與動態戰局核心引擎 (完美修正對齊版)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -48,6 +48,19 @@ function handleMainAction() {
     }
 }
 
+// 💡 實裝：戰術重巡機制 (安全重刷本層整備)
+function handleRerunAction() {
+    try {
+        clearInterval(combatTickerTimer);
+        addLog(`🔄【重巡整備】你決定留在深淵 B${dungeonFloor}F 進行重巡狩獵，戰局重新載入！`, "perfect");
+        gameState = "BATTLE";
+        updateUI();
+        runDungeonLoop();
+    } catch(err) {
+        addLog(`🚨【重巡失敗】: ${err.message}`, "take");
+    }
+}
+
 function handleSecondaryAction() {
     clearInterval(combatTickerTimer);
     gameState = "VILLAGE";
@@ -82,9 +95,8 @@ function tryEquipItemToBag(itemName) {
 }
 
 // ==========================================================================
-// ⚡ 戰術快捷包物資微操模組 (字符串精簡對齊)
+// ⚡ 戰術快捷包物資微操模組
 // ==========================================================================
-
 function executeUseDungeonItem(itemName, index) {
     if (gameState !== "BATTLE" || !activeMonster) return;
     addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
@@ -96,17 +108,17 @@ function executeUseDungeonItem(itemName, index) {
         currentRun.qteBuffTurns = 3;      
         addLog(`🪨 焦黑物體反噬扣血！但神經受到特大刺激，冷卻判定安全時間延長！`, "take");
     } 
-    else if (itemName.includes("厚牛巨堡")) { // 💡 與精簡後的 "🌭 大快活厚牛巨堡" 完美相容
+    else if (itemName.includes("厚牛巨堡")) {
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 100);
         playerShield += 80;
         addLog(`🌭 大快活熱量充能！血量回復 +100 HP，生成 80 點物理防盾！`, "perfect");
     } 
-    else if (itemName.includes("永凍刨冰")) { // 💡 與精簡後的 "🍧 萬年永凍刨冰" 完美相容
+    else if (itemName.includes("永凍刨冰")) {
         let fTurns = currentEnvironment === "ICE" ? 4 : 2;
         activeMonster.freezeTurns = fTurns;
         addLog(`❄️ 寒氣狂飆！魔物被凍結 ${fTurns} 回合，無法反擊與再生！`, "perfect");
     } 
-    else if (itemName.includes("禁忌血釀")) { // 💡 與精簡後的 "🍷 逆轉禁忌血釀" 完美相容
+    else if (itemName.includes("禁忌血釀")) {
         activeMonster.hp = 0; activeMonster.isSkipped = true; 
         addLog(`🍷 秩序崩壞！空間扭曲，你強行蒸發該層魔物遁走！`, "perfect");
     }
@@ -339,13 +351,14 @@ function triggerRandomAbyssEvent() {
         let isGolden = (Math.random() < 0.30 || dungeonFloor > 20);
         let chest = isGolden ? TREASURE_CHESTS_POOL[1] : TREASURE_CHESTS_POOL[0];
         title.innerText = `🎁 發現古老遺蹟：[${chest.name}] 🎁`;
-        let btnOpen = document.createElement('button'); btnOpen.className = "btn-game btn-explore"; btnOpen.style.width = "100__%";
+        let btnOpen = document.createElement('button'); btnOpen.className = "btn-game btn-explore"; btnOpen.style.width = "100%";
         btnOpen.innerHTML = `🔑 砸開寶箱鎖扣`;
         btnOpen.onclick = () => {
             let rolledGold = Math.floor(Math.random() * (chest.maxGold - chest.minGold + 1)) + chest.minGold; currentRun.gold += rolledGold;
             addLog(`👑 獲得臨時金幣 +${rolledGold} G！`, "perfect");
             if (isGolden && Math.random() < 0.50) {
-                let highTier = ["秩序核心", "🦀 蟹王巨腿", "永凍冰晶", "祭司血清"];
+                // 💡 核心安全修正：對齊 itemdata.js 精簡後的素材字串名稱
+                let highTier = ["虛空核心", "帝王蟹腿", "永凍冰晶", "祭司血清"];
                 let drop = highTier[Math.floor(Math.random() * highTier.length)]; accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
                 addLog(`🎁 獲得稀有素材：<strong>${drop}</strong>！`, "perfect");
             }
