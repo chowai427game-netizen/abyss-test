@@ -268,6 +268,34 @@ body {
 .btn-bag-slot.has-item { background: linear-gradient(135deg, #231932 0%, #131932 100%); border: 1px solid rgba(155, 89, 182, 0.4); color: #fff; font-weight: 600; box-shadow: 0 4px 10px rgba(155,89,182,0.15); }
 .btn-bag-slot.has-item:hover { transform: translateY(-1px); border-color: #9b59b6; box-shadow: 0 4px 12px rgba(155,89,182,0.3); }
 
+/* 🎯 統一所有狀態條目，保證左右對齊且不破格 */
+.status-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important; /* 避免 Padding 撐大外框 */
+    background: rgba(255, 255, 255, 0.02);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+/* 確保魔物面板的寬度與間距表現正常 */
+#monster-status-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+}
+
+/* ⚡ ATB 能量條黃金漸變 */
+.atb-color {
+    background: linear-gradient(90deg, #f1c40f 0%, #e67e22 100%) !important;
+    box-shadow: 0 0 8px rgba(241, 196, 15, 0.6);
+}
+
 /* ==========================================================================
    🗺️ ZONE 5: 村莊分區地圖選單導覽系統
    ========================================================================== */
@@ -838,3 +866,4 @@ body {
     z-index: 1;
     transition: width 0.025s linear;
 }
+
