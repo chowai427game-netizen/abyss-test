@@ -40,10 +40,23 @@ let playerStatusEffects = { burn: 0, poison: 0 };
 let currentVillageLocation = "GATE";
 
 function resetCurrentRunData() {
-    currentRun.lv = 1; currentRun.hp = 100; currentRun.maxHp = 100; currentRun.mp = 20; currentRun.maxMp = 50;
-    currentRun.mpRegen = 15; currentRun.atk = 15; currentRun.spd: 20; currentRun.gold = 0; currentRun.exp = 0; currentRun.nextExp = 30;
-    currentRun.block = 0; currentRun.critChance = 0; currentRun.dodgeChance = 0; currentRun.skills = { "緊急治療": 1 };
-    currentRun.inventory = []; currentRun.qteBuffDuration = 0; currentRun.qteBuffTurns = 0;
+    currentRun.lv = 1; 
+    currentRun.hp = 100; 
+    currentRun.maxHp = 100; 
+    currentRun.mp = 20; 
+    currentRun.maxMp = 50;
+    currentRun.mpRegen = 15; 
+    currentRun.atk = 15; 
+    currentRun.spd = 20; // 🎯 這裡修正了：由原來的 spd: 20 改回 spd = 20 
+    currentRun.exp = 0; 
+    currentRun.nextExp = 30;
+    currentRun.block = 0; 
+    currentRun.critChance = 0; 
+    currentRun.dodgeChance = 0; 
+    currentRun.skills = { "緊急治療": 1 };
+    currentRun.inventory = []; 
+    currentRun.qteBuffDuration = 0; 
+    currentRun.qteBuffTurns = 0;
     currentRun.activeVillageBuffs = [];
     playerShield = 0;
     activeMonster = null;
