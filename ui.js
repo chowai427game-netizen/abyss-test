@@ -1,8 +1,8 @@
 // ==========================================================================
-// 📺 ui.js：全域介面渲染與多維度雙軌分頁控制核心 (完美對齊修復版)
+// 📺 ui.js：全域介面渲染與多維度雙軌分頁控制核心 (去重複、精準修復版)
 // ==========================================================================
 
-// 💡 全域交互式狀態計數器 (嚴格對齊 itemdata.js 的 range 屬性)
+// 💡 全域動態篩選狀態計數器
 let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
@@ -53,7 +53,6 @@ function switchVillageLocation(targetLoc) {
 }
 
 function updateUI() {
-    // 1. 封面主頁面與遊戲雙欄分流控制
     const titleBox = document.getElementById('title-box');
     const statusBox = document.getElementById('status-panel-box');
     const actionBox = document.getElementById('action-panel-box');
@@ -73,7 +72,7 @@ function updateUI() {
         return;
     }
     
-    // 2. 刷新玩家核心文字屬性 (已精準對齊 index.html 的現有 ID)
+    // 2. 刷新玩家屬性 (精確對齊 index.html 的 ID)
     if (titleBox) titleBox.style.display = "none";
     document.getElementById('p-name').innerText = accountMeta.name;
     document.getElementById('p-job').innerText = getJobChineseName(currentRun.job);
@@ -84,7 +83,7 @@ function updateUI() {
     document.getElementById('p-mp').innerText = currentRun.mp;
     document.getElementById('p-maxmp').innerText = currentRun.maxMp;
     
-    // 3. 刷新玩家 HP / MP 視覺進度條
+    // 3. 刷新 HP / MP 進度條
     document.getElementById('hp-bar-fill').style.width = `${Math.max(0, (currentRun.hp / currentRun.maxHp) * 100)}%`;
     document.getElementById('mp-bar-fill').style.width = `${Math.max(0, (currentRun.mp / currentRun.maxMp) * 100)}%`;
     
@@ -95,15 +94,16 @@ function updateUI() {
     document.getElementById('p-spd').innerText = currentRun.spd;
     document.getElementById('p-dodge').innerText = `${currentRun.dodgeChance}%`;
     
-    // 5. 刷新局內技能與著緊嘅裝備欄
+    // 5. 💡 核心除蟲：精確對齊 index.html 內部的 p-skills-list
     let skList = Object.keys(currentRun.skills).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
-    document.getElementById('p-skills-list').innerText = skList || "無內能";
+    const skillListEl = document.getElementById('p-skills-list');
+    if (skillListEl) skillListEl.innerText = skList || "基本打擊";
     
     if(document.getElementById('p-equip-weapon')) document.getElementById('p-equip-weapon').innerText = accountMeta.equipment.weapon || "🎚️ 拳頭空手";
     if(document.getElementById('p-equip-armor')) document.getElementById('p-equip-armor').innerText = accountMeta.equipment.armor || "👕 新手衣服";
     if(document.getElementById('p-equip-accessory')) document.getElementById('p-equip-accessory').innerText = accountMeta.equipment.accessory || "📿 脖子空空";
 
-    // 6. 刷新戰術快捷背包物資按鈕
+    // 6. 刷新快捷背包
     let bagBox = document.getElementById('p-dungeon-bag');
     if (bagBox) {
         bagBox.innerHTML = "";
@@ -120,7 +120,7 @@ function updateUI() {
         if(currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
     }
 
-    // 7. 根據狀態機切換村莊或戰鬥大舞台
+    // 7. 狀態機驅動大舞台切換
     if (gameState === "VILLAGE") {
         if (statusBox) statusBox.style.display = "grid";
         if (actionBox) actionBox.style.display = "flex";
@@ -133,15 +133,12 @@ function updateUI() {
         document.getElementById('btn-rerun-action').style.display = "none";
     } 
     else {
-        // 進入 BATTLE / ENCOUNTER / REWARD 冒險流
         if (statusBox) statusBox.style.display = "grid";
-        if (actionBox) statusBox.style.display = "grid"; // 強制維持直欄
         if (actionBox) actionBox.style.display = "flex";
         if (villageBox) villageBox.style.display = "none";
         if (logBox) logBox.style.display = "block";
         if (envBar) envBar.style.display = "block";
         
-        // 刷新主前進按鈕與重巡按鈕控制
         let actBtn = document.getElementById('btn-main-action');
         if(actBtn) {
             actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
@@ -151,13 +148,11 @@ function updateUI() {
             rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
         }
 
-        // 環境力場警報條控制
         if (envBar && ENVIRONMENT_DATABASE[currentEnvironment]) {
             envBar.className = ENVIRONMENT_DATABASE[currentEnvironment].className;
             envBar.innerHTML = `${ENVIRONMENT_DATABASE[currentEnvironment].logText} (B${dungeonFloor}F)`;
         }
 
-        // 👹 渲染與同步魔物血條面板
         let monBox = document.getElementById('monster-status-card');
         if (activeMonster && monBox) {
             monBox.style.display = "block";
@@ -170,7 +165,6 @@ function updateUI() {
             monBox.style.display = "none";
         }
 
-        // 🎁 渲染隨機奇遇/領主天賦選擇面板
         if (rewardBox) {
             rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
         }
@@ -185,7 +179,7 @@ function getJobChineseName(j) {
     return j;
 }
 
-// 3. 料理屋分頁按鈕切換驅動 (與新 index.html 靜態按鈕完全對齊)
+// 💡 料理屋分頁切換與高亮
 function changeCookingTab(selectedRange) {
     activeCookingRange = selectedRange;
     const container = document.getElementById('v-loc-kitchen');
@@ -199,7 +193,7 @@ function changeCookingTab(selectedRange) {
     renderVillageCookingWorkshop();
 }
 
-// 4. 加工所部位類別切換驅動
+// 💡 加工所部位類別切換
 function changeCraftingCat(selectedCat) {
     activeCraftingCategory = selectedCat;
     const row = document.getElementById('workshop-cat-row');
@@ -213,7 +207,7 @@ function changeCraftingCat(selectedCat) {
     renderVillageWorkshop();
 }
 
-// 5. 加工所需求等級範圍切換驅動
+// 💡 加工所需求等級範圍切換
 function changeCraftingLvl(selectedLvl) {
     activeCraftingLvlRange = selectedLvl;
     const row = document.getElementById('workshop-lvl-row');
@@ -227,7 +221,7 @@ function changeCraftingLvl(selectedLvl) {
     renderVillageWorkshop();
 }
 
-// 6. 動態渲染料理屋核心
+// 💡 動態渲染料理屋
 function renderVillageCookingWorkshop() {
     const wBox = document.getElementById('kitchen-warehouse-display');
     if (!wBox) return;
@@ -282,7 +276,7 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// 7. 動態渲染加工所核心 (交叉比對 category 與 range 篩選器)
+// 💡 動態渲染加工所 (精準交叉篩選)
 function renderVillageWorkshop() {
     const wBox = document.getElementById('workshop-warehouse-display');
     if (!wBox) return;
