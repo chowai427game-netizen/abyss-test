@@ -1,4 +1,3 @@
-<!-- 4.index.html -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -9,7 +8,6 @@
 </head>
 <body>
 
-<!-- 🌌 全螢幕魔導初始化加載遮罩 (Loading Overlay) -->
 <div id="loading-overlay">
     <div class="loading-box">
         <div class="magic-circle-loader"></div>
@@ -27,7 +25,6 @@
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
     <div id="env-alert-bar" class="env-zone-normal" style="display: none;">✨ 當前環境力場：重力與空間表現穩定</div>
 
-    <!-- 📢 1. 封面主頁面 (TITLE) ── 保持獨立在外，便於開局前完美居中 -->
     <div class="dynamic-panel title-panel-style" id="title-box">
         <h1 class="game-main-title">命運深淵</h1>
         <p class="game-sub-title"> Blood &amp; Heritage </p>
@@ -42,93 +39,78 @@
         <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">載入雲端血脈並開啟旅程 🧭</button>
     </div>
 
-    <!-- 💡 新增：雙欄核心分流包殼容器 (開局後由 JS 驅動內部面板顯示) -->
     <div class="game-layout-split">
         
-        <!-- ⬅️ 左側直欄：核心數據與玩家主控制台 -->
         <div class="left-layout-column">
             
-               <!-- 📊 2. 勇者狀態數據面板 (極致壓縮 & 摺疊優化版) -->
-    <div class="status-panel" id="status-panel-box" style="display: none;">
-    
-        <!-- 👑 頂部核心資訊 (一橫行過) -->
-        <div class="status-header-row">
-            <span>👤 <strong id="p-name">--</strong></span>
-            <span style="color: #00ffff;">🎭 <strong id="p-job">初心者</strong></span>
-            <span>📈 <strong id="p-lv">1</strong> <span style="color: var(--text-muted); font-size:10px;">Lv</span></span>
-            <span style="color: #2ecc71; font-size: 11px;">🟩 <span id="p-exp-text">0/30</span></span>
-        </div>
-    
-        <!-- 🩸 雙色核心狀態條 (左右並排，節省一半高度！) -->
-        <div class="bars-container-row">
-            <div class="mini-bar-box">
-                <div class="flex-space" style="font-size: 11px;"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
-                <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
-            </div>
-            <div class="mini-bar-box">
-                <div class="flex-space" style="font-size: 11px;"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
-                <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
-            </div>
-        </div>
-
-        <!-- ⚡ ATB 行動條 (單獨橫條) -->
-        <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
-            <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動準備 (ATB):</span> <strong><span id="p-atb-text">0</span>%</strong></div>
-            <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
-        </div>
-    
-        <!-- 🪙 屬性與金幣網格 (改為 3 欄緊湊排版) -->
-        <div class="stats-mini-grid">
-            <div class="grid-cell">🪙 <span class="gold" id="p-gold">0</span> G</div>
-            <div class="grid-cell">🛡️ 減傷: <span id="p-block">0</span></div>
-            <div class="grid-cell">⚡ 攻速: <span id="p-spd">20</span></div>
-            <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
-            <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
-        </div>
-
-        <!-- 🎒 戰術背包（局內快捷鍵，戰鬥必須，保持顯示） -->
-        <div class="status-item full-row quick-bag-row">
-            <span style="color: #ffa500; font-size: 11px;">🎒 快捷：</span>
-            <span id="p-dungeon-bag"><span style='color:#666;'>[空]</span></span>
-        </div>
-
-        <!-- 📦 摺疊收納：已學技能與穿戴裝備 (平時在村莊/戰鬥中不需要頻繁查看，摺疊起來！) -->
-        <details class="char-details-folder">
-            <summary>🔍 展開查看 技能與裝備面板</summary>
-            <div class="folder-content">
-                <div class="folder-item">
-                    <span class="folder-label">🔮 已學技能：</span>
-                    <span id="p-skills-list" style="color: #9b59b6;">基本打擊</span>
-                </div>
-                <div class="folder-item gear-summary">
-                    <div>🗡️ 武器: <strong id="p-equip-weapon" style="color: #fff;">空手</strong></div>
-                    <div>👕 防具: <strong id="p-equip-armor" style="color: #fff;">布衣</strong></div>
-                    <div>💍 飾品: <strong id="p-equip-accessory" style="color: #fff;">無</strong></div>
-                </div>
-            </div>
-        </details>
-
-    </div>
+            <div class="status-panel" id="status-panel-box" style="display: none;">
             
-            <!-- 🕹️ 6. 全局核心動作按鈕區 -->
+                <div class="status-header-row">
+                    <span>👤 <strong id="p-name">--</strong></span>
+                    <span style="color: #00ffff;">🎭 <strong id="p-job">初心者</strong></span>
+                    <span>📈 <strong id="p-lv">1</strong> <span style="color: var(--text-muted); font-size:10px;">Lv</span></span>
+                    <span style="color: #2ecc71; font-size: 11px;">🟩 <span id="p-exp-text">0/30</span></span>
+                </div>
+            
+                <div class="bars-container-row">
+                    <div class="mini-bar-box">
+                        <div class="flex-space" style="font-size: 11px;"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
+                        <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
+                    </div>
+                    <div class="mini-bar-box">
+                        <div class="flex-space" style="font-size: 11px;"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
+                        <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
+                    </div>
+                </div>
+
+                <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
+                    <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動準備 (ATB):</span> <strong><span id="p-atb-text">0</span>%</strong></div>
+                    <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
+                </div>
+            
+                <div class="stats-mini-grid">
+                    <div class="grid-cell">🪙 <span class="gold" id="p-gold">0</span> G</div>
+                    <div class="grid-cell">🛡️ 減傷: <span id="p-block">0</span></div>
+                    <div class="grid-cell">⚡ 攻速: <span id="p-spd">20</span></div>
+                    <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
+                    <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
+                </div>
+
+                <div class="status-item full-row quick-bag-row">
+                    <span style="color: #ffa500; font-size: 11px;">🎒 快捷：</span>
+                    <span id="p-dungeon-bag"><span style='color:#666;'>[空]</span></span>
+                </div>
+
+                <details class="char-details-folder">
+                    <summary>🔍 展開查看 技能與裝備面板</summary>
+                    <div class="folder-content">
+                        <div class="folder-item">
+                            <span class="folder-label">🔮 已學技能：</span>
+                            <span id="p-skills-list" style="color: #9b59b6;">基本打擊</span>
+                        </div>
+                        <div class="folder-item gear-summary">
+                            <div>🗡️ 武器: <strong id="p-equip-weapon" style="color: #fff;">空手</strong></div>
+                            <div>👕 防具: <strong id="p-equip-armor" style="color: #fff;">布衣</strong></div>
+                            <div>💍 飾品: <strong id="p-equip-accessory" style="color: #fff;">無</strong></div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            
             <div class="action-panel" id="action-panel-box" style="display: none; flex-direction: column; gap: 8px;">
-                <!-- index.html 的控制台按鈕區重構 -->
                 <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
                     <div style="display: flex; gap: 12px; width: 100%;">
                         <button id="btn-main-action" type="button" onclick="handleMainAction()" class="btn-game btn-explore" style="flex: 14;">⚔️ 前進探險</button>
-                        <!-- 💡 新增：戰術重巡安全整備按鈕，預設隱藏 -->
                         <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun" style="display: none; flex: 11;">🔄 重巡本層整備</button>
                     </div>
                     <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest" style="display: none; width: 100%;">⛺ 逃回村莊</button>
+                    
+                    <button id="btn-auto-battle" type="button" onclick="toggleAutoBattle()" class="btn-game btn-rest" style="display: none; width: 100%; margin-top: 4px; background: linear-gradient(135deg, #7f8c8d 0%, #2c3e50 100%) !important; border: 1px solid #95a5a6 !important;">🤖 自動戰鬥: 關</button>
                 </div>
             </div>
 
-        </div> <!-- 左側直欄結束 -->
-
-        <!-- ➡️ 右側直欄：動態舞台、村莊設施與打擊感日誌 -->
-        <div class="right-layout-column">
+        </div> <div class="right-layout-column">
             
-            <!-- ⛺ 3. 地表村莊專用分流面板 -->
             <div id="village-panel-box" style="display: none;">
                 <div class="village-nav-bar">
                     <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
@@ -146,8 +128,15 @@
 
                 <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
-                        <div class="panel-title">🍲 皇家料理烹飪工坊 (成功率 75%)</div>
-                        <div class="notice-container" id="village-warehouse-display" style="margin-bottom: 10px;">📦 雲端倉庫庫存載入中...</div>
+                        <div class="panel-title">🍳 皇家後勤料理屋</div>
+                        <div class="tab-filter-row" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <button class="btn-game btn-rerun" onclick="changeCookingTab('1-10')">B1-B10F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('11-20')">B11-B20F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('21-30')">B21-B30F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('31-40')">B31-B40F</button>
+                            <button class="btn-game btn-rest" onclick="changeCookingTab('41-50')">B41-B50F</button>
+                        </div>
+                        <div class="notice-container" id="kitchen-warehouse-display">📦 雲端倉庫載入中...</div>
                         <div class="flex-layout" id="recipes-container"></div>
                     </div>
                 </div>
@@ -156,43 +145,64 @@
                     <div class="placeholder-card">
                         <h3>🏛️ 中央交流廣場</h3>
                         <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
-                        <div class="placeholder-desc">未來這裡將接入 Render 後端聯網引擎，提供全服玩家留言板與即時聊天室！</div>
+                        <div class="placeholder-desc">未來這裡將接入 Render 後端聯網引擎，提供全服勇者留言板與即時聊天室！</div>
                     </div>
                 </div>
 
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
-                    <div class="placeholder-card">
-                        <h3>🛠️ 皇家魔導加工所</h3>
-                        <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
-                        <div class="placeholder-desc">鐵匠正在打造熔爐！未來可在此處消耗魔物食材進行傳承武器精煉！</div>
+                    <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
+                        <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
+                        <div class="tab-filter-row" id="workshop-cat-row" style="display: flex; gap: 6px; margin-bottom: 8px;">
+                            <button class="btn-game btn-rerun" onclick="changeCraftingCat('all')">👁️ 全部</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingCat('weapon')">🗡️ 武器</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingCat('armor')">👕 防具</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingCat('accessory')">💍 飾品</button>
+                        </div>
+                        <div class="tab-filter-row" id="workshop-lvl-row" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <button class="btn-game btn-rerun" onclick="changeCraftingLvl('1-10')">Lv.1-10</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('11-20')">Lv.11-20</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('21-30')">Lv.21-30</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('31-40')">Lv.31-40</button>
+                            <button class="btn-game btn-rest" onclick="changeCraftingLvl('41-50')">Lv.41-50</button>
+                        </div>
+                        <div class="notice-container" id="workshop-warehouse-display">📦 雲端永久庫存載入中...</div>
+                        <div class="flex-layout" id="blueprints-container"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- 🎁 4. 獎勵三選一專用面板 -->
+            <div class="status-panel" id="monster-status-card" style="display: none; background: rgba(40, 10, 10, 0.4); border-color: rgba(231, 76, 60, 0.2); width: 100%;">
+                <div class="status-item full-row" style="font-size: 14px; font-weight: bold; color: #ff4757; margin-bottom: 4px;">
+                    ⚔️ 敵對魔物: <strong id="m-name" style="color: #fff;">--</strong>
+                </div>
+                <div class="status-item full-row">
+                    <div class="flex-space"><span>❤️ 魔物血量:</span> <strong><span id="m-hp-text">0 / 0</span></strong></div>
+                    <div class="visual-bar-bg"><div id="m-hp-bar" class="visual-bar-fill" style="background: linear-gradient(90deg, #cb2d3e 0%, #ef473a 100%); width: 0%;"></div></div>
+                </div>
+                <div class="status-item full-row" id="m-atb-row">
+                    <div class="flex-space"><span>⚡ 行動準備 (ATB):</span> <strong><span id="m-atb-text">0</span>%</strong></div>
+                    <div class="visual-bar-bg"><div id="m-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
+                </div>
+                <div class="status-item"><span>⚔️ 攻擊力:</span> <strong id="m-atk" style="color: #ff6b81;">0</strong></div>
+                <div class="status-item"><span>⚡ 速度:</span> <strong id="m-spd" style="color: #f1c40f;">0</strong></div>
+            </div>
+
             <div class="dynamic-panel reward-style" id="reward-panel-box" style="display: none;">
                 <div class="panel-title" id="reward-title-text" style="color: #ffd700;">✨ 抉擇靈魂賜福 ✨</div>
                 <div class="flex-layout" id="reward-choices-container"></div>
             </div>
 
-            <!-- 📜 5. 戰鬥日誌打印台 -->
             <div class="log-panel" id="log-box" style="display: none;"></div>
 
-        </div> <!-- 右側直欄結束 -->
-
-    </div> <!-- 雙欄核心分流包殼容器結束 -->
-
-    <!-- 🔮 7. 全屏幕 QTE 視窗 -->
-    <div id="qte-overlay" style="display: none;">
+        </div> </div> <div id="qte-overlay" style="display: none;">
         <div class="qte-box">
             <p id="qte-skill-name">⚡ QTE ⚡</p>
-            <button id="qte-tap-btn" onclick="handleQteTap()">🟢 撳我！</button>
+            <button id="qte-tap-btn">🟢 撳我！</button>
             <div class="qte-timer-bg"><div id="qte-timer-fill"></div></div>
         </div>
     </div>
 </div>
 
-    <!-- 🏆 8. 全螢幕領主討伐大捷過場遮罩 (Boss Victory Cinematic Overlay) -->
 <div id="boss-victory-overlay" style="display: none;">
     <div class="victory-cloud-shimmer"></div>
     <div class="victory-crystal-container">
@@ -209,14 +219,12 @@
     </div>
 </div>
 
-
-    
+<script src="monsterdata.js"></script>
 <script src="itemdata.js"></script>
+<script src="eventdata.js"></script>
+<script src="state.js"></script>
 <script src="jobdata.js"></script>
 <script src="environmentdata.js"></script>
-<script src="monsterdata.js"></script>
-
-<script src="state.js"></script>
 <script src="ui.js"></script>
 <script src="game.js"></script>
 </body>
