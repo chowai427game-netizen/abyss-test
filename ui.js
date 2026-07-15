@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心
+// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復死鎖版)
 // ==========================================================================
 
 let activeCookingRange = "1-10";
@@ -93,7 +93,6 @@ function updateUI() {
     const skillListEl = document.getElementById('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
     
-    // 🗡️ 同步星級標籤到副屬性面板
     let wStar = accountMeta.equipmentStars.weapon > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
     let aStar = accountMeta.equipmentStars.armor > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
     let cStar = accountMeta.equipmentStars.accessory > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
@@ -118,7 +117,6 @@ function updateUI() {
         if(currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
     }
 
-    // 狀態機按鈕切換
     if (gameState === "VILLAGE") {
         if (statusBox) statusBox.style.display = "grid";
         if (actionBox) actionBox.style.display = "flex";
@@ -126,9 +124,14 @@ function updateUI() {
         if (rewardBox) rewardBox.style.display = "none";
         if (logBox) logBox.style.display = "none";
         if (envBar) envBar.style.display = "none";
-        if (autoBtn) autoBtn.style.display = "none"; // 村莊隱藏自動按鈕
+        if (autoBtn) autoBtn.style.display = "none"; 
         
-        document.getElementById('btn-main-action').innerText = "🔮 啟動傳送門降臨深淵 B1F";
+        // 🔮 核心修正：戰敗回村後，釋放傳送門按鈕鎖定！
+        const mainActionBtn = document.getElementById('btn-main-action');
+        if (mainActionBtn) {
+            mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
+            mainActionBtn.disabled = false; 
+        }
         document.getElementById('btn-rerun-action').style.display = "none";
     } 
     else {
@@ -137,7 +140,7 @@ function updateUI() {
         if (villageBox) villageBox.style.display = "none";
         if (logBox) logBox.style.display = "block";
         if (envBar) envBar.style.display = "block";
-        if (autoBtn) autoBtn.style.display = "block"; // 戰鬥中顯示自動戰鬥按鈕
+        if (autoBtn) autoBtn.style.display = "block"; 
         
         let actBtn = document.getElementById('btn-main-action');
         if(actBtn) {
@@ -272,7 +275,6 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// 🌟 部位精煉升星列生成器
 function renderStarUpRow(slot, displayName, currentStar) {
     let starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
     let upgradeBtn = "";
@@ -314,7 +316,6 @@ function renderVillageWorkshop() {
     if (!bContainer) return;
     bContainer.innerHTML = "";
     
-    // 🌟 1. 頂部植入【部位星級精煉台】面板 (New!)
     let starPanel = document.createElement('div');
     starPanel.className = "dynamic-panel reward-style";
     starPanel.style.border = "1px solid rgba(212, 175, 55, 0.4)";
@@ -334,7 +335,6 @@ function renderVillageWorkshop() {
     `;
     bContainer.appendChild(starPanel);
 
-    // 2. 加工所圖紙列表過濾
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
         const matchLvl = (b.range === activeCraftingLvlRange);
@@ -375,7 +375,6 @@ function renderVillageWorkshop() {
             if ((accountMeta.warehouse[ing] || 0) < blueprint.ingredients[ing]) canForge = false;
         }
 
-        // 🔘 打造鈕
         let btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
         btnForge.style.padding = "6px 12px"; btnForge.style.fontSize = "11px"; btnForge.style.marginRight = "8px";
@@ -400,7 +399,6 @@ function renderVillageWorkshop() {
             btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
             btnWrapper.appendChild(btnEquip);
 
-            // ♻️ 2. 新增【拆解回收】按鈕 (New!)
             let btnDismantle = document.createElement('button');
             btnDismantle.className = "btn-game btn-rest"; 
             btnDismantle.style.padding = "6px 12px"; btnDismantle.style.fontSize = "11px"; btnDismantle.style.marginLeft = "6px";
