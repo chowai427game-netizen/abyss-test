@@ -2,6 +2,31 @@
 // 🕹/ game.js：真・ATB 運算、智慧自動戰鬥 AI、裝備升星拆解與生產 QTE 內核 (優化版)
 // ==========================================================================
 
+// ==========================================================================
+// 🎲 命運深淵：進階公式化傷害計算引擎
+// ==========================================================================
+function calculateDamage(atk, defense, isPlayerAttacking = true) {
+    // 1. 防禦常數：數值越高，防禦減傷越平緩 (玩家與魔物常數分開)
+    let k = isPlayerAttacking ? 50 : 30; 
+    
+    // 2. 乘算減傷比率
+    let reduction = defense / (defense + k);
+    let baseDmg = atk * (1 - reduction);
+    
+    // 3. 隨機傷害浮動：90% ~ 110% 之間
+    let variance = 0.9 + Math.random() * 0.2;
+    let finalDmg = Math.max(1, Math.floor(baseDmg * variance));
+    
+    // 4. 暴擊判定 (只限玩家攻擊時觸發)
+    let isCrit = false;
+    if (isPlayerAttacking && Math.random() * 100 < currentRun.critChance) {
+        isCrit = true;
+        finalDmg = Math.floor(finalDmg * 1.5); // 暴擊 1.5 倍傷害
+    }
+    
+    return { damage: finalDmg, isCrit: isCrit };
+}
+
 let combatTickerTimer = null; 
 let combatRoundCounter = 1;   
 
