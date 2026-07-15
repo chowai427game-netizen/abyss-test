@@ -1,4 +1,3 @@
-<!-- 4.index.html -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -9,6 +8,7 @@
 </head>
 <body>
 
+<!-- 🌌 全螢幕魔導初始化加載遮罩 -->
 <div id="loading-overlay">
     <div class="loading-box">
         <div class="magic-circle-loader"></div>
@@ -26,6 +26,7 @@
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
     <div id="env-alert-bar" class="env-zone-normal" style="display: none;">✨ 當前環境力場：重力與空間表現穩定</div>
 
+    <!-- 📢 1. 封面主頁面 (TITLE) -->
     <div class="dynamic-panel title-panel-style" id="title-box">
         <h1 class="game-main-title">命運深淵</h1>
         <p class="game-sub-title"> Blood &amp; Heritage </p>
@@ -35,15 +36,19 @@
             • 請輸入名字以喚醒你的雲端永久血脈。
         </div>
         <div id="legacy-box" class="legacy-container">請輸入名字以查詢雲端帳戶血脈...</div>
-        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12" value="gma" oninput="checkCloudAccount()">
+        <!-- 👤 修正：移除 value="gma"，每次重開由玩家自由輸入 -->
+        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12" oninput="checkCloudAccount()">
         <br>
         <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">載入雲端血脈並開啟旅程 🧭</button>
     </div>
 
+    <!-- 💡 雙欄核心分流包殼容器 -->
     <div class="game-layout-split">
         
+        <!-- ⬅️ 左側直欄 -->
         <div class="left-layout-column">
             
+            <!-- 📊 2. 勇者狀態數據面板 -->
             <div class="status-panel" id="status-panel-box" style="display: none;">
                 <div class="status-item"><span>👤 勇者大名:</span> <strong id="p-name">--</strong></div>
                 <div class="status-item"><span>🎭 當前職業:</span> <strong id="p-job" style="color: #00ffff;">初心者</strong></div>
@@ -79,6 +84,7 @@
                 </div>
             </div>
             
+            <!-- 🕹️ 3. 全局動作按鈕區 -->
             <div class="action-panel" id="action-panel-box" style="display: none; flex-direction: column; gap: 8px;">
                 <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
                     <div style="display: flex; gap: 12px; width: 100%;">
@@ -86,11 +92,18 @@
                         <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun" style="display: none; flex: 11;">🔄 重巡本層整備</button>
                     </div>
                     <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest" style="display: none; width: 100%;">⛺ 逃回村莊</button>
+                    
+                    <!-- 🤖 自動戰鬥戰術按鈕 (預設隱藏，戰鬥中自動亮出) -->
+                    <button id="btn-auto-battle" type="button" onclick="toggleAutoBattle()" class="btn-game btn-rest" style="display: none; width: 100%; margin-top: 4px; background: linear-gradient(135deg, #7f8c8d 0%, #2c3e50 100%) !important; border: 1px solid #95a5a6 !important;">🤖 自動戰鬥: 關</button>
                 </div>
             </div>
 
-        </div> <div class="right-layout-column">
+        </div> <!-- 左側直欄結束 -->
+
+        <!-- ➡️ 右側直欄 -->
+        <div class="right-layout-column">
             
+            <!-- ⛺ 4. 地表村莊專用分流面板 -->
             <div id="village-panel-box" style="display: none; width: 100%;">
                 <div class="village-nav-bar">
                     <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
@@ -106,6 +119,7 @@
                     </div>
                 </div>
 
+                <!-- 🍳 料理屋分頁 -->
                 <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
                         <div class="panel-title">🍳 皇家後勤料理屋</div>
@@ -129,6 +143,7 @@
                     </div>
                 </div>
 
+                <!-- 🛠️ 皇家魔導加工所 -->
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
@@ -151,6 +166,7 @@
                 </div>
             </div>
 
+            <!-- 👹 5. 魔物狀態面板 -->
             <div class="status-panel" id="monster-status-card" style="display: none; background: rgba(40, 10, 10, 0.4); border-color: rgba(231, 76, 60, 0.2); width: 100%;">
                 <div class="status-item full-row" style="font-size: 14px; font-weight: bold; color: #ff4757; margin-bottom: 4px;">
                     ⚔️ 敵對魔物: <strong id="m-name" style="color: #fff;">--</strong>
@@ -163,22 +179,29 @@
                 <div class="status-item"><span>⚡ 速度:</span> <strong id="m-spd" style="color: #f1c40f;">0</strong></div>
             </div>
 
+            <!-- 🎁 6. 抉擇與獎勵面板 -->
             <div class="dynamic-panel reward-style" id="reward-panel-box" style="display: none; width: 100%;">
                 <div class="panel-title" id="reward-title-text" style="color: #ffd700;">✨ 抉擇靈魂賜福 ✨</div>
                 <div class="flex-layout" id="reward-choices-container"></div>
             </div>
 
+            <!-- 📜 7. 戰鬥日誌打印台 -->
             <div class="log-panel" id="log-box" style="display: none; width: 100%;"></div>
 
-        </div> </div> <div id="qte-overlay" style="display: none;">
+        </div> <!-- 右側直欄結束 -->
+    </div> <!-- 雙欄核心分流包殼容器結束 -->
+
+    <!-- 🔮 8. 全屏幕 QTE 視窗 (打鐵及料理兩用) -->
+    <div id="qte-overlay" style="display: none;">
         <div class="qte-box">
             <p id="qte-skill-name">⚡ QTE ⚡</p>
-            <button id="qte-tap-btn" onclick="handleQteTap()">🟢 撳我！</button>
+            <button id="qte-tap-btn">🟢 撳我！</button>
             <div class="qte-timer-bg"><div id="qte-timer-fill"></div></div>
         </div>
     </div>
 </div>
 
+<!-- 🏆 9. 全螢幕領主討伐大捷過場遮罩 -->
 <div id="boss-victory-overlay" style="display: none;">
     <div class="victory-cloud-shimmer"></div>
     <div class="victory-crystal-container">
