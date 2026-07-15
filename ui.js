@@ -1,8 +1,7 @@
 // ==========================================================================
-// 📺 ui.js：全域介面渲染與多維度雙軌分頁控制核心 (去重複、精準修復版)
+// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心
 // ==========================================================================
 
-// 💡 全域動態篩選狀態計數器
 let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
@@ -10,14 +9,12 @@ let activeCraftingLvlRange = "1-10";
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
-    // 1. 安全隱藏所有村莊子面板
     const panels = ['v-loc-gate', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
     panels.forEach(p => {
         const el = document.getElementById(p);
         if (el) el.style.display = 'none';
     });
     
-    // 2. 切換高亮頂部導航按鈕樣式
     const tabs = { 'GATE': 'btn-tab-gate', 'KITCHEN': 'btn-tab-kitchen', 'SQUARE': 'btn-tab-square', 'WORKSHOP': 'btn-tab-workshop' };
     Object.keys(tabs).forEach(k => {
         const tBtn = document.getElementById(tabs[k]);
@@ -27,7 +24,6 @@ function switchVillageLocation(targetLoc) {
         }
     });
     
-    // 3. 根據目的地精準渲染內容
     const locTextEl = document.getElementById('location-text');
     if (targetLoc === "GATE") {
         const el = document.getElementById('v-loc-gate'); if (el) el.style.display = 'block';
@@ -60,6 +56,7 @@ function updateUI() {
     const rewardBox = document.getElementById('reward-panel-box');
     const logBox = document.getElementById('log-box');
     const envBar = document.getElementById('env-alert-bar');
+    const autoBtn = document.getElementById('btn-auto-battle');
 
     if (gameState === "TITLE") {
         if (titleBox) titleBox.style.display = "block";
@@ -69,10 +66,10 @@ function updateUI() {
         if (rewardBox) rewardBox.style.display = "none";
         if (logBox) logBox.style.display = "none";
         if (envBar) envBar.style.display = "none";
+        if (autoBtn) autoBtn.style.display = "none";
         return;
     }
     
-    // 2. 刷新玩家屬性 (精確對齊 index.html 的 ID)
     if (titleBox) titleBox.style.display = "none";
     document.getElementById('p-name').innerText = accountMeta.name;
     document.getElementById('p-job').innerText = getJobChineseName(currentRun.job);
@@ -83,27 +80,28 @@ function updateUI() {
     document.getElementById('p-mp').innerText = currentRun.mp;
     document.getElementById('p-maxmp').innerText = currentRun.maxMp;
     
-    // 3. 刷新 HP / MP 進度條
     document.getElementById('hp-bar-fill').style.width = `${Math.max(0, (currentRun.hp / currentRun.maxHp) * 100)}%`;
     document.getElementById('mp-bar-fill').style.width = `${Math.max(0, (currentRun.mp / currentRun.maxMp) * 100)}%`;
     
-    // 4. 刷新副屬性面板
     document.getElementById('p-gold').innerText = currentRun.gold;
     document.getElementById('p-block').innerText = currentRun.block;
     document.getElementById('p-crit').innerText = `${currentRun.critChance}%`;
     document.getElementById('p-spd').innerText = currentRun.spd;
     document.getElementById('p-dodge').innerText = `${currentRun.dodgeChance}%`;
     
-    // 5. 💡 核心除蟲：精確對齊 index.html 內部的 p-skills-list
     let skList = Object.keys(currentRun.skills).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
     const skillListEl = document.getElementById('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
     
-    if(document.getElementById('p-equip-weapon')) document.getElementById('p-equip-weapon').innerText = accountMeta.equipment.weapon || "🎚️ 拳頭空手";
-    if(document.getElementById('p-equip-armor')) document.getElementById('p-equip-armor').innerText = accountMeta.equipment.armor || "👕 新手衣服";
-    if(document.getElementById('p-equip-accessory')) document.getElementById('p-equip-accessory').innerText = accountMeta.equipment.accessory || "📿 脖子空空";
+    // 🗡️ 同步星級標籤到副屬性面板
+    let wStar = accountMeta.equipmentStars.weapon > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
+    let aStar = accountMeta.equipmentStars.armor > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
+    let cStar = accountMeta.equipmentStars.accessory > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
 
-    // 6. 刷新快捷背包
+    if(document.getElementById('p-equip-weapon')) document.getElementById('p-equip-weapon').innerText = (accountMeta.equipment.weapon || "🎚️ 空手") + wStar;
+    if(document.getElementById('p-equip-armor')) document.getElementById('p-equip-armor').innerText = (accountMeta.equipment.armor || "👕 布衣") + aStar;
+    if(document.getElementById('p-equip-accessory')) document.getElementById('p-equip-accessory').innerText = (accountMeta.equipment.accessory || "📿 無") + cStar;
+
     let bagBox = document.getElementById('p-dungeon-bag');
     if (bagBox) {
         bagBox.innerHTML = "";
@@ -120,7 +118,7 @@ function updateUI() {
         if(currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
     }
 
-    // 7. 狀態機驅動大舞台切換
+    // 狀態機按鈕切換
     if (gameState === "VILLAGE") {
         if (statusBox) statusBox.style.display = "grid";
         if (actionBox) actionBox.style.display = "flex";
@@ -128,6 +126,7 @@ function updateUI() {
         if (rewardBox) rewardBox.style.display = "none";
         if (logBox) logBox.style.display = "none";
         if (envBar) envBar.style.display = "none";
+        if (autoBtn) autoBtn.style.display = "none"; // 村莊隱藏自動按鈕
         
         document.getElementById('btn-main-action').innerText = "🔮 啟動傳送門降臨深淵 B1F";
         document.getElementById('btn-rerun-action').style.display = "none";
@@ -138,6 +137,7 @@ function updateUI() {
         if (villageBox) villageBox.style.display = "none";
         if (logBox) logBox.style.display = "block";
         if (envBar) envBar.style.display = "block";
+        if (autoBtn) autoBtn.style.display = "block"; // 戰鬥中顯示自動戰鬥按鈕
         
         let actBtn = document.getElementById('btn-main-action');
         if(actBtn) {
@@ -179,7 +179,6 @@ function getJobChineseName(j) {
     return j;
 }
 
-// 💡 料理屋分頁切換與高亮
 function changeCookingTab(selectedRange) {
     activeCookingRange = selectedRange;
     const container = document.getElementById('v-loc-kitchen');
@@ -193,7 +192,6 @@ function changeCookingTab(selectedRange) {
     renderVillageCookingWorkshop();
 }
 
-// 💡 加工所部位類別切換
 function changeCraftingCat(selectedCat) {
     activeCraftingCategory = selectedCat;
     const row = document.getElementById('workshop-cat-row');
@@ -207,7 +205,6 @@ function changeCraftingCat(selectedCat) {
     renderVillageWorkshop();
 }
 
-// 💡 加工所需求等級範圍切換
 function changeCraftingLvl(selectedLvl) {
     activeCraftingLvlRange = selectedLvl;
     const row = document.getElementById('workshop-lvl-row');
@@ -221,7 +218,6 @@ function changeCraftingLvl(selectedLvl) {
     renderVillageWorkshop();
 }
 
-// 💡 動態渲染料理屋
 function renderVillageCookingWorkshop() {
     const wBox = document.getElementById('kitchen-warehouse-display');
     if (!wBox) return;
@@ -276,7 +272,37 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// 💡 動態渲染加工所 (精準交叉篩選)
+// 🌟 部位精煉升星列生成器
+function renderStarUpRow(slot, displayName, currentStar) {
+    let starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
+    let upgradeBtn = "";
+    
+    if (currentStar >= 5) {
+        upgradeBtn = `<span style="color: #ffd700; font-size: 11px; font-weight: bold;">[已臻滿星]</span>`;
+    } else {
+        let cost = getStarUpCost(slot, currentStar);
+        let costText = Object.keys(cost).map(k => `${k} x${cost[k]}`).join(", ");
+        
+        let canUpgrade = true;
+        for (let ing in cost) {
+            if ((accountMeta.warehouse[ing] || 0) < cost[ing]) canUpgrade = false;
+        }
+        
+        upgradeBtn = `
+            <button class="btn-game btn-rerun" style="padding: 4px 8px; font-size: 11px;" ${canUpgrade ? "" : "disabled"} onclick="executeSlotStarUp('${slot}')">
+                🔥 升星 (需 ${costText})
+            </button>
+        `;
+    }
+    
+    return `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px;">
+            <span style="font-size: 12px; font-weight: bold; color: #fff;">${displayName} [${starsStr}]</span>
+            ${upgradeBtn}
+        </div>
+    `;
+}
+
 function renderVillageWorkshop() {
     const wBox = document.getElementById('workshop-warehouse-display');
     if (!wBox) return;
@@ -288,6 +314,27 @@ function renderVillageWorkshop() {
     if (!bContainer) return;
     bContainer.innerHTML = "";
     
+    // 🌟 1. 頂部植入【部位星級精煉台】面板 (New!)
+    let starPanel = document.createElement('div');
+    starPanel.className = "dynamic-panel reward-style";
+    starPanel.style.border = "1px solid rgba(212, 175, 55, 0.4)";
+    starPanel.style.background = "rgba(15, 13, 10, 0.5)";
+    starPanel.style.marginBottom = "15px";
+    starPanel.style.padding = "12px";
+    starPanel.style.width = "100%";
+    
+    starPanel.innerHTML = `
+        <div class="panel-title" style="color: #ffd700; margin-bottom: 8px;">🌟 皇家部位星級精煉台 (永久繼承) 🌟</div>
+        <p style="font-size: 11px; color: #8e8e93; text-align: center; margin: 0 0 10px 0;">部位強化屬性永久提升：每⭐提升對應部位屬性額外加乘 +15%</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${renderStarUpRow("weapon", "🗡️ 武器槽位", accountMeta.equipmentStars.weapon)}
+            ${renderStarUpRow("armor", "👕 防具槽位", accountMeta.equipmentStars.armor)}
+            ${renderStarUpRow("accessory", "💍 飾品槽位", accountMeta.equipmentStars.accessory)}
+        </div>
+    `;
+    bContainer.appendChild(starPanel);
+
+    // 2. 加工所圖紙列表過濾
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
         const matchLvl = (b.range === activeCraftingLvlRange);
@@ -295,7 +342,9 @@ function renderVillageWorkshop() {
     });
 
     if (filteredBlueprints.length === 0) {
-        bContainer.innerHTML = `<div style="color:#555; font-size:12px; padding:20px; width:100%; text-align:center;">🔨 該級別無此分類神裝，等待神匠開拓藍圖...</div>`;
+        let emptyDiv = document.createElement('div');
+        emptyDiv.innerHTML = `<div style="color:#555; font-size:12px; padding:20px; width:100%; text-align:center;">🔨 該級別無此分類神裝，等待神匠開拓藍圖...</div>`;
+        bContainer.appendChild(emptyDiv);
         return;
     }
 
@@ -335,7 +384,6 @@ function renderVillageWorkshop() {
         btnForge.onclick = () => { executeForgeEquipment(blueprint); };
         btnWrapper.appendChild(btnForge);
 
-        // 🔘 換裝狀態機鈕
         let isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
         let hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
 
@@ -351,6 +399,15 @@ function renderVillageWorkshop() {
             btnEquip.innerHTML = "⚡ 穿戴上身";
             btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
             btnWrapper.appendChild(btnEquip);
+
+            // ♻️ 2. 新增【拆解回收】按鈕 (New!)
+            let btnDismantle = document.createElement('button');
+            btnDismantle.className = "btn-game btn-rest"; 
+            btnDismantle.style.padding = "6px 12px"; btnDismantle.style.fontSize = "11px"; btnDismantle.style.marginLeft = "6px";
+            btnDismantle.style.background = "linear-gradient(135deg, #c0392b 0%, #962d00 100%) !important";
+            btnDismantle.innerHTML = "♻️ 拆解回收";
+            btnDismantle.onclick = () => { executeDismantle(blueprint.name); };
+            btnWrapper.appendChild(btnDismantle);
         }
 
         bContainer.appendChild(btnWrapper);
