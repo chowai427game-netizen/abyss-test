@@ -1,31 +1,6 @@
 // ==========================================================================
-// 🕹/ game.js：真・ATB 運算、智慧自動戰鬥 AI、裝備升星拆解與生產 QTE 內核 (優化版)
+// 🕹️ game.js：真・ATB 運算、智慧自動戰鬥 AI、進階乘算傷害、QTE 判定鏈接 (升級版)
 // ==========================================================================
-
-// ==========================================================================
-// 🎲 命運深淵：進階公式化傷害計算引擎
-// ==========================================================================
-function calculateDamage(atk, defense, isPlayerAttacking = true) {
-    // 1. 防禦常數：數值越高，防禦減傷越平緩 (玩家與魔物常數分開)
-    let k = isPlayerAttacking ? 50 : 30; 
-    
-    // 2. 乘算減傷比率
-    let reduction = defense / (defense + k);
-    let baseDmg = atk * (1 - reduction);
-    
-    // 3. 隨機傷害浮動：90% ~ 110% 之間
-    let variance = 0.9 + Math.random() * 0.2;
-    let finalDmg = Math.max(1, Math.floor(baseDmg * variance));
-    
-    // 4. 暴擊判定 (只限玩家攻擊時觸發)
-    let isCrit = false;
-    if (isPlayerAttacking && Math.random() * 100 < currentRun.critChance) {
-        isCrit = true;
-        finalDmg = Math.floor(finalDmg * 1.5); // 暴擊 1.5 倍傷害
-    }
-    
-    return { damage: finalDmg, isCrit: isCrit };
-}
 
 let combatTickerTimer = null; 
 let combatRoundCounter = 1;   
@@ -34,6 +9,28 @@ let playerAtb = 0;
 let monsterAtb = 0;
 let envAtb = 0;
 let battleTimeElapsed = 0;
+
+// ==========================================================================
+// 🧮 經典乘算傷害與隨機浮動計算引擎
+// ==========================================================================
+function calculateDamage(atk, defense, isPlayerAttacking = true) {
+    let k = isPlayerAttacking ? 50 : 35; // 防禦常數
+    let reduction = defense / (defense + k);
+    let baseDmg = atk * (1 - reduction);
+    
+    // ±10% 浮動傷害
+    let variance = 0.9 + Math.random() * 0.2;
+    let finalDmg = Math.max(1, Math.floor(baseDmg * variance));
+    
+    // 暴擊率判定 (只限玩家)
+    let isCrit = false;
+    if (isPlayerAttacking && Math.random() * 100 < currentRun.critChance) {
+        isCrit = true;
+        finalDmg = Math.floor(finalDmg * 1.5);
+    }
+    
+    return { damage: finalDmg, isCrit: isCrit };
+}
 
 function handleStartGame() {
     let inputName = document.getElementById('player-name-input').value.trim();
@@ -200,18 +197,16 @@ function executeAutoBattleAiTurn() {
     for (let sMeta of activeSkills) {
         if (currentRun.mp >= sMeta.mp) {
             currentRun.mp -= sMeta.mp;
+            let monsterDef = Math.floor(dungeonFloor * 1.2);
+            let rawAtk = currentRun.atk * 1.5;
+            let dmgRes = calculateDamage(rawAtk, monsterDef, true);
+            activeMonster.hp -= dmgRes.damage;
+
             let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-            let eff = sMeta.run ? sMeta.run(currentRun.skills[sMeta.name], currentRun.atk, currentRun.maxMp, currentRun.hp) : null;
+            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
             
             addLog(`🔮🤖【AI 戰術突擊】施展【${sMeta.name}】！`);
-            if (eff && eff.dmg) {
-                activeMonster.hp -= eff.dmg;
-                addLog(`💥 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect");
-            } else {
-                let calcDmg = Math.floor(currentRun.atk * 1.5);
-                activeMonster.hp -= calcDmg;
-                addLog(`💥 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${calcDmg} HP</span>`, "perfect");
-            }
+            addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect");
             return true;
         }
     }
@@ -220,7 +215,7 @@ function executeAutoBattleAiTurn() {
 }
 
 // ==========================================================================
-// 🍳🔨 料理屋及加工所：兩用 QTE 喚起引擎 (修正顯示與崩潰 Bug)
+// 🍳🔨 QTE 喚起引擎
 // ==========================================================================
 function triggerVillageQte(type, targetData, successCallback) {
     const overlay = document.getElementById('qte-overlay');
@@ -391,7 +386,7 @@ function executeDismantle(equipName) {
 }
 
 // ==========================================================================
-// ⚔️ 核心冒險與回合邏輯
+// ⚔️ 核心冒險與回合邏輯 (實裝新手保護)
 // ==========================================================================
 async function runDungeonLoop() {
     try {
@@ -415,8 +410,22 @@ async function runDungeonLoop() {
             let rollSeed = REGULAR_MONSTERS_POOL[Math.floor(Math.random() * REGULAR_MONSTERS_POOL.length)];
             let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * rollSeed.hpScale);
             let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * rollSeed.atkScale);
-            activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, spd: rollSeed.baseSpd, freezeTurns: 0, isSkipped: false, isBoss: false };
+            
+            // 🌟 1. 新手保護機制 (Anti-Ragequit)：B1F-B3F 怪物速度與屬性適度壓制
+            let finalSpd = rollSeed.baseSpd;
+            if (dungeonFloor <= 3) {
+                finalSpd = Math.max(10, Math.floor(finalSpd * 0.65)); // 壓制魔物出手速度，讓玩家能先攻
+                scaledHp = Math.max(20, Math.floor(scaledHp * 0.75));
+                scaledAtk = Math.max(3, Math.floor(scaledAtk * 0.7));
+            }
+            
+            activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, spd: finalSpd, freezeTurns: 0, isSkipped: false, isBoss: false };
             addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
+            
+            // 🌟 2. 新手地表生存引導：第一次進入 B1F 給予明確撤退指引
+            if (dungeonFloor === 1) {
+                addLog("💡【勇者生存提示】：若戰局不妙，請果斷點擊「⛺ 逃回村莊」，這能安全帶回你快捷背包中的所有珍貴素材！", "perfect");
+            }
         }
         
         updateUI();
@@ -473,33 +482,43 @@ function executePlayerActionTick() {
                 if (isPerfect) {
                     currentRun.mp -= sMeta.mp; 
                     let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
-                    if (eff.dmg) { activeMonster.hp -= eff.dmg; addLog(`💥 核心技！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${eff.dmg} HP</span>`, "perfect"); }
+                    
+                    if (eff.dmg) { 
+                        // 🌟 套用乘算公式計算技能傷害
+                        let monsterDef = Math.floor(dungeonFloor * 1.2);
+                        let dmgRes = calculateDamage(eff.dmg, monsterDef, true);
+                        activeMonster.hp -= dmgRes.damage; 
+                        
+                        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                        addLog(`💥 核心技！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect"); 
+                    }
                     if (eff.healPercent) {
                         let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
                         addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
                     }
                 } else {
-                    activeMonster.hp -= currentRun.atk; addLog(`⚔️ 普攻突刺！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal");
+                    // 🌟 普攻套用乘算
+                    let monsterDef = Math.floor(dungeonFloor * 1.2);
+                    let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
+                    activeMonster.hp -= dmgRes.damage; 
+                    
+                    let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                    addLog(`⚔️ 普攻突刺！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal");
                 }
                 break;
-                // 玩家普攻/技能未觸發時的常規物理揮砍
-                if (!activeTriggered) { 
-                    let monsterDef = Math.floor(dungeonFloor * 1.2); // 魔物防禦力隨層數提升
-                    let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
-                    activeMonster.hp -= dmgRes.damage;
-        
-                    let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-                    let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                    addLog(`⚔️ ${critText}揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
-                }        
             }
         }
     }
 
     if (!activeTriggered) { 
-        activeMonster.hp -= currentRun.atk; 
+        // 🌟 物理揮砍套用乘算與浮動
+        let monsterDef = Math.floor(dungeonFloor * 1.2);
+        let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
+        activeMonster.hp -= dmgRes.damage; 
+        
         let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-        addLog(`⚔️ 揮砍！<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${currentRun.atk} HP</span>`, "deal"); 
+        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+        addLog(`⚔️ 揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
     }
     
     if (currentRun.vampRate > 0 && currentRun.hp > 0 && activeMonster.hp > 0) {
@@ -507,21 +526,28 @@ function executePlayerActionTick() {
         if (vAmt > 0) { currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vAmt); addLog(`🩸【血脈吸吮】吸血 <span class="num-popup num-h-heal">+${vAmt} HP</span>`); }
     }
     if (currentRun.doubleStrike > 0 && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
-        let extraDmg = Math.floor(currentRun.atk * 0.85); activeMonster.hp -= extraDmg;
-        addLog(`⚡【殘影追擊】極速連砍！追加受創 <span class="num-popup num-p-dmg">-${extraDmg} HP</span>`, "deal");
+        // 🌟 殘影追擊連砍套用乘算
+        let monsterDef = Math.floor(dungeonFloor * 1.2);
+        let extraAtk = Math.floor(currentRun.atk * 0.85);
+        let dmgRes = calculateDamage(extraAtk, monsterDef, true);
+        activeMonster.hp -= dmgRes.damage;
+        
+        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+        addLog(`⚡【殘影追擊】極速連砍！${critText}追加受創 <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "deal");
     }
     if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
 }
 
 function executeMonsterActionTick() {
     if (activeMonster.freezeTurns > 0) { activeMonster.freezeTurns--; return; }
-    // 🛡️ 使用新公式：玩家的 Block 當作 Defense 防禦力運算
+    
+    // 🛡️ 玩家 Block 充當防禦力，代入高階乘算減傷公式
     let dmgRes = calculateDamage(activeMonster.atk, currentRun.block, false);
-    let finalDmg = dmgRes.damage;;
+    let finalDmg = dmgRes.damage;
+    
     currentRun.hp -= finalDmg; 
     addLog(`🔴 魔物暴虐反噬！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
-    
 }
 
 function executeDungeonVictorySequence() {
