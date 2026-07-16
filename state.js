@@ -124,3 +124,92 @@ async function executeMagitechWakeupSequence() {
         if(legBox) legBox.innerHTML = "⚠️ <b>雲端同步受阻</b>：已啟動臨時局內離線記憶體。";
     }
 }
+// ==========================================================================
+// 💾 命運深淵：雙軌制核心存檔引擎 (LocalStorage + Render Cloud)
+// ==========================================================================
+
+/**
+ * 🔥 觸發存檔：本地秒存 + 雲端異步備份
+ */
+async function saveGameData() {
+    // 安全防護：如果連名字都未輸入，就不執行存檔
+    if (!accountMeta || !accountMeta.name) return;
+
+    // 1. 🚀【本地首發】立刻寫入瀏覽器快取，保證網頁關閉/刷新都不會掉進度
+    const saveDataString = JSON.stringify(accountMeta);
+    localStorage.setItem("ABYSS_DESTINY_SAVE", saveDataString);
+    console.log("💾 本地快取存檔成功！");
+
+    // 2. 📡【雲端同步】在背景默默發送給 Render 伺服器，不卡死玩家畫面
+    try {
+        // 設定 5 秒超時控制，防止 Render 沒睡醒導致請求無限掛起
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`${SERVER_URL}/api/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: accountMeta.name,
+                data: accountMeta
+            }),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        const res = await response.json();
+        
+        if (res.success) {
+            console.log("☁️ Render 雲端血脈同步成功！");
+        }
+    } catch (error) {
+        // 就算 Render 正在冷啟動超時，主控台報個警告就好，完全不影響玩家在前端繼續爆肝整裝
+        console.warn("📡 雲端冥河伺服器暫時失聯，已依賴本地血脈保護進度。", error);
+    }
+}
+
+/**
+ * 📖 觸發讀檔：登入時優先讀本地，再用雲端覆蓋最新進度
+ */
+async function loadGameData(inputName) {
+    if (!inputName) return;
+
+    // 1. 🚀【秒進遊戲】先翻本地箱子，如果有名稱吻合的存檔，立刻載入讓玩家開玩
+    const localSave = localStorage.getItem("ABYSS_DESTINY_SAVE");
+    if (localSave) {
+        const parsedData = JSON.parse(localSave);
+        if (parsedData.name === inputName) {
+            accountMeta = parsedData;
+            console.log("📦 成功提取本地靈魂結晶進度！");
+            if (typeof resetCurrentRunData === "function") resetCurrentRunData();
+            if (typeof updateUI === "function") updateUI();
+        }
+    }
+
+    // 2. 📡【雲端認證】去 Render 抓最新進度（防止玩家換電腦/換手機玩）
+    try {
+        console.log("📡 正在向 Render 冥河伺服器請求遠古血脈...");
+        const response = await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(inputName)}`);
+        const res = await response.json();
+        
+        if (res.success && res.activeChar) {
+            // 以雲端最新存檔為準，覆蓋並同步更新本地快取
+            accountMeta = res.activeChar;
+            localStorage.setItem("ABYSS_DESTINY_SAVE", JSON.stringify(accountMeta));
+            
+            if (typeof resetCurrentRunData === "function") resetCurrentRunData();
+            if (typeof updateUI === "function") updateUI();
+            
+            // 在戰鬥日誌彈出提示
+            if (typeof addLog === "function") {
+                addLog("✨ <b>【永久血脈】</b>已成功從 Render 雲端矩陣同步最新進度！");
+            }
+        }
+    } catch (error) {
+        console.error("❌ 雲端讀取失敗:", error);
+        if (typeof addLog === "function") {
+            addLog("📡 <b>【通訊提示】</b>未能連接雲端。依舊啟用本地結晶進度，冒險不受影響！");
+        }
+    }
+}
+
