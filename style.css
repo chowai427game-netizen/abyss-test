@@ -885,3 +885,48 @@ body {
         padding: 10px !important;
     }
 }
+/* ==========================================================================
+   👹 魔物狀態面板極致壓縮美化 (Monster Panel Compact)
+   ========================================================================== */
+#monster-status-card {
+    background: rgba(30, 10, 10, 0.45) !important;
+    border: 1px solid rgba(231, 76, 60, 0.25) !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    display: grid !important; /* 強制啟動網格佈局 */
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* 1. 魔物名稱專屬橫列 */
+.monster-header-row {
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(231, 76, 60, 0.08);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    font-size: 13px;
+    font-weight: bold;
+    color: #ff4757;
+}
+
+/* 2. 魔物攻擊力與速度網格 */
+.monster-stats-grid {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+/* 3. 微調魔物血條與能量條的細節 */
+#monster-status-card .mini-bar-box .visual-bar-bg {
+    height: 4px; /* 與玩家同款的精緻細條 */
+    margin-top: 4px;
+}
+#monster-status-card .flex-space strong {
+    color: #ff6b81; /* 讓怪物的血量數字帶點危險的紅色調 */
+}
