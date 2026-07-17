@@ -1055,3 +1055,328 @@ body {
         padding: 10px !important;
     }
 }
+/* ==========================================================================
+   🎭 戰偶紙娃娃系統 (RPG Paper Doll Matrix)
+   ========================================================================== */
+.paper-doll-container {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+}
+
+/* 經典 RPG 裝備矩陣佈局 (左武器、右防具、中人偶、下飾品) */
+.doll-grid {
+    display: grid;
+    grid-template-columns: 1fr 90px 1fr;
+    grid-template-rows: 70px 45px;
+    gap: 8px;
+    align-items: center;
+}
+
+/* 裝備插槽基礎樣式 */
+.doll-slot {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.doll-slot:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.slot-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.slot-icon {
+    font-size: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+}
+
+.slot-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-align: left;
+}
+
+.slot-label {
+    font-size: 9px;
+    color: #8e8e93;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.slot-name {
+    font-size: 11px;
+    color: #ffffff;
+    font-weight: bold;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+/* 🗡️ 武器槽專屬光暈 */
+.weapon-slot {
+    border-color: rgba(231, 76, 60, 0.15);
+    box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.05);
+}
+.weapon-slot .slot-icon {
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+/* 👕 防具槽專屬光暈 */
+.armor-slot {
+    border-color: rgba(52, 152, 219, 0.15);
+    box-shadow: inset 0 0 8px rgba(52, 152, 219, 0.05);
+}
+.armor-slot .slot-icon {
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+/* 💍 飾品槽橫跨底部 */
+.accessory-slot {
+    grid-column: span 3;
+    height: 40px;
+    border-color: rgba(155, 89, 182, 0.15);
+    box-shadow: inset 0 0 8px rgba(155, 89, 182, 0.05);
+}
+.accessory-slot .slot-icon {
+    border: 1px solid rgba(155, 89, 182, 0.2);
+    padding: 4px;
+    font-size: 16px;
+}
+.accessory-slot .slot-inner {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+/* 👤 中央全息戰偶投影 */
+.doll-silhouette {
+    position: relative;
+    grid-row: span 1;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.silhouette-core {
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.15);
+    z-index: 2;
+    animation: hologramPulse 2s infinite ease-in-out;
+}
+
+.hologram-ring {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px dashed rgba(0, 255, 255, 0.2);
+    animation: rotateHologram 12s linear infinite;
+    z-index: 1;
+}
+
+@keyframes hologramPulse {
+    0%, 100% { opacity: 0.15; transform: scale(1); filter: drop-shadow(0 0 2px rgba(0,255,255,0)); }
+    50% { opacity: 0.35; transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(0,255,255,0.4)); }
+}
+
+@keyframes rotateHologram {
+    100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   🧭 側拉式即時戰術抽屜 (Tactics Sidebar Slider)
+   ========================================================================== */
+.log-wrapper {
+    position: relative; /* 鎖定抽屜定位基軸 */
+    width: 100%;
+    height: 180px; /* 統一戰鬥日誌高度 */
+    margin-top: 8px;
+    overflow: hidden; /* 防止抽屜滑出時溢出邊框 */
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(10, 10, 15, 0.4);
+}
+
+/* 預設收回狀態：x軸平移 100% 藏在日誌右側邊框外 */
+.tactics-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 160px; /* 寬度剛好覆蓋日誌的右半邊 */
+    background: rgba(15, 15, 22, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 10;
+    display: flex;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 當激活展開時，推入可視範圍 */
+.tactics-drawer.expanded {
+    transform: translateX(0);
+    box-shadow: -10px 0 25px rgba(0, 0, 0, 0.8);
+}
+
+/* 側拉觸發把手 (貼在抽屜左側外，充當日誌面上的懸浮按鈕) */
+.drawer-trigger-tab {
+    position: absolute;
+    left: -32px; /* 剛好凸出 32px 在日誌畫面上 */
+    top: 15px;
+    width: 32px;
+    padding: 10px 4px;
+    border-radius: 8px 0 0 8px;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-right: none;
+    color: var(--gold-glow);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.drawer-trigger-tab:hover {
+    background: rgba(212, 175, 55, 0.25);
+    color: #fff;
+}
+
+.tactics-drawer.expanded .drawer-trigger-tab {
+    background: rgba(231, 76, 60, 0.15);
+    border-color: rgba(231, 76, 60, 0.3);
+    color: #ff4757;
+}
+
+.trigger-icon {
+    font-size: 13px;
+    animation: rotateGear 6s linear infinite;
+}
+
+/* 當收回且戰鬥中時，齒輪會轉動提示玩家可變陣 */
+@keyframes rotateGear {
+    100% { transform: rotate(360deg); }
+}
+
+.trigger-text {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* 抽屜內面板容器 */
+.drawer-panel-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.drawer-header {
+    font-size: 11px;
+    color: var(--gold-glow);
+    font-weight: bold;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.tactics-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* 戰術陣法單選項鈕 */
+.btn-tactic-option {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    outline: none;
+}
+
+.btn-tactic-option:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-tactic-option .tactic-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #bbb;
+}
+
+.btn-tactic-option .tactic-desc {
+    font-size: 8px;
+    color: #666;
+    margin-top: 2px;
+    line-height: 1.2;
+}
+
+/* 🎯 戰術激活發光狀態 */
+.btn-tactic-option.active {
+    background: rgba(46, 204, 113, 0.08) !important;
+    border-color: rgba(46, 204, 113, 0.4) !important;
+}
+.btn-tactic-option.active .tactic-title {
+    color: #2ecc71 !important;
+    text-shadow: 0 0 5px rgba(46, 204, 113, 0.2);
+}
+.btn-tactic-option.active .tactic-desc {
+    color: #8be4af !important;
+}
+
+/* 當選擇為狂暴強擊時的激進色調 */
+#tactic-btn-OFFENSIVE.active {
+    background: rgba(231, 76, 60, 0.08) !important;
+    border-color: rgba(231, 76, 60, 0.4) !important;
+}
+#tactic-btn-OFFENSIVE.active .tactic-title {
+    color: #e74c3c !important;
+}
+#tactic-btn-OFFENSIVE.active .tactic-desc {
+    color: #ff8f83 !important;
+}
