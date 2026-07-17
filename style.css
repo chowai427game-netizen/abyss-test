@@ -1056,38 +1056,40 @@ body {
     }
 }
 /* ==========================================================================
-   🎭 戰偶紙娃娃系統 (RPG Paper Doll Matrix)
+   🎭 ZONE 9 (優化緊湊版): 戰偶紙娃娃系統 (RPG Paper Doll Matrix)
    ========================================================================== */
 .paper-doll-container {
     width: 100%;
     background: rgba(0, 0, 0, 0.4);
     border-radius: 12px;
-    padding: 12px;
+    padding: 8px; /* ⚖️ 縮小內邊距，榨出更多可用寬度 */
     box-sizing: border-box;
     border: 1px solid rgba(255, 255, 255, 0.03);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
-/* 經典 RPG 裝備矩陣佈局 (左武器、右防具、中人偶、下飾品) */
+/* 🎯 關鍵優化：將中央人偶縮減至 60px，把更多黃金寬度讓給左右兩邊的文字槽 */
 .doll-grid {
     display: grid;
-    grid-template-columns: 1fr 90px 1fr;
-    grid-template-rows: 70px 45px;
-    gap: 8px;
+    grid-template-columns: 1fr 60px 1fr; 
+    grid-template-rows: 62px 42px;
+    gap: 6px;
     align-items: center;
+    width: 100%;
 }
 
 /* 裝備插槽基礎樣式 */
 .doll-slot {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    border-radius: 6px;
     height: 100%;
     display: flex;
     align-items: center;
-    padding: 6px;
+    padding: 4px 6px;
     box-sizing: border-box;
     transition: all 0.3s ease;
+    min-width: 0; /* 🎯 阻止子元素強行撐開 Grid 欄寬 */
 }
 
 .doll-slot:hover {
@@ -1097,20 +1099,23 @@ body {
 .slot-inner {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     width: 100%;
     overflow: hidden;
+    min-width: 0; /* 🎯 允許內部元件縮小 */
 }
 
 .slot-icon {
-    font-size: 20px;
+    font-size: 16px; /* ⚖️ 稍微縮小圖示 */
     background: rgba(0, 0, 0, 0.3);
-    padding: 6px;
-    border-radius: 6px;
+    padding: 4px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
+    min-width: 24px;
+    height: 24px;
+    box-sizing: border-box;
 }
 
 .slot-info {
@@ -1118,6 +1123,8 @@ body {
     flex-direction: column;
     overflow: hidden;
     text-align: left;
+    flex: 1;
+    min-width: 0; /* 🎯 允許文字長度被壓縮 */
 }
 
 .slot-label {
@@ -1125,15 +1132,18 @@ body {
     color: #8e8e93;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    line-height: 1.1;
 }
 
+/* 🎯 核心優化：如果武器防具名字太長，自動截斷顯示 ...，絕不撐開爆版 */
 .slot-name {
     font-size: 11px;
     color: #ffffff;
     font-weight: bold;
     white-space: nowrap;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; 
     overflow: hidden;
+    width: 100%;
 }
 
 /* 🗡️ 武器槽專屬光暈 */
@@ -1141,71 +1151,59 @@ body {
     border-color: rgba(231, 76, 60, 0.15);
     box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.05);
 }
-.weapon-slot .slot-icon {
-    border: 1px solid rgba(231, 76, 60, 0.2);
-}
+.weapon-slot .slot-icon { border: 1px solid rgba(231, 76, 60, 0.2); }
 
 /* 👕 防具槽專屬光暈 */
 .armor-slot {
     border-color: rgba(52, 152, 219, 0.15);
     box-shadow: inset 0 0 8px rgba(52, 152, 219, 0.05);
 }
-.armor-slot .slot-icon {
-    border: 1px solid rgba(52, 152, 219, 0.2);
-}
+.armor-slot .slot-icon { border: 1px solid rgba(52, 152, 219, 0.2); }
 
 /* 💍 飾品槽橫跨底部 */
 .accessory-slot {
     grid-column: span 3;
-    height: 40px;
+    height: 38px;
     border-color: rgba(155, 89, 182, 0.15);
     box-shadow: inset 0 0 8px rgba(155, 89, 182, 0.05);
 }
 .accessory-slot .slot-icon {
     border: 1px solid rgba(155, 89, 182, 0.2);
-    padding: 4px;
-    font-size: 16px;
+    padding: 2px;
+    font-size: 14px;
 }
 .accessory-slot .slot-inner {
     flex-direction: row;
     justify-content: flex-start;
-    gap: 12px;
+    gap: 8px;
 }
 
 /* 👤 中央全息戰偶投影 */
 .doll-silhouette {
     position: relative;
     grid-row: span 1;
-    height: 70px;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .silhouette-core {
-    font-size: 32px;
-    color: rgba(255, 255, 255, 0.15);
+    font-size: 26px; /* ⚖️ 配合窄版縮小人偶符號 */
+    color: rgba(255, 255, 255, 0.12);
     z-index: 2;
     animation: hologramPulse 2s infinite ease-in-out;
 }
 
 .hologram-ring {
     position: absolute;
-    width: 50px;
-    height: 50px;
+    width: 42px; /* ⚖️ 縮小背景魔法光圈 */
+    height: 42px;
     border-radius: 50%;
-    border: 1px dashed rgba(0, 255, 255, 0.2);
+    border: 1px dashed rgba(0, 255, 255, 0.15);
     animation: rotateHologram 12s linear infinite;
     z-index: 1;
-}
-
-@keyframes hologramPulse {
-    0%, 100% { opacity: 0.15; transform: scale(1); filter: drop-shadow(0 0 2px rgba(0,255,255,0)); }
-    50% { opacity: 0.35; transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(0,255,255,0.4)); }
-}
-
-@keyframes rotateHologram {
-    100% { transform: rotate(360deg); }
 }
 
 /* ==========================================================================
