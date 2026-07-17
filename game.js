@@ -148,37 +148,104 @@ function executeUseDungeonItem(itemName, index) {
     updateUI();
 }
 
-// ==========================================================================
-// 🤖 自動戰鬥戰術開關與 AI 智商決策
-// ==========================================================================
-function toggleAutoBattle() {
-    isAutoBattleMode = !isAutoBattleMode;
-    let autoBtn = document.getElementById('btn-auto-battle');
-    if (autoBtn) {
-        if (isAutoBattleMode) {
-            autoBtn.innerText = "🤖 自動戰鬥: 開";
-            autoBtn.style.background = "linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important";
-            autoBtn.style.borderColor = "#2ecc71 !important";
-            addLog(`🤖 <b>【AI 自動決策】系統已成功對接！自動出招、殘血嗑藥及自愈激活。</b>`, "perfect");
-        } else {
-            autoBtn.innerText = "🤖 自動戰鬥: 關";
-            autoBtn.style.background = "linear-gradient(135deg, #7f8c8d 0%, #2c3e50 100%) !important";
-            autoBtn.style.borderColor = "#95a5a6 !important";
-            addLog(`🤖 <b>【AI 自動決策】系統已離線，切換回手動看戲模式。</b>`);
-        }
-    }
-}
 
+
+/**
+ * 🧠 智慧多重決策樹運算
+ * 根據玩家切換的「戰術」執行完全不同的行為決策
+ */
 function executeAutoBattleAiTurn() {
-    let hpRatio = currentRun.hp / currentRun.maxHp;
-    
-    if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
-        let mealIndex = currentRun.inventory.findIndex(item => item.includes("厚牛巨堡"));
-        if (mealIndex !== -1) {
-            executeUseDungeonItem(currentRun.inventory[mealIndex], mealIndex);
-            return true; 
-        }
+    // 1. 如果是手動戰術，AI 拒絕代理，返回 false 直接進行基本揮砍
+    if (activeTactic === "MANUAL") {
+        return false; 
     }
+
+    let hpRatio = currentRun.hp / currentRun.maxHp;
+
+    // ==========================================
+    // ⚖️ 【均衡防禦戰術】：保命優先，保留 30% 魔力底牌
+    // ==========================================
+    if (activeTactic === "BALANCED") {
+        // A. 殘血急救：低於 35% HP 且背包有漢堡，立刻吃藥
+        if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
+            let mealIndex = currentRun.inventory.findIndex(item => item.includes("厚牛巨堡"));
+            if (mealIndex !== -1) {
+                executeUseDungeonItem(currentRun.inventory[mealIndex], mealIndex);
+                return true; 
+            }
+        }
+
+        // B. 自愈術決策：HP 低於 60% 且魔力夠，100% 進行緊急吟唱
+        let healSkill = null;
+        if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
+        else if (currentRun.skills["緊急治療"] && currentRun.mp >= 15) healSkill = "緊急治療";
+
+        if (hpRatio < 0.60 && healSkill) {
+            let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === healSkill);
+            if (sMeta) {
+                currentRun.mp -= sMeta.mp;
+                let eff = sMeta.run(currentRun.skills[healSkill], currentRun.atk, currentRun.maxMp, currentRun.hp);
+                let h = Math.floor(eff.lostHp * eff.healPercent); 
+                currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
+                addLog(`🩹⚖️【均衡自癒】引導【${healSkill}】！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
+                return true;
+            }
+        }
+
+        // C. 進攻大招：只在「魔力剩餘 > 30%」時才捨得施放，否則要把魔留著給自愈術
+        let mpRatio = currentRun.mp / currentRun.maxMp;
+        if (mpRatio > 0.30) {
+            let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
+            activeSkills.sort((a, b) => b.mp - a.mp); // 由高傷害大招開始放
+
+            for (let sMeta of activeSkills) {
+                if (currentRun.mp >= sMeta.mp) {
+                    currentRun.mp -= sMeta.mp;
+                    let monsterDef = Math.floor(dungeonFloor * 1.2);
+                    let rawAtk = currentRun.atk * 1.5;
+                    let dmgRes = calculateDamage(rawAtk, monsterDef, true);
+                    activeMonster.hp -= dmgRes.damage;
+
+                    let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                    let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                    
+                    addLog(`🔮⚖️【均衡戰術突擊】施展【${sMeta.name}】！`);
+                    addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect");
+                    return true;
+                }
+            }
+        }
+        return false; // 魔力不夠放招，退回普通揮砍
+    }
+
+    // ==========================================
+    // ⚔️ 【狂暴強擊戰術】：不回血、不吃漢堡，全力輸出！
+    // ==========================================
+    if (activeTactic === "OFFENSIVE") {
+        let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
+        activeSkills.sort((a, b) => b.mp - a.mp);
+
+        for (let sMeta of activeSkills) {
+            if (currentRun.mp >= sMeta.mp) {
+                currentRun.mp -= sMeta.mp;
+                let monsterDef = Math.floor(dungeonFloor * 1.2);
+                let rawAtk = currentRun.atk * 1.8; // 狂暴狀態下傷害加成 (1.5 -> 1.8 倍)
+                let dmgRes = calculateDamage(rawAtk, monsterDef, true);
+                activeMonster.hp -= dmgRes.damage;
+
+                let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                
+                addLog(`🔥⚔️【狂暴連鎖轟炸】暴烈吟唱【${sMeta.name}】！`);
+                addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "take");
+                return true;
+            }
+        }
+        return false; // MP 乾涸，退回普通揮砍
+    }
+
+    return false;
+}
 
     let healSkill = null;
     if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
@@ -487,7 +554,8 @@ function executeEnvironmentTick() {
 function executePlayerActionTick() {
     let activeTriggered = false;
 
-    if (isAutoBattleMode) {
+    // 💡 修正：由新戰術 AI 面板驅動，只要不是手動就執行 AI 變陣決策
+    if (activeTactic !== "MANUAL") {
         activeTriggered = executeAutoBattleAiTurn();
     } else {
         for (let sName of Object.keys(currentRun.skills)) {
@@ -746,4 +814,68 @@ function executeEquipAction(equipName, actionType) {
         accountMeta.equipment[slot] = null; accountMeta.warehouse[equipName] = (accountMeta.warehouse[equipName] || 0) + 1;
     }
     resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+// ==========================================================================
+// ⚙️ 側拉戰術抽屜操控與同步函數
+// ==========================================================================
+
+/**
+ * 展開或收縮戰術指令面板
+ */
+function toggleTacticsDrawer() {
+    const drawer = document.getElementById('tactics-drawer-box');
+    const triggerBtn = document.getElementById('tactic-trigger-btn');
+    if (!drawer) return;
+
+    drawer.classList.toggle('expanded');
+    
+    // 更新按鈕提示文字
+    const triggerTxt = triggerBtn.querySelector('.trigger-text');
+    if (drawer.classList.contains('expanded')) {
+        if (triggerTxt) triggerTxt.innerText = "關閉指令";
+    } else {
+        if (triggerTxt) triggerTxt.innerText = "戰術指令";
+    }
+}
+
+/**
+ * 即時轉陣：點擊切換戰術
+ */
+function selectTactic(tacticType) {
+    activeTactic = tacticType;
+    
+    // 同步更新按鈕的高亮外觀
+    syncTacticButtonsUi();
+    
+    // 印出切換陣法的帥氣戰鬥日誌
+    let tacticChinese = "";
+    let logStyle = "perfect";
+    if (tacticType === "MANUAL") {
+        tacticChinese = "【🎮 手動看戲】";
+        logStyle = "deal";
+    } else if (tacticType === "BALANCED") {
+        tacticChinese = "【⚖️ 均衡防守】";
+    } else if (tacticType === "OFFENSIVE") {
+        tacticChinese = "【⚔️ 狂暴強擊】";
+        logStyle = "take";
+    }
+    
+    addLog(`📢 <b>【戰術變陣】</b>勇者身形一閃，陣腳轉變為 ➔ <span style="color: var(--gold-glow); font-weight:bold;">${tacticChinese}</span>`, logStyle);
+}
+
+/**
+ * 遍歷所有戰術按鈕，為當前選中的按鈕加上 .active 框框
+ */
+function syncTacticButtonsUi() {
+    const types = ["MANUAL", "BALANCED", "OFFENSIVE"];
+    types.forEach(type => {
+        const btn = document.getElementById(`tactic-btn-${type}`);
+        if (btn) {
+            if (type === activeTactic) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
 }
