@@ -1,8 +1,7 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復版)
+// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復優化版)
 // ==========================================================================
 
-// ui_cache.js 或在 ui.js 頂部聲明
 const DOM = {
     isInitialized: false,
     elements: {},
@@ -16,7 +15,7 @@ const DOM = {
             'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle', 'env-alert-bar',
             'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar', 'm-atb-row', 'm-atb-text',
             'm-atb-bar-fill', 'm-atk', 'm-spd', 'reward-panel-box', 'log-box', 'title-box',
-            'status-panel-box', 'action-panel-box', 'village-panel-box'
+            'status-panel-box', 'action-panel-box', 'village-panel-box', 'log-wrapper-box'
         ];
         keys.forEach(key => {
             this.elements[key] = document.getElementById(key);
@@ -29,17 +28,14 @@ const DOM = {
     }
 };
 
-// 使用範例：
-
-    // 快速讀取快取，避免重複進行 DOM Tree 檢索
-    DOM.get('p-name').innerText = accountMeta.name;
-    DOM.get('p-job').innerText = getJobChineseName(currentRun.job);
-}
-
+// 全域過濾器狀態機
 let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
+/**
+ * 🗺️ 地表村莊區域分流切換核心
+ */
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
@@ -49,7 +45,13 @@ function switchVillageLocation(targetLoc) {
         if (el) el.style.display = 'none';
     });
     
-    const tabs = { 'GATE': 'btn-tab-gate', 'KITCHEN': 'btn-tab-kitchen', 'SQUARE': 'btn-tab-square', 'WORKSHOP': 'btn-tab-workshop' };
+    const tabs = { 
+        'GATE': 'btn-tab-gate', 
+        'KITCHEN': 'btn-tab-kitchen', 
+        'SQUARE': 'btn-tab-square', 
+        'WORKSHOP': 'btn-tab-workshop' 
+    };
+    
     Object.keys(tabs).forEach(k => {
         const tBtn = document.getElementById(tabs[k]);
         if (tBtn) {
@@ -82,6 +84,9 @@ function switchVillageLocation(targetLoc) {
     updateUI();
 }
 
+/**
+ * 🔄 遊戲全局狀態機 UI 刷新渲染引擎
+ */
 function updateUI() {
     const titleBox = document.getElementById('title-box');
     const statusBox = document.getElementById('status-panel-box');
@@ -97,20 +102,20 @@ function updateUI() {
     // ⛺ 狀態 A：當前勇者在地表村莊
     // ==========================================
     if (gameState === "VILLAGE") {
-        if (titleBox) titleBox.style.style.display = "none";     // 🔮 修正：進入村莊時，立刻強制隱藏封面頁面
+        if (titleBox) titleBox.style.display = "none"; // ✨ 已修正：移除原來的 style.style.display 語法錯誤
         if (statusBox) statusBox.style.display = "grid";
         if (actionBox) actionBox.style.display = "flex";
         if (villageBox) villageBox.style.display = "block";
         if (rewardBox) rewardBox.style.display = "none";
         
-        if (logWrapper) logWrapper.style.display = "block";   // 🔮 修正：改為 block，讓村莊清醒日誌能正常顯示
+        if (logWrapper) logWrapper.style.display = "block"; // ✨ 已修正：保持開啟，讓村莊清除加載遮罩後的日誌能正常渲染
         if (envBar) envBar.style.display = "none";
+        if (autoBtn) autoBtn.style.display = "none";
         
-        // 確保抽屜在回到村莊時自動關閉收回
+        // 確保變陣抽屜在回到村莊時自動關閉收回
         const drawer = document.getElementById('tactics-drawer-box');
         if (drawer) drawer.classList.remove('expanded');
         
-        // 同步更替主按鈕文字
         const mainActionBtn = document.getElementById('btn-main-action');
         if (mainActionBtn) {
             mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
@@ -119,25 +124,25 @@ function updateUI() {
         const rerunBtn = document.getElementById('btn-rerun-action');
         if (rerunBtn) rerunBtn.style.display = "none";
         
-        // 渲染基礎文字數據
+        // 驅動數據同步
         syncCharacterDataUi();
-        return; // 村莊邏輯至此結束
+        return; // ⛺ 阻斷村莊渲染，防止混入地下城邏輯
     }
     
     // ==========================================
-    // ⚔️ 狀態 B：當前勇者在地下城戰鬥或抉擇中
+    // ⚔️ 狀態 B：當前勇者在地下城深淵戰鬥中
     // ==========================================
     if (titleBox) titleBox.style.display = "none";
     if (statusBox) statusBox.style.display = "grid";
     if (actionBox) actionBox.style.display = "flex";
     if (villageBox) villageBox.style.display = "none";
     if (logBox) logBox.style.display = "block";
-    if (logWrapper) logWrapper.style.display = "block";      // ⚡ 確保戰鬥中日誌外殼也是開啟的
+    if (logWrapper) logWrapper.style.display = "block"; 
     if (envBar) envBar.style.display = "block";
     if (autoBtn) autoBtn.style.display = "block"; 
     
     let actBtn = document.getElementById('btn-main-action');
-    if(actBtn) {
+    if (actBtn) {
         actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
     }
     let rerunBtn = document.getElementById('btn-rerun-action');
@@ -168,7 +173,7 @@ function updateUI() {
             if (mAtbText) mAtbText.innerText = Math.floor(mAtbPercent);
             if (mAtbBar) mAtbBar.style.width = `${mAtbPercent}%`;
         }
-    } else if(monBox) {
+    } else if (monBox) {
         monBox.style.display = "none";
         const mAtbRow = document.getElementById('m-atb-row');
         if (mAtbRow) mAtbRow.style.display = "none";
@@ -178,12 +183,12 @@ function updateUI() {
         rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
     }
     
-    // 渲染基礎文字數據
+    // 驅動數據同步
     syncCharacterDataUi();
 }
 
 /**
- * 抽離出來的勇者基礎數據同步更新子函數
+ * 👤 核心數據更新面板 (紙娃娃裝備星級適應)
  */
 function syncCharacterDataUi() {
     document.getElementById('p-name').innerText = accountMeta.name;
@@ -245,84 +250,15 @@ function syncCharacterDataUi() {
             sBtn.onclick = () => { executeUseDungeonItem(item, index); };
             bagBox.appendChild(sBtn);
         });
-        if(currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
-    }
-}
-
-    if (gameState === "VILLAGE") {
-        if (statusBox) statusBox.style.display = "grid";
-        if (actionBox) actionBox.style.display = "flex";
-        if (villageBox) villageBox.style.display = "block";
-        if (rewardBox) rewardBox.style.display = "none";
-        if (logBox) logBox.style.display = "none";
-        if (envBar) envBar.style.display = "none";
-        if (autoBtn) autoBtn.style.display = "none"; 
-        
-        const mainActionBtn = document.getElementById('btn-main-action');
-        if (mainActionBtn) {
-            mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
-            mainActionBtn.disabled = false; 
-        }
-        document.getElementById('btn-rerun-action').style.display = "none";
-    } 
-    else {
-        if (statusBox) statusBox.style.display = "grid";
-        if (actionBox) actionBox.style.display = "flex";
-        if (villageBox) villageBox.style.display = "none";
-        if (logBox) logBox.style.display = "block";
-        if (envBar) envBar.style.display = "block";
-        if (autoBtn) autoBtn.style.display = "block"; 
-        
-        let actBtn = document.getElementById('btn-main-action');
-        if(actBtn) {
-            actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
-        }
-        let rerunBtn = document.getElementById('btn-rerun-action');
-        if (rerunBtn) {
-            rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
-        }
-
-        if (envBar && ENVIRONMENT_DATABASE[currentEnvironment]) {
-            envBar.className = ENVIRONMENT_DATABASE[currentEnvironment].className;
-            envBar.innerHTML = `${ENVIRONMENT_DATABASE[currentEnvironment].logText} (B${dungeonFloor}F)`;
-        }
-
-        let monBox = document.getElementById('monster-status-card');
-        if (activeMonster && monBox) {
-            monBox.style.display = "block";
-            document.getElementById('m-name').innerText = activeMonster.name;
-            document.getElementById('m-hp-text').innerText = `${activeMonster.hp} / ${activeMonster.maxHp}`;
-            document.getElementById('m-hp-bar').style.width = `${Math.max(0, (activeMonster.hp / activeMonster.maxHp) * 100)}%`;
-            document.getElementById('m-atk').innerText = activeMonster.atk;
-            document.getElementById('m-spd').innerText = activeMonster.spd;
-
-            // ⚡【新功能】實時同步魔物 ATB 條
-            const mAtbRow = document.getElementById('m-atb-row');
-            if (mAtbRow) {
-                mAtbRow.style.display = "block";
-                let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
-                const mAtbText = document.getElementById('m-atb-text');
-                const mAtbBar = document.getElementById('m-atb-bar-fill');
-                if (mAtbText) mAtbText.innerText = Math.floor(mAtbPercent);
-                if (mAtbBar) mAtbBar.style.width = `${mAtbPercent}%`;
-            }
-        } else if(monBox) {
-            monBox.style.display = "none";
-            const mAtbRow = document.getElementById('m-atb-row');
-            if (mAtbRow) mAtbRow.style.display = "none";
-        }
-
-        if (rewardBox) {
-            rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
-        }
+        if (currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
     }
 }
 
 function getJobChineseName(j) {
-    if(j === "novice") return "初心者";
-    if(j === "swordsman") return "劍士";
-    if(j === "magician") return "魔法師";
-    if(j === "acolyte") return "服事";
+    if (j === "novice") return "初心者";
+    if (j === "swordsman") return "劍士";
+    if (j === "magician") return "魔法師";
+    if (j === "acolyte") return "服事";
     return j;
 }
 
@@ -378,8 +314,8 @@ function renderVillageCookingWorkshop() {
 
     const filteredRecipes = RECIPES_DATABASE.filter(r => r.range === activeCookingRange);
 
-    if(filteredRecipes.length === 0) {
-        rContainer.innerHTML = `<div style="color:#555; font-size:12px; padding:15px; width:100%; text-align:center;">🌿 該層數配方尚在通訊重構中...</div>`;
+    if (filteredRecipes.length === 0) {
+        rContainer.innerHTML = `<div style="color:#555; font-size:12px; padding:15px; width:100%; text-align:center;">🌿 該層數配方尚在通訊重構成形中...</div>`;
         return;
     }
 
@@ -558,6 +494,9 @@ function renderVillageWorkshop() {
 
 function renderVillageJobSelectors() {}
 
+/**
+ * 📜 魔導日誌列印核心
+ */
 function addLog(msg, type = "deal") {
     let box = document.getElementById('log-box');
     if (!box) return;
