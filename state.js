@@ -33,7 +33,8 @@ let qteResolvePointer = null;
 
 let activeMonster = null; 
 let playerShield = 0;
-let isAutoBattleMode = false; // 🤖 掛機自動戰鬥開關
+// 🎯 戰術系統核心狀態：'MANUAL' (手動), 'BALANCED' (均衡), 'OFFENSIVE' (狂暴)
+let activeTactic = "MANUAL";
 
 let currentEnvironment = "NORMAL"; 
 let playerStatusEffects = { burn: 0, poison: 0 }; 
