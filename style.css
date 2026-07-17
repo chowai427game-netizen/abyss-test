@@ -1378,3 +1378,47 @@ body {
 #tactic-btn-OFFENSIVE.active .tactic-desc {
     color: #ff8f83 !important;
 }
+/* ==========================================================================
+   ⚡ 科技感 ATB 蓄力軌道與「無縫線性」平滑填充 (極致去繁從簡)
+   ========================================================================== */
+
+/* 1. 自動隱藏玩家與魔物 ATB 的數值與百分比，只留純粹的視覺光條 */
+#p-atb-row strong, 
+#m-atb-row strong {
+    display: none !important;
+}
+
+/* 2. 重新調整 ATB 標題與軌道容器，使其顯得大氣高級 */
+#p-atb-row .flex-space,
+#m-atb-row .flex-space {
+    margin-bottom: 2px;
+}
+
+#p-atb-row .flex-space span,
+#m-atb-row .flex-space span {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--gold-glow);
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
+    letter-spacing: 1px;
+}
+
+/* 3. 核心：強制 ATB 能量條使用「線性過渡」
+   將 transition 時間設為 0.25s (250ms)，完美契合 game.js 的 250ms 定時器。
+   這樣每次更新時，進度條會無縫滑行，完全不會有一下一下的卡頓生硬感！ */
+.atb-color {
+    background: linear-gradient(90deg, #f1c40f 0%, #ff9f43 50%, #ff6b6b 100%) !important;
+    box-shadow: 0 0 10px rgba(255, 159, 67, 0.8), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+    border-radius: 4px !important;
+    /* ⚡ 線性流水滑動核心 */
+    transition: width 0.25s linear !important; 
+}
+
+/* 4. 蓄力槽背景美化：做出凹陷導軌質感 */
+.visual-bar-bg {
+    background: rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+    height: 6px !important;
+}
