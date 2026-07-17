@@ -30,12 +30,7 @@ const DOM = {
 };
 
 // 使用範例：
-function updateUI() {
-    if (gameState === "TITLE") {
-        DOM.get('title-box').style.display = "block";
-        // ... 其他隱藏邏輯
-        return;
-    }
+
     // 快速讀取快取，避免重複進行 DOM Tree 檢索
     DOM.get('p-name').innerText = accountMeta.name;
     DOM.get('p-job').innerText = getJobChineseName(currentRun.job);
@@ -98,22 +93,99 @@ function updateUI() {
     const autoBtn = document.getElementById('btn-auto-battle');
     const logWrapper = document.getElementById('log-wrapper-box');
 
+    // ==========================================
+    // ⛺ 狀態 A：當前勇者在地表村莊
+    // ==========================================
     if (gameState === "VILLAGE") {
+        if (titleBox) titleBox.style.style.display = "none";     // 🔮 修正：進入村莊時，立刻強制隱藏封面頁面
         if (statusBox) statusBox.style.display = "grid";
         if (actionBox) actionBox.style.display = "flex";
         if (villageBox) villageBox.style.display = "block";
         if (rewardBox) rewardBox.style.display = "none";
         
-        if (logWrapper) logWrapper.style.display = "none"; // ⛺ 隱藏日誌與戰術抽屜外殼
+        if (logWrapper) logWrapper.style.display = "block";   // 🔮 修正：改為 block，讓村莊清醒日誌能正常顯示
         if (envBar) envBar.style.display = "none";
         
         // 確保抽屜在回到村莊時自動關閉收回
         const drawer = document.getElementById('tactics-drawer-box');
         if (drawer) drawer.classList.remove('expanded');
-        return;
+        
+        // 同步更替主按鈕文字
+        const mainActionBtn = document.getElementById('btn-main-action');
+        if (mainActionBtn) {
+            mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
+            mainActionBtn.disabled = false; 
+        }
+        const rerunBtn = document.getElementById('btn-rerun-action');
+        if (rerunBtn) rerunBtn.style.display = "none";
+        
+        // 渲染基礎文字數據
+        syncCharacterDataUi();
+        return; // 村莊邏輯至此結束
     }
     
+    // ==========================================
+    // ⚔️ 狀態 B：當前勇者在地下城戰鬥或抉擇中
+    // ==========================================
     if (titleBox) titleBox.style.display = "none";
+    if (statusBox) statusBox.style.display = "grid";
+    if (actionBox) actionBox.style.display = "flex";
+    if (villageBox) villageBox.style.display = "none";
+    if (logBox) logBox.style.display = "block";
+    if (logWrapper) logWrapper.style.display = "block";      // ⚡ 確保戰鬥中日誌外殼也是開啟的
+    if (envBar) envBar.style.display = "block";
+    if (autoBtn) autoBtn.style.display = "block"; 
+    
+    let actBtn = document.getElementById('btn-main-action');
+    if(actBtn) {
+        actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
+    }
+    let rerunBtn = document.getElementById('btn-rerun-action');
+    if (rerunBtn) {
+        rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
+    }
+
+    if (envBar && ENVIRONMENT_DATABASE[currentEnvironment]) {
+        envBar.className = ENVIRONMENT_DATABASE[currentEnvironment].className;
+        envBar.innerHTML = `${ENVIRONMENT_DATABASE[currentEnvironment].logText} (B${dungeonFloor}F)`;
+    }
+
+    let monBox = document.getElementById('monster-status-card');
+    if (activeMonster && monBox) {
+        monBox.style.display = "block";
+        document.getElementById('m-name').innerText = activeMonster.name;
+        document.getElementById('m-hp-text').innerText = `${activeMonster.hp} / ${activeMonster.maxHp}`;
+        document.getElementById('m-hp-bar').style.width = `${Math.max(0, (activeMonster.hp / activeMonster.maxHp) * 100)}%`;
+        document.getElementById('m-atk').innerText = activeMonster.atk;
+        document.getElementById('m-spd').innerText = activeMonster.spd;
+
+        const mAtbRow = document.getElementById('m-atb-row');
+        if (mAtbRow) {
+            mAtbRow.style.display = "block";
+            let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
+            const mAtbText = document.getElementById('m-atb-text');
+            const mAtbBar = document.getElementById('m-atb-bar-fill');
+            if (mAtbText) mAtbText.innerText = Math.floor(mAtbPercent);
+            if (mAtbBar) mAtbBar.style.width = `${mAtbPercent}%`;
+        }
+    } else if(monBox) {
+        monBox.style.display = "none";
+        const mAtbRow = document.getElementById('m-atb-row');
+        if (mAtbRow) mAtbRow.style.display = "none";
+    }
+
+    if (rewardBox) {
+        rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
+    }
+    
+    // 渲染基礎文字數據
+    syncCharacterDataUi();
+}
+
+/**
+ * 抽離出來的勇者基礎數據同步更新子函數
+ */
+function syncCharacterDataUi() {
     document.getElementById('p-name').innerText = accountMeta.name;
     document.getElementById('p-job').innerText = getJobChineseName(currentRun.job);
     document.getElementById('p-lv').innerText = currentRun.lv;
@@ -126,7 +198,6 @@ function updateUI() {
     document.getElementById('hp-bar-fill').style.width = `${Math.max(0, (currentRun.hp / currentRun.maxHp) * 100)}%`;
     document.getElementById('mp-bar-fill').style.width = `${Math.max(0, (currentRun.mp / currentRun.maxMp) * 100)}%`;
     
-    // ⚡【新功能】實時同步玩家 ATB 條 (移入 updateUI 防止未定義錯誤)
     const pAtbRow = document.getElementById('p-atb-row');
     if (pAtbRow) {
         if (gameState === "VILLAGE") {
@@ -153,7 +224,6 @@ function updateUI() {
     let aStar = accountMeta.equipmentStars.armor > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
     let cStar = accountMeta.equipmentStars.accessory > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
 
-    // 🎭 同步更新紙娃娃系統槽位
     const slotWeapon = document.getElementById('p-equip-weapon');
     const slotArmor = document.getElementById('p-equip-armor');
     const slotAccessory = document.getElementById('p-equip-accessory');
@@ -177,6 +247,7 @@ function updateUI() {
         });
         if(currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
     }
+}
 
     if (gameState === "VILLAGE") {
         if (statusBox) statusBox.style.display = "grid";
