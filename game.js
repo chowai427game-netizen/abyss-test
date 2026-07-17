@@ -3,7 +3,7 @@
 // ==========================================================================
 
 let combatTickerTimer = null; 
-let combatRoundCounter = 1;   
+let combatRoundCounter = 1;    
 
 let playerAtb = 0;
 let monsterAtb = 0;
@@ -44,7 +44,7 @@ function handleStartGame() {
     dungeonFloor = 0;
     currentEnvironment = "NORMAL";
     
-    // 💡 修正點：在這裡呼叫我們剛剛在 state.js 寫好的雙軌讀檔引擎
+    // 💡 呼叫在 state.js 寫好的雙軌讀檔引擎
     loadGameData(inputName);
     
     switchVillageLocation("GATE");
@@ -100,7 +100,7 @@ function handleSecondaryAction() {
         }
     });
     
-    // 💡 修正點：改為速度更快的雙軌存檔
+    // 💡 雙軌自動存檔
     saveGameData(); 
     
     resetCurrentRunData();
@@ -148,14 +148,12 @@ function executeUseDungeonItem(itemName, index) {
     updateUI();
 }
 
-
-
 /**
- * 🧠 智慧多重決策樹運算
+ * 🧠 智慧多重決策樹運算 (全新戰術 AI 大腦)
  * 根據玩家切換的「戰術」執行完全不同的行為決策
  */
 function executeAutoBattleAiTurn() {
-    // 1. 如果是手動戰術，AI 拒絕代理，返回 false 直接進行基本揮砍
+    // 1. 如果是手動戰術，AI 拒絕代理，返回 false 直接進行基本物理揮砍
     if (activeTactic === "MANUAL") {
         return false; 
     }
@@ -219,7 +217,7 @@ function executeAutoBattleAiTurn() {
     }
 
     // ==========================================
-    // ⚔️ 【狂暴強擊戰術】：不回血、不吃漢堡，全力輸出！
+    // ⚔️ 【狂暴強擊戰術】：不回血、不吃漢堡，全力大招轟炸！
     // ==========================================
     if (activeTactic === "OFFENSIVE") {
         let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
@@ -247,45 +245,6 @@ function executeAutoBattleAiTurn() {
     return false;
 }
 
-    let healSkill = null;
-    if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
-    else if (currentRun.skills["緊急治療"] && currentRun.mp >= 15) healSkill = "緊急治療";
-
-    if (hpRatio < 0.45 && healSkill) {
-        let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === healSkill);
-        if (sMeta) {
-            currentRun.mp -= sMeta.mp;
-            let eff = sMeta.run(currentRun.skills[healSkill], currentRun.atk, currentRun.maxMp, currentRun.hp);
-            let h = Math.floor(eff.lostHp * eff.healPercent); 
-            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
-            addLog(`🩹🤖【AI 智能自愈】引導【${healSkill}】！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
-            return true;
-        }
-    }
-
-    let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
-    activeSkills.sort((a, b) => b.mp - a.mp); 
-
-    for (let sMeta of activeSkills) {
-        if (currentRun.mp >= sMeta.mp) {
-            currentRun.mp -= sMeta.mp;
-            let monsterDef = Math.floor(dungeonFloor * 1.2);
-            let rawAtk = currentRun.atk * 1.5;
-            let dmgRes = calculateDamage(rawAtk, monsterDef, true);
-            activeMonster.hp -= dmgRes.damage;
-
-            let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-            
-            addLog(`🔮🤖【AI 戰術突擊】施展【${sMeta.name}】！`);
-            addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect");
-            return true;
-        }
-    }
-
-    return false; 
-}
-
 // ==========================================================================
 // 🍳🔨 QTE 喚起引擎
 // ==========================================================================
@@ -300,7 +259,7 @@ function triggerVillageQte(type, targetData, successCallback) {
     overlay.style.display = "flex";
     isQteActive = true;
 
-    // 🔒 鎖定網頁滾動，不論你當前滾動到邊度，都不會被干擾
+    // 🔒 鎖定網頁滾動
     document.body.style.overflow = "hidden";
 
     if (type === "COOK") {
@@ -485,7 +444,7 @@ async function runDungeonLoop() {
             activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, spd: bossMeta.baseSpd, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
             addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
-            // 🎯【重磅優化】根據當前樓層 (dungeonFloor) 過濾對應層數範圍的常規魔物
+            // 🎯【重磅優化】根據當前樓層過濾對應層數範圍的常規魔物
             let availableMonsters = REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor);
             
             // 防空保護：如果該層數沒有配怪，則後備調用全局小怪
@@ -742,7 +701,6 @@ function triggerRandomAbyssEvent() {
         // ==========================================
         // 🎁 觸發 40種隨機寶箱/陷阱/擬態怪
         // ==========================================
-        // 根據層數微調：前層更容易出木箱，20層後更容易出耀金/機關寶箱
         let rolledChest = TREASURE_CHESTS_POOL[Math.floor(Math.random() * TREASURE_CHESTS_POOL.length)];
         title.innerHTML = `🎁 發現古老遺蹟：[${rolledChest.name}] 🎁`;
 
@@ -770,9 +728,8 @@ function triggerRandomAbyssEvent() {
                 currentRun.hp = Math.max(1, currentRun.hp - rolledChest.dmg);
             }
 
-            // 💎 25% 隨機產出當前樓層對應的「永久素材」進入倉庫
+            // 💎 25% 隨機產出素材
             if (Math.random() < 0.25) {
-                // 根據當前層數產出合適的素材
                 let activeDrops = Object.values(MONSTER_DROPS);
                 let randDrop = activeDrops[Math.floor(Math.random() * activeDrops.length)];
                 accountMeta.warehouse[randDrop] = (accountMeta.warehouse[randDrop] || 0) + 1;
@@ -815,6 +772,7 @@ function executeEquipAction(equipName, actionType) {
     }
     resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
+
 // ==========================================================================
 // ⚙️ 側拉戰術抽屜操控與同步函數
 // ==========================================================================
