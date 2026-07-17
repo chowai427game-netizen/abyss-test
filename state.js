@@ -207,3 +207,85 @@ async function executeMagitechWakeupSequence() {
         if(legBox) legBox.innerHTML = "⚠️ <b>雲端同步受阻</b>：已啟動臨時局內離線記憶體。";
     }
 }
+// ==========================================================================
+// 💾 命運深淵：雙軌制核心存檔引擎 (LocalStorage + Render Cloud)
+// ==========================================================================
+
+/**
+ * 🔥 觸發存檔：本地秒存 + 雲端異步備份
+ */
+async function saveGameData() {
+    if (!accountMeta || !accountMeta.name || accountMeta.name === "無名勇者") return;
+
+    // 1. 🚀【本地秒存】
+    localStorage.setItem("ABYSS_DESTINY_SAVE", JSON.stringify(accountMeta));
+    console.log("💾 本地快取存檔成功！");
+
+    // 2. 📡【雲端同步】直接沿用你原本的 /api/active/save 路由與架構
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4秒超時保護
+
+        await fetch(`${SERVER_URL}/api/active/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                name: accountMeta.name, 
+                activeChar: { 
+                    unlockedJobs: accountMeta.unlockedJobs, 
+                    warehouse: accountMeta.warehouse,
+                    equipment: accountMeta.equipment,
+                    equipmentStars: accountMeta.equipmentStars
+                } 
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        console.log("☁️ Render 雲端血脈同步成功！");
+    } catch (error) {
+        console.warn("📡 雲端通訊逾時，進度已鎖定在本地記憶體中。", error);
+    }
+}
+
+/**
+ * 📖 觸發讀檔：優先加載本地，再與雲端進行驗證覆蓋
+ */
+async function loadGameData(inputName) {
+    if (!inputName) return;
+
+    // 1. 🚀【秒讀本地】讓玩家點擊後免等待直接進遊戲
+    const localSave = localStorage.getItem("ABYSS_DESTINY_SAVE");
+    if (localSave) {
+        const parsedData = JSON.parse(localSave);
+        if (parsedData.name === inputName) {
+            accountMeta = parsedData;
+            console.log("📦 成功提取本地靈魂結晶進度！");
+            resetCurrentRunData();
+            updateUI();
+        }
+    }
+
+    // 2. 📡【雲端對接】在背景默默跟後端要最新的資料
+    try {
+        let response = await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(inputName)}`);
+        let res = await response.json();
+        if (res.success && res.activeChar) {
+            accountMeta.unlockedJobs = res.activeChar.unlockedJobs || ["novice"];
+            accountMeta.warehouse = res.activeChar.warehouse || {};
+            accountMeta.equipment = res.activeChar.equipment || { weapon: null, armor: null, accessory: null };
+            accountMeta.equipmentStars = res.activeChar.equipmentStars || { weapon: 0, armor: 0, accessory: 0 };
+            accountMeta.name = inputName;
+            
+            // 同步回本地快取
+            localStorage.setItem("ABYSS_DESTINY_SAVE", JSON.stringify(accountMeta));
+            
+            resetCurrentRunData();
+            updateUI();
+            if (typeof addLog === "function") {
+                addLog("✨ <b>【遠古血脈】</b>已成功從 Render 雲端矩陣同步最新進度！", "perfect");
+            }
+        }
+    } catch (e) {
+        console.log("讀取雲端失敗，依賴本地存檔遊玩");
+    }
+}
