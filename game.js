@@ -38,13 +38,15 @@ function handleStartGame() {
         alert("🧙 勇者啊，請先在輸入框刻下你的大名，才能喚醒雲端血脈！");
         return;
     }
+    
     accountMeta.name = inputName;
     gameState = "VILLAGE";
     dungeonFloor = 0;
     currentEnvironment = "NORMAL";
     
-    resetCurrentRunData();
-    updateUI();
+    // 💡 修正點：在這裡呼叫我們剛剛在 state.js 寫好的雙軌讀檔引擎
+    loadGameData(inputName);
+    
     switchVillageLocation("GATE");
     document.getElementById('log-box').innerHTML = "";
     addLog(`⛺ 勇者 <strong>${accountMeta.name}</strong> 在地表村莊清醒。環境適應裝置運作正常。`);
@@ -97,7 +99,10 @@ function handleSecondaryAction() {
             accountMeta.warehouse[item] = (accountMeta.warehouse[item] || 0) + 1;
         }
     });
-    uploadProgressToCloud();
+    
+    // 💡 修正點：改為速度更快的雙軌存檔
+    saveGameData(); 
+    
     resetCurrentRunData();
     updateUI();
     switchVillageLocation("GATE");
@@ -311,7 +316,7 @@ function executeVillageCooking(recipe) {
             addLog(`💥【料理大失敗】湯汁溢出熔毀，化為：<strong>🪨 焦黑的未知物體</strong>！`, "take");
             accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
         }
-        uploadProgressToCloud(); updateUI(); renderVillageCookingWorkshop();
+        saveGameData(); updateUI(); renderVillageCookingWorkshop();
     });
 }
 
@@ -336,7 +341,7 @@ function executeForgeEquipment(blueprint) {
             addLog(`🚨【鍛造失敗】爐火熄滅，淬火爆裂，化為一堆廢鐵：<strong>🪨 焦黑的未知物體</strong>！`, "take");
             accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
         }
-        uploadProgressToCloud(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+        saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
     });
 }
 
@@ -367,7 +372,7 @@ function executeSlotStarUp(slot) {
     addLog(`🌟【槽位精煉成功】你的 <strong>[${slot === 'weapon' ? '武器' : slot === 'armor' ? '防具' : '飾品'}]</strong> 部位升星至 ⭐ x${accountMeta.equipmentStars[slot]}！`, "perfect");
     
     resetCurrentRunData();
-    uploadProgressToCloud();
+    saveGameData();
     updateUI();
     if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
@@ -386,7 +391,7 @@ function executeDismantle(equipName) {
     }
     
     addLog(`♻️【拆解回收】你成功拆解了 [${equipName}]，獲得回收原料 ➔ ${refunded.join(", ")}。`, "perfect");
-    uploadProgressToCloud();
+    saveGameData();
     updateUI();
     if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
@@ -595,7 +600,7 @@ function executeDungeonDefeatSequence() {
     addLog(`☠️【魂歸深淵】物資遺失，強制歸還地表。`, "take");
     gameState = "VILLAGE"; currentEnvironment = "NORMAL";
     document.getElementById('btn-secondary-action').style.display = "none";
-    resetCurrentRunData(); uploadProgressToCloud(); updateUI(); switchVillageLocation("GATE");
+    resetCurrentRunData(); saveGameData(); updateUI(); switchVillageLocation("GATE");
 }
 
 function triggerBossTalentReward() {
@@ -609,7 +614,7 @@ function triggerBossTalentReward() {
     perks.forEach(perk => {
         let btn = document.createElement('button'); btn.className = "btn-game btn-cook";
         btn.innerHTML = `<strong>${perk.name}</strong><br><span style="color:#2ecc71; font-size:11px;">${perk.desc}</span>`;
-        btn.onclick = () => { perk.run(); gameState = "BATTLE"; document.getElementById('btn-main-action').disabled = false; uploadProgressToCloud(); updateUI(); checkLevelUpAndTriggerSelect(); };
+        btn.onclick = () => { perk.run(); gameState = "BATTLE"; document.getElementById('btn-main-action').disabled = false; saveGameData(); updateUI(); checkLevelUpAndTriggerSelect(); };
         container.appendChild(btn);
     });
 }
@@ -740,5 +745,5 @@ function executeEquipAction(equipName, actionType) {
     } else {
         accountMeta.equipment[slot] = null; accountMeta.warehouse[equipName] = (accountMeta.warehouse[equipName] || 0) + 1;
     }
-    resetCurrentRunData(); uploadProgressToCloud(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+    resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
