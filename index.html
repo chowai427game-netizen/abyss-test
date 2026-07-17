@@ -186,21 +186,47 @@
                 </div>
             </div>
 
-            <!-- 👹 5. 魔物狀態面板 -->
-            <div class="status-panel" id="monster-status-card" style="display: none; background: rgba(40, 10, 10, 0.4); border-color: rgba(231, 76, 60, 0.2); width: 100%;">
-                <div class="status-item full-row" style="font-size: 14px; font-weight: bold; color: #ff4757; margin-bottom: 4px;">
-                    ⚔️ 敵對魔物: <strong id="m-name" style="color: #fff;">--</strong>
+           <!-- 👹 5. 魔物狀態面板 (雙軌對稱壓縮版) -->
+            <div class="status-panel" id="monster-status-card" style="display: none;">
+                
+                <!-- 👑 魔物頂部核心資訊 (單行橫排) -->
+                <div class="monster-header-row">
+                    <span>⚔️ 敵對魔物: <strong id="m-name" style="color: #fff;">--</strong></span>
                 </div>
-                <div class="status-item full-row">
-                    <div class="flex-space"><span>❤️ 魔物血量:</span> <strong><span id="m-hp-text">0 / 0</span></strong></div>
-                    <div class="visual-bar-bg"><div id="m-hp-bar" class="visual-bar-fill" style="background: linear-gradient(90deg, #cb2d3e 0%, #ef473a 100%); width: 0%;"></div></div>
+                
+                <!-- 🩸 雙色核心狀態條 (左右並排) -->
+                <div class="bars-container-row">
+                    <div class="mini-bar-box" style="background: rgba(40, 10, 10, 0.3); border-color: rgba(231, 76, 60, 0.1);">
+                        <div class="flex-space" style="font-size: 11px;">
+                            <span>❤️ 魔物血量</span> 
+                            <strong><span id="m-hp-text">0 / 0</span></strong>
+                        </div>
+                        <div class="visual-bar-bg">
+                            <div id="m-hp-bar" class="visual-bar-fill" style="background: linear-gradient(90deg, #cb2d3e 0%, #ef473a 100%); width: 0%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mini-bar-box" id="m-atb-row" style="background: rgba(40, 10, 10, 0.3); border-color: rgba(231, 76, 60, 0.1);">
+                        <div class="flex-space" style="font-size: 11px;">
+                            <span>⚡ 行動準備</span> 
+                            <strong><span id="m-atb-text">0</span>%</strong>
+                        </div>
+                        <div class="visual-bar-bg">
+                            <div id="m-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="status-item full-row" id="m-atb-row">
-                    <div class="flex-space"><span>⚡ 行動準備 (ATB):</span> <strong><span id="m-atb-text">0</span>%</strong></div>
-                    <div class="visual-bar-bg"><div id="m-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
+                
+                <!-- ⚔️ 敵方屬性網格 (左右 2 欄) -->
+                <div class="monster-stats-grid">
+                    <div class="grid-cell" style="border-color: rgba(231, 76, 60, 0.15);">
+                        ⚔️ 攻擊力: <strong id="m-atk" style="color: #ff6b81;">0</strong>
+                    </div>
+                    <div class="grid-cell" style="border-color: rgba(231, 76, 60, 0.15);">
+                        ⚡ 速度: <strong id="m-spd" style="color: #f1c40f;">0</strong>
+                    </div>
                 </div>
-                <div class="status-item"><span>⚔️ 攻擊力:</span> <strong id="m-atk" style="color: #ff6b81;">0</strong></div>
-                <div class="status-item"><span>⚡ 速度:</span> <strong id="m-spd" style="color: #f1c40f;">0</strong></div>
+
             </div>
 
             <!-- 🎁 6. 抉擇與獎勵面板 -->
