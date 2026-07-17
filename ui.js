@@ -96,16 +96,20 @@ function updateUI() {
     const logBox = document.getElementById('log-box');
     const envBar = document.getElementById('env-alert-bar');
     const autoBtn = document.getElementById('btn-auto-battle');
+    const logWrapper = document.getElementById('log-wrapper-box');
 
-    if (gameState === "TITLE") {
-        if (titleBox) titleBox.style.display = "block";
-        if (statusBox) statusBox.style.display = "none";
-        if (actionBox) actionBox.style.display = "none";
-        if (villageBox) villageBox.style.display = "none";
+    if (gameState === "VILLAGE") {
+        if (statusBox) statusBox.style.display = "grid";
+        if (actionBox) actionBox.style.display = "flex";
+        if (villageBox) villageBox.style.display = "block";
         if (rewardBox) rewardBox.style.display = "none";
-        if (logBox) logBox.style.display = "none";
+        
+        if (logWrapper) logWrapper.style.display = "none"; // ⛺ 隱藏日誌與戰術抽屜外殼
         if (envBar) envBar.style.display = "none";
-        if (autoBtn) autoBtn.style.display = "none";
+        
+        // 確保抽屜在回到村莊時自動關閉收回
+        const drawer = document.getElementById('tactics-drawer-box');
+        if (drawer) drawer.classList.remove('expanded');
         return;
     }
     
@@ -149,10 +153,15 @@ function updateUI() {
     let aStar = accountMeta.equipmentStars.armor > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
     let cStar = accountMeta.equipmentStars.accessory > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
 
-    if(document.getElementById('p-equip-weapon')) document.getElementById('p-equip-weapon').innerText = (accountMeta.equipment.weapon || "🎚️ 空手") + wStar;
-    if(document.getElementById('p-equip-armor')) document.getElementById('p-equip-armor').innerText = (accountMeta.equipment.armor || "👕 布衣") + aStar;
-    if(document.getElementById('p-equip-accessory')) document.getElementById('p-equip-accessory').innerText = (accountMeta.equipment.accessory || "📿 無") + cStar;
+    // 🎭 同步更新紙娃娃系統槽位
+    const slotWeapon = document.getElementById('p-equip-weapon');
+    const slotArmor = document.getElementById('p-equip-armor');
+    const slotAccessory = document.getElementById('p-equip-accessory');
 
+    if (slotWeapon) slotWeapon.innerText = (accountMeta.equipment.weapon || "空手") + wStar;
+    if (slotArmor) slotArmor.innerText = (accountMeta.equipment.armor || "布衣") + aStar;
+    if (slotAccessory) slotAccessory.innerText = (accountMeta.equipment.accessory || "無") + cStar;
+    
     let bagBox = document.getElementById('p-dungeon-bag');
     if (bagBox) {
         bagBox.innerHTML = "";
