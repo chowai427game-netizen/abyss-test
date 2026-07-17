@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復優化版)
+// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (極致流暢版)
 // ==========================================================================
 
 const DOM = {
@@ -102,13 +102,13 @@ function updateUI() {
     // ⛺ 狀態 A：當前勇者在地表村莊
     // ==========================================
     if (gameState === "VILLAGE") {
-        if (titleBox) titleBox.style.display = "none"; // ✨ 已修正：移除原來的 style.style.display 語法錯誤
+        if (titleBox) titleBox.style.display = "none"; 
         if (statusBox) statusBox.style.display = "grid";
         if (actionBox) actionBox.style.display = "flex";
         if (villageBox) villageBox.style.display = "block";
         if (rewardBox) rewardBox.style.display = "none";
         
-        if (logWrapper) logWrapper.style.display = "block"; // ✨ 已修正：保持開啟，讓村莊清除加載遮罩後的日誌能正常渲染
+        if (logWrapper) logWrapper.style.display = "block"; 
         if (envBar) envBar.style.display = "none";
         if (autoBtn) autoBtn.style.display = "none";
         
@@ -124,9 +124,8 @@ function updateUI() {
         const rerunBtn = document.getElementById('btn-rerun-action');
         if (rerunBtn) rerunBtn.style.display = "none";
         
-        // 驅動數據同步
         syncCharacterDataUi();
-        return; // ⛺ 阻斷村莊渲染，防止混入地下城邏輯
+        return; 
     }
     
     // ==========================================
@@ -164,14 +163,24 @@ function updateUI() {
         document.getElementById('m-atk').innerText = activeMonster.atk;
         document.getElementById('m-spd').innerText = activeMonster.spd;
 
+        // ⚡ 魔物無縫線性 ATB 更新
         const mAtbRow = document.getElementById('m-atb-row');
         if (mAtbRow) {
             mAtbRow.style.display = "block";
             let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
-            const mAtbText = document.getElementById('m-atb-text');
             const mAtbBar = document.getElementById('m-atb-bar-fill');
-            if (mAtbText) mAtbText.innerText = Math.floor(mAtbPercent);
-            if (mAtbBar) mAtbBar.style.width = `${mAtbPercent}%`;
+            
+            if (mAtbBar) {
+                let currentW = parseFloat(mAtbBar.style.width) || 0;
+                // 滿條歸零判定：如果新比例小於目前比例，立刻切斷過渡快速歸零，避免倒退效果
+                if (mAtbPercent < currentW) {
+                    mAtbBar.style.transition = "none";
+                    mAtbBar.style.width = "0%";
+                    mAtbBar.offsetHeight; // 強制瀏覽器重繪
+                }
+                mAtbBar.style.transition = "width 0.25s linear"; // 完美的 250ms 線性無縫過渡
+                mAtbBar.style.width = `${mAtbPercent}%`;
+            }
         }
     } else if (monBox) {
         monBox.style.display = "none";
@@ -183,12 +192,11 @@ function updateUI() {
         rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
     }
     
-    // 驅動數據同步
     syncCharacterDataUi();
 }
 
 /**
- * 👤 核心數據更新面板 (紙娃娃裝備星級適應)
+ * 👤 核心數據更新面板 (紙娃娃裝備星級與平滑 ATB 適應)
  */
 function syncCharacterDataUi() {
     document.getElementById('p-name').innerText = accountMeta.name;
@@ -203,6 +211,7 @@ function syncCharacterDataUi() {
     document.getElementById('hp-bar-fill').style.width = `${Math.max(0, (currentRun.hp / currentRun.maxHp) * 100)}%`;
     document.getElementById('mp-bar-fill').style.width = `${Math.max(0, (currentRun.mp / currentRun.maxMp) * 100)}%`;
     
+    // ⚡ 玩家無縫線性 ATB 更新
     const pAtbRow = document.getElementById('p-atb-row');
     if (pAtbRow) {
         if (gameState === "VILLAGE") {
@@ -210,8 +219,19 @@ function syncCharacterDataUi() {
         } else {
             pAtbRow.style.display = "block";
             let pAtbPercent = Math.min(100, Math.max(0, playerAtb));
-            document.getElementById('p-atb-text').innerText = Math.floor(pAtbPercent);
-            document.getElementById('p-atb-bar-fill').style.width = `${pAtbPercent}%`;
+            const pAtbBar = document.getElementById('p-atb-bar-fill');
+            
+            if (pAtbBar) {
+                let currentW = parseFloat(pAtbBar.style.width) || 0;
+                // 滿條歸零判定
+                if (pAtbPercent < currentW) {
+                    pAtbBar.style.transition = "none";
+                    pAtbBar.style.width = "0%";
+                    pAtbBar.offsetHeight; // 強制重繪
+                }
+                pAtbBar.style.transition = "width 0.25s linear";
+                pAtbBar.style.width = `${pAtbPercent}%`;
+            }
         }
     }
 
@@ -495,7 +515,7 @@ function renderVillageWorkshop() {
 function renderVillageJobSelectors() {}
 
 /**
- * 📜 魔導日誌列印核心
+ * 📜 魔導日誌列印核心 (流體絲滑滾動版)
  */
 function addLog(msg, type = "deal") {
     let box = document.getElementById('log-box');
@@ -510,5 +530,10 @@ function addLog(msg, type = "deal") {
     p.className = className;
     p.innerHTML = msg;
     box.appendChild(p);
-    box.scrollTop = box.scrollHeight;
+    
+    // ✨ 驅動流體動態無縫向下滾動
+    box.scrollTo({
+        top: box.scrollHeight,
+        behavior: 'smooth'
+    });
 }
