@@ -70,7 +70,7 @@
                 </div>
 
                 <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
-                    <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動準備 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
+                    <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
                     <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
                 </div>
                 
@@ -87,18 +87,63 @@
                     <span id="p-dungeon-bag"><span style='color:#666;'>[空]</span></span>
                 </div>
 
+                <!-- 🔍 摺疊查看 戰偶紙娃娃與技能面板 -->
                 <details class="char-details-folder">
-                    <summary>🔍 展開查看 技能與裝備面板</summary>
+                    <summary>🔍 展開查看 戰偶裝備與技能面板</summary>
                     <div class="folder-content">
-                        <div class="folder-item">
-                            <span class="folder-label">🔮 已加載技能：</span>
-                            <span id="p-skills-list" style="color: #9b59b6;">基本打擊</span>
+                        
+                        <!-- 🎭 戰偶紙娃娃裝備矩陣投影 (Paper Doll) -->
+                        <div class="paper-doll-container">
+                            <div class="doll-grid">
+                                
+                                <!-- 🗡️ 左翼：武器插槽 -->
+                                <div class="doll-slot weapon-slot" id="slot-weapon">
+                                    <div class="slot-inner">
+                                        <span class="slot-icon">🗡️</span>
+                                        <div class="slot-info">
+                                            <span class="slot-label">武器</span>
+                                            <span class="slot-name" id="p-equip-weapon">空手</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 👤 中央：戰偶投影全息圖 -->
+                                <div class="doll-silhouette">
+                                    <div class="hologram-ring"></div>
+                                    <div class="silhouette-core">👤</div>
+                                </div>
+                                
+                                <!-- 👕 右翼：防具插槽 -->
+                                <div class="doll-slot armor-slot" id="slot-armor">
+                                    <div class="slot-inner">
+                                        <span class="slot-icon">👕</span>
+                                        <div class="slot-info">
+                                            <span class="slot-label">防具</span>
+                                            <span class="slot-name" id="p-equip-armor">布衣</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 💍 底部橫跨：飾品插槽 -->
+                                <div class="doll-slot accessory-slot" id="slot-accessory">
+                                    <div class="slot-inner">
+                                        <span class="slot-icon">💍</span>
+                                        <div class="slot-info">
+                                            <span class="slot-label">飾品</span>
+                                            <span class="slot-name" id="p-equip-accessory">無</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
-                        <div class="folder-item gear-summary">
-                            <div>🗡️ 武器: <strong id="p-equip-weapon" style="color: #fff;">空手</strong></div>
-                            <div>👕 防具: <strong id="p-equip-armor" style="color: #fff;">布衣</strong></div>
-                            <div>💍 飾品: <strong id="p-equip-accessory" style="color: #fff;">無</strong></div>
+
+                        <!-- 🔮 技能加載清單 -->
+                        <div class="folder-item" style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 8px;">
+                            <span class="folder-label">🔮 已加載戰技：</span>
+                            <span id="p-skills-list" style="color: #9b59b6; font-weight: bold;">基本打擊</span>
                         </div>
+
                     </div>
                 </details>
 
@@ -112,9 +157,6 @@
                         <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun" style="display: none; flex: 11;">🔄 重巡本層整備</button>
                     </div>
                     <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest" style="display: none; width: 100%;">⛺ 逃回村莊</button>
-                    
-                    <!-- 🤖 自動戰鬥戰術按鈕 (預設隱藏，戰鬥中自動亮出) -->
-                    <button id="btn-auto-battle" type="button" onclick="toggleAutoBattle()" class="btn-game btn-rest" style="display: none; width: 100%; margin-top: 4px; background: linear-gradient(135deg, #7f8c8d 0%, #2c3e50 100%) !important; border: 1px solid #95a5a6 !important;">🤖 自動戰鬥: 關</button>
                 </div>
             </div>
 
@@ -235,8 +277,49 @@
                 <div class="flex-layout" id="reward-choices-container"></div>
             </div>
 
-            <!-- 📜 7. 戰鬥日誌打印台 -->
-            <div class="log-panel" id="log-box" style="display: none; width: 100%;"></div>
+            <!-- 📜 7. 戰鬥日誌打印台 + 🧭 側拉式戰術抽屜 -->
+            <div class="log-wrapper" id="log-wrapper-box" style="display: none;">
+                
+                <!-- 日誌主面板 -->
+                <div class="log-panel" id="log-box" style="width: 100%; height: 100%;"></div>
+
+                <!-- 側拉式變陣抽屜 (隱藏按鈕已移至此處) -->
+                <div class="tactics-drawer" id="tactics-drawer-box">
+                    
+                    <!-- 抽屜側邊觸發把手 -->
+                    <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn">
+                        <span class="trigger-icon">⚙️</span>
+                        <span class="trigger-text">戰術指令</span>
+                    </button>
+                    
+                    <!-- 抽屜核心選擇內容 -->
+                    <div class="drawer-panel-content">
+                        <div class="drawer-header">🎯 即時陣法變革</div>
+                        
+                        <div class="tactics-options-container">
+                            <!-- 戰術 1: 手動操控 -->
+                            <button id="tactic-btn-MANUAL" class="btn-tactic-option active" type="button" onclick="selectTactic('MANUAL')">
+                                <span class="tactic-title">🎮 手動看戲</span>
+                                <span class="tactic-desc">只使用基本物理揮砍，不消耗任何 MP</span>
+                            </button>
+
+                            <!-- 戰術 2: 均衡防守 -->
+                            <button id="tactic-btn-BALANCED" class="btn-tactic-option" type="button" onclick="selectTactic('BALANCED')">
+                                <span class="tactic-title">⚖️ 均衡防禦</span>
+                                <span class="tactic-desc">自愈技能優先，保留 30% MP 作急救防禦</span>
+                            </button>
+
+                            <!-- 戰術 3: 狂暴強擊 -->
+                            <button id="tactic-btn-OFFENSIVE" class="btn-tactic-option" type="button" onclick="selectTactic('OFFENSIVE')">
+                                <span class="tactic-title">⚔️ 狂暴強擊</span>
+                                <span class="tactic-desc">大招全開，忽視治療，爆發最強火力</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
 
         </div> <!-- 右側直欄結束 -->
     </div> <!-- 雙欄核心分流包殼容器結束 (.game-layout-split) -->
