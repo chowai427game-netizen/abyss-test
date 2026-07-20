@@ -1,5 +1,5 @@
 // ==========================================================================
-// 💾 state.js：修復名字覆蓋問題與多角色存檔分離引擎
+// 💾 state.js：永久帳號存檔結構、6大能力值換算、雲端雙向同步與冷啟動引擎
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
@@ -23,6 +23,7 @@ function createDefaultAccountMeta(name) {
 
 let accountMeta = createDefaultAccountMeta("無名勇者");
 
+// 當前單次冒險/戰鬥狀態
 let currentRun = {
     job: "novice",
     lv: 1,
@@ -52,19 +53,85 @@ let dungeonFloor = 0;
 let playerShield = 0;
 let activeMonster = null;
 let playerStatusEffects = { burn: 0, poison: 0 };
-let gameState = "VILLAGE";
+let gameState = "VILLAGE"; // VILLAGE, BATTLE, REWARD, ENCOUNTER, ENCOUNTER_RESOLVED
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
 
+// ==========================================
+// 🧮 戰鬥面板數值重構與匯入函數
+// ==========================================
+function resetCurrentRunData() {
+    if (!accountMeta.stats) {
+        accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+    }
+    
+    let s = accountMeta.stats;
+    
+    currentRun.lv = accountMeta.lv || 1; 
+    currentRun.exp = accountMeta.exp || 0; 
+    currentRun.nextExp = accountMeta.nextExp || 30;
+
+    currentRun.maxHp = 100 + (s.VIT * 15); 
+    currentRun.hp = Math.min(currentRun.hp || currentRun.maxHp, currentRun.maxHp); 
+    
+    currentRun.maxMp = 50 + (s.INT * 10); 
+    currentRun.mp = Math.min(currentRun.mp || currentRun.maxMp, currentRun.maxMp); 
+    
+    currentRun.mpRegen = 15 + (s.INT * 1); 
+    currentRun.atk = 15 + (s.ATK * 3); 
+    currentRun.spd = 20 + (s.DEX * 1) + (s.AGI * 2); 
+    currentRun.block = Math.floor(s.VIT * 0.5); 
+    
+    currentRun.critChance = Math.min(75, Math.floor((s.DEX * 0.5) + (s.LUK * 1.0))); 
+    currentRun.dodgeChance = Math.min(50, Math.floor(s.AGI * 0.8)); 
+    currentRun.vampRate = 0;       
+    currentRun.doubleStrike = Math.min(50, Math.floor(s.LUK * 0.5));   
+
+    if (!currentRun.skills || Object.keys(currentRun.skills).length === 0) {
+        currentRun.skills = { "緊急治療": 1 };
+    }
+    
+    currentRun.qteBuffDuration = 0; 
+    currentRun.qteBuffTurns = 0;
+    playerShield = 0;
+    playerStatusEffects = { burn: 0, poison: 0 };
+
+    applyEquipmentStats('weapon');
+    applyEquipmentStats('armor');
+    applyEquipmentStats('accessory');
+}
+
+function applyEquipmentStats(slot) {
+    const equipName = accountMeta.equipment ? accountMeta.equipment[slot] : null;
+    if (!equipName || typeof CRAFTING_BLUEPRINTS === "undefined") return;
+
+    const blueprint = CRAFTING_BLUEPRINTS.find(x => x.name === equipName);
+    if (!blueprint || !blueprint.stats) return;
+
+    const starLevel = (accountMeta.equipmentStars && accountMeta.equipmentStars[slot]) || 0;
+    const multiplier = 1 + (starLevel * 0.15); 
+
+    const st = blueprint.stats;
+    if (st.atk) currentRun.atk += Math.floor(st.atk * multiplier);
+    if (st.spd) currentRun.spd += Math.floor(st.spd * multiplier);
+    if (st.mpRegen) currentRun.mpRegen += Math.floor(st.mpRegen * multiplier);
+    if (st.block) currentRun.block += Math.floor(st.block * multiplier);
+    if (st.maxHp) currentRun.maxHp += Math.floor(st.maxHp * multiplier); 
+    if (st.critChance) currentRun.critChance = Math.min(75, currentRun.critChance + Math.floor(st.critChance * multiplier));
+    if (st.dodgeChance) currentRun.dodgeChance = Math.min(50, currentRun.dodgeChance + Math.floor(st.dodgeChance * multiplier));
+    if (st.vampRate) currentRun.vampRate += Math.floor(st.vampRate * multiplier);          
+    if (st.doubleStrike) currentRun.doubleStrike = Math.min(50, currentRun.doubleStrike + Math.floor(st.doubleStrike * multiplier));  
+}
+
 // ==========================================================================
-// 🌌 頁面初始化：預載最後一次使用的角色名稱與喚醒服務器
+// 🌌 頁面初始化：預載上次角色與喚醒 Render 免費伺服器
 // ==========================================================================
 window.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingBarFill = document.getElementById('loading-bar-fill');
     const loadingFlavorText = document.getElementById('loading-flavor-text');
 
-    // 1. 自動偵測 LocalStorage 歷史存檔，僅提供預填參考
+    // 1. 自動偵測 LocalStorage 歷史存檔，進行封面預填
     const lastActiveUser = localStorage.getItem("ABYSS_DESTINY_LAST_USER");
     if (lastActiveUser) {
         const inputName = document.getElementById('player-name-input');
@@ -82,24 +149,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // 2. 真實喚醒 Render 免費伺服器 (Ping)
+    // 2. 喚醒 Render 伺服器 (GET /)
     if (loadingFlavorText) {
         loadingFlavorText.innerText = "正在撕裂虛空裂縫，呼喚 Render 冥河伺服器...";
     }
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
 
-        await fetch(`${SERVER_URL}/api/active/save`, {
-            method: 'OPTIONS',
+        await fetch(SERVER_URL, {
+            method: 'GET',
             signal: controller.signal
         }).catch(() => {});
 
         clearTimeout(timeoutId);
         if (loadingFlavorText) loadingFlavorText.innerText = "✨ Render 雲端伺服器同步成功！開啟深淵通道...";
     } catch (err) {
-        console.warn("Render 冷啟動逾時或失敗，已切換至本地安全模式。");
+        console.warn("Render 冷啟動逾時，切換至單機本地模式。");
         if (loadingFlavorText) loadingFlavorText.innerText = "⚡ 連線逾時，已進入單機本地存檔模式！";
     }
 
@@ -116,79 +183,96 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================================================
-// 🔑 正確的角色初始化與讀檔引擎（修復名字被覆蓋的問題）
+// 🔑 角色初始化與雙向讀檔引擎 (本地優先 + 雲端同步)
 // ==========================================================================
 function initOrLoadPlayer(inputName) {
     const targetName = inputName ? inputName.trim() : "無名勇者";
     if (!targetName) return;
 
-    // 嘗試讀取該玩家專屬名稱的 LocalStorage 存檔
+    // A. 優先嘗試載入本地存檔 (秒開遊戲)
     const specificData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
-
     if (specificData) {
-        // 【情況 A】：存在該名字的專屬舊存檔 -> 載入舊進度
         try {
             const parsed = JSON.parse(specificData);
             accountMeta = Object.assign({}, createDefaultAccountMeta(targetName), parsed);
-            // 強制確保名稱為使用者當前輸入的名稱
             accountMeta.name = targetName;
         } catch (e) {
-            console.error("存檔解析失敗，重新創建角色", e);
             accountMeta = createDefaultAccountMeta(targetName);
         }
     } else {
-        // 【情況 B】：全新名字 -> 建立全新的角色檔案（不再抓取舊的 gma 存檔）
         accountMeta = createDefaultAccountMeta(targetName);
     }
 
-    // 記錄最後一次登入的角色名字
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
-
-    // 重置戰鬥狀態並進行即時雙向存檔
     resetCurrentRunData();
-    saveGameData();
+
+    // B. 背景非同步向 MongoDB 請求最新雲端存檔
+    fetchCloudSave(targetName);
 }
 
-// 供舊版相容呼叫的 loadGameData
+// 供 game.js 呼叫的相容接口
 function loadGameData(playerName) {
     initOrLoadPlayer(playerName || accountMeta.name);
 }
 
+// 向後端 MongoDB 抓取雲端存檔
+async function fetchCloudSave(playerName) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(`${SERVER_URL}/api/load/${encodeURIComponent(playerName)}`, {
+            method: 'GET',
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.activeChar) {
+                // 將雲端最新的存檔覆蓋進 accountMeta
+                accountMeta = Object.assign({}, createDefaultAccountMeta(playerName), data.activeChar);
+                accountMeta.name = playerName;
+
+                // 寫回 LocalStorage 做快取
+                localStorage.setItem(`ABYSS_DESTINY_SAVE_${playerName}`, JSON.stringify(accountMeta));
+
+                resetCurrentRunData();
+                if (typeof updateUI === "function") updateUI();
+                if (typeof addLog === "function") {
+                    addLog(`☁️【雲端同步】已成功從 MongoDB 載入勇者 <strong>${playerName}</strong> 的最新進度！`, "perfect");
+                }
+            }
+        }
+    } catch (err) {
+        console.warn("無法連線至雲端資料庫，將繼續使用本地快取存檔。");
+    }
+}
+
 // ==========================================
-// 💾 自動雙向存檔引擎 (獨立 Key 值隔離)
+// 💾 自動雙向存檔引擎 (同步至 LocalStorage 及 MongoDB)
 // ==========================================
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
     const charKey = `ABYSS_DESTINY_SAVE_${accountMeta.name}`;
 
+    // 1. 先寫入本地 LocalStorage 確保安全
     try {
-        // 1. 本地儲存：以角色名字作為獨一無二的 Key
         localStorage.setItem(charKey, JSON.stringify(accountMeta));
-        // 2. 紀錄最後使用的角色名稱
         localStorage.setItem("ABYSS_DESTINY_LAST_USER", accountMeta.name);
     } catch (e) {
         console.error("LocalStorage 寫入失敗:", e);
     }
 
-    // 3. 異步同步至 Render 後端伺服器
+    // 2. 傳送至 Render + MongoDB 雲端資料庫
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
 
         const payload = {
             name: accountMeta.name,
-            activeChar: {
-                lv: accountMeta.lv,
-                exp: accountMeta.exp,
-                nextExp: accountMeta.nextExp,
-                statPoints: accountMeta.statPoints,
-                stats: accountMeta.stats,
-                unlockedJobs: accountMeta.unlockedJobs,
-                warehouse: accountMeta.warehouse,
-                equipment: accountMeta.equipment,
-                equipmentStars: accountMeta.equipmentStars
-            }
+            activeChar: accountMeta // 直接上傳完整的 accountMeta 結構
         };
 
         const response = await fetch(`${SERVER_URL}/api/active/save`, {
@@ -199,32 +283,7 @@ async function saveGameData() {
         });
 
         clearTimeout(timeoutId);
-        if (!response.ok) {
-            console.warn(`雲端存檔回應異常: HTTP ${response.status}`);
-        }
     } catch (error) {
-        if (error.name === 'AbortError') {
-            console.warn("雲端存檔請求逾時，已轉為本地安全模式。");
-        } else {
-            console.warn("網絡連線中斷，存檔保留於本地。");
-        }
+        console.warn("網絡連線異常，雲端存檔未完成（已安全儲存於本地）。");
     }
-}
-
-// ==========================================
-// 🧹 強制清空全域舊存檔 (解決工具函數)
-// ==========================================
-function clearAllLegacySaves() {
-    localStorage.removeItem("ABYSS_DESTINY_SAVE");
-    localStorage.removeItem("ABYSS_DESTINY_LAST_USER");
-    
-    // 尋找並清除所有包含 ABYSS_DESTINY_SAVE 的項目
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("ABYSS_DESTINY_SAVE")) {
-            localStorage.removeItem(key);
-        }
-    });
-
-    alert("🧹 已成功清空所有本地舊存檔！現在可以重新創建任意名字的角色了。");
-    location.reload();
 }
