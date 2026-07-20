@@ -2,6 +2,160 @@
 // 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (極致流暢版)
 // ==========================================================================
 
+// ==========================================
+// 1. 屬性點數分配邏輯與自動寫入
+// ==========================================
+function allocateStatPoint(statKey) {
+    if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
+        alert("尚無可分配的能力點數！");
+        return;
+    }
+    
+    if (!accountMeta.stats) {
+        accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+    }
+    
+    // 扣除點數並增加屬性
+    accountMeta.statPoints--;
+    accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
+    
+    // 重新算數並保存
+    resetCurrentRunData();
+    saveGameData();
+    
+    addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！`, "perfect");
+    updateUI();
+}
+
+// ==========================================
+// 2. 介面同步主函數 (syncCharacterDataUi)
+// ==========================================
+function syncCharacterDataUi() {
+    if (!accountMeta || !currentRun) return;
+
+    // 基本資訊
+    let nameEl = document.getElementById('p-name');
+    let jobEl = document.getElementById('p-job');
+    let lvEl = document.getElementById('p-lv');
+    let expTextEl = document.getElementById('p-exp-text');
+    
+    if (nameEl) nameEl.innerText = accountMeta.name || "無名勇者";
+    if (jobEl && typeof getJobChineseName === "function") jobEl.innerText = getJobChineseName(currentRun.job);
+    if (lvEl) lvEl.innerText = accountMeta.lv || 1;
+    if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || 30}`;
+
+    // 未分配點數渲染
+    let ptsEl = document.getElementById('p-stat-points');
+    if (ptsEl) ptsEl.innerText = accountMeta.statPoints || 0;
+
+    // 渲染 6 大屬性與點數加號按鈕
+    let gridEl = document.getElementById('stat-alloc-grid');
+    if (gridEl) {
+        gridEl.innerHTML = "";
+        
+        const statConfig = [
+            { key: "ATK", name: "⚔️ 力量", desc: "+3 攻擊" },
+            { key: "VIT", name: "🛡️ 體力", desc: "+15 HP, +0.5 格擋" },
+            { key: "INT", name: "🔮 智力", desc: "+10 MP, +1 回藍" },
+            { key: "DEX", name: "🎯 靈巧", desc: "+1 速度, +0.5% 暴擊" },
+            { key: "AGI", name: "⚡ 敏捷", desc: "+2 速度, +0.8% 閃避" },
+            { key: "LUK", name: "🎰 幸運", desc: "+1% 暴擊, +0.5% 連擊" }
+        ];
+
+        let hasPoints = (accountMeta.statPoints || 0) > 0;
+        let currentStats = accountMeta.stats || { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+
+        statConfig.forEach(s => {
+            let val = currentStats[s.key] || 0;
+            let cell = document.createElement('div');
+            cell.style.cssText = `
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 4px;
+                padding: 4px 6px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+
+            cell.innerHTML = `
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 11px; color: #ddd;">${s.name} <b style="color: #00ffcc;">${val}</b></span>
+                    <span style="font-size: 9px; color: #777;">${s.desc}</span>
+                </div>
+                <button class="btn-game" 
+                    style="padding: 2px 6px; font-size: 11px; min-width: 22px; height: 22px; line-height: 1;"
+                    ${hasPoints ? "" : "disabled"} 
+                    onclick="allocateStatPoint('${s.key}')">+</button>
+            `;
+            gridEl.appendChild(cell);
+        });
+    }
+
+    // 血量與魔力條
+    let hpEl = document.getElementById('p-hp');
+    let maxHpEl = document.getElementById('p-maxhp');
+    let mpEl = document.getElementById('p-mp');
+    let maxMpEl = document.getElementById('p-maxmp');
+    
+    if (hpEl) hpEl.innerText = currentRun.hp;
+    if (maxHpEl) maxHpEl.innerText = currentRun.maxHp;
+    if (mpEl) mpEl.innerText = currentRun.mp;
+    if (maxMpEl) maxMpEl.innerText = currentRun.maxMp;
+
+    let hpBar = document.getElementById('hp-bar-fill');
+    let mpBar = document.getElementById('mp-bar-fill');
+    if (hpBar) hpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.hp / currentRun.maxHp) * 100))}%`;
+    if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
+
+    // 戰鬥次要屬性面板
+    let setTxt = (id, txt) => { let e = document.getElementById(id); if (e) e.innerText = txt; };
+    setTxt('p-gold', currentRun.gold || 0);
+    setTxt('p-atk', currentRun.atk);
+    setTxt('p-block', currentRun.block);
+    setTxt('p-spd', currentRun.spd);
+    setTxt('p-crit', `${currentRun.critChance}%`);
+    setTxt('p-dodge', `${currentRun.dodgeChance}%`);
+
+    // 背包容量與圖標渲染 (MAX_BAG_SIZE = 6)
+    let bagCapTxt = document.getElementById('bag-capacity-text');
+    if (bagCapTxt) bagCapTxt.innerText = `${currentRun.inventory.length} / ${MAX_BAG_SIZE}`;
+
+    let bagContainer = document.getElementById('bag-slots-container');
+    if (bagContainer) {
+        bagContainer.innerHTML = "";
+        for (let i = 0; i < MAX_BAG_SIZE; i++) {
+            let item = currentRun.inventory[i];
+            let slot = document.createElement('div');
+            slot.style.cssText = `
+                height: 32px;
+                border: 1px dashed ${item ? "rgba(255,215,0,0.5)" : "rgba(255,255,255,0.15)"};
+                background: ${item ? "rgba(255,215,0,0.08)" : "rgba(0,0,0,0.2)"};
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                cursor: ${item ? "pointer" : "default"};
+                position: relative;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                padding: 0 2px;
+            `;
+
+            if (item) {
+                slot.innerText = item;
+                slot.title = `點擊將 ${item} 移回倉庫`;
+                slot.onclick = () => removeBagItem(i);
+            } else {
+                slot.innerHTML = `<span style="color:#444;">空</span>`;
+            }
+            bagContainer.appendChild(slot);
+        }
+    }
+}
+
 const DOM = {
     isInitialized: false,
     elements: {},
