@@ -81,10 +81,27 @@
                     <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
                     <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
                 </div>
-
-                <div class="status-item full-row quick-bag-row">
-                    <span style="color: #ffa500; font-size: 11px; font-weight: bold;">🎒 背包：</span>
-                    <span id="p-dungeon-bag"><span style='color:#666;'>[空]</span></span>
+                <!-- 📊 6 大能力值與自由配點控制面板 -->
+                <div class="status-item full-row" style="background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; padding: 10px; margin-top: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+                        <span style="color: #ffd700; font-weight: bold; font-size: 12px; letter-spacing: 1px;">🎯 自由能力點數</span>
+                        <strong id="p-stat-points" style="color: #00ffcc; font-size: 15px; text-shadow: 0 0 5px rgba(0,255,204,0.5);">0</strong>
+                    </div>
+    
+                    <!-- 6大屬性雙欄動態網格 -->
+                    <div id="stat-alloc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                        <!-- 由 ui.js 動態渲染屬性值與 [+] 配點按鈕 -->
+                    </div>
+                </div>
+                                <!-- 🎒 戰術快捷背包區域 (容量 6 格) -->
+                <div class="status-item full-row" style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 4px;">
+                        <span>🎒 戰術背包快捷欄</span>
+                        <span id="bag-capacity-text">0 / 6</span>
+                    </div>
+                    <div id="bag-slots-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+                        <!-- 由 ui.js 渲染背包格子 -->
+                    </div>
                 </div>
 
                 <!-- 🔍 摺疊查看 戰偶紙娃娃與技能面板 -->
