@@ -13,43 +13,6 @@ let isQteActive = false;
 let activeTactic = "MANUAL"; // 預設戰術
 
 // ==========================================================================
-// 🌐 頁面初始化與 Loading 遮罩關閉引擎 (解決卡 Loading 封面的核心修復)
-// ==========================================================================
-window.addEventListener('DOMContentLoaded', () => {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const loadingBarFill = document.getElementById('loading-bar-fill');
-    
-    // 1. 動態拉滿進度條
-    if (loadingBarFill) {
-        loadingBarFill.classList.add('complete');
-    }
-    
-    // 2. 延遲 600ms 淡出遮罩並徹底隱藏
-    setTimeout(() => {
-        if (loadingOverlay) {
-            loadingOverlay.classList.add('fade-out');
-            setTimeout(() => {
-                loadingOverlay.style.display = 'none';
-            }, 600);
-        }
-    }, 600);
-    
-    // 3. 自動偵測 LocalStorage 歷史存檔，預填名字
-    const savedData = localStorage.getItem("ABYSS_DESTINY_SAVE");
-    if (savedData) {
-        try {
-            const parsed = JSON.parse(savedData);
-            if (parsed.name) {
-                const inputName = document.getElementById('player-name-input');
-                if (inputName) inputName.value = parsed.name;
-                const legacyBox = document.getElementById('legacy-box');
-                if (legacyBox) legacyBox.innerHTML = `✨ 檢測到雲端血脈歷史紀錄：<strong>${parsed.name}</strong> (Lv.${parsed.lv || 1})`;
-            }
-        } catch(e){}
-    }
-});
-
-// ==========================================================================
 // 🧮 經典乘算傷害與隨機浮動計算引擎
 // ==========================================================================
 function calculateDamage(atk, defense, isPlayerAttacking = true) {
