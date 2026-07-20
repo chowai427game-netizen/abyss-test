@@ -619,7 +619,54 @@ function renderVillageWorkshop() {
     });
 }
 
-function renderVillageJobSelectors() {}
+// 💡 補全：職業選擇器動態渲染邏輯
+function renderVillageJobSelectors() {
+    const container = document.getElementById('job-choices-container');
+    if (!container) return;
+    container.innerHTML = "";
+
+    const jobs = [
+        { id: "novice", name: "初心者", icon: "🎭", desc: "追求全方位均衡發展的冒險者。" },
+        { id: "swordsman", name: "劍士", icon: "⚔️", desc: "擁有強大物理近戰爆發與硬核防禦。" },
+        { id: "magician", name: "魔法師", icon: "🔮", desc: "掌握元素奧術，具備極高魔力與控場。" },
+        { id: "acolyte", name: "服事", icon: "✨", desc: "獲得神聖庇護，擅長自我治療與輔助。" }
+    ];
+
+    jobs.forEach(j => {
+        let card = document.createElement('div');
+        let isCurrent = (currentRun.job === j.id);
+        card.style.cssText = `
+            background: ${isCurrent ? "rgba(0, 255, 204, 0.1)" : "rgba(0, 0, 0, 0.3)"};
+            border: 1px solid ${isCurrent ? "#00ffcc" : "rgba(255, 255, 255, 0.1)"};
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        `;
+        card.innerHTML = `
+            <div style="font-size: 20px;">${j.icon}</div>
+            <strong style="color: ${isCurrent ? "#00ffcc" : "#fff"}; font-size: 13px;">${j.name}</strong>
+            <p style="font-size: 10px; color: #aaa; margin: 4px 0 8px 0;">${j.desc}</p>
+            <button class="btn-game ${isCurrent ? "btn-rerun" : "btn-explore"}" style="padding: 4px 8px; font-size: 10px;" ${isCurrent ? "disabled" : ""}>
+                ${isCurrent ? "現職中" : "切換轉職"}
+            </button>
+        `;
+        card.onclick = () => {
+            if (isCurrent) return;
+            currentRun.job = j.id;
+            if (!accountMeta.unlockedJobs.includes(j.id)) {
+                accountMeta.unlockedJobs.push(j.id);
+            }
+            resetCurrentRunData();
+            saveGameData();
+            addLog(`🎭 成功轉換職業為 ➔ <strong>${j.name}</strong>！`, "perfect");
+            updateUI();
+            renderVillageJobSelectors();
+        };
+        container.appendChild(card);
+    });
+}
 
 function addLog(msg, type = "deal") {
     let box = document.getElementById('log-box');
