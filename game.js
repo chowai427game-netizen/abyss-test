@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：真・ATB 運算、智慧自動戰鬥 AI、進階乘算傷害、QTE 判定鏈接 (升級版)
+// 🕹️ game.js：真・ATB 運算、智慧自動戰鬥 AI、進階乘算傷害、QTE 判定鏈接 (修正優化版)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -9,20 +9,20 @@ let playerAtb = 0;
 let monsterAtb = 0;
 let envAtb = 0;
 let battleTimeElapsed = 0;
+let isQteActive = false;
+let activeTactic = "MANUAL"; // 預設戰術
 
 // ==========================================================================
 // 🧮 經典乘算傷害與隨機浮動計算引擎
 // ==========================================================================
 function calculateDamage(atk, defense, isPlayerAttacking = true) {
-    let k = isPlayerAttacking ? 50 : 35; // 防禦常數
+    let k = isPlayerAttacking ? 50 : 35; 
     let reduction = defense / (defense + k);
     let baseDmg = atk * (1 - reduction);
     
-    // ±10% 浮動傷害
     let variance = 0.9 + Math.random() * 0.2;
     let finalDmg = Math.max(1, Math.floor(baseDmg * variance));
     
-    // 暴擊率判定 (只限玩家)
     let isCrit = false;
     if (isPlayerAttacking && Math.random() * 100 < currentRun.critChance) {
         isCrit = true;
@@ -44,7 +44,6 @@ function handleStartGame() {
     dungeonFloor = 0;
     currentEnvironment = "NORMAL";
     
-    // 💡 呼叫在 state.js 寫好的雙軌讀檔引擎
     loadGameData(inputName);
     
     switchVillageLocation("GATE");
@@ -92,29 +91,27 @@ function handleSecondaryAction() {
         isQteActive = false;
         document.getElementById('qte-overlay').style.display = 'none';
     }
-    addLog(`🏃【撤退】你驚險逃回地表村莊！當局臨時等級歸零。`);
     
-    currentRun.inventory.forEach(item => {
-        if(MONSTER_DROPS[item] || Object.values(MONSTER_DROPS).includes(item) || item.includes("未知物體")) {
-            accountMeta.warehouse[item] = (accountMeta.warehouse[item] || 0) + 1;
-        }
-    });
+    // 💡 文案修正：正確反映等級與裝備保留
+    addLog(`🏃【撤退】你驚險逃回地表村莊！等級與裝備完美保留，素材已安全歸倉！`, "perfect");
     
-    // 💡 雙軌自動存檔
+    if (currentRun.inventory) {
+        currentRun.inventory.forEach(item => {
+            if(typeof MONSTER_DROPS !== "undefined" && (MONSTER_DROPS[item] || Object.values(MONSTER_DROPS).includes(item) || item.includes("未知物體"))) {
+                accountMeta.warehouse[item] = (accountMeta.warehouse[item] || 0) + 1;
+            }
+        });
+    }
+    
     saveGameData(); 
-    
     resetCurrentRunData();
     updateUI();
     switchVillageLocation("GATE");
 }
 
-// ==========================================
-// 3. 背包系統容量防護 (MAX_BAG_SIZE = 6)
-// ==========================================
 function tryEquipItemToBag(itemName) {
     if (!currentRun.inventory) currentRun.inventory = [];
     
-    // 檢查背包空間上限
     if (currentRun.inventory.length >= MAX_BAG_SIZE) { 
         alert(`🎒 戰術背包已滿（容量上限：${MAX_BAG_SIZE} 格）！請先卸下或使用現有道具。`); 
         return; 
@@ -125,7 +122,6 @@ function tryEquipItemToBag(itemName) {
         return;
     }
     
-    // 扣除倉庫數量，移入戰鬥快捷欄
     accountMeta.warehouse[itemName]--;
     currentRun.inventory.push(itemName);
     
@@ -139,7 +135,7 @@ function tryEquipItemToBag(itemName) {
 }
 
 function removeBagItem(index) {
-    if (index < 0 || index >= currentRun.inventory.length) return;
+    if (!currentRun.inventory || index < 0 || index >= currentRun.inventory.length) return;
     
     const itemName = currentRun.inventory.splice(index, 1)[0];
     accountMeta.warehouse[itemName] = (accountMeta.warehouse[itemName] || 0) + 1;
@@ -179,23 +175,14 @@ function executeUseDungeonItem(itemName, index) {
     updateUI();
 }
 
-/**
- * 🧠 智慧多重決策樹運算 (全新戰術 AI 大腦)
- * 根據玩家切換的「戰術」執行完全不同的行為決策
- */
 function executeAutoBattleAiTurn() {
-    // 1. 如果是手動戰術，AI 拒絕代理，返回 false 直接進行基本物理揮砍
     if (activeTactic === "MANUAL") {
         return false; 
     }
 
     let hpRatio = currentRun.hp / currentRun.maxHp;
 
-    // ==========================================
-    // ⚖️ 【均衡防禦戰術】：保命優先，保留 30% 魔力底牌
-    // ==========================================
     if (activeTactic === "BALANCED") {
-        // A. 殘血急救：低於 35% HP 且背包有漢堡，立刻吃藥
         if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
             let mealIndex = currentRun.inventory.findIndex(item => item.includes("厚牛巨堡"));
             if (mealIndex !== -1) {
@@ -204,12 +191,11 @@ function executeAutoBattleAiTurn() {
             }
         }
 
-        // B. 自愈術決策：HP 低於 60% 且魔力夠，100% 進行緊急吟唱
         let healSkill = null;
         if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
         else if (currentRun.skills["緊急治療"] && currentRun.mp >= 15) healSkill = "緊急治療";
 
-        if (hpRatio < 0.60 && healSkill) {
+        if (hpRatio < 0.60 && healSkill && typeof SKILLS_DATABASE !== "undefined") {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === healSkill);
             if (sMeta) {
                 currentRun.mp -= sMeta.mp;
@@ -221,11 +207,10 @@ function executeAutoBattleAiTurn() {
             }
         }
 
-        // C. 進攻大招：只在「魔力剩餘 > 30%」時才捨得施放，否則要把魔留著給自愈術
         let mpRatio = currentRun.mp / currentRun.maxMp;
-        if (mpRatio > 0.30) {
+        if (mpRatio > 0.30 && typeof SKILLS_DATABASE !== "undefined") {
             let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
-            activeSkills.sort((a, b) => b.mp - a.mp); // 由高傷害大招開始放
+            activeSkills.sort((a, b) => b.mp - a.mp); 
 
             for (let sMeta of activeSkills) {
                 if (currentRun.mp >= sMeta.mp) {
@@ -244,13 +229,10 @@ function executeAutoBattleAiTurn() {
                 }
             }
         }
-        return false; // 魔力不夠放招，退回普通揮砍
+        return false; 
     }
 
-    // ==========================================
-    // ⚔️ 【狂暴強擊戰術】：不回血、不吃漢堡，全力大招轟炸！
-    // ==========================================
-    if (activeTactic === "OFFENSIVE") {
+    if (activeTactic === "OFFENSIVE" && typeof SKILLS_DATABASE !== "undefined") {
         let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
         activeSkills.sort((a, b) => b.mp - a.mp);
 
@@ -258,7 +240,7 @@ function executeAutoBattleAiTurn() {
             if (currentRun.mp >= sMeta.mp) {
                 currentRun.mp -= sMeta.mp;
                 let monsterDef = Math.floor(dungeonFloor * 1.2);
-                let rawAtk = currentRun.atk * 1.8; // 狂暴狀態下傷害加成 (1.5 -> 1.8 倍)
+                let rawAtk = currentRun.atk * 1.8; 
                 let dmgRes = calculateDamage(rawAtk, monsterDef, true);
                 activeMonster.hp -= dmgRes.damage;
 
@@ -270,15 +252,12 @@ function executeAutoBattleAiTurn() {
                 return true;
             }
         }
-        return false; // MP 乾涸，退回普通揮砍
+        return false; 
     }
 
     return false;
 }
 
-// ==========================================================================
-// 🍳🔨 QTE 喚起引擎
-// ==========================================================================
 function triggerVillageQte(type, targetData, successCallback) {
     const overlay = document.getElementById('qte-overlay');
     const title = document.getElementById('qte-skill-name');
@@ -290,7 +269,6 @@ function triggerVillageQte(type, targetData, successCallback) {
     overlay.style.display = "flex";
     isQteActive = true;
 
-    // 🔒 鎖定網頁滾動
     document.body.style.overflow = "hidden";
 
     if (type === "COOK") {
@@ -322,8 +300,6 @@ function triggerVillageQte(type, targetData, successCallback) {
     function resolveQteResult(rating) {
         isQteActive = false;
         overlay.style.display = "none";
-        
-        // 🔓 解除網頁鎖定，恢復正常滾動
         document.body.style.overflow = ""; 
         successCallback(rating);
     }
@@ -402,9 +378,6 @@ function executeForgeEquipment(blueprint) {
     });
 }
 
-// ==========================================================================
-// 🌟 裝備部位升星與拆解模組 (100% 永久繼承)
-// ==========================================================================
 function getStarUpCost(slot, currentStar) {
     let nextStar = currentStar + 1;
     if (slot === "weapon") {
@@ -453,9 +426,6 @@ function executeDismantle(equipName) {
     if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
 
-// ==========================================================================
-// ⚔️ 核心冒險與回合邏輯 (實裝新手保護)
-// ==========================================================================
 async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
@@ -471,21 +441,17 @@ async function runDungeonLoop() {
         currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
         
         if (isBossFloor) {
-            let bossMeta = BOSS_DATABASE[dungeonFloor] || { name: `👹 深淵無名魔皇`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, baseSpd: 20, dropItem: "史萊姆黏液" };
+            let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { name: `👹 深淵無名魔皇`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, baseSpd: 20, dropItem: "史萊姆黏液" };
             activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, spd: bossMeta.baseSpd, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
             addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
-            // 🎯【重磅優化】根據當前樓層過濾對應層數範圍的常規魔物
-            let availableMonsters = REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor);
+            let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
+            if (availableMonsters.length === 0 && typeof REGULAR_MONSTERS_POOL !== "undefined") availableMonsters = REGULAR_MONSTERS_POOL;
             
-            // 防空保護：如果該層數沒有配怪，則後備調用全局小怪
-            if (availableMonsters.length === 0) availableMonsters = REGULAR_MONSTERS_POOL;
-            
-            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
+            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseSpd: 15 };
             let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * rollSeed.hpScale);
             let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * rollSeed.atkScale);
             
-            // 🌟 新手保護機制：B1F-B3F 怪物速度與屬性適度壓制
             let finalSpd = rollSeed.baseSpd;
             if (dungeonFloor <= 3) {
                 finalSpd = Math.max(10, Math.floor(finalSpd * 0.65));
@@ -496,7 +462,6 @@ async function runDungeonLoop() {
             activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, spd: finalSpd, freezeTurns: 0, isSkipped: false, isBoss: false };
             addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
             
-            // 新手引導
             if (dungeonFloor === 1) {
                 addLog("💡【勇者生存提示】：若戰局不妙，請果斷點擊「⛺ 逃回村莊」，這能安全帶回你快捷背包中的所有珍貴素材！", "perfect");
             }
@@ -544,10 +509,9 @@ function executeEnvironmentTick() {
 function executePlayerActionTick() {
     let activeTriggered = false;
 
-    // 💡 修正：由新戰術 AI 面板驅動，只要不是手動就執行 AI 變陣決策
     if (activeTactic !== "MANUAL") {
         activeTriggered = executeAutoBattleAiTurn();
-    } else {
+    } else if (typeof SKILLS_DATABASE !== "undefined") {
         for (let sName of Object.keys(currentRun.skills)) {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
             if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
@@ -559,7 +523,6 @@ function executePlayerActionTick() {
                     let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                     
                     if (eff.dmg) { 
-                        // 🌟 套用乘算公式計算技能傷害
                         let monsterDef = Math.floor(dungeonFloor * 1.2);
                         let dmgRes = calculateDamage(eff.dmg, monsterDef, true);
                         activeMonster.hp -= dmgRes.damage; 
@@ -572,7 +535,6 @@ function executePlayerActionTick() {
                         addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
                     }
                 } else {
-                    // 🌟 普攻套用乘算
                     let monsterDef = Math.floor(dungeonFloor * 1.2);
                     let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
                     activeMonster.hp -= dmgRes.damage; 
@@ -586,7 +548,6 @@ function executePlayerActionTick() {
     }
 
     if (!activeTriggered) { 
-        // 🌟 物理揮砍套用乘算與浮動
         let monsterDef = Math.floor(dungeonFloor * 1.2);
         let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
         activeMonster.hp -= dmgRes.damage; 
@@ -601,7 +562,6 @@ function executePlayerActionTick() {
         if (vAmt > 0) { currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vAmt); addLog(`🩸【血脈吸吮】吸血 <span class="num-popup num-h-heal">+${vAmt} HP</span>`); }
     }
     if (currentRun.doubleStrike > 0 && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
-        // 🌟 殘影追擊連砍套用乘算
         let monsterDef = Math.floor(dungeonFloor * 1.2);
         let extraAtk = Math.floor(currentRun.atk * 0.85);
         let dmgRes = calculateDamage(extraAtk, monsterDef, true);
@@ -616,7 +576,6 @@ function executePlayerActionTick() {
 function executeMonsterActionTick() {
     if (activeMonster.freezeTurns > 0) { activeMonster.freezeTurns--; return; }
     
-    // 🛡️ 玩家 Block 充當防禦力，代入高階乘算減傷公式
     let dmgRes = calculateDamage(activeMonster.atk, currentRun.block, false);
     let finalDmg = dmgRes.damage;
     
@@ -640,11 +599,17 @@ function executeDungeonVictorySequence() {
         setTimeout(() => { dismissBossVictoryCinematic(); }, 4000);
     } else {
         addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 獲得金幣 +20 G，經驗值 +15。`, "victory-badge");
+        
+        // 💡 修正：掉落判定使用 MAX_BAG_SIZE
         if (activeMonster && Math.random() < 0.25) { 
-            let dropName = MONSTER_DROPS[activeMonster.name] || "史萊姆黏液";
-            if (currentRun.inventory.length < 2) { currentRun.inventory.push(dropName); addLog(`🎁 獲得素材：<strong>${dropName}</strong>！`, "perfect"); }
+            let dropName = (typeof MONSTER_DROPS !== "undefined" && MONSTER_DROPS[activeMonster.name]) || "史萊姆黏液";
+            if (currentRun.inventory.length < MAX_BAG_SIZE) { 
+                currentRun.inventory.push(dropName); 
+                addLog(`🎁 獲得素材：<strong>${dropName}</strong>！`, "perfect"); 
+            }
         }
-        activeMonster = null; checkLevelUpAndTriggerSelect();
+        activeMonster = null; 
+        addExperience(15);
     }
 }
 
@@ -654,29 +619,22 @@ function dismissBossVictoryCinematic() {
     bOverlay.style.display = "none"; activeMonster = null; gameState = "REWARD"; updateUI(); triggerBossTalentReward();
 }
 
-// ==========================================
-// 2. 死亡不倒退懲罰機制
-// ==========================================
 function executeDungeonDefeatSequence() {
     addLog(`☠️【魂歸深淵】你已被擊敗！本輪未結算之當前 EXP 清零，但等級、配點與裝備完好無損。`, "take");
     
-    // 僅清除當前級別未儲滿的經驗值
     accountMeta.exp = 0;
     currentRun.exp = 0;
     
-    // 狀態歸位
     gameState = "VILLAGE"; 
     currentEnvironment = "NORMAL";
     
     let btnSecondary = document.getElementById('btn-secondary-action');
     if (btnSecondary) btnSecondary.style.display = "none";
     
-    // 重新校正冒險狀態，補滿血藍
     resetCurrentRunData(); 
     currentRun.hp = currentRun.maxHp;
     currentRun.mp = currentRun.maxMp;
     
-    // 存檔並回歸村莊地圖
     saveGameData(); 
     updateUI(); 
     if (typeof switchVillageLocation === "function") {
@@ -700,9 +658,6 @@ function triggerBossTalentReward() {
     });
 }
 
-// ==========================================
-// 1. 經驗值獲取與等級突破系統
-// ==========================================
 function addExperience(amount) {
     accountMeta.exp = (accountMeta.exp || 0) + amount;
     currentRun.exp = accountMeta.exp;
@@ -713,13 +668,11 @@ function addExperience(amount) {
 function checkLevelUpAndTriggerSelect() {
     let leveledUp = false;
     
-    // 支援一次獲取大量經驗連升多級的迴圈處理
     while (accountMeta.exp >= accountMeta.nextExp) {
         accountMeta.exp -= accountMeta.nextExp;
         accountMeta.lv = (accountMeta.lv || 1) + 1;
-        accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; // 升級賦予 1 點自由屬性點
+        accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; 
         
-        // 經驗值需求曲線公式：每次升級增加 40% 需求
         accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
         leveledUp = true;
     }
@@ -729,14 +682,11 @@ function checkLevelUpAndTriggerSelect() {
         currentRun.exp = accountMeta.exp;
         currentRun.nextExp = accountMeta.nextExp;
         
-        // 重新計算最新面板並恢復滿血滿藍
         resetCurrentRunData();
         currentRun.hp = currentRun.maxHp;
         currentRun.mp = currentRun.maxMp;
         
         addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點自由能力值！`, "perfect"); 
-        
-        // 觸發自動存檔
         saveGameData(); 
     }
     
@@ -753,13 +703,9 @@ function triggerRandomAbyssEvent() {
     if (!container || !title) return; 
     container.innerHTML = "";
     
-    // 🎲 50% 觸發 40種隨機奇遇 / 50% 觸發 40種隨機寶箱
     let isChestEvent = Math.random() < 0.5;
 
-    if (!isChestEvent) {
-        // ==========================================
-        // 🌌 觸發 40種隨機奇遇
-        // ==========================================
+    if (!isChestEvent && typeof ABYSS_EVENTS_DATABASE !== "undefined" && ABYSS_EVENTS_DATABASE.length > 0) {
         let randomEvent = ABYSS_EVENTS_DATABASE[Math.floor(Math.random() * ABYSS_EVENTS_DATABASE.length)];
         title.innerHTML = randomEvent.title;
         
@@ -786,10 +732,7 @@ function triggerRandomAbyssEvent() {
             container.appendChild(btn);
         });
     } 
-    else {
-        // ==========================================
-        // 🎁 觸發 40種隨機寶箱/陷阱/擬態怪
-        // ==========================================
+    else if (typeof TREASURE_CHESTS_POOL !== "undefined" && TREASURE_CHESTS_POOL.length > 0) {
         let rolledChest = TREASURE_CHESTS_POOL[Math.floor(Math.random() * TREASURE_CHESTS_POOL.length)];
         title.innerHTML = `🎁 發現古老遺蹟：[${rolledChest.name}] 🎁`;
 
@@ -806,19 +749,16 @@ function triggerRandomAbyssEvent() {
         btnOpen.style.width = "100%";
         btnOpen.innerHTML = `🔑 砸開寶箱鎖扣`;
         btnOpen.onclick = () => {
-            // 💰 計算金幣產出
             let rolledGold = Math.floor(Math.random() * (rolledChest.maxGold - rolledChest.minGold + 1)) + rolledChest.minGold;
             currentRun.gold += rolledGold;
             addLog(`🪙 獲得臨時金幣 +${rolledGold} G！`);
             addLog(`📢 箱內迴響：${rolledChest.msg}`, rolledChest.isTrap ? "take" : "perfect");
 
-            // ☠️ 處理陷阱/擬態怪扣血
             if (rolledChest.isTrap && rolledChest.dmg) {
                 currentRun.hp = Math.max(1, currentRun.hp - rolledChest.dmg);
             }
 
-            // 💎 25% 隨機產出素材
-            if (Math.random() < 0.25) {
+            if (Math.random() < 0.25 && typeof MONSTER_DROPS !== "undefined") {
                 let activeDrops = Object.values(MONSTER_DROPS);
                 let randDrop = activeDrops[Math.floor(Math.random() * activeDrops.length)];
                 accountMeta.warehouse[randDrop] = (accountMeta.warehouse[randDrop] || 0) + 1;
@@ -828,24 +768,10 @@ function triggerRandomAbyssEvent() {
             resolveAbyssEvent();
         };
         container.appendChild(btnOpen);
+    } else {
+        resolveAbyssEvent();
     }
     updateUI();
-}
-
-function buildBlackMarketUI(goodsList) {
-    const container = document.getElementById('reward-choices-container');
-    if (!container) return; container.innerHTML = "";
-    goodsList.forEach(item => {
-        let btn = document.createElement('button'); btn.className = "btn-game btn-cook";
-        btn.innerHTML = `🪙 <b>購買：[${item.name}]</b> (${item.price}G)`;
-        btn.onclick = () => {
-            if (currentRun.gold < item.price || currentRun.inventory.length >= 2) return;
-            currentRun.gold -= item.price; currentRun.inventory.push(item.name); buildBlackMarketUI(goodsList); updateUI();
-        };
-        container.appendChild(btn);
-    });
-    let btnExit = document.createElement('button'); btnExit.className = "btn-game btn-rest"; btnExit.innerHTML = "🏃 繼續出發";
-    btnExit.onclick = () => { resolveAbyssEvent(); }; container.appendChild(btnExit);
 }
 
 function resolveAbyssEvent() { gameState = "ENCOUNTER_RESOLVED"; document.getElementById('btn-main-action').disabled = false; updateUI(); runDungeonLoop(); }
@@ -862,13 +788,6 @@ function executeEquipAction(equipName, actionType) {
     resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
 
-// ==========================================================================
-// ⚙️ 側拉戰術抽屜操控與同步函數
-// ==========================================================================
-
-/**
- * 展開或收縮戰術指令面板
- */
 function toggleTacticsDrawer() {
     const drawer = document.getElementById('tactics-drawer-box');
     const triggerBtn = document.getElementById('tactic-trigger-btn');
@@ -876,7 +795,6 @@ function toggleTacticsDrawer() {
 
     drawer.classList.toggle('expanded');
     
-    // 更新按鈕提示文字
     const triggerTxt = triggerBtn.querySelector('.trigger-text');
     if (drawer.classList.contains('expanded')) {
         if (triggerTxt) triggerTxt.innerText = "關閉指令";
@@ -885,16 +803,10 @@ function toggleTacticsDrawer() {
     }
 }
 
-/**
- * 即時轉陣：點擊切換戰術
- */
 function selectTactic(tacticType) {
     activeTactic = tacticType;
-    
-    // 同步更新按鈕的高亮外觀
     syncTacticButtonsUi();
     
-    // 印出切換陣法的帥氣戰鬥日誌
     let tacticChinese = "";
     let logStyle = "perfect";
     if (tacticType === "MANUAL") {
@@ -910,9 +822,6 @@ function selectTactic(tacticType) {
     addLog(`📢 <b>【戰術變陣】</b>勇者身形一閃，陣腳轉變為 ➔ <span style="color: var(--gold-glow); font-weight:bold;">${tacticChinese}</span>`, logStyle);
 }
 
-/**
- * 遍歷所有戰術按鈕，為當前選中的按鈕加上 .active 框框
- */
 function syncTacticButtonsUi() {
     const types = ["MANUAL", "BALANCED", "OFFENSIVE"];
     types.forEach(type => {
