@@ -1,6 +1,36 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (極致流暢版)
+// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復整合版)
 // ==========================================================================
+
+const DOM = {
+    isInitialized: false,
+    elements: {},
+    init() {
+        if (this.isInitialized) return;
+        const keys = [
+            'p-name', 'p-job', 'p-lv', 'p-exp-text', 'p-hp', 'p-maxhp', 'p-mp', 'p-maxmp',
+            'hp-bar-fill', 'mp-bar-fill', 'p-atb-row', 'p-atb-text', 'p-atb-bar-fill',
+            'p-gold', 'p-block', 'p-crit', 'p-spd', 'p-dodge', 'p-skills-list', 'p-stat-points',
+            'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory', 'btn-main-action',
+            'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle', 'env-alert-bar',
+            'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar', 'm-atb-row', 'm-atb-text',
+            'm-atb-bar-fill', 'm-atk', 'm-spd', 'reward-panel-box', 'log-box', 'title-box',
+            'status-panel-box', 'action-panel-box', 'village-panel-box', 'log-wrapper-box'
+        ];
+        keys.forEach(key => {
+            this.elements[key] = document.getElementById(key);
+        });
+        this.isInitialized = true;
+    },
+    get(key) {
+        if (!this.isInitialized) this.init();
+        return this.elements[key];
+    }
+};
+
+let activeCookingRange = "1-10";
+let activeCraftingCategory = "all";
+let activeCraftingLvlRange = "1-10";
 
 // ==========================================
 // 1. 屬性點數分配邏輯與自動寫入
@@ -15,11 +45,9 @@ function allocateStatPoint(statKey) {
         accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
     }
     
-    // 扣除點數並增加屬性
     accountMeta.statPoints--;
     accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
     
-    // 重新算數並保存
     resetCurrentRunData();
     saveGameData();
     
@@ -28,7 +56,7 @@ function allocateStatPoint(statKey) {
 }
 
 // ==========================================
-// 2. 介面同步主函數 (syncCharacterDataUi)
+// 2. 介面同步主函數 (syncCharacterDataUi - 唯一整合版)
 // ==========================================
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
@@ -41,8 +69,8 @@ function syncCharacterDataUi() {
     
     if (nameEl) nameEl.innerText = accountMeta.name || "無名勇者";
     if (jobEl && typeof getJobChineseName === "function") jobEl.innerText = getJobChineseName(currentRun.job);
-    if (lvEl) lvEl.innerText = accountMeta.lv || 1;
-    if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || 30}`;
+    if (lvEl) lvEl.innerText = accountMeta.lv || currentRun.lv || 1;
+    if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || currentRun.nextExp || 30}`;
 
     // 未分配點數渲染
     let ptsEl = document.getElementById('p-stat-points');
@@ -108,6 +136,29 @@ function syncCharacterDataUi() {
     if (hpBar) hpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.hp / currentRun.maxHp) * 100))}%`;
     if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
+    // ⚡ 玩家無縫線性 ATB 更新
+    const pAtbRow = document.getElementById('p-atb-row');
+    if (pAtbRow) {
+        if (gameState === "VILLAGE") {
+            pAtbRow.style.display = "none";
+        } else {
+            pAtbRow.style.display = "block";
+            let pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
+            const pAtbBar = document.getElementById('p-atb-bar-fill');
+            
+            if (pAtbBar) {
+                let currentW = parseFloat(pAtbBar.style.width) || 0;
+                if (pAtbPercent < currentW) {
+                    pAtbBar.style.transition = "none";
+                    pAtbBar.style.width = "0%";
+                    pAtbBar.offsetHeight; 
+                }
+                pAtbBar.style.transition = "width 0.25s linear";
+                pAtbBar.style.width = `${pAtbPercent}%`;
+            }
+        }
+    }
+
     // 戰鬥次要屬性面板
     let setTxt = (id, txt) => { let e = document.getElementById(id); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
@@ -117,9 +168,27 @@ function syncCharacterDataUi() {
     setTxt('p-crit', `${currentRun.critChance}%`);
     setTxt('p-dodge', `${currentRun.dodgeChance}%`);
 
+    // 技能清單
+    let skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
+    const skillListEl = document.getElementById('p-skills-list');
+    if (skillListEl) skillListEl.innerText = skList || "基本打擊";
+
+    // 裝備與星級顯示
+    let wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
+    let aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
+    let cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
+
+    const slotWeapon = document.getElementById('p-equip-weapon');
+    const slotArmor = document.getElementById('p-equip-armor');
+    const slotAccessory = document.getElementById('p-equip-accessory');
+
+    if (slotWeapon) slotWeapon.innerText = (accountMeta.equipment?.weapon || "空手") + wStar;
+    if (slotArmor) slotArmor.innerText = (accountMeta.equipment?.armor || "布衣") + aStar;
+    if (slotAccessory) slotAccessory.innerText = (accountMeta.equipment?.accessory || "無") + cStar;
+
     // 背包容量與圖標渲染 (MAX_BAG_SIZE = 6)
     let bagCapTxt = document.getElementById('bag-capacity-text');
-    if (bagCapTxt) bagCapTxt.innerText = `${currentRun.inventory.length} / ${MAX_BAG_SIZE}`;
+    if (bagCapTxt) bagCapTxt.innerText = `${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`;
 
     let bagContainer = document.getElementById('bag-slots-container');
     if (bagContainer) {
@@ -142,12 +211,19 @@ function syncCharacterDataUi() {
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 padding: 0 2px;
+                color: ${item ? "#ffd700" : "#666"};
             `;
 
             if (item) {
                 slot.innerText = item;
-                slot.title = `點擊將 ${item} 移回倉庫`;
-                slot.onclick = () => removeBagItem(i);
+                slot.title = `戰鬥中點擊使用 / 村莊點擊移回倉庫 (${item})`;
+                slot.onclick = () => {
+                    if (gameState === "BATTLE") {
+                        executeUseDungeonItem(item, i);
+                    } else {
+                        removeBagItem(i);
+                    }
+                };
             } else {
                 slot.innerHTML = `<span style="color:#444;">空</span>`;
             }
@@ -156,40 +232,14 @@ function syncCharacterDataUi() {
     }
 }
 
-const DOM = {
-    isInitialized: false,
-    elements: {},
-    init() {
-        if (this.isInitialized) return;
-        const keys = [
-            'p-name', 'p-job', 'p-lv', 'p-exp-text', 'p-hp', 'p-maxhp', 'p-mp', 'p-maxmp',
-            'hp-bar-fill', 'mp-bar-fill', 'p-atb-row', 'p-atb-text', 'p-atb-bar-fill',
-            'p-gold', 'p-block', 'p-crit', 'p-spd', 'p-dodge', 'p-skills-list', 'p-dungeon-bag',
-            'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory', 'btn-main-action',
-            'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle', 'env-alert-bar',
-            'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar', 'm-atb-row', 'm-atb-text',
-            'm-atb-bar-fill', 'm-atk', 'm-spd', 'reward-panel-box', 'log-box', 'title-box',
-            'status-panel-box', 'action-panel-box', 'village-panel-box', 'log-wrapper-box'
-        ];
-        keys.forEach(key => {
-            this.elements[key] = document.getElementById(key);
-        });
-        this.isInitialized = true;
-    },
-    get(key) {
-        if (!this.isInitialized) this.init();
-        return this.elements[key];
-    }
-};
+function getJobChineseName(j) {
+    if (j === "novice") return "初心者";
+    if (j === "swordsman") return "劍士";
+    if (j === "magician") return "魔法師";
+    if (j === "acolyte") return "服事";
+    return j || "初心者";
+}
 
-// 全域過濾器狀態機
-let activeCookingRange = "1-10";
-let activeCraftingCategory = "all";
-let activeCraftingLvlRange = "1-10";
-
-/**
- * 🗺️ 地表村莊區域分流切換核心
- */
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
@@ -238,9 +288,6 @@ function switchVillageLocation(targetLoc) {
     updateUI();
 }
 
-/**
- * 🔄 遊戲全局狀態機 UI 刷新渲染引擎
- */
 function updateUI() {
     const titleBox = document.getElementById('title-box');
     const statusBox = document.getElementById('status-panel-box');
@@ -252,9 +299,6 @@ function updateUI() {
     const autoBtn = document.getElementById('btn-auto-battle');
     const logWrapper = document.getElementById('log-wrapper-box');
 
-    // ==========================================
-    // ⛺ 狀態 A：當前勇者在地表村莊
-    // ==========================================
     if (gameState === "VILLAGE") {
         if (titleBox) titleBox.style.display = "none"; 
         if (statusBox) statusBox.style.display = "grid";
@@ -266,7 +310,6 @@ function updateUI() {
         if (envBar) envBar.style.display = "none";
         if (autoBtn) autoBtn.style.display = "none";
         
-        // 確保變陣抽屜在回到村莊時自動關閉收回
         const drawer = document.getElementById('tactics-drawer-box');
         if (drawer) drawer.classList.remove('expanded');
         
@@ -282,9 +325,6 @@ function updateUI() {
         return; 
     }
     
-    // ==========================================
-    // ⚔️ 狀態 B：當前勇者在地下城深淵戰鬥中
-    // ==========================================
     if (titleBox) titleBox.style.display = "none";
     if (statusBox) statusBox.style.display = "grid";
     if (actionBox) actionBox.style.display = "flex";
@@ -303,7 +343,7 @@ function updateUI() {
         rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
     }
 
-    if (envBar && ENVIRONMENT_DATABASE[currentEnvironment]) {
+    if (envBar && typeof ENVIRONMENT_DATABASE !== "undefined" && ENVIRONMENT_DATABASE[currentEnvironment]) {
         envBar.className = ENVIRONMENT_DATABASE[currentEnvironment].className;
         envBar.innerHTML = `${ENVIRONMENT_DATABASE[currentEnvironment].logText} (B${dungeonFloor}F)`;
     }
@@ -317,22 +357,20 @@ function updateUI() {
         document.getElementById('m-atk').innerText = activeMonster.atk;
         document.getElementById('m-spd').innerText = activeMonster.spd;
 
-        // ⚡ 魔物無縫線性 ATB 更新
         const mAtbRow = document.getElementById('m-atb-row');
         if (mAtbRow) {
             mAtbRow.style.display = "block";
-            let mAtbPercent = Math.min(100, Math.max(0, monsterAtb));
+            let mAtbPercent = Math.min(100, Math.max(0, typeof monsterAtb !== "undefined" ? monsterAtb : 0));
             const mAtbBar = document.getElementById('m-atb-bar-fill');
             
             if (mAtbBar) {
                 let currentW = parseFloat(mAtbBar.style.width) || 0;
-                // 滿條歸零判定：如果新比例小於目前比例，立刻切斷過渡快速歸零，避免倒退效果
                 if (mAtbPercent < currentW) {
                     mAtbBar.style.transition = "none";
                     mAtbBar.style.width = "0%";
-                    mAtbBar.offsetHeight; // 強制瀏覽器重繪
+                    mAtbBar.offsetHeight; 
                 }
-                mAtbBar.style.transition = "width 0.25s linear"; // 完美的 250ms 線性無縫過渡
+                mAtbBar.style.transition = "width 0.25s linear"; 
                 mAtbBar.style.width = `${mAtbPercent}%`;
             }
         }
@@ -347,93 +385,6 @@ function updateUI() {
     }
     
     syncCharacterDataUi();
-}
-
-/**
- * 👤 核心數據更新面板 (紙娃娃裝備星級與平滑 ATB 適應)
- */
-function syncCharacterDataUi() {
-    document.getElementById('p-name').innerText = accountMeta.name;
-    document.getElementById('p-job').innerText = getJobChineseName(currentRun.job);
-    document.getElementById('p-lv').innerText = currentRun.lv;
-    document.getElementById('p-exp-text').innerText = `${currentRun.exp} / ${currentRun.nextExp}`;
-    document.getElementById('p-hp').innerText = currentRun.hp;
-    document.getElementById('p-maxhp').innerText = currentRun.maxHp;
-    document.getElementById('p-mp').innerText = currentRun.mp;
-    document.getElementById('p-maxmp').innerText = currentRun.maxMp;
-    
-    document.getElementById('hp-bar-fill').style.width = `${Math.max(0, (currentRun.hp / currentRun.maxHp) * 100)}%`;
-    document.getElementById('mp-bar-fill').style.width = `${Math.max(0, (currentRun.mp / currentRun.maxMp) * 100)}%`;
-    
-    // ⚡ 玩家無縫線性 ATB 更新
-    const pAtbRow = document.getElementById('p-atb-row');
-    if (pAtbRow) {
-        if (gameState === "VILLAGE") {
-            pAtbRow.style.display = "none";
-        } else {
-            pAtbRow.style.display = "block";
-            let pAtbPercent = Math.min(100, Math.max(0, playerAtb));
-            const pAtbBar = document.getElementById('p-atb-bar-fill');
-            
-            if (pAtbBar) {
-                let currentW = parseFloat(pAtbBar.style.width) || 0;
-                // 滿條歸零判定
-                if (pAtbPercent < currentW) {
-                    pAtbBar.style.transition = "none";
-                    pAtbBar.style.width = "0%";
-                    pAtbBar.offsetHeight; // 強制重繪
-                }
-                pAtbBar.style.transition = "width 0.25s linear";
-                pAtbBar.style.width = `${pAtbPercent}%`;
-            }
-        }
-    }
-
-    document.getElementById('p-gold').innerText = currentRun.gold;
-    document.getElementById('p-block').innerText = currentRun.block;
-    document.getElementById('p-crit').innerText = `${currentRun.critChance}%`;
-    document.getElementById('p-spd').innerText = currentRun.spd;
-    document.getElementById('p-dodge').innerText = `${currentRun.dodgeChance}%`;
-    
-    let skList = Object.keys(currentRun.skills).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
-    const skillListEl = document.getElementById('p-skills-list');
-    if (skillListEl) skillListEl.innerText = skList || "基本打擊";
-    
-    let wStar = accountMeta.equipmentStars.weapon > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
-    let aStar = accountMeta.equipmentStars.armor > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
-    let cStar = accountMeta.equipmentStars.accessory > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
-
-    const slotWeapon = document.getElementById('p-equip-weapon');
-    const slotArmor = document.getElementById('p-equip-armor');
-    const slotAccessory = document.getElementById('p-equip-accessory');
-
-    if (slotWeapon) slotWeapon.innerText = (accountMeta.equipment.weapon || "空手") + wStar;
-    if (slotArmor) slotArmor.innerText = (accountMeta.equipment.armor || "布衣") + aStar;
-    if (slotAccessory) slotAccessory.innerText = (accountMeta.equipment.accessory || "無") + cStar;
-    
-    let bagBox = document.getElementById('p-dungeon-bag');
-    if (bagBox) {
-        bagBox.innerHTML = "";
-        currentRun.inventory.forEach((item, index) => {
-            let sBtn = document.createElement('button');
-            sBtn.className = "btn-game btn-cook";
-            sBtn.style.margin = "2px 4px";
-            sBtn.style.padding = "4px 8px";
-            sBtn.style.fontSize = "11px";
-            sBtn.innerHTML = item;
-            sBtn.onclick = () => { executeUseDungeonItem(item, index); };
-            bagBox.appendChild(sBtn);
-        });
-        if (currentRun.inventory.length === 0) bagBox.innerHTML = "<span style='color:#666;'>[空]</span>";
-    }
-}
-
-function getJobChineseName(j) {
-    if (j === "novice") return "初心者";
-    if (j === "swordsman") return "劍士";
-    if (j === "magician") return "魔法師";
-    if (j === "acolyte") return "服事";
-    return j;
 }
 
 function changeCookingTab(selectedRange) {
@@ -479,13 +430,14 @@ function renderVillageCookingWorkshop() {
     const wBox = document.getElementById('kitchen-warehouse-display');
     if (!wBox) return;
     
-    let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
+    let wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
     wBox.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${wItems || "暫無任何行軍素材"}`;
     
     const rContainer = document.getElementById('recipes-container');
     if (!rContainer) return;
     rContainer.innerHTML = "";
 
+    if (typeof RECIPES_DATABASE === "undefined") return;
     const filteredRecipes = RECIPES_DATABASE.filter(r => r.range === activeCookingRange);
 
     if (filteredRecipes.length === 0) {
@@ -563,7 +515,7 @@ function renderVillageWorkshop() {
     const wBox = document.getElementById('workshop-warehouse-display');
     if (!wBox) return;
     
-    let wItems = Object.keys(accountMeta.warehouse).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
+    let wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
     wBox.innerHTML = `📦 <strong>雲端永久素材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
     
     const bContainer = document.getElementById('blueprints-container');
@@ -589,6 +541,7 @@ function renderVillageWorkshop() {
     `;
     bContainer.appendChild(starPanel);
 
+    if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
         const matchLvl = (b.range === activeCraftingLvlRange);
@@ -668,9 +621,6 @@ function renderVillageWorkshop() {
 
 function renderVillageJobSelectors() {}
 
-/**
- * 📜 魔導日誌列印核心 (流體絲滑滾動版)
- */
 function addLog(msg, type = "deal") {
     let box = document.getElementById('log-box');
     if (!box) return;
@@ -685,7 +635,6 @@ function addLog(msg, type = "deal") {
     p.innerHTML = msg;
     box.appendChild(p);
     
-    // ✨ 驅動流體動態無縫向下滾動
     box.scrollTo({
         top: box.scrollHeight,
         behavior: 'smooth'
