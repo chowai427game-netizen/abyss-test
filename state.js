@@ -2,6 +2,12 @@
 // 💾 state.js：永久帳號存檔結構、6大能力值換算與自動雙向存檔引擎
 // ==========================================================================
 
+// 後端 API 服務端點設定 (已更換為 Render 免費伺服器網址)
+const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
+
+// 戰術背包上限設定
+const MAX_BAG_SIZE = 6;
+
 let accountMeta = { 
     name: "無名勇者", 
     lv: 1,
@@ -21,12 +27,6 @@ let accountMeta = {
     equipment: { weapon: null, armor: null, accessory: null },
     equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
 };
-
-// 戰術背包上限設定
-const MAX_BAG_SIZE = 6;
-
-// 後端 API 服務端點設定
-const SERVER_URL = "http://localhost:3000";
 
 // 當前單次冒險/戰鬥狀態
 let currentRun = {
@@ -61,6 +61,63 @@ let playerStatusEffects = { burn: 0, poison: 0 };
 let gameState = "VILLAGE"; // VILLAGE, BATTLE, REWARD, ENCOUNTER, ENCOUNTER_RESOLVED
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
+
+// ==========================================================================
+// 🌌 Render 免費伺服器冷啟動喚醒與 Loading 遮罩控制引擎 (放在 state.js)
+// ==========================================================================
+window.addEventListener('DOMContentLoaded', async () => {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingBarFill = document.getElementById('loading-bar-fill');
+    const loadingFlavorText = document.getElementById('loading-flavor-text');
+
+    // 1. 自動偵測 LocalStorage 歷史存檔，預填封面名字
+    const savedData = localStorage.getItem("ABYSS_DESTINY_SAVE");
+    if (savedData) {
+        try {
+            const parsed = JSON.parse(savedData);
+            if (parsed.name) {
+                const inputName = document.getElementById('player-name-input');
+                if (inputName) inputName.value = parsed.name;
+                const legacyBox = document.getElementById('legacy-box');
+                if (legacyBox) legacyBox.innerHTML = `✨ 檢測到雲端血脈歷史紀錄：<strong>${parsed.name}</strong> (Lv.${parsed.lv || 1})`;
+            }
+        } catch(e){}
+    }
+
+    // 2. 真實喚醒 Render 免費伺服器 (連線 Ping)
+    if (loadingFlavorText) {
+        loadingFlavorText.innerText = "正在撕裂虛空裂縫，呼喚 Render 冥河伺服器...";
+    }
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 秒預設冷啟動上限
+
+        // 發送簡單 Ping 請求喚醒 Render 伺服器
+        await fetch(`${SERVER_URL}/api/active/save`, {
+            method: 'OPTIONS',
+            signal: controller.signal
+        }).catch(() => {});
+
+        clearTimeout(timeoutId);
+        if (loadingFlavorText) loadingFlavorText.innerText = "✨ Render 雲端伺服器同步成功！開啟深淵通道...";
+    } catch (err) {
+        console.warn("Render 冷啟動逾時或失敗，已切換至本地安全模式。");
+        if (loadingFlavorText) loadingFlavorText.innerText = "⚡ 連線逾時，已進入單機本地存檔模式！";
+    }
+
+    // 3. 拉滿進度條並淡出遮罩
+    if (loadingBarFill) loadingBarFill.classList.add('complete');
+
+    setTimeout(() => {
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('fade-out');
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 600);
+        }
+    }, 600);
+});
 
 // ==========================================
 // 戰鬥面板數值重構與匯入函數
@@ -125,9 +182,7 @@ function applyEquipmentStats(slot) {
     if (st.spd) currentRun.spd += Math.floor(st.spd * multiplier);
     if (st.mpRegen) currentRun.mpRegen += Math.floor(st.mpRegen * multiplier);
     if (st.block) currentRun.block += Math.floor(st.block * multiplier);
-    if (st.maxHp) { 
-        currentRun.maxHp += Math.floor(st.maxHp * multiplier); 
-    }
+    if (st.maxHp) currentRun.maxHp += Math.floor(st.maxHp * multiplier); 
     if (st.critChance) currentRun.critChance = Math.min(75, currentRun.critChance + Math.floor(st.critChance * multiplier));
     if (st.dodgeChance) currentRun.dodgeChance = Math.min(50, currentRun.dodgeChance + Math.floor(st.dodgeChance * multiplier));
     if (st.vampRate) currentRun.vampRate += Math.floor(st.vampRate * multiplier);          
