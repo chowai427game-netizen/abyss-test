@@ -108,14 +108,45 @@ function handleSecondaryAction() {
     switchVillageLocation("GATE");
 }
 
+// ==========================================
+// 3. 背包系統容量防護 (MAX_BAG_SIZE = 6)
+// ==========================================
 function tryEquipItemToBag(itemName) {
-    if (currentRun.inventory.length >= 2) { alert("🎒 背包已滿！"); return; }
-    if ((accountMeta.warehouse[itemName] || 0) <= 0) return;
+    if (!currentRun.inventory) currentRun.inventory = [];
+    
+    // 檢查背包空間上限
+    if (currentRun.inventory.length >= MAX_BAG_SIZE) { 
+        alert(`🎒 戰術背包已滿（容量上限：${MAX_BAG_SIZE} 格）！請先卸下或使用現有道具。`); 
+        return; 
+    }
+    
+    if (!accountMeta.warehouse[itemName] || accountMeta.warehouse[itemName] <= 0) {
+        alert("倉庫內無此道具庫存！");
+        return;
+    }
+    
+    // 扣除倉庫數量，移入戰鬥快捷欄
     accountMeta.warehouse[itemName]--;
     currentRun.inventory.push(itemName);
+    
     addLog(`🎒 已將 <strong>${itemName}</strong> 裝入戰術快捷欄。`);
+    saveGameData();
     updateUI();
-    if(currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
+    
+    if (typeof currentVillageLocation !== "undefined" && currentVillageLocation === "KITCHEN") {
+        if (typeof renderVillageCookingWorkshop === "function") renderVillageCookingWorkshop();
+    }
+}
+
+function removeBagItem(index) {
+    if (index < 0 || index >= currentRun.inventory.length) return;
+    
+    const itemName = currentRun.inventory.splice(index, 1)[0];
+    accountMeta.warehouse[itemName] = (accountMeta.warehouse[itemName] || 0) + 1;
+    
+    addLog(`📦 已將 <strong>${itemName}</strong> 放回倉庫。`);
+    saveGameData();
+    updateUI();
 }
 
 function executeUseDungeonItem(itemName, index) {
@@ -623,11 +654,34 @@ function dismissBossVictoryCinematic() {
     bOverlay.style.display = "none"; activeMonster = null; gameState = "REWARD"; updateUI(); triggerBossTalentReward();
 }
 
+// ==========================================
+// 2. 死亡不倒退懲罰機制
+// ==========================================
 function executeDungeonDefeatSequence() {
-    addLog(`☠️【魂歸深淵】物資遺失，強制歸還地表。`, "take");
-    gameState = "VILLAGE"; currentEnvironment = "NORMAL";
-    document.getElementById('btn-secondary-action').style.display = "none";
-    resetCurrentRunData(); saveGameData(); updateUI(); switchVillageLocation("GATE");
+    addLog(`☠️【魂歸深淵】你已被擊敗！本輪未結算之當前 EXP 清零，但等級、配點與裝備完好無損。`, "take");
+    
+    // 僅清除當前級別未儲滿的經驗值
+    accountMeta.exp = 0;
+    currentRun.exp = 0;
+    
+    // 狀態歸位
+    gameState = "VILLAGE"; 
+    currentEnvironment = "NORMAL";
+    
+    let btnSecondary = document.getElementById('btn-secondary-action');
+    if (btnSecondary) btnSecondary.style.display = "none";
+    
+    // 重新校正冒險狀態，補滿血藍
+    resetCurrentRunData(); 
+    currentRun.hp = currentRun.maxHp;
+    currentRun.mp = currentRun.maxMp;
+    
+    // 存檔並回歸村莊地圖
+    saveGameData(); 
+    updateUI(); 
+    if (typeof switchVillageLocation === "function") {
+        switchVillageLocation("GATE");
+    }
 }
 
 function triggerBossTalentReward() {
@@ -646,15 +700,50 @@ function triggerBossTalentReward() {
     });
 }
 
+// ==========================================
+// 1. 經驗值獲取與等級突破系統
+// ==========================================
+function addExperience(amount) {
+    accountMeta.exp = (accountMeta.exp || 0) + amount;
+    currentRun.exp = accountMeta.exp;
+    addLog(`✨ 獲得經驗值 +${amount}`, "gain");
+    checkLevelUpAndTriggerSelect();
+}
+
 function checkLevelUpAndTriggerSelect() {
     let leveledUp = false;
-    while (currentRun.exp >= currentRun.nextExp) {
-        currentRun.exp -= currentRun.nextExp; currentRun.lv++;
-        currentRun.maxHp += 25; currentRun.hp = currentRun.maxHp; currentRun.atk += 5;
-        currentRun.nextExp = Math.floor(currentRun.nextExp * 1.5); leveledUp = true;
+    
+    // 支援一次獲取大量經驗連升多級的迴圈處理
+    while (accountMeta.exp >= accountMeta.nextExp) {
+        accountMeta.exp -= accountMeta.nextExp;
+        accountMeta.lv = (accountMeta.lv || 1) + 1;
+        accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; // 升級賦予 1 點自由屬性點
+        
+        // 經驗值需求曲線公式：每次升級增加 40% 需求
+        accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
+        leveledUp = true;
     }
-    if (leveledUp) { addLog(`✨👑 境界突破至 <strong>Lv.${currentRun.lv}</strong>！`, "perfect"); }
-    if (gameState === "BATTLE") { document.getElementById('btn-main-action').disabled = false; }
+    
+    if (leveledUp) { 
+        currentRun.lv = accountMeta.lv;
+        currentRun.exp = accountMeta.exp;
+        currentRun.nextExp = accountMeta.nextExp;
+        
+        // 重新計算最新面板並恢復滿血滿藍
+        resetCurrentRunData();
+        currentRun.hp = currentRun.maxHp;
+        currentRun.mp = currentRun.maxMp;
+        
+        addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點自由能力值！`, "perfect"); 
+        
+        // 觸發自動存檔
+        saveGameData(); 
+    }
+    
+    if (gameState === "BATTLE") { 
+        let btnMain = document.getElementById('btn-main-action');
+        if (btnMain) btnMain.disabled = false; 
+    }
     updateUI();
 }
 
