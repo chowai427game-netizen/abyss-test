@@ -27,7 +27,7 @@
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
     <div id="env-alert-bar" class="env-zone-normal" style="display: none;">✨ 當前環境力場：重力與空間表現穩定</div>
 
-    <!-- 📢 1. 封面主頁面 (TITLE) -->
+       <!-- 📢 1. 封面主頁面 (TITLE) -->
     <div class="dynamic-panel title-panel-style" id="title-box">
         <h1 class="game-main-title">命運深淵</h1>
         <p class="game-sub-title"> Blood &amp; Heritage </p>
@@ -39,7 +39,16 @@
         <div id="legacy-box" class="legacy-container">請輸入名字以查詢雲端帳戶血脈...</div>
         <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12">
         <br>
+    
+        <!-- 主開始按鈕 -->
         <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">載入雲端血脈並開啟旅程 🧭</button>
+    
+        <!-- 💡 可選新增：小型清空本地舊存檔按鈕 -->
+        <div style="margin-top: 12px;">
+            <button type="button" onclick="clearAllLegacySaves()" style="background: transparent; border: none; color: #8e8e93; font-size: 11px; cursor: pointer; text-decoration: underline;">
+                🧹 清除本地舊快取存檔 (重置測試)
+            </button>
+        </div>
     </div>
 
     <!-- 💡 雙欄核心分流包殼容器 -->
