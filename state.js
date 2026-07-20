@@ -4,56 +4,52 @@
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 
+// 1. 擴充 accountMeta，讓等級、經驗與 6 大屬性可以永久保存
 let accountMeta = { 
     name: "無名勇者", 
+    lv: 1,
+    exp: 0,
+    nextExp: 30,
+    statPoints: 0, // 未分配屬性點
+    stats: { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 }, // 6大能力值
     unlockedJobs: ["novice"], 
     warehouse: {},
     equipment: { weapon: null, armor: null, accessory: null },
-    // 🌟 部位永久升星槽位（0⭐-5⭐，永久繼承換裝不受影響）
     equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
 };
 
-let currentRun = {
-    job: "novice",
-    lv: 1, hp: 100, maxHp: 100, mp: 20, maxMp: 50, mpRegen: 15, atk: 15, gold: 0, exp: 0, nextExp: 30,
-    spd: 20, 
-    block: 0, critChance: 0, dodgeChance: 0, vampRate: 0, regenPower: 0, doubleStrike: 0,
-    skills: { "緊急治療": 1 }, 
-    inventory: [],            
-    qteBuffDuration: 0,       
-    qteBuffTurns: 0,
-    activeVillageBuffs: []    
-};
-
-let gameState = "TITLE"; 
-let dungeonFloor = 0;
-let isQteActive = false;
-let qteTimer = null;
-let qteResolvePointer = null;
-
-let activeMonster = null; 
-let playerShield = 0;
-// 🎯 戰術系統核心狀態：'MANUAL' (手動), 'BALANCED' (均衡), 'OFFENSIVE' (狂暴)
-let activeTactic = "MANUAL";
-
-let currentEnvironment = "NORMAL"; 
-let playerStatusEffects = { burn: 0, poison: 0 }; 
-let currentVillageLocation = "GATE";
+// 2. 背包最大容量調整（預設改為 6 格）
+const MAX_BAG_SIZE = 6;
 
 function resetCurrentRunData() {
-    currentRun.lv = 1; 
-    currentRun.hp = 100; 
-    currentRun.maxHp = 100; 
-    currentRun.mp = 20; 
-    currentRun.maxMp = 50;
-    currentRun.mpRegen = 15; 
-    currentRun.atk = 15; 
-    currentRun.spd = 20; // 🎯 這裡修正了：由原來的 spd: 20 改回 spd = 20 
-    currentRun.exp = 0; 
-    currentRun.nextExp = 30;
-    currentRun.block = 0; 
-    currentRun.critChance = 0; 
-    currentRun.dodgeChance = 0; 
+    let s = accountMeta.stats || { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+    
+    // 💡 等級與經驗值直接繼承 accountMeta，死亡不會重置為 Lv.1！
+    currentRun.lv = accountMeta.lv || 1; 
+    currentRun.exp = accountMeta.exp || 0; 
+    currentRun.nextExp = accountMeta.nextExp || 30;
+
+    // 🧮 6 大能力值換算戰鬥數值公式：
+    // ATK (攻擊力) : 基礎 15 + (ATK點數 * 3)
+    // VIT (體力)   : 基礎 MaxHP 100 + (VIT點數 * 15)，減傷 Block + (VIT點數 * 0.5)
+    // INT (智力)   : 基礎 MaxMP 50 + (INT點數 * 10)，回藍 mpRegen + (INT點數 * 1)
+    // DEX (靈巧)   : 基礎速度 20 + (DEX點數 * 1)，暴擊率 + (DEX點數 * 0.5%)
+    // AGI (敏捷)   : 基礎速度 20 + (AGI點數 * 2)，閃避率 + (AGI點數 * 0.8%)
+    // LUK (幸運)   : 暴擊率 + (LUK點數 * 1%)，連擊率 + (LUK點數 * 0.5%)
+
+    currentRun.maxHp = 100 + (s.VIT * 15); 
+    currentRun.hp = currentRun.maxHp; 
+    currentRun.maxMp = 50 + (s.INT * 10); 
+    currentRun.mp = currentRun.maxMp; 
+    currentRun.mpRegen = 15 + (s.INT * 1); 
+    currentRun.atk = 15 + (s.ATK * 3); 
+    currentRun.spd = 20 + (s.DEX * 1) + (s.AGI * 2); 
+    currentRun.block = Math.floor(s.VIT * 0.5); 
+    currentRun.critChance = Math.min(75, Math.floor((s.DEX * 0.5) + (s.LUK * 1.0))); 
+    currentRun.dodgeChance = Math.min(50, Math.floor(s.AGI * 0.8)); 
+    currentRun.vampRate = 0;       
+    currentRun.doubleStrike = Math.min(50, Math.floor(s.LUK * 0.5));   
+
     currentRun.skills = { "緊急治療": 1 };
     currentRun.inventory = []; 
     currentRun.qteBuffDuration = 0; 
@@ -62,10 +58,8 @@ function resetCurrentRunData() {
     playerShield = 0;
     activeMonster = null;
     playerStatusEffects = { burn: 0, poison: 0 };
-    currentRun.vampRate = 0;       
-    currentRun.doubleStrike = 0;   
 
-    // 🗡️ 武器注入 (乘上星級額外加乘：每 1⭐ +15% 屬性)
+    // 🗡️ 武器/防具/飾品加成計算 (保持原有裝備加成)
     if (accountMeta.equipment.weapon) {
         let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.weapon);
         if (b) {
@@ -75,21 +69,16 @@ function resetCurrentRunData() {
             if (b.stats.mpRegen) currentRun.mpRegen += Math.floor(b.stats.mpRegen * mult);
         }
     }
-    // 👕 防具注入
     if (accountMeta.equipment.armor) {
         let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.armor);
         if (b) {
             let mult = 1 + (accountMeta.equipmentStars.armor * 0.15);
             if (b.stats.block) currentRun.block += Math.floor(b.stats.block * mult);
-            if (b.stats.maxHp) { 
-                currentRun.maxHp += Math.floor(b.stats.maxHp * mult); 
-                currentRun.hp = currentRun.maxHp; 
-            }
+            if (b.stats.maxHp) { currentRun.maxHp += Math.floor(b.stats.maxHp * mult); currentRun.hp = currentRun.maxHp; }
             if (b.stats.spd) currentRun.spd += Math.floor(b.stats.spd * mult);
             if (b.stats.dodgeChance) currentRun.dodgeChance += Math.floor(b.stats.dodgeChance * mult);
         }
     }
-    // 💍 飾品注入
     if (accountMeta.equipment.accessory) {
         let b = CRAFTING_BLUEPRINTS.find(x => x.name === accountMeta.equipment.accessory);
         if (b) {
@@ -100,6 +89,41 @@ function resetCurrentRunData() {
             if (b.stats.vampRate) currentRun.vampRate += Math.floor(b.stats.vampRate * mult);          
             if (b.stats.doubleStrike) currentRun.doubleStrike += Math.floor(b.stats.doubleStrike * mult);  
         }
+    }
+}
+
+// 💡 修正 Save/Load 機制，確保全域資料納入 Save Payload
+async function saveGameData() {
+    if (!accountMeta || !accountMeta.name || accountMeta.name === "無名勇者") return;
+
+    localStorage.setItem("ABYSS_DESTINY_SAVE", JSON.stringify(accountMeta));
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+        await fetch(`${SERVER_URL}/api/active/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                name: accountMeta.name, 
+                activeChar: { 
+                    lv: accountMeta.lv,
+                    exp: accountMeta.exp,
+                    nextExp: accountMeta.nextExp,
+                    statPoints: accountMeta.statPoints,
+                    stats: accountMeta.stats,
+                    unlockedJobs: accountMeta.unlockedJobs, 
+                    warehouse: accountMeta.warehouse,
+                    equipment: accountMeta.equipment,
+                    equipmentStars: accountMeta.equipmentStars
+                } 
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+    } catch (error) {
+        console.warn("雲端通訊逾時，進度已鎖定在本地記憶體中。");
     }
 }
 
