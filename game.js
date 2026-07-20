@@ -13,6 +13,43 @@ let isQteActive = false;
 let activeTactic = "MANUAL"; // 預設戰術
 
 // ==========================================================================
+// 🌐 頁面初始化與 Loading 遮罩關閉引擎 (解決卡 Loading 封面的核心修復)
+// ==========================================================================
+window.addEventListener('DOMContentLoaded', () => {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingBarFill = document.getElementById('loading-bar-fill');
+    
+    // 1. 動態拉滿進度條
+    if (loadingBarFill) {
+        loadingBarFill.classList.add('complete');
+    }
+    
+    // 2. 延遲 600ms 淡出遮罩並徹底隱藏
+    setTimeout(() => {
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('fade-out');
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 600);
+        }
+    }, 600);
+    
+    // 3. 自動偵測 LocalStorage 歷史存檔，預填名字
+    const savedData = localStorage.getItem("ABYSS_DESTINY_SAVE");
+    if (savedData) {
+        try {
+            const parsed = JSON.parse(savedData);
+            if (parsed.name) {
+                const inputName = document.getElementById('player-name-input');
+                if (inputName) inputName.value = parsed.name;
+                const legacyBox = document.getElementById('legacy-box');
+                if (legacyBox) legacyBox.innerHTML = `✨ 檢測到雲端血脈歷史紀錄：<strong>${parsed.name}</strong> (Lv.${parsed.lv || 1})`;
+            }
+        } catch(e){}
+    }
+});
+
+// ==========================================================================
 // 🧮 經典乘算傷害與隨機浮動計算引擎
 // ==========================================================================
 function calculateDamage(atk, defense, isPlayerAttacking = true) {
@@ -92,7 +129,6 @@ function handleSecondaryAction() {
         document.getElementById('qte-overlay').style.display = 'none';
     }
     
-    // 💡 文案修正：正確反映等級與裝備保留
     addLog(`🏃【撤退】你驚險逃回地表村莊！等級與裝備完美保留，素材已安全歸倉！`, "perfect");
     
     if (currentRun.inventory) {
@@ -274,7 +310,7 @@ function triggerVillageQte(type, targetData, successCallback) {
     if (type === "COOK") {
         title.innerHTML = `🍳 正在熬製：<strong>${targetData.name}</strong> 🍳<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美敲擊區間：[65% - 85%]</span>`;
     } else {
-        title.innerHTML = `🔨 正在熔煉：<strong>${targetData.name}</strong> 🔨<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美錘擊區間：[65% - 85%]</span>`;
+        title.innerHTML = `🔨 正在熔練：<strong>${targetData.name}</strong> 🔨<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美錘擊區間：[65% - 85%]</span>`;
     }
 
     let progress = 0;
@@ -600,7 +636,6 @@ function executeDungeonVictorySequence() {
     } else {
         addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 獲得金幣 +20 G，經驗值 +15。`, "victory-badge");
         
-        // 💡 修正：掉落判定使用 MAX_BAG_SIZE
         if (activeMonster && Math.random() < 0.25) { 
             let dropName = (typeof MONSTER_DROPS !== "undefined" && MONSTER_DROPS[activeMonster.name]) || "史萊姆黏液";
             if (currentRun.inventory.length < MAX_BAG_SIZE) { 
