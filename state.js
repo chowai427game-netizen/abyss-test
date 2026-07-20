@@ -1,6 +1,7 @@
-// ==========================================
-// 1. 全域存檔結構 (accountMeta) 擴充
-// ==========================================
+// ==========================================================================
+// 💾 state.js：永久帳號存檔結構、6大能力值換算與自動雙向存檔引擎
+// ==========================================================================
+
 let accountMeta = { 
     name: "無名勇者", 
     lv: 1,
@@ -8,12 +9,12 @@ let accountMeta = {
     nextExp: 30,
     statPoints: 0, // 未分配之屬性能力點數
     stats: { 
-        ATK: 0, // 力量：影響基礎攻擊力
-        VIT: 0, // 體力：影響 MaxHP 與格擋值
-        INT: 0, // 智力：影響 MaxMP 與每回合回藍
-        DEX: 0, // 靈巧：影響速度與微量暴擊率
-        AGI: 0, // 敏捷：大幅影響速度與閃避率
-        LUK: 0  // 幸運：大幅影響暴擊率與連擊率
+        ATK: 0, // 力量：影響基礎攻擊力 (+3/點)
+        VIT: 0, // 體力：影響 MaxHP (+15/點) 與格擋值 (+0.5/點)
+        INT: 0, // 智力：影響 MaxMP (+10/點) 與每回合回藍 (+1/點)
+        DEX: 0, // 靈巧：影響速度 (+1/點) 與微量暴擊率 (+0.5%/點)
+        AGI: 0, // 敏捷：大幅影響速度 (+2/點) 與閃避率 (+0.8%/點)
+        LUK: 0  // 幸運：大幅影響暴擊率 (+1%/點) 與連擊率 (+0.5%/點)
     }, 
     unlockedJobs: ["novice"], 
     warehouse: {},
@@ -25,7 +26,7 @@ let accountMeta = {
 const MAX_BAG_SIZE = 6;
 
 // 後端 API 服務端點設定
-const SERVER_URL = "http://localhost:3000"; // 依實際部署環境調整
+const SERVER_URL = "http://localhost:3000";
 
 // 當前單次冒險/戰鬥狀態
 let currentRun = {
@@ -47,23 +48,24 @@ let currentRun = {
     doubleStrike: 0,
     gold: 0,
     skills: {},
-    inventory: [], // 攜帶至迷宮的快捷道具欄 (上限 MAX_BAG_SIZE)
+    inventory: [], 
     qteBuffDuration: 0,
     qteBuffTurns: 0,
     activeVillageBuffs: []
 };
 
+let dungeonFloor = 0;
 let playerShield = 0;
 let activeMonster = null;
 let playerStatusEffects = { burn: 0, poison: 0 };
-let gameState = "VILLAGE"; // VILLAGE, BATTLE, GAMEOVER
+let gameState = "VILLAGE"; // VILLAGE, BATTLE, REWARD, ENCOUNTER, ENCOUNTER_RESOLVED
 let currentEnvironment = "NORMAL";
+let currentVillageLocation = "GATE";
 
 // ==========================================
-// 2. 戰鬥面板數值重構與匯入函數
+// 戰鬥面板數值重構與匯入函數
 // ==========================================
 function resetCurrentRunData() {
-    // 確保 accountMeta 結構完整
     if (!accountMeta.stats) {
         accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
     }
@@ -87,13 +89,12 @@ function resetCurrentRunData() {
     currentRun.spd = 20 + (s.DEX * 1) + (s.AGI * 2); 
     currentRun.block = Math.floor(s.VIT * 0.5); 
     
-    // 概率性數值附加閥值上限 (Cap)
+    // 概率性數值閥值上限 (Cap)
     currentRun.critChance = Math.min(75, Math.floor((s.DEX * 0.5) + (s.LUK * 1.0))); 
     currentRun.dodgeChance = Math.min(50, Math.floor(s.AGI * 0.8)); 
     currentRun.vampRate = 0;       
     currentRun.doubleStrike = Math.min(50, Math.floor(s.LUK * 0.5));   
 
-    // 重置技能與狀態
     if (!currentRun.skills || Object.keys(currentRun.skills).length === 0) {
         currentRun.skills = { "緊急治療": 1 };
     }
@@ -103,13 +104,12 @@ function resetCurrentRunData() {
     playerShield = 0;
     playerStatusEffects = { burn: 0, poison: 0 };
 
-    // 計算裝備屬性加成 (根據星級強化比率疊加)
+    // 計算裝備屬性加成
     applyEquipmentStats('weapon');
     applyEquipmentStats('armor');
     applyEquipmentStats('accessory');
 }
 
-// 裝備數值計算子函數
 function applyEquipmentStats(slot) {
     const equipName = accountMeta.equipment[slot];
     if (!equipName || typeof CRAFTING_BLUEPRINTS === "undefined") return;
@@ -118,7 +118,7 @@ function applyEquipmentStats(slot) {
     if (!blueprint || !blueprint.stats) return;
 
     const starLevel = accountMeta.equipmentStars[slot] || 0;
-    const multiplier = 1 + (starLevel * 0.15); // 每顆星提升 15% 基礎裝備屬性
+    const multiplier = 1 + (starLevel * 0.15); 
 
     const st = blueprint.stats;
     if (st.atk) currentRun.atk += Math.floor(st.atk * multiplier);
@@ -135,19 +135,18 @@ function applyEquipmentStats(slot) {
 }
 
 // ==========================================
-// 3. 網絡與本地自動雙向存檔引擎
+// 網絡與本地自動雙向存檔引擎
 // ==========================================
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
-    // 1. 本地 LocalStorage 立即同步（防止斷網丟失）
     try {
+        localStorage.setItem(`ABYSS_DESTINY_SAVE_${accountMeta.name}`, JSON.stringify(accountMeta));
         localStorage.setItem("ABYSS_DESTINY_SAVE", JSON.stringify(accountMeta));
     } catch (e) {
         console.error("LocalStorage 寫入失敗:", e);
     }
 
-    // 2. 異步雲端備份（含 4 秒逾時熔斷機制）
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
@@ -175,7 +174,6 @@ async function saveGameData() {
         });
 
         clearTimeout(timeoutId);
-
         if (!response.ok) {
             console.warn(`雲端存檔回應異常: HTTP ${response.status}`);
         }
@@ -188,14 +186,14 @@ async function saveGameData() {
     }
 }
 
-// 讀取存檔初始化
-function loadGameData() {
-    const localData = localStorage.getItem("ABYSS_DESTINY_SAVE");
+function loadGameData(playerName) {
+    const targetName = playerName || accountMeta.name;
+    const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`) || localStorage.getItem("ABYSS_DESTINY_SAVE");
+    
     if (localData) {
         try {
             const parsed = JSON.parse(localData);
             accountMeta = Object.assign({}, accountMeta, parsed);
-            // 補齊舊存檔可能缺失的屬性結構
             if (!accountMeta.stats) {
                 accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
             }
