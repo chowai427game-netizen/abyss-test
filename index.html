@@ -36,8 +36,7 @@
             • 請輸入名字以喚醒你的雲端永久血脈。
         </div>
         <div id="legacy-box" class="legacy-container">請輸入名字以查詢雲端帳戶血脈...</div>
-        <!-- 👤 修正：移除 value="gma"，每次重開由玩家自由輸入 -->
-        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12" oninput="checkCloudAccount()">
+        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12">
         <br>
         <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">載入雲端血脈並開啟旅程 🧭</button>
     </div>
@@ -81,6 +80,7 @@
                     <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
                     <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
                 </div>
+
                 <!-- 📊 6 大能力值與自由配點控制面板 -->
                 <div class="status-item full-row" style="background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; padding: 10px; margin-top: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
@@ -93,7 +93,8 @@
                         <!-- 由 ui.js 動態渲染屬性值與 [+] 配點按鈕 -->
                     </div>
                 </div>
-                                <!-- 🎒 戰術快捷背包區域 (容量 6 格) -->
+
+                <!-- 🎒 戰術快捷背包區域 (容量 6 格) -->
                 <div class="status-item full-row" style="margin-top: 8px;">
                     <div style="display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 4px;">
                         <span>🎒 戰術背包快捷欄</span>
@@ -109,11 +110,9 @@
                     <summary>🔍 展開查看 戰偶裝備與技能面板</summary>
                     <div class="folder-content">
                         
-                        <!-- 🎭 戰偶紙娃娃裝備矩陣投影 (Paper Doll) -->
                         <div class="paper-doll-container">
                             <div class="doll-grid">
                                 
-                                <!-- 🗡️ 左翼：武器插槽 -->
                                 <div class="doll-slot weapon-slot" id="slot-weapon">
                                     <div class="slot-inner">
                                         <span class="slot-icon">🗡️</span>
@@ -124,13 +123,11 @@
                                     </div>
                                 </div>
                                 
-                                <!-- 👤 中央：戰偶投影全息圖 -->
                                 <div class="doll-silhouette">
                                     <div class="hologram-ring"></div>
                                     <div class="silhouette-core">👤</div>
                                 </div>
                                 
-                                <!-- 👕 右翼：防具插槽 -->
                                 <div class="doll-slot armor-slot" id="slot-armor">
                                     <div class="slot-inner">
                                         <span class="slot-icon">👕</span>
@@ -141,7 +138,6 @@
                                     </div>
                                 </div>
                                 
-                                <!-- 💍 底部橫跨：飾品插槽 -->
                                 <div class="doll-slot accessory-slot" id="slot-accessory">
                                     <div class="slot-inner">
                                         <span class="slot-icon">💍</span>
@@ -155,7 +151,6 @@
                             </div>
                         </div>
 
-                        <!-- 🔮 技能加載清單 -->
                         <div class="folder-item" style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 8px;">
                             <span class="folder-label">🔮 已加載戰技：</span>
                             <span id="p-skills-list" style="color: #9b59b6; font-weight: bold;">基本打擊</span>
@@ -198,7 +193,6 @@
                     </div>
                 </div>
 
-                <!-- 🍳 料理屋分頁 -->
                 <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
                         <div class="panel-title">🍳 皇家後勤料理屋</div>
@@ -222,7 +216,6 @@
                     </div>
                 </div>
 
-                <!-- 🛠️ 皇家魔導加工所 -->
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
@@ -245,15 +238,12 @@
                 </div>
             </div>
 
-           <!-- 👹 5. 魔物狀態面板 (雙軌對稱壓縮版) -->
+            <!-- 👹 5. 魔物狀態面板 -->
             <div class="status-panel" id="monster-status-card" style="display: none;">
-                
-                <!-- 👑 魔物頂部核心資訊 (單行橫排) -->
                 <div class="monster-header-row">
                     <span>⚔️ 敵對魔物: <strong id="m-name" style="color: #fff;">--</strong></span>
                 </div>
                 
-                <!-- 🩸 雙色核心狀態條 (左右並排) -->
                 <div class="bars-container-row">
                     <div class="mini-bar-box" style="background: rgba(40, 10, 10, 0.3); border-color: rgba(231, 76, 60, 0.1);">
                         <div class="flex-space" style="font-size: 11px;">
@@ -276,7 +266,6 @@
                     </div>
                 </div>
                 
-                <!-- ⚔️ 敵方屬性網格 (左右 2 欄) -->
                 <div class="monster-stats-grid">
                     <div class="grid-cell" style="border-color: rgba(231, 76, 60, 0.15);">
                         ⚔️ 攻擊力: <strong id="m-atk" style="color: #ff6b81;">0</strong>
@@ -285,7 +274,6 @@
                         ⚡ 速度: <strong id="m-spd" style="color: #f1c40f;">0</strong>
                     </div>
                 </div>
-
             </div>
 
             <!-- 🎁 6. 抉擇與獎勵面板 -->
@@ -296,56 +284,42 @@
 
             <!-- 📜 7. 戰鬥日誌打印台 + 🧭 側拉式戰術抽屜 -->
             <div class="log-wrapper" id="log-wrapper-box" style="display: none;">
-                
-                <!-- 日誌主面板 -->
                 <div class="log-panel" id="log-box" style="width: 100%; height: 100%;"></div>
 
-                <!-- 側拉式變陣抽屜 (隱藏按鈕已移至此處) -->
                 <div class="tactics-drawer" id="tactics-drawer-box">
-                    
-                    <!-- 抽屜側邊觸發把手 -->
                     <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn">
                         <span class="trigger-icon">⚙️</span>
                         <span class="trigger-text">戰術指令</span>
                     </button>
                     
-                    <!-- 抽屜核心選擇內容 -->
                     <div class="drawer-panel-content">
                         <div class="drawer-header">🎯 即時陣法變革</div>
                         
                         <div class="tactics-options-container">
-                            <!-- 戰術 1: 手動操控 -->
                             <button id="tactic-btn-MANUAL" class="btn-tactic-option active" type="button" onclick="selectTactic('MANUAL')">
                                 <span class="tactic-title">🎮 手動看戲</span>
                                 <span class="tactic-desc">只使用基本物理揮砍，不消耗任何 MP</span>
                             </button>
 
-                            <!-- 戰術 2: 均衡防守 -->
                             <button id="tactic-btn-BALANCED" class="btn-tactic-option" type="button" onclick="selectTactic('BALANCED')">
                                 <span class="tactic-title">⚖️ 均衡防禦</span>
                                 <span class="tactic-desc">自愈技能優先，保留 30% MP 作急救防禦</span>
                             </button>
 
-                            <!-- 戰術 3: 狂暴強擊 -->
                             <button id="tactic-btn-OFFENSIVE" class="btn-tactic-option" type="button" onclick="selectTactic('OFFENSIVE')">
                                 <span class="tactic-title">⚔️ 狂暴強擊</span>
                                 <span class="tactic-desc">大招全開，忽視治療，爆發最強火力</span>
                             </button>
                         </div>
                     </div>
-
                 </div>
-
             </div>
 
         </div> <!-- 右側直欄結束 -->
     </div> <!-- 雙欄核心分流包殼容器結束 (.game-layout-split) -->
 </div> <!-- 整個遊戲主容器結束 (#main-game-shell) -->
 
-<!-- ========================================================================== -->
-<!-- 🔮 移到呢度！擺喺最外層 body，不受任何 parent filter 影響，百分百鎖死螢幕正中 -->
-<!-- ========================================================================== -->
-<!-- 1. 全屏幕 QTE 視窗 -->
+<!-- 全螢幕 QTE 視窗 -->
 <div id="qte-overlay" style="display: none;">
     <div class="qte-box">
         <p id="qte-skill-name">⚡ QTE ⚡</p>
@@ -354,7 +328,7 @@
     </div>
 </div>
 
-<!-- 🏆 9. 全螢幕領主討伐大捷過場遮罩 -->
+<!-- 🏆 全螢幕領主討伐大捷過場遮罩 -->
 <div id="boss-victory-overlay" style="display: none;">
     <div class="victory-cloud-shimmer"></div>
     <div class="victory-crystal-container">
@@ -371,7 +345,7 @@
     </div>
 </div>
     
-<!-- JavaScript 檔案載入 -->
+<!-- JavaScript 檔案載入順序 -->
 <script src="monsterdata.js"></script>
 <script src="itemdata.js"></script>
 <script src="eventdata.js"></script>
