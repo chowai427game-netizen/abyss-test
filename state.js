@@ -197,7 +197,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================================================
-// 🔑 角色登入與雲端驗證引擎
+// 🔑 角色登入與雲端驗證引擎 (回傳規格化物件)
 // ==========================================================================
 async function initOrLoadPlayer(inputName, inputPin) {
     const targetName = inputName ? inputName.trim() : "";
@@ -205,13 +205,15 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
     if (!targetName) {
         alert("❌ 請輸入勇者大名！");
-        return false;
+        return { success: false, isNewUser: false };
     }
 
     if (!targetPin || targetPin.length !== 6 || !/^\d+$/.test(targetPin)) {
         alert("❌ 請輸入正確的 6 位數字 PIN 碼！");
-        return false;
+        return { success: false, isNewUser: false };
     }
+
+    let isNewUser = false;
 
     // A. 嘗試向雲端伺服器進行身分驗證
     try {
@@ -225,8 +227,10 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
         if (!data.success) {
             alert(data.message || "❌ 登入失敗！");
-            return false;
+            return { success: false, isNewUser: false };
         }
+
+        isNewUser = !!data.isNewUser;
 
         if (data.isNewUser) {
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
@@ -243,7 +247,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
         if (localData && localPin && localPin !== targetPin) {
             alert("🔐 本地 PIN 碼驗證失敗！");
-            return false;
+            return { success: false, isNewUser: false };
         }
 
         if (localData) {
@@ -251,9 +255,11 @@ async function initOrLoadPlayer(inputName, inputPin) {
                 accountMeta = Object.assign({}, createDefaultAccountMeta(targetName, targetPin), JSON.parse(localData));
             } catch(e) {
                 accountMeta = createDefaultAccountMeta(targetName, targetPin);
+                isNewUser = true;
             }
         } else {
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
+            isNewUser = true;
         }
     }
 
@@ -263,7 +269,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
     resetCurrentRunData();
     saveGameData();
-    return true;
+    return { success: true, isNewUser: isNewUser };
 }
 
 // 🔗 相容性接口 (必須回傳 await Promise)
