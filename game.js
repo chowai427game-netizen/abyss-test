@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：戰鬥ATB、新玩家初始選職、公會技能研習與轉職洗點控制庫
+// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與轉職洗點控制庫
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -11,26 +11,6 @@ let envAtb = 0;
 let battleTimeElapsed = 0;
 let isQteActive = false;
 let activeTactic = "MANUAL";
-
-// ==========================================================================
-// 🧮 乘算傷害算式
-// ==========================================================================
-function calculateDamage(atk, defense, isPlayerAttacking = true) {
-    let k = isPlayerAttacking ? 50 : 35; 
-    let reduction = defense / (defense + k);
-    let baseDmg = atk * (1 - reduction);
-    
-    let variance = 0.9 + Math.random() * 0.2;
-    let finalDmg = Math.max(1, Math.floor(baseDmg * variance));
-    
-    let isCrit = false;
-    if (isPlayerAttacking && Math.random() * 100 < currentRun.critChance) {
-        isCrit = true;
-        finalDmg = Math.floor(finalDmg * 1.5);
-    }
-    
-    return { damage: finalDmg, isCrit: isCrit };
-}
 
 // ==========================================================================
 // 🔑 登入與創角流程 (精確解析物件回傳)
@@ -53,7 +33,6 @@ async function handleStartGame() {
         return;
     }
 
-    // 舊玩家驗證成功，直接進入遊戲主介面
     enterGameMainShell();
 }
 
@@ -66,11 +45,11 @@ function renderInitialJobModal() {
     modal.style.display = "flex";
 
     const jobs = [
-        { id: "swordsman", name: "⚔️ 劍士", desc: "高 HP 與物理減傷，擁有強力近戰爆發與硬核重擊。" },
-        { id: "magician", name: "🔮 魔法師", desc: "掌握冰火雷奧術，具備極高魔力傷害與凍結控場。" },
-        { id: "acolyte", name: "✨ 服事", desc: "獲得神聖庇護，擅長百分比自癒、極速閃避與驅魔。" },
-        { id: "thief", name: "🗡️ 盜賊", desc: "高閃避與暴擊，擅長注入劇毒、連擊撕裂與偷竊素材。" },
-        { id: "archer", name: "🏹 弓箭手", desc: "極速二連矢連射，擁有貫穿甲防與遠程爆頭狙擊。" }
+        { id: "swordsman", name: "⚔️ 劍士", desc: "高 HP 與物理減傷 (STR/VIT)，近戰重擊。" },
+        { id: "magician", name: "🔮 魔法師", desc: "掌控冰火雷奧術 (INT/DEX)，極高魔傷與控場。" },
+        { id: "acolyte", name: "✨ 服事", desc: "神聖庇護 (INT/VIT)，百分比自癒與驅魔。" },
+        { id: "thief", name: "🗡️ 盜賊", desc: "高閃避與暴擊 (AGI/LUK)，劇毒與連擊。" },
+        { id: "archer", name: "🏹 弓箭手", desc: "極速貫穿連射 (DEX/AGI)，遠程爆頭狙擊。" }
     ];
 
     jobs.forEach(j => {
@@ -88,9 +67,7 @@ function renderInitialJobModal() {
             <div style="font-size: 14px; font-weight: bold; color: #00ffcc; margin-bottom: 4px;">${j.name}</div>
             <div style="font-size: 11px; color: #aaa;">${j.desc}</div>
         `;
-        card.onclick = () => {
-            selectInitialJob(j.id);
-        };
+        card.onclick = () => { selectInitialJob(j.id); };
         list.appendChild(card);
     });
 }
@@ -99,13 +76,13 @@ function selectInitialJob(jobId) {
     accountMeta.job = jobId;
     currentRun.job = jobId;
 
-    // 給予該職業第一招免費初始技能
     if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[jobId]) {
         let firstSkill = SKILLS_DATABASE[jobId][0].name;
         currentRun.skills = {};
         currentRun.skills[firstSkill] = 1;
     }
 
+    resetCurrentRunData();
     saveGameData();
 
     const modal = document.getElementById('initial-job-modal');
@@ -134,7 +111,7 @@ function enterGameMainShell() {
 }
 
 // ==========================================================================
-// 🏛️ 冒險者公會：技能學習、重洗點數與重選職業
+// 🏛️ 冒險者公會：技能學習、重洗點數與轉職
 // ==========================================================================
 
 function executeLearnSkill(skillMeta) {
@@ -174,11 +151,11 @@ function executeResetStats() {
 
     currentRun.gold -= 300;
 
-    let s = accountMeta.stats || { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
-    let totalAllocated = (s.ATK || 0) + (s.VIT || 0) + (s.INT || 0) + (s.DEX || 0) + (s.AGI || 0) + (s.LUK || 0);
+    let s = accountMeta.stats || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+    let totalAllocated = (s.STR || 0) + (s.AGI || 0) + (s.VIT || 0) + (s.INT || 0) + (s.DEX || 0) + (s.LUK || 0);
 
     accountMeta.statPoints = (accountMeta.statPoints || 0) + totalAllocated;
-    accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+    accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
 
     resetCurrentRunData();
     saveGameData();
@@ -197,21 +174,18 @@ function triggerReselectJobUI() {
     renderInitialJobModal();
 }
 
-// 供 Modal 點選完成重選職業
 function executeReselectJob(newJobId) {
     currentRun.gold -= 1000;
 
     accountMeta.job = newJobId;
     currentRun.job = newJobId;
 
-    // 清空等級與屬性點，回歸 Lv.1
     accountMeta.lv = 1;
     accountMeta.exp = 0;
     accountMeta.nextExp = 30;
     accountMeta.statPoints = 0;
-    accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+    accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
 
-    // 給予新職業第1招技能
     if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[newJobId]) {
         let firstSkill = SKILLS_DATABASE[newJobId][0].name;
         currentRun.skills = {};
@@ -226,7 +200,7 @@ function executeReselectJob(newJobId) {
 }
 
 // ==========================================================================
-// 地下城戰鬥與動作連結 (保全原本的戰鬥邏輯)
+// 地下城戰鬥與動作連結
 // ==========================================================================
 
 function handleMainAction() {
@@ -387,9 +361,14 @@ function executeAutoBattleAiTurn() {
                     currentRun.mp -= sMeta.mp;
                     let monsterDef = Math.floor(dungeonFloor * 1.2);
                     let rawAtk = currentRun.atk * 1.5;
-                    let dmgRes = calculateDamage(rawAtk, monsterDef, true);
-                    activeMonster.hp -= dmgRes.damage;
+                    let dmgRes = calculateDamage(rawAtk, monsterDef, true, (currentRun.job === "magician" || currentRun.job === "acolyte"));
+                    
+                    if (dmgRes.isMiss) {
+                        addLog(`🔮⚖️【均衡戰術】施展【${sMeta.name}】，但攻擊被 <span style="color:#8e8e93;">[MISS 迴避]</span>！`);
+                        return true;
+                    }
 
+                    activeMonster.hp -= dmgRes.damage;
                     let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
                     let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                     
@@ -411,9 +390,14 @@ function executeAutoBattleAiTurn() {
                 currentRun.mp -= sMeta.mp;
                 let monsterDef = Math.floor(dungeonFloor * 1.2);
                 let rawAtk = currentRun.atk * 1.8; 
-                let dmgRes = calculateDamage(rawAtk, monsterDef, true);
-                activeMonster.hp -= dmgRes.damage;
+                let dmgRes = calculateDamage(rawAtk, monsterDef, true, (currentRun.job === "magician" || currentRun.job === "acolyte"));
+                
+                if (dmgRes.isMiss) {
+                    addLog(`🔥⚔️【狂暴轟炸】吟唱【${sMeta.name}】，但魔物靈巧地 <span style="color:#8e8e93;">[MISS 閃過]</span>！`);
+                    return true;
+                }
 
+                activeMonster.hp -= dmgRes.damage;
                 let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
                 let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                 
@@ -675,9 +659,11 @@ function executeEnvironmentTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
+// ⚔️ 玩家攻擊時使用 statengine.js 的 calculateDamage(..., isMagic)
 function executePlayerActionTick() {
     let activeTriggered = false;
-
+    const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
+    
     if (activeTactic !== "MANUAL") {
         activeTriggered = executeAutoBattleAiTurn();
     } else if (typeof SKILLS_DATABASE !== "undefined") {
@@ -686,30 +672,39 @@ function executePlayerActionTick() {
             if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
                 addLog(`🔮 引導【${sName}】`); activeTriggered = true;
                 let isPerfect = (Math.random() < 0.75);
-                let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                 if (isPerfect) {
                     currentRun.mp -= sMeta.mp; 
                     let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
                     
                     if (eff.dmg) { 
-                        let monsterDef = Math.floor(dungeonFloor * 1.2);
-                        let dmgRes = calculateDamage(eff.dmg, monsterDef, true);
-                        activeMonster.hp -= dmgRes.damage; 
+                        let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
+                        let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                         
-                        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                        addLog(`💥 核心技！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect"); 
+                        if (dmgRes.isMiss) {
+                            addLog(`💨【${sName}】技能被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span>！`);
+                        } else {
+                            activeMonster.hp -= dmgRes.damage; 
+                            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                            addLog(`💥 核心技！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect"); 
+                        }
                     }
                     if (eff.healPercent) {
                         let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
                         addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
                     }
                 } else {
-                    let monsterDef = Math.floor(dungeonFloor * 1.2);
-                    let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
-                    activeMonster.hp -= dmgRes.damage; 
+                    let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
+                    let atkVal = isMagicJob ? currentRun.matk : currentRun.atk;
+                    let dmgRes = calculateDamage(atkVal, monsterDef, true, isMagicJob);
                     
-                    let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                    addLog(`⚔️ 普攻突刺！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal");
+                    if (dmgRes.isMiss) {
+                        addLog(`💨 普攻被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span> 了！`);
+                    } else {
+                        activeMonster.hp -= dmgRes.damage; 
+                        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                        addLog(`⚔️ 普攻突刺！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal");
+                    }
                 }
                 break;
             }
@@ -717,13 +712,18 @@ function executePlayerActionTick() {
     }
 
     if (!activeTriggered) { 
-        let monsterDef = Math.floor(dungeonFloor * 1.2);
-        let dmgRes = calculateDamage(currentRun.atk, monsterDef, true);
-        activeMonster.hp -= dmgRes.damage; 
+        let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
+        let atkVal = isMagicJob ? currentRun.matk : currentRun.atk;
+        let dmgRes = calculateDamage(atkVal, monsterDef, true, isMagicJob);
         
-        let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
-        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-        addLog(`⚔️ 揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
+        if (dmgRes.isMiss) {
+            addLog(`💨 揮砍被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span> 了！`);
+        } else {
+            activeMonster.hp -= dmgRes.damage; 
+            let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
+            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+            addLog(`⚔️ 揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
+        }
     }
     
     if (currentRun.vampRate > 0 && currentRun.hp > 0 && activeMonster.hp > 0) {
@@ -733,11 +733,12 @@ function executePlayerActionTick() {
     if (currentRun.doubleStrike > 0 && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
         let monsterDef = Math.floor(dungeonFloor * 1.2);
         let extraAtk = Math.floor(currentRun.atk * 0.85);
-        let dmgRes = calculateDamage(extraAtk, monsterDef, true);
-        activeMonster.hp -= dmgRes.damage;
-        
-        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-        addLog(`⚡【殘影追擊】極速連砍！${critText}追加受創 <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "deal");
+        let dmgRes = calculateDamage(extraAtk, monsterDef, true, false);
+        if (!dmgRes.isMiss) {
+            activeMonster.hp -= dmgRes.damage;
+            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+            addLog(`⚡【殘影追擊】極速連砍！${critText}追加受創 <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "deal");
+        }
     }
     if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
 }
@@ -745,7 +746,7 @@ function executePlayerActionTick() {
 function executeMonsterActionTick() {
     if (activeMonster.freezeTurns > 0) { activeMonster.freezeTurns--; return; }
     
-    let dmgRes = calculateDamage(activeMonster.atk, currentRun.block, false);
+    let dmgRes = calculateDamage(activeMonster.atk, currentRun.def, false, false);
     let finalDmg = dmgRes.damage;
     
     currentRun.hp -= finalDmg; 
