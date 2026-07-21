@@ -1,11 +1,11 @@
 // ==========================================================================
-// 💾 state.js：永久帳號存檔結構、PIN碼身分驗證與雲端雙向同步引擎
+// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 const MAX_BAG_SIZE = 6;
 
-// 預設帳號資料範本 (含 pin 碼)
+// 預設帳號資料範本
 function createDefaultAccountMeta(name, pin) {
     return {
         name: name || "無名勇者",
@@ -14,8 +14,8 @@ function createDefaultAccountMeta(name, pin) {
         exp: 0,
         nextExp: 30,
         statPoints: 0,
-        stats: { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 },
-        unlockedJobs: ["swordsman"],
+        stats: { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 },
+        job: "swordsman",
         warehouse: {},
         equipment: { weapon: null, armor: null, accessory: null },
         equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
@@ -24,7 +24,7 @@ function createDefaultAccountMeta(name, pin) {
 
 let accountMeta = createDefaultAccountMeta("無名勇者", "000000");
 
-// 當前單次冒險/戰鬥狀態
+// 全局冒險實時資料
 let currentRun = {
     job: "swordsman",
     lv: 1,
@@ -32,14 +32,22 @@ let currentRun = {
     nextExp: 30,
     hp: 100,
     maxHp: 100,
+    hpRegen: 1,
     mp: 50,
     maxMp: 50,
     mpRegen: 15,
     atk: 15,
+    matk: 15,
+    def: 0,
+    mdef: 0,
+    hit: 80,
+    flee: 10,
     spd: 20,
-    block: 0,
     critChance: 0,
-    dodgeChance: 0,
+    perfectDodge: 0,
+    castReduction: 0,
+    maxWeight: 100,
+    block: 0,
     vampRate: 0,
     doubleStrike: 0,
     gold: 0,
@@ -58,72 +66,7 @@ let gameState = "VILLAGE";
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
 
-// ==========================================
-// 🧮 戰鬥面板數值重構與匯入函數
-// ==========================================
-function resetCurrentRunData() {
-    if (!accountMeta.stats) {
-        accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
-    }
-    
-    let s = accountMeta.stats;
-    
-    currentRun.lv = accountMeta.lv || 1; 
-    currentRun.exp = accountMeta.exp || 0; 
-    currentRun.nextExp = accountMeta.nextExp || 30;
-
-    currentRun.maxHp = 100 + (s.VIT * 15); 
-    currentRun.hp = Math.min(currentRun.hp || currentRun.maxHp, currentRun.maxHp); 
-    
-    currentRun.maxMp = 50 + (s.INT * 10); 
-    currentRun.mp = Math.min(currentRun.mp || currentRun.maxMp, currentRun.maxMp); 
-    
-    currentRun.mpRegen = 15 + (s.INT * 1); 
-    currentRun.atk = 15 + (s.ATK * 3); 
-    currentRun.spd = 20 + (s.DEX * 1) + (s.AGI * 2); 
-    currentRun.block = Math.floor(s.VIT * 0.5); 
-    
-    currentRun.critChance = Math.min(75, Math.floor((s.DEX * 0.5) + (s.LUK * 1.0))); 
-    currentRun.dodgeChance = Math.min(50, Math.floor(s.AGI * 0.8)); 
-    currentRun.vampRate = 0;        
-    currentRun.doubleStrike = Math.min(50, Math.floor(s.LUK * 0.5));   
-
-    if (!currentRun.skills || Object.keys(currentRun.skills).length === 0) {
-        currentRun.skills = {};
-    }
-    
-    currentRun.qteBuffDuration = 0; 
-    currentRun.qteBuffTurns = 0;
-    playerShield = 0;
-    playerStatusEffects = { burn: 0, poison: 0 };
-
-    applyEquipmentStats('weapon');
-    applyEquipmentStats('armor');
-    applyEquipmentStats('accessory');
-}
-
-function applyEquipmentStats(slot) {
-    const equipName = accountMeta.equipment ? accountMeta.equipment[slot] : null;
-    if (!equipName || typeof CRAFTING_BLUEPRINTS === "undefined") return;
-
-    const blueprint = CRAFTING_BLUEPRINTS.find(x => x.name === equipName);
-    if (!blueprint || !blueprint.stats) return;
-
-    const starLevel = (accountMeta.equipmentStars && accountMeta.equipmentStars[slot]) || 0;
-    const multiplier = 1 + (starLevel * 0.15); 
-
-    const st = blueprint.stats;
-    if (st.atk) currentRun.atk += Math.floor(st.atk * multiplier);
-    if (st.spd) currentRun.spd += Math.floor(st.spd * multiplier);
-    if (st.mpRegen) currentRun.mpRegen += Math.floor(st.mpRegen * multiplier);
-    if (st.block) currentRun.block += Math.floor(st.block * multiplier);
-    if (st.maxHp) currentRun.maxHp += Math.floor(st.maxHp * multiplier); 
-    if (st.critChance) currentRun.critChance = Math.min(75, currentRun.critChance + Math.floor(st.critChance * multiplier));
-    if (st.dodgeChance) currentRun.dodgeChance = Math.min(50, currentRun.dodgeChance + Math.floor(st.dodgeChance * multiplier));
-    if (st.vampRate) currentRun.vampRate += Math.floor(st.vampRate * multiplier);          
-    if (st.doubleStrike) currentRun.doubleStrike = Math.min(50, currentRun.doubleStrike + Math.floor(st.doubleStrike * multiplier));  
-}
-
+// 🔍 輸入框實時檢測
 function checkPlayerNameLive() {
     const legacyBox = document.getElementById('legacy-box');
     const nameEl = document.getElementById('player-name-input');
@@ -147,6 +90,7 @@ function checkPlayerNameLive() {
     legacyBox.innerHTML = `✨ 準備創立全新血脈：[<strong>${targetName}</strong>]！請設定你的 6 位數 PIN 碼。`;
 }
 
+// 🌌 初始化動畫與喚醒 Server
 window.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingBarFill = document.getElementById('loading-bar-fill');
@@ -188,9 +132,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }, 600);
 });
 
-// ==========================================================================
-// 🔑 角色登入與雲端驗證引擎
-// ==========================================================================
+// 🔑 帳號登入與驗證
 async function initOrLoadPlayer(inputName, inputPin) {
     const targetName = inputName ? inputName.trim() : "";
     const targetPin = inputPin ? inputPin.trim() : "";
@@ -257,11 +199,12 @@ async function initOrLoadPlayer(inputName, inputPin) {
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
     localStorage.setItem(`ABYSS_DESTINY_PIN_${targetName}`, targetPin);
 
-    resetCurrentRunData();
+    if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     saveGameData();
     return { success: true, isNewUser: isNewUser };
 }
 
+// 💾 雲端與本地存檔
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
@@ -292,6 +235,7 @@ async function saveGameData() {
     }
 }
 
+// 🧹 清理快取
 function clearAllLegacySaves() {
     localStorage.clear();
     alert("🧹 已成功清空所有本地舊快取存檔！頁面將重置。");
