@@ -55,7 +55,12 @@
         </button>
     </div>
 </div>
-
+<!-- 🎭 新玩家初始職業選擇視窗 (初始註冊時彈出) -->
+<div id="first-job-select-box" style="display: none; margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+    <h3 style="color: #00ffcc; font-size: 14px; margin-bottom: 8px;">✨ 歡迎來到深淵！請選擇你的初始血脈職業：</h3>
+    <div id="first-job-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;"></div>
+    <button type="button" onclick="confirmInitialJobChoice()" class="btn-game btn-explore" style="width: 100%;">確認職業並踏入村莊 🧭</button>
+</div>
     <!-- 💡 雙欄核心分流包殼容器 -->
     <div class="game-layout-split">
         
@@ -197,11 +202,12 @@
             <!-- ⛺ 4. 地表村莊專用分流面板 -->
             <div id="village-panel-box" style="display: none; width: 100%;">
                 <div class="village-nav-bar">
-                    <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
-                    <button id="btn-tab-kitchen" class="btn-nav-tab" onclick="switchVillageLocation('KITCHEN')">🍳 料理屋</button>
-                    <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">🏛️ 中央廣場</button>
-                    <button id="btn-tab-workshop" class="btn-nav-tab" onclick="switchVillageLocation('WORKSHOP')">🛠️ 加工所</button>
-                </div>
+                   <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
+                   <button id="btn-tab-guild" class="btn-nav-tab" onclick="switchVillageLocation('GUILD')">🏛️ 冒險者公會</button>
+                   <button id="btn-tab-kitchen" class="btn-nav-tab" onclick="switchVillageLocation('KITCHEN')">🍳 料理屋</button>
+                   <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">🏛️ 中央廣場</button>
+                   <button id="btn-tab-workshop" class="btn-nav-tab" onclick="switchVillageLocation('WORKSHOP')">🛠️ 加工所</button>
+               </div>
 
                 <div id="v-loc-gate" class="v-sub-loc-panel">
                     <div class="dynamic-panel job-select-style">
@@ -233,6 +239,26 @@
                     </div>
                 </div>
 
+                <!-- 🏛️ 公會子頁面 -->
+                <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
+                    <div class="dynamic-panel job-select-style" style="border-color: rgba(155, 89, 182, 0.4); background: linear-gradient(180deg, rgba(155,89,182,0.05) 0%, rgba(0,0,0,0) 100%);">
+                        <div class="panel-title" style="color: #9b59b6;">🏛️ 皇家冒險者公會 (技能與轉職)</div>
+        
+                        <!-- 🎓 技能研習區 -->
+                        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 13px; color: #ffd700; font-weight: bold; margin-bottom: 6px;">🎓 職業導師・技能研習與導引</div>
+                            <div id="guild-skills-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                        </div>
+
+                        <!-- 🔄 轉職重置區 -->
+                        <div style="background: rgba(40, 15, 15, 0.4); border: 1px solid rgba(231, 76, 60, 0.3); padding: 10px; border-radius: 8px;">
+                            <div style="font-size: 13px; color: #ff6b6b; font-weight: bold; margin-bottom: 4px;">🔄 職業重置與血脈洗禮 (重置為 Lv.1)</div>
+                            <p style="font-size: 10px; color: #aaa; margin: 0 0 10px 0;">重置職業後，等級與能力點將歸零，但身上所有裝備、星級精煉與倉庫素材將 <strong>100% 完好保留</strong>。</p>
+                            <div id="guild-reset-job-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;"></div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
