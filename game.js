@@ -33,7 +33,7 @@ function calculateDamage(atk, defense, isPlayerAttacking = true) {
 }
 
 // ==========================================================================
-// 🔑 登入與創角流程
+// 🔑 登入與創角流程 (精確解析物件回傳)
 // ==========================================================================
 async function handleStartGame() {
     const inputName = document.getElementById('player-name-input')?.value;
@@ -41,18 +41,19 @@ async function handleStartGame() {
 
     const result = await initOrLoadPlayer(inputName, inputPin);
 
-    if (!result.success) {
+    // 🔐 驗證失敗 -> 直接阻擋
+    if (!result || !result.success) {
         console.warn("🔐 PIN 碼驗證失敗，阻擋進入遊戲。");
         return; 
     }
 
-    // 若為全新玩家或尚未選擇職業，跳出「初始職業抉擇 Modal」
+    // 若為全新玩家或尚未選擇職業，跳出「初始職業選擇 Modal」
     if (result.isNewUser || !accountMeta.job || accountMeta.job === "novice") {
         renderInitialJobModal();
         return;
     }
 
-    // 舊玩家直接進入地表村莊
+    // 舊玩家驗證成功，直接進入遊戲主介面
     enterGameMainShell();
 }
 
