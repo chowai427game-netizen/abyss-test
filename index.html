@@ -28,28 +28,33 @@
     <div id="env-alert-bar" class="env-zone-normal" style="display: none;">✨ 當前環境力場：重力與空間表現穩定</div>
 
        <!-- 📢 1. 封面主頁面 (TITLE) -->
-    <div class="dynamic-panel title-panel-style" id="title-box">
-        <h1 class="game-main-title">命運深淵</h1>
-        <p class="game-sub-title"> Blood &amp; Heritage </p>
-        <div class="notice-container">
-            <strong style="color: #ffd700;">📢 測試提示：</strong><br>
-            • 前端架構全面升級【雙欄分頁制】，加工所與料理屋已完美分類！<br>
-            • 請輸入名字以喚醒你的雲端永久血脈。
-        </div>
-        <div id="legacy-box" class="legacy-container">請輸入名字以查詢雲端帳戶血脈...</div>
-        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12">
-        <br>
-    
-        <!-- 主開始按鈕 -->
-        <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%;">載入雲端血脈並開啟旅程 🧭</button>
-    
-        <!-- 💡 可選新增：小型清空本地舊存檔按鈕 -->
-        <div style="margin-top: 12px;">
-            <button type="button" onclick="clearAllLegacySaves()" style="background: transparent; border: none; color: #8e8e93; font-size: 11px; cursor: pointer; text-decoration: underline;">
-                🧹 清除本地舊快取存檔 (重置測試)
-            </button>
-        </div>
+<div class="dynamic-panel title-panel-style" id="title-box">
+    <h1 class="game-main-title">命運深淵</h1>
+    <p class="game-sub-title"> Blood &amp; Heritage </p>
+    <div class="notice-container">
+        <strong style="color: #ffd700;">📢 血脈防護機制啟用：</strong><br>
+        • 新勇者：請輸入【勇者大名】與【6位數字 PIN 碼】註冊並開啟旅程。<br>
+        • 舊勇者：請輸入對應的 PIN 碼解鎖雲端存檔。
     </div>
+    
+    <div id="legacy-box" class="legacy-container">請輸入名字與 6 位數字 PIN 碼以檢驗血脈...</div>
+    
+    <!-- 🔑 名字與 PIN 碼輸入組 -->
+    <div style="display: flex; flex-direction: column; gap: 10px; width: 80%; margin: 12px auto;">
+        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12" style="width: 100%;">
+        <input type="password" id="player-pin-input" class="name-input" placeholder="請輸入 6 位數字 PIN 碼..." maxlength="6" pattern="[0-9]*" inputmode="numeric" style="width: 100%; text-align: center; letter-spacing: 4px; font-weight: bold;">
+    </div>
+
+    <!-- 主開始按鈕 -->
+    <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%; margin-top: 6px;">驗證並開啟旅程 🧭</button>
+
+    <!-- 清除本地快取按鈕 -->
+    <div style="margin-top: 12px;">
+        <button type="button" onclick="clearAllLegacySaves()" style="background: transparent; border: none; color: #8e8e93; font-size: 11px; cursor: pointer; text-decoration: underline;">
+            🧹 清除本地舊快取存檔 (重置測試)
+        </button>
+    </div>
+</div>
 
     <!-- 💡 雙欄核心分流包殼容器 -->
     <div class="game-layout-split">
