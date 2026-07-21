@@ -57,119 +57,121 @@
         <!-- ⬅️ 左側直欄 -->
         <div class="left-layout-column">
             
-            <!-- 📊 2. 勇者狀態數據面板 -->
-            <div class="status-panel" id="status-panel-box" style="display: none;">
-                
-                <div class="status-header-row">
-                    <span>👤 <strong id="p-name">--</strong></span>
-                    <span style="color: #00ffff;">🎭 <strong id="p-job">初心者</strong></span>
-                    <span>📈 <strong id="p-lv">1</strong> <span style="color: var(--text-muted); font-size:10px;">Lv</span></span>
-                    <span style="color: #2ecc71; font-size: 11px;">🟩 <span id="p-exp-text">0/30</span></span>
-                </div>
-                
-                <div class="bars-container-row">
-                    <div class="mini-bar-box">
-                        <div class="flex-space" style="font-size: 11px;"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
-                        <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
-                    </div>
-                    <div class="mini-bar-box">
-                        <div class="flex-space" style="font-size: 11px;"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
-                        <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
-                    </div>
-                </div>
+            <!-- 📊 2. 勇者狀態數據面板 (瘦身一屏版) -->
+<div class="status-panel" id="status-panel-box" style="display: none;">
+    
+    <div class="status-header-row">
+        <span>👤 <strong id="p-name">--</strong></span>
+        <span style="color: #00ffff;">🎭 <strong id="p-job">初心者</strong></span>
+        <span>📈 <strong id="p-lv">1</strong> <span style="color: var(--text-muted); font-size:10px;">Lv</span></span>
+        <span style="color: #2ecc71; font-size: 11px;">🟩 <span id="p-exp-text">0/30</span></span>
+    </div>
+    
+    <div class="bars-container-row">
+        <div class="mini-bar-box">
+            <div class="flex-space" style="font-size: 11px;"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
+            <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
+        </div>
+        <div class="mini-bar-box">
+            <div class="flex-space" style="font-size: 11px;"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
+            <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
+        </div>
+    </div>
 
-                <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
-                    <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
-                    <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
+    <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
+        <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
+        <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
+    </div>
+
+    <!-- 🎒 戰術快捷背包區域 (容量 6 格) -->
+    <div class="status-item full-row" style="margin-top: 4px; padding: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 6px; width: 100%;">
+            <span>🪙 金幣: <strong id="p-gold" style="color: #ffd700;">0</strong> G</span>
+            <span id="bag-capacity-text">🎒 0 / 6</span>
+        </div>
+        <div id="bag-slots-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+            <!-- 由 ui.js 渲染背包格子 -->
+        </div>
+    </div>
+
+    <!-- 🔍 摺疊查看 戰偶紙娃娃、配點與詳細面板 -->
+    <details class="char-details-folder" id="char-details-toggle">
+        <summary id="char-folder-summary">🔍 展開查看 戰偶裝備、配點與詳細數值</summary>
+        <div class="folder-content">
+            
+            <!-- 裝備紙娃娃 -->
+            <div class="paper-doll-container">
+                <div class="doll-grid">
+                    <div class="doll-slot weapon-slot" id="slot-weapon">
+                        <div class="slot-inner">
+                            <span class="slot-icon">🗡️</span>
+                            <div class="slot-info">
+                                <span class="slot-label">武器</span>
+                                <span class="slot-name" id="p-equip-weapon">空手</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="doll-silhouette">
+                        <div class="hologram-ring"></div>
+                        <div class="silhouette-core">👤</div>
+                    </div>
+                    
+                    <div class="doll-slot armor-slot" id="slot-armor">
+                        <div class="slot-inner">
+                            <span class="slot-icon">👕</span>
+                            <div class="slot-info">
+                                <span class="slot-label">防具</span>
+                                <span class="slot-name" id="p-equip-armor">布衣</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="doll-slot accessory-slot" id="slot-accessory">
+                        <div class="slot-inner">
+                            <span class="slot-icon">💍</span>
+                            <div class="slot-info">
+                                <span class="slot-label">飾品</span>
+                                <span class="slot-name" id="p-equip-accessory">無</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="stats-mini-grid">
-                    <div class="grid-cell">🪙 <span class="gold" id="p-gold">0</span> G</div>
+            </div>
+
+            <!-- ⚔️ 移入紙娃娃的詳細戰術數據網格 -->
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; margin-top: 4px;">
+                <div style="font-size: 11px; color: #ffd700; font-weight: bold; margin-bottom: 4px; text-align: center;">⚔️ 詳細戰鬥面板</div>
+                <div class="stats-mini-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    <div class="grid-cell">⚔️ 攻擊: <span id="p-atk">15</span></div>
                     <div class="grid-cell">🛡️ 減傷: <span id="p-block">0</span></div>
                     <div class="grid-cell">⚡ 攻速: <span id="p-spd">20</span></div>
                     <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
                     <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
+                    <div class="grid-cell">🩸 吸血: <span id="p-vamp">0%</span></div>
                 </div>
-
-                <!-- 📊 6 大能力值與自由配點控制面板 -->
-                <div class="status-item full-row" style="background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; padding: 10px; margin-top: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
-                        <span style="color: #ffd700; font-weight: bold; font-size: 12px; letter-spacing: 1px;">🎯 自由能力點數</span>
-                        <strong id="p-stat-points" style="color: #00ffcc; font-size: 15px; text-shadow: 0 0 5px rgba(0,255,204,0.5);">0</strong>
-                    </div>
-    
-                    <!-- 6大屬性雙欄動態網格 -->
-                    <div id="stat-alloc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <!-- 由 ui.js 動態渲染屬性值與 [+] 配點按鈕 -->
-                    </div>
-                </div>
-
-                <!-- 🎒 戰術快捷背包區域 (容量 6 格) -->
-                <div class="status-item full-row" style="margin-top: 8px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 4px;">
-                        <span>🎒 戰術背包快捷欄</span>
-                        <span id="bag-capacity-text">0 / 6</span>
-                    </div>
-                    <div id="bag-slots-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
-                        <!-- 由 ui.js 渲染背包格子 -->
-                    </div>
-                </div>
-
-                <!-- 🔍 摺疊查看 戰偶紙娃娃與技能面板 -->
-                <details class="char-details-folder">
-                    <summary>🔍 展開查看 戰偶裝備與技能面板</summary>
-                    <div class="folder-content">
-                        
-                        <div class="paper-doll-container">
-                            <div class="doll-grid">
-                                
-                                <div class="doll-slot weapon-slot" id="slot-weapon">
-                                    <div class="slot-inner">
-                                        <span class="slot-icon">🗡️</span>
-                                        <div class="slot-info">
-                                            <span class="slot-label">武器</span>
-                                            <span class="slot-name" id="p-equip-weapon">空手</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="doll-silhouette">
-                                    <div class="hologram-ring"></div>
-                                    <div class="silhouette-core">👤</div>
-                                </div>
-                                
-                                <div class="doll-slot armor-slot" id="slot-armor">
-                                    <div class="slot-inner">
-                                        <span class="slot-icon">👕</span>
-                                        <div class="slot-info">
-                                            <span class="slot-label">防具</span>
-                                            <span class="slot-name" id="p-equip-armor">布衣</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="doll-slot accessory-slot" id="slot-accessory">
-                                    <div class="slot-inner">
-                                        <span class="slot-icon">💍</span>
-                                        <div class="slot-info">
-                                            <span class="slot-label">飾品</span>
-                                            <span class="slot-name" id="p-equip-accessory">無</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <div class="folder-item" style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 8px;">
-                            <span class="folder-label">🔮 已加載戰技：</span>
-                            <span id="p-skills-list" style="color: #9b59b6; font-weight: bold;">基本打擊</span>
-                        </div>
-
-                    </div>
-                </details>
-
             </div>
+
+            <!-- 📊 6 大能力值與自由配點控制面板 -->
+            <div style="background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; padding: 8px; margin-top: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+                    <span style="color: #ffd700; font-weight: bold; font-size: 11px;">🎯 自由能力點數</span>
+                    <strong id="p-stat-points" style="color: #00ffcc; font-size: 14px;">0</strong>
+                </div>
+                <div id="stat-alloc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    <!-- 由 ui.js 動態渲染屬性值與 [+] 配點按鈕 -->
+                </div>
+            </div>
+
+            <div class="folder-item" style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 6px; margin-top: 4px;">
+                <span class="folder-label">🔮 已加載戰技：</span>
+                <span id="p-skills-list" style="color: #9b59b6; font-weight: bold;">基本打擊</span>
+            </div>
+
+        </div>
+    </details>
+
+</div>
             
             <!-- 🕹️ 3. 全局動作按鈕區 -->
             <div class="action-panel" id="action-panel-box" style="display: none; flex-direction: column; gap: 8px;">
