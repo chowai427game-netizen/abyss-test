@@ -32,23 +32,39 @@ function calculateDamage(atk, defense, isPlayerAttacking = true) {
     return { damage: finalDmg, isCrit: isCrit };
 }
 
-function handleStartGame() {
-    let inputName = document.getElementById('player-name-input').value.trim();
-    if (!inputName) {
-        alert("🧙 勇者啊，請先在輸入框刻下你的大名，才能喚醒雲端血脈！");
-        return;
+// ==========================================================================
+// 🔑 修正版開始遊戲處理 (必須 await 等待 PIN 碼驗證，失敗則不上傳/不切頁)
+// ==========================================================================
+async function handleStartGame() {
+    const inputName = document.getElementById('player-name-input')?.value;
+    const inputPin = document.getElementById('player-pin-input')?.value;
+
+    // 1. 異步等待 state.js 的雲端 PIN 碼驗證結果
+    const success = await initOrLoadPlayer(inputName, inputPin);
+
+    // 2. 🔐 驗證失敗 (PIN 碼錯誤或未輸入) -> 直接中斷，絕對不切換畫面！
+    if (!success) {
+        console.warn("🔐 PIN 碼驗證失敗，阻擋進入遊戲。");
+        return; 
     }
-    
-    accountMeta.name = inputName;
-    gameState = "VILLAGE";
-    dungeonFloor = 0;
-    currentEnvironment = "NORMAL";
-    
-    loadGameData(inputName);
-    
-    switchVillageLocation("GATE");
-    document.getElementById('log-box').innerHTML = "";
-    addLog(`⛺ 勇者 <strong>${accountMeta.name}</strong> 在地表村莊清醒。環境適應裝置運作正常。`);
+
+    // 3. 🟢 驗證成功 -> 隱藏封面，展開遊戲主介面
+    const titleBox = document.getElementById('title-box');
+    const statusPanel = document.getElementById('status-panel-box');
+    const actionPanel = document.getElementById('action-panel-box');
+    const villagePanel = document.getElementById('village-panel-box');
+    const logWrapper = document.getElementById('log-wrapper-box');
+
+    if (titleBox) titleBox.style.display = 'none';
+    if (statusPanel) statusPanel.style.display = 'block';
+    if (actionPanel) actionPanel.style.display = 'flex';
+    if (villagePanel) villagePanel.style.display = 'block';
+    if (logWrapper) logWrapper.style.display = 'block';
+
+    if (typeof updateUI === "function") updateUI();
+    if (typeof addLog === "function") {
+        addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利驗證血脈，踏入深淵邊境！`, "perfect");
+    }
 }
 
 function handleMainAction() {
