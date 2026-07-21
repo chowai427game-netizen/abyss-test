@@ -266,10 +266,10 @@ async function initOrLoadPlayer(inputName, inputPin) {
     return true;
 }
 
-// 🔗 補回相容性接口 (供 game.js 呼叫，解決 Uncaught ReferenceError)
-function loadGameData(playerName, playerPin) {
+// 🔗 相容性接口 (必須回傳 await Promise)
+async function loadGameData(playerName, playerPin) {
     const pin = playerPin || (document.getElementById('player-pin-input')?.value) || accountMeta.pin;
-    return initOrLoadPlayer(playerName || accountMeta.name, pin);
+    return await initOrLoadPlayer(playerName || accountMeta.name, pin);
 }
 
 // 供外部發動開始遊戲
