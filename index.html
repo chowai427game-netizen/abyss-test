@@ -21,46 +21,49 @@
         </span>
     </div>
 </div>
+
+<!-- 🎭 全新勇者初始職業抉擇遮罩 -->
+<div id="initial-job-modal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.92); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: rgba(20, 20, 35, 0.95); border: 1px solid rgba(0, 255, 204, 0.4); border-radius: 12px; padding: 20px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 0 25px rgba(0,255,204,0.2);">
+        <h2 style="color: #00ffcc; margin-top: 0;">🎭 選擇你的初始冒險血脈</h2>
+        <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">踏入深淵前，請定下你的戰鬥道路！（未來可於公會付費重選）</p>
+        <div id="initial-job-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto;">
+            <!-- 由 ui.js 動態渲染五大職業 -->
+        </div>
+    </div>
+</div>
     
 <div class="game-container" id="main-game-shell">
     <h2> Abyss of Destiny </h2>
     <div class="location-bar" id="location-text">🔮 命運的起點</div>
     <div id="env-alert-bar" class="env-zone-normal" style="display: none;">✨ 當前環境力場：重力與空間表現穩定</div>
 
-       <!-- 📢 1. 封面主頁面 (TITLE) -->
-<div class="dynamic-panel title-panel-style" id="title-box">
-    <h1 class="game-main-title">命運深淵</h1>
-    <p class="game-sub-title"> Blood &amp; Heritage </p>
-    <div class="notice-container">
-        <strong style="color: #ffd700;">📢 血脈防護機制啟用：</strong><br>
-        • 新勇者：請輸入【勇者大名】與【6位數字 PIN 碼】註冊並開啟旅程。<br>
-        • 舊勇者：請輸入對應的 PIN 碼解鎖雲端存檔。
-    </div>
-    
-    <div id="legacy-box" class="legacy-container">請輸入名字與 6 位數字 PIN 碼以檢驗血脈...</div>
-    
-    <!-- 🔑 名字與 PIN 碼輸入組 -->
-    <div style="display: flex; flex-direction: column; gap: 10px; width: 80%; margin: 12px auto;">
-        <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12" style="width: 100%;">
-        <input type="password" id="player-pin-input" class="name-input" placeholder="請輸入 6 位數字 PIN 碼..." maxlength="6" pattern="[0-9]*" inputmode="numeric" style="width: 100%; text-align: center; letter-spacing: 4px; font-weight: bold;">
+    <!-- 📢 1. 封面主頁面 (TITLE) -->
+    <div class="dynamic-panel title-panel-style" id="title-box">
+        <h1 class="game-main-title">命運深淵</h1>
+        <p class="game-sub-title"> Blood &amp; Heritage </p>
+        <div class="notice-container">
+            <strong style="color: #ffd700;">📢 血脈防護與職業系統：</strong><br>
+            • 請輸入【勇者大名】與【6位數字 PIN 碼】開啟旅程。<br>
+            • 新勇者需選擇初始職業，舊勇者資料完好保留！
+        </div>
+        
+        <div id="legacy-box" class="legacy-container">請輸入名字與 6 位數字 PIN 碼以檢驗血脈...</div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 80%; margin: 12px auto;">
+            <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的勇者大名..." maxlength="12" style="width: 100%;">
+            <input type="password" id="player-pin-input" class="name-input" placeholder="請輸入 6 位數字 PIN 碼..." maxlength="6" pattern="[0-9]*" inputmode="numeric" style="width: 100%; text-align: center; letter-spacing: 4px; font-weight: bold;">
+        </div>
+
+        <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%; margin-top: 6px;">驗證並開啟旅程 🧭</button>
+
+        <div style="margin-top: 12px;">
+            <button type="button" onclick="clearAllLegacySaves()" style="background: transparent; border: none; color: #8e8e93; font-size: 11px; cursor: pointer; text-decoration: underline;">
+                🧹 清除本地舊快取存檔 (重置測試)
+            </button>
+        </div>
     </div>
 
-    <!-- 主開始按鈕 -->
-    <button id="start-game-btn" type="button" onclick="handleStartGame()" class="btn-game btn-explore" style="width: 80%; margin-top: 6px;">驗證並開啟旅程 🧭</button>
-
-    <!-- 清除本地快取按鈕 -->
-    <div style="margin-top: 12px;">
-        <button type="button" onclick="clearAllLegacySaves()" style="background: transparent; border: none; color: #8e8e93; font-size: 11px; cursor: pointer; text-decoration: underline;">
-            🧹 清除本地舊快取存檔 (重置測試)
-        </button>
-    </div>
-</div>
-<!-- 🎭 新玩家初始職業選擇視窗 (初始註冊時彈出) -->
-<div id="first-job-select-box" style="display: none; margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
-    <h3 style="color: #00ffcc; font-size: 14px; margin-bottom: 8px;">✨ 歡迎來到深淵！請選擇你的初始血脈職業：</h3>
-    <div id="first-job-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;"></div>
-    <button type="button" onclick="confirmInitialJobChoice()" class="btn-game btn-explore" style="width: 100%;">確認職業並踏入村莊 🧭</button>
-</div>
     <!-- 💡 雙欄核心分流包殼容器 -->
     <div class="game-layout-split">
         
@@ -68,120 +71,83 @@
         <div class="left-layout-column">
             
             <!-- 📊 2. 勇者狀態數據面板 (瘦身一屏版) -->
-<div class="status-panel" id="status-panel-box" style="display: none;">
-    
-    <div class="status-header-row">
-        <span>👤 <strong id="p-name">--</strong></span>
-        <span style="color: #00ffff;">🎭 <strong id="p-job">初心者</strong></span>
-        <span>📈 <strong id="p-lv">1</strong> <span style="color: var(--text-muted); font-size:10px;">Lv</span></span>
-        <span style="color: #2ecc71; font-size: 11px;">🟩 <span id="p-exp-text">0/30</span></span>
-    </div>
-    
-    <div class="bars-container-row">
-        <div class="mini-bar-box">
-            <div class="flex-space" style="font-size: 11px;"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
-            <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
-        </div>
-        <div class="mini-bar-box">
-            <div class="flex-space" style="font-size: 11px;"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
-            <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
-        </div>
-    </div>
+            <div class="status-panel" id="status-panel-box" style="display: none;">
+                <div class="status-header-row">
+                    <span>👤 <strong id="p-name">--</strong></span>
+                    <span style="color: #00ffff;">🎭 <strong id="p-job">劍士</strong></span>
+                    <span>📈 <strong id="p-lv">1</strong> <span style="color: var(--text-muted); font-size:10px;">Lv</span></span>
+                    <span style="color: #2ecc71; font-size: 11px;">🟩 <span id="p-exp-text">0/30</span></span>
+                </div>
+                
+                <div class="bars-container-row">
+                    <div class="mini-bar-box">
+                        <div class="flex-space" style="font-size: 11px;"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
+                        <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
+                    </div>
+                    <div class="mini-bar-box">
+                        <div class="flex-space" style="font-size: 11px;"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
+                        <div class="visual-bar-bg"><div id="mp-bar-fill" class="visual-bar-fill mp-color"></div></div>
+                    </div>
+                </div>
 
-    <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
-        <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
-        <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
-    </div>
+                <div class="status-item full-row" id="p-atb-row" style="display: none; padding: 4px 8px;">
+                    <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
+                    <div class="visual-bar-bg" style="height: 4px;"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
+                </div>
 
-    <!-- 🎒 戰術快捷背包區域 (容量 6 格) -->
-    <div class="status-item full-row" style="margin-top: 4px; padding: 8px;">
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 6px; width: 100%;">
-            <span>🪙 金幣: <strong id="p-gold" style="color: #ffd700;">0</strong> G</span>
-            <span id="bag-capacity-text">🎒 0 / 6</span>
-        </div>
-        <div id="bag-slots-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
-            <!-- 由 ui.js 渲染背包格子 -->
-        </div>
-    </div>
+                <div class="status-item full-row" style="margin-top: 4px; padding: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 6px; width: 100%;">
+                        <span>🪙 金幣: <strong id="p-gold" style="color: #ffd700;">0</strong> G</span>
+                        <span id="bag-capacity-text">🎒 0 / 6</span>
+                    </div>
+                    <div id="bag-slots-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;"></div>
+                </div>
 
-    <!-- 🔍 摺疊查看 戰偶紙娃娃、配點與詳細面板 -->
-    <details class="char-details-folder" id="char-details-toggle">
-        <summary id="char-folder-summary">🔍 展開查看 戰偶裝備、配點與詳細數值</summary>
-        <div class="folder-content">
-            
-            <!-- 裝備紙娃娃 -->
-            <div class="paper-doll-container">
-                <div class="doll-grid">
-                    <div class="doll-slot weapon-slot" id="slot-weapon">
-                        <div class="slot-inner">
-                            <span class="slot-icon">🗡️</span>
-                            <div class="slot-info">
-                                <span class="slot-label">武器</span>
-                                <span class="slot-name" id="p-equip-weapon">空手</span>
+                <details class="char-details-folder" id="char-details-toggle">
+                    <summary id="char-folder-summary">🔍 展開查看 戰偶裝備、配點與詳細數值</summary>
+                    <div class="folder-content">
+                        <div class="paper-doll-container">
+                            <div class="doll-grid">
+                                <div class="doll-slot weapon-slot" id="slot-weapon">
+                                    <div class="slot-inner"><span class="slot-icon">🗡️</span><div class="slot-info"><span class="slot-label">武器</span><span class="slot-name" id="p-equip-weapon">空手</span></div></div>
+                                </div>
+                                <div class="doll-silhouette"><div class="hologram-ring"></div><div class="silhouette-core">👤</div></div>
+                                <div class="doll-slot armor-slot" id="slot-armor">
+                                    <div class="slot-inner"><span class="slot-icon">👕</span><div class="slot-info"><span class="slot-label">防具</span><span class="slot-name" id="p-equip-armor">布衣</span></div></div>
+                                </div>
+                                <div class="doll-slot accessory-slot" id="slot-accessory">
+                                    <div class="slot-inner"><span class="slot-icon">💍</span><div class="slot-info"><span class="slot-label">飾品</span><span class="slot-name" id="p-equip-accessory">無</span></div></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="doll-silhouette">
-                        <div class="hologram-ring"></div>
-                        <div class="silhouette-core">👤</div>
-                    </div>
-                    
-                    <div class="doll-slot armor-slot" id="slot-armor">
-                        <div class="slot-inner">
-                            <span class="slot-icon">👕</span>
-                            <div class="slot-info">
-                                <span class="slot-label">防具</span>
-                                <span class="slot-name" id="p-equip-armor">布衣</span>
+
+                        <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; margin-top: 4px;">
+                            <div style="font-size: 11px; color: #ffd700; font-weight: bold; margin-bottom: 4px; text-align: center;">⚔️ 詳細戰鬥面板</div>
+                            <div class="stats-mini-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                                <div class="grid-cell">⚔️ 攻擊: <span id="p-atk">15</span></div>
+                                <div class="grid-cell">🛡️ 減傷: <span id="p-block">0</span></div>
+                                <div class="grid-cell">⚡ 攻速: <span id="p-spd">20</span></div>
+                                <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
+                                <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
+                                <div class="grid-cell">🩸 吸血: <span id="p-vamp">0%</span></div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="doll-slot accessory-slot" id="slot-accessory">
-                        <div class="slot-inner">
-                            <span class="slot-icon">💍</span>
-                            <div class="slot-info">
-                                <span class="slot-label">飾品</span>
-                                <span class="slot-name" id="p-equip-accessory">無</span>
+
+                        <div style="background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; padding: 8px; margin-top: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+                                <span style="color: #ffd700; font-weight: bold; font-size: 11px;">🎯 自由能力點數</span>
+                                <strong id="p-stat-points" style="color: #00ffcc; font-size: 14px;">0</strong>
                             </div>
+                            <div id="stat-alloc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;"></div>
+                        </div>
+
+                        <div class="folder-item" style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 6px; margin-top: 4px;">
+                            <span class="folder-label">🔮 已加載戰技：</span>
+                            <span id="p-skills-list" style="color: #9b59b6; font-weight: bold;">基本打擊</span>
                         </div>
                     </div>
-                </div>
+                </details>
             </div>
-
-            <!-- ⚔️ 移入紙娃娃的詳細戰術數據網格 -->
-            <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; margin-top: 4px;">
-                <div style="font-size: 11px; color: #ffd700; font-weight: bold; margin-bottom: 4px; text-align: center;">⚔️ 詳細戰鬥面板</div>
-                <div class="stats-mini-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                    <div class="grid-cell">⚔️ 攻擊: <span id="p-atk">15</span></div>
-                    <div class="grid-cell">🛡️ 減傷: <span id="p-block">0</span></div>
-                    <div class="grid-cell">⚡ 攻速: <span id="p-spd">20</span></div>
-                    <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
-                    <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
-                    <div class="grid-cell">🩸 吸血: <span id="p-vamp">0%</span></div>
-                </div>
-            </div>
-
-            <!-- 📊 6 大能力值與自由配點控制面板 -->
-            <div style="background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; padding: 8px; margin-top: 4px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
-                    <span style="color: #ffd700; font-weight: bold; font-size: 11px;">🎯 自由能力點數</span>
-                    <strong id="p-stat-points" style="color: #00ffcc; font-size: 14px;">0</strong>
-                </div>
-                <div id="stat-alloc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                    <!-- 由 ui.js 動態渲染屬性值與 [+] 配點按鈕 -->
-                </div>
-            </div>
-
-            <div class="folder-item" style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 6px; margin-top: 4px;">
-                <span class="folder-label">🔮 已加載戰技：</span>
-                <span id="p-skills-list" style="color: #9b59b6; font-weight: bold;">基本打擊</span>
-            </div>
-
-        </div>
-    </details>
-
-</div>
             
             <!-- 🕹️ 3. 全局動作按鈕區 -->
             <div class="action-panel" id="action-panel-box" style="display: none; flex-direction: column; gap: 8px;">
@@ -201,21 +167,49 @@
             
             <!-- ⛺ 4. 地表村莊專用分流面板 -->
             <div id="village-panel-box" style="display: none; width: 100%;">
-                <div class="village-nav-bar">
-                   <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
-                   <button id="btn-tab-guild" class="btn-nav-tab" onclick="switchVillageLocation('GUILD')">🏛️ 冒險者公會</button>
-                   <button id="btn-tab-kitchen" class="btn-nav-tab" onclick="switchVillageLocation('KITCHEN')">🍳 料理屋</button>
-                   <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">🏛️ 中央廣場</button>
-                   <button id="btn-tab-workshop" class="btn-nav-tab" onclick="switchVillageLocation('WORKSHOP')">🛠️ 加工所</button>
-               </div>
+                <div class="village-nav-bar" style="display: flex; gap: 4px; overflow-x: auto;">
+                    <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
+                    <button id="btn-tab-guild" class="btn-nav-tab" onclick="switchVillageLocation('GUILD')">🏛️ 冒險者公會</button>
+                    <button id="btn-tab-kitchen" class="btn-nav-tab" onclick="switchVillageLocation('KITCHEN')">🍳 料理屋</button>
+                    <button id="btn-tab-workshop" class="btn-nav-tab" onclick="switchVillageLocation('WORKSHOP')">🛠️ 加工所</button>
+                    <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">💬 廣場</button>
+                </div>
 
+                <!-- 門口大殿 -->
                 <div id="v-loc-gate" class="v-sub-loc-panel">
-                    <div class="dynamic-panel job-select-style">
-                        <div class="panel-title">🎭 皇家職業聖殿</div>
-                        <div class="grid-layout" id="job-choices-container"></div>
+                    <div class="placeholder-card" style="background: rgba(20, 25, 40, 0.7); border: 1px solid rgba(0, 255, 204, 0.2); text-align: center; padding: 20px;">
+                        <h3 style="color: #00ffcc; margin-top: 0;">🌀 深淵傳送大門</h3>
+                        <p style="color: #ccc; font-size: 12px;">準備就緒後，點擊左側【🔮 啟動傳送門】即可直接降臨深淵探險！</p>
                     </div>
                 </div>
 
+                <!-- 🏛️ 新增：冒險者公會面板 -->
+                <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
+                    <div class="dynamic-panel cooking-style" style="border-color: rgba(155, 89, 182, 0.3); background: linear-gradient(180deg, rgba(155, 89, 182, 0.05) 0%, rgba(0,0,0,0) 100%);">
+                        <div class="panel-title" style="color: #9b59b6;">🏛️ 皇家冒險者公會</div>
+                        
+                        <!-- 🎓 技能學習專區 -->
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 13px; color: #ffd700; font-weight: bold; margin-bottom: 8px;">🎓 職業專屬技能傳承</div>
+                            <div id="guild-skills-container" class="flex-layout"></div>
+                        </div>
+
+                        <!-- ⚖️ 洗點與轉職服務專區 -->
+                        <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px; margin-top: 12px;">
+                            <div style="font-size: 13px; color: #00ffcc; font-weight: bold; margin-bottom: 8px;">⚖️ 命運洗禮 (洗點與轉職)</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <button class="btn-game btn-rerun" onclick="executeResetStats()" style="padding: 8px; font-size: 11px;">
+                                    🎯 重洗屬性點<br><span style="font-size: 9px; color: #ffd700;">(消耗 300 G)</span>
+                                </button>
+                                <button class="btn-game btn-explore" onclick="triggerReselectJobUI()" style="padding: 8px; font-size: 11px;">
+                                    🔄 重選職業<br><span style="font-size: 9px; color: #ffd700;">(Lv.1重置，耗 1,000 G)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 料理屋 -->
                 <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
                         <div class="panel-title">🍳 皇家後勤料理屋</div>
@@ -231,34 +225,16 @@
                     </div>
                 </div>
 
+                <!-- 廣場 -->
                 <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
                     <div class="placeholder-card">
-                        <h3>🏛️ 中央交流廣場</h3>
+                        <h3>💬 中央交流廣場</h3>
                         <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
                         <div class="placeholder-desc">未來這裡將接入 Render 後端聯網引擎，提供全服勇者留言板與即時聊天室！</div>
                     </div>
                 </div>
 
-                <!-- 🏛️ 公會子頁面 -->
-                <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
-                    <div class="dynamic-panel job-select-style" style="border-color: rgba(155, 89, 182, 0.4); background: linear-gradient(180deg, rgba(155,89,182,0.05) 0%, rgba(0,0,0,0) 100%);">
-                        <div class="panel-title" style="color: #9b59b6;">🏛️ 皇家冒險者公會 (技能與轉職)</div>
-        
-                        <!-- 🎓 技能研習區 -->
-                        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="font-size: 13px; color: #ffd700; font-weight: bold; margin-bottom: 6px;">🎓 職業導師・技能研習與導引</div>
-                            <div id="guild-skills-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
-                        </div>
-
-                        <!-- 🔄 轉職重置區 -->
-                        <div style="background: rgba(40, 15, 15, 0.4); border: 1px solid rgba(231, 76, 60, 0.3); padding: 10px; border-radius: 8px;">
-                            <div style="font-size: 13px; color: #ff6b6b; font-weight: bold; margin-bottom: 4px;">🔄 職業重置與血脈洗禮 (重置為 Lv.1)</div>
-                            <p style="font-size: 10px; color: #aaa; margin: 0 0 10px 0;">重置職業後，等級與能力點將歸零，但身上所有裝備、星級精煉與倉庫素材將 <strong>100% 完好保留</strong>。</p>
-                            <div id="guild-reset-job-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;"></div>
-                        </div>
-                    </div>
-                </div>
-                
+                <!-- 加工所 -->
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
@@ -286,36 +262,19 @@
                 <div class="monster-header-row">
                     <span>⚔️ 敵對魔物: <strong id="m-name" style="color: #fff;">--</strong></span>
                 </div>
-                
                 <div class="bars-container-row">
                     <div class="mini-bar-box" style="background: rgba(40, 10, 10, 0.3); border-color: rgba(231, 76, 60, 0.1);">
-                        <div class="flex-space" style="font-size: 11px;">
-                            <span>❤️ 魔物血量</span> 
-                            <strong><span id="m-hp-text">0 / 0</span></strong>
-                        </div>
-                        <div class="visual-bar-bg">
-                            <div id="m-hp-bar" class="visual-bar-fill" style="background: linear-gradient(90deg, #cb2d3e 0%, #ef473a 100%); width: 0%;"></div>
-                        </div>
+                        <div class="flex-space" style="font-size: 11px;"><span>❤️ 魔物血量</span><strong><span id="m-hp-text">0 / 0</span></strong></div>
+                        <div class="visual-bar-bg"><div id="m-hp-bar" class="visual-bar-fill" style="background: linear-gradient(90deg, #cb2d3e 0%, #ef473a 100%); width: 0%;"></div></div>
                     </div>
-                    
                     <div class="mini-bar-box" id="m-atb-row" style="background: rgba(40, 10, 10, 0.3); border-color: rgba(231, 76, 60, 0.1);">
-                        <div class="flex-space" style="font-size: 11px;">
-                            <span>⚡ 行動準備</span> 
-                            <strong><span id="m-atb-text">0</span>%</strong>
-                        </div>
-                        <div class="visual-bar-bg">
-                            <div id="m-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div>
-                        </div>
+                        <div class="flex-space" style="font-size: 11px;"><span>⚡ 行動準備</span><strong><span id="m-atb-text">0</span>%</strong></div>
+                        <div class="visual-bar-bg"><div id="m-atb-bar-fill" class="visual-bar-fill atb-color" style="width: 0%;"></div></div>
                     </div>
                 </div>
-                
                 <div class="monster-stats-grid">
-                    <div class="grid-cell" style="border-color: rgba(231, 76, 60, 0.15);">
-                        ⚔️ 攻擊力: <strong id="m-atk" style="color: #ff6b81;">0</strong>
-                    </div>
-                    <div class="grid-cell" style="border-color: rgba(231, 76, 60, 0.15);">
-                        ⚡ 速度: <strong id="m-spd" style="color: #f1c40f;">0</strong>
-                    </div>
+                    <div class="grid-cell" style="border-color: rgba(231, 76, 60, 0.15);">⚔️ 攻擊力: <strong id="m-atk" style="color: #ff6b81;">0</strong></div>
+                    <div class="grid-cell" style="border-color: rgba(231, 76, 60, 0.15);">⚡ 速度: <strong id="m-spd" style="color: #f1c40f;">0</strong></div>
                 </div>
             </div>
 
@@ -328,27 +287,22 @@
             <!-- 📜 7. 戰鬥日誌打印台 + 🧭 側拉式戰術抽屜 -->
             <div class="log-wrapper" id="log-wrapper-box" style="display: none;">
                 <div class="log-panel" id="log-box" style="width: 100%; height: 100%;"></div>
-
                 <div class="tactics-drawer" id="tactics-drawer-box">
                     <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn">
                         <span class="trigger-icon">⚙️</span>
                         <span class="trigger-text">戰術指令</span>
                     </button>
-                    
                     <div class="drawer-panel-content">
                         <div class="drawer-header">🎯 即時陣法變革</div>
-                        
                         <div class="tactics-options-container">
                             <button id="tactic-btn-MANUAL" class="btn-tactic-option active" type="button" onclick="selectTactic('MANUAL')">
                                 <span class="tactic-title">🎮 手動看戲</span>
                                 <span class="tactic-desc">只使用基本物理揮砍，不消耗任何 MP</span>
                             </button>
-
                             <button id="tactic-btn-BALANCED" class="btn-tactic-option" type="button" onclick="selectTactic('BALANCED')">
                                 <span class="tactic-title">⚖️ 均衡防禦</span>
                                 <span class="tactic-desc">自愈技能優先，保留 30% MP 作急救防禦</span>
                             </button>
-
                             <button id="tactic-btn-OFFENSIVE" class="btn-tactic-option" type="button" onclick="selectTactic('OFFENSIVE')">
                                 <span class="tactic-title">⚔️ 狂暴強擊</span>
                                 <span class="tactic-desc">大招全開，忽視治療，爆發最強火力</span>
@@ -359,8 +313,8 @@
             </div>
 
         </div> <!-- 右側直欄結束 -->
-    </div> <!-- 雙欄核心分流包殼容器結束 (.game-layout-split) -->
-</div> <!-- 整個遊戲主容器結束 (#main-game-shell) -->
+    </div> <!-- 雙欄核心分流包殼容器結束 -->
+</div>
 
 <!-- 全螢幕 QTE 視窗 -->
 <div id="qte-overlay" style="display: none;">
@@ -371,7 +325,7 @@
     </div>
 </div>
 
-<!-- 🏆 全螢幕領主討伐大捷過場遮罩 -->
+<!-- 🏆 全螢幕領主討伐過場 -->
 <div id="boss-victory-overlay" style="display: none;">
     <div class="victory-cloud-shimmer"></div>
     <div class="victory-crystal-container">
