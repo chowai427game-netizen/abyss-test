@@ -272,6 +272,8 @@ function triggerVillageQte(type, targetData, successCallback) {
 
     if (type === "COOK") {
         title.innerHTML = `🍳 正在熬製：<strong>${targetData.name}</strong> 🍳<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美敲擊區間：[65% - 85%]</span>`;
+    } else if (type === "LOCKPICK") {
+        title.innerHTML = `🔓 正在撬鎖：<strong>${targetData.name}</strong> 🔓<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美開鎖區間：[65% - 85%]</span>`;
     } else {
         title.innerHTML = `🔨 正在熔練：<strong>${targetData.name}</strong> 🔨<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美錘擊區間：[65% - 85%]</span>`;
     }
@@ -703,6 +705,7 @@ function triggerRandomAbyssEvent() {
     
     let isChestEvent = Math.random() < 0.5;
 
+    // 1. 🌌 隨機奇遇事件
     if (!isChestEvent && typeof ABYSS_EVENTS_DATABASE !== "undefined" && ABYSS_EVENTS_DATABASE.length > 0) {
         let randomEvent = ABYSS_EVENTS_DATABASE[Math.floor(Math.random() * ABYSS_EVENTS_DATABASE.length)];
         title.innerHTML = randomEvent.title;
@@ -715,6 +718,7 @@ function triggerRandomAbyssEvent() {
         descP.innerHTML = randomEvent.desc;
         container.appendChild(descP);
 
+        // 渲染選項
         randomEvent.choices.forEach(choice => {
             let btn = document.createElement('button');
             btn.className = "btn-game btn-cook";
@@ -729,7 +733,20 @@ function triggerRandomAbyssEvent() {
             };
             container.appendChild(btn);
         });
+
+        // 🏃 離開按鈕（預設可無傷繞過）
+        let btnLeave = document.createElement('button');
+        btnLeave.className = "btn-game btn-rest";
+        btnLeave.style.width = "100%";
+        btnLeave.style.fontSize = "11px";
+        btnLeave.innerHTML = "🏃 靜靜離開，不做理會";
+        btnLeave.onclick = () => {
+            addLog("🏃 你決定不輕舉妄動，警惕地繞開此處繼續前進。");
+            resolveAbyssEvent();
+        };
+        container.appendChild(btnLeave);
     } 
+    // 2. 🎁 寶箱 QTE 事件
     else if (typeof TREASURE_CHESTS_POOL !== "undefined" && TREASURE_CHESTS_POOL.length > 0) {
         let rolledChest = TREASURE_CHESTS_POOL[Math.floor(Math.random() * TREASURE_CHESTS_POOL.length)];
         title.innerHTML = `🎁 發現古老遺蹟：[${rolledChest.name}] 🎁`;
@@ -739,33 +756,68 @@ function triggerRandomAbyssEvent() {
         descP.style.color = "#babcbf";
         descP.style.lineHeight = "1.6";
         descP.style.marginBottom = "15px";
-        descP.innerHTML = `地面上靜靜躺著一個【${rolledChest.name}】。你可以選擇強行砸開鎖扣，或者小心地引導魔力拆解。`;
+        descP.innerHTML = `地面上靜靜躺著一個【${rolledChest.name}】。你可以專心嘗試開鎖解開密碼，或者直接繞過。`;
         container.appendChild(descP);
 
-        let btnOpen = document.createElement('button');
-        btnOpen.className = "btn-game btn-explore";
-        btnOpen.style.width = "100%";
-        btnOpen.innerHTML = `🔑 砸開寶箱鎖扣`;
-        btnOpen.onclick = () => {
-            let rolledGold = Math.floor(Math.random() * (rolledChest.maxGold - rolledChest.minGold + 1)) + rolledChest.minGold;
-            currentRun.gold += rolledGold;
-            addLog(`🪙 獲得臨時金幣 +${rolledGold} G！`);
-            addLog(`📢 箱內迴響：${rolledChest.msg}`, rolledChest.isTrap ? "take" : "perfect");
+        // 🔓 專心開鎖 QTE 按鈕
+        let btnLockpick = document.createElement('button');
+        btnLockpick.className = "btn-game btn-explore";
+        btnLockpick.style.width = "100%";
+        btnLockpick.style.marginBottom = "8px";
+        btnLockpick.innerHTML = `🔓 專心開鎖 (啟動開鎖 QTE)`;
+        btnLockpick.onclick = () => {
+            triggerVillageQte("LOCKPICK", rolledChest, (rating) => {
+                let rolledGold = Math.floor(Math.random() * (rolledChest.maxGold - rolledChest.minGold + 1)) + rolledChest.minGold;
 
-            if (rolledChest.isTrap && rolledChest.dmg) {
-                currentRun.hp = Math.max(1, currentRun.hp - rolledChest.dmg);
-            }
+                if (rating === "PERFECT") {
+                    rolledGold = Math.floor(rolledGold * 1.5);
+                    currentRun.gold += rolledGold;
+                    addLog(`🔑🌟【神業開鎖・大成功】完美拆解 [${rolledChest.name}]！獲加成金幣 +${rolledGold} G！`, "perfect");
+                    
+                    if (Math.random() < 0.5 && typeof MONSTER_DROPS !== "undefined") {
+                        let activeDrops = Object.values(MONSTER_DROPS);
+                        let randDrop = activeDrops[Math.floor(Math.random() * activeDrops.length)];
+                        accountMeta.warehouse[randDrop] = (accountMeta.warehouse[randDrop] || 0) + 1;
+                        addLog(`🎁 箱底掉落珍貴素材 ➔ <strong>${randDrop} (x1)</strong>！`, "perfect");
+                    }
+                } 
+                else if (rating === "GOOD") {
+                    currentRun.gold += rolledGold;
+                    addLog(`🔑【開鎖成功】成功打開 [${rolledChest.name}]，獲得金幣 +${rolledGold} G！`, "perfect");
 
-            if (Math.random() < 0.25 && typeof MONSTER_DROPS !== "undefined") {
-                let activeDrops = Object.values(MONSTER_DROPS);
-                let randDrop = activeDrops[Math.floor(Math.random() * activeDrops.length)];
-                accountMeta.warehouse[randDrop] = (accountMeta.warehouse[randDrop] || 0) + 1;
-                addLog(`🎁 箱底夾層傳送出永久素材 ➔ <strong>${randDrop} (x1)</strong>！`, "perfect");
-            }
+                    if (rolledChest.isTrap && rolledChest.dmg) {
+                        let dmg = Math.floor(rolledChest.dmg * 0.5);
+                        currentRun.hp = Math.max(1, currentRun.hp - dmg);
+                        addLog(`⚠️ 觸發殘餘陷阱，受到微量傷血扣減 ${dmg} HP。`, "take");
+                    }
+                } 
+                else {
+                    addLog(`💥【開鎖失手】工具卡死引爆箱內陷阱！`, "take");
+                    let trapDmg = rolledChest.dmg || 20;
+                    currentRun.hp = Math.max(1, currentRun.hp - trapDmg);
+                    addLog(`💥 陷阱爆炸！受創扣減 <span class="num-popup num-boss-strike">-${trapDmg} HP</span>！`, "take");
 
+                    let reducedGold = Math.floor(rolledGold * 0.3);
+                    currentRun.gold += reducedGold;
+                    addLog(`🪙 勉強撿回飛濺的碎片金幣 +${reducedGold} G。`);
+                }
+
+                saveGameData();
+                resolveAbyssEvent();
+            });
+        };
+        container.appendChild(btnLockpick);
+
+        // 🏃 離開按鈕
+        let btnLeave = document.getElementById('btn-leave-chest') || document.createElement('button');
+        btnLeave.className = "btn-game btn-rest";
+        btnLeave.style.width = "100%";
+        btnLeave.innerHTML = `🏃 繞過寶箱，繼續探險`;
+        btnLeave.onclick = () => {
+            addLog(`🏃 你謹慎地繞過了 [${rolledChest.name}]，繼續向深淵推進。`);
             resolveAbyssEvent();
         };
-        container.appendChild(btnOpen);
+        container.appendChild(btnLeave);
     } else {
         resolveAbyssEvent();
     }
