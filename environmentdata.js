@@ -12,6 +12,7 @@ const ENVIRONMENT_DATABASE = {
 };
 
 const deepFreeze = (obj) => {
+    if (!obj || typeof obj !== 'object') return obj;
     Object.keys(obj).forEach(prop => {
         if (typeof obj[prop] === 'object' && obj[prop] !== null) {
             deepFreeze(obj[prop]);
@@ -20,8 +21,9 @@ const deepFreeze = (obj) => {
     return Object.freeze(obj);
 };
 
-// 凍結環境資料庫
+// 安全凍結環境資料庫
 deepFreeze(ENVIRONMENT_DATABASE);
-// 凍結技能庫
-deepFreeze(SKILLS_DATABASE);
 
+if (typeof SKILLS_DATABASE !== "undefined") {
+    deepFreeze(SKILLS_DATABASE);
+}
