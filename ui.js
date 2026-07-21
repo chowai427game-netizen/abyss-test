@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、部位星級精煉台、裝備拆解及 QTE 面板同步核心 (修復整合版)
+// 📺 ui.js：分頁渲染、公會技能學習、轉職/洗點及 QTE 面板同步核心
 // ==========================================================================
 
 const DOM = {
@@ -33,7 +33,7 @@ let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
 // ==========================================
-// 1. 屬性點數分配邏輯與自動寫入
+// 1. 屬性點數分配邏輯
 // ==========================================
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
@@ -56,23 +56,21 @@ function allocateStatPoint(statKey) {
 }
 
 // ==========================================
-// 2. 介面同步主函數 (syncCharacterDataUi - 唯一整合版)
+// 2. 介面同步主函數
 // ==========================================
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
-    // 基本資訊
     let nameEl = document.getElementById('p-name');
     let jobEl = document.getElementById('p-job');
     let lvEl = document.getElementById('p-lv');
     let expTextEl = document.getElementById('p-exp-text');
     
     if (nameEl) nameEl.innerText = accountMeta.name || "無名勇者";
-    if (jobEl && typeof getJobChineseName === "function") jobEl.innerText = getJobChineseName(currentRun.job);
+    if (jobEl) jobEl.innerText = getJobChineseName(currentRun.job);
     if (lvEl) lvEl.innerText = accountMeta.lv || currentRun.lv || 1;
     if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || currentRun.nextExp || 30}`;
 
-    // 未分配點數與摺疊標題提示
     let pts = accountMeta.statPoints || 0;
     let ptsEl = document.getElementById('p-stat-points');
     if (ptsEl) ptsEl.innerText = pts;
@@ -86,7 +84,6 @@ function syncCharacterDataUi() {
         }
     }
 
-    // 渲染 6 大屬性與加號按鈕
     let gridEl = document.getElementById('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
@@ -129,7 +126,6 @@ function syncCharacterDataUi() {
         });
     }
 
-    // 血量與魔力條
     let hpEl = document.getElementById('p-hp');
     let maxHpEl = document.getElementById('p-maxhp');
     let mpEl = document.getElementById('p-mp');
@@ -145,7 +141,6 @@ function syncCharacterDataUi() {
     if (hpBar) hpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.hp / currentRun.maxHp) * 100))}%`;
     if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
-    // ⚡ 玩家 ATB 更新
     const pAtbRow = document.getElementById('p-atb-row');
     if (pAtbRow) {
         if (gameState === "VILLAGE") {
@@ -168,7 +163,6 @@ function syncCharacterDataUi() {
         }
     }
 
-    // 更新詳細數據
     let setTxt = (id, txt) => { let e = document.getElementById(id); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
     setTxt('p-atk', currentRun.atk);
@@ -178,12 +172,10 @@ function syncCharacterDataUi() {
     setTxt('p-dodge', `${currentRun.dodgeChance}%`);
     setTxt('p-vamp', `${currentRun.vampRate}%`);
 
-    // 技能清單
     let skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
     const skillListEl = document.getElementById('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
 
-    // 裝備與星級
     let wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
     let aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
     let cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
@@ -196,7 +188,6 @@ function syncCharacterDataUi() {
     if (slotArmor) slotArmor.innerText = (accountMeta.equipment?.armor || "布衣") + aStar;
     if (slotAccessory) slotAccessory.innerText = (accountMeta.equipment?.accessory || "無") + cStar;
 
-    // 背包渲染
     let bagCapTxt = document.getElementById('bag-capacity-text');
     if (bagCapTxt) bagCapTxt.innerText = `🎒 ${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`;
 
@@ -241,18 +232,22 @@ function syncCharacterDataUi() {
         }
     }
 }
+
+// 🌐 職業名稱映射
 function getJobChineseName(j) {
-    if (j === "novice") return "初心者";
     if (j === "swordsman") return "劍士";
     if (j === "magician") return "魔法師";
     if (j === "acolyte") return "服事";
-    return j || "初心者";
+    if (j === "thief") return "盜賊";
+    if (j === "archer") return "弓箭手";
+    return "劍士";
 }
 
+// ⛺ 村莊地點切換
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
-    const panels = ['v-loc-gate', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
+    const panels = ['v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
     panels.forEach(p => {
         const el = document.getElementById(p);
         if (el) el.style.display = 'none';
@@ -260,6 +255,7 @@ function switchVillageLocation(targetLoc) {
     
     const tabs = { 
         'GATE': 'btn-tab-gate', 
+        'GUILD': 'btn-tab-guild',
         'KITCHEN': 'btn-tab-kitchen', 
         'SQUARE': 'btn-tab-square', 
         'WORKSHOP': 'btn-tab-workshop' 
@@ -277,8 +273,12 @@ function switchVillageLocation(targetLoc) {
     if (targetLoc === "GATE") {
         const el = document.getElementById('v-loc-gate'); if (el) el.style.display = 'block';
         if (locTextEl) locTextEl.innerHTML = "⛺ 地表村莊 ➔ 傳送大殿";
-        renderVillageJobSelectors();
     } 
+    else if (targetLoc === "GUILD") {
+        const el = document.getElementById('v-loc-guild'); if (el) el.style.display = 'block';
+        if (locTextEl) locTextEl.innerHTML = "🏛️ 地表村莊 ➔ 冒險者公會";
+        renderVillageGuild();
+    }
     else if (targetLoc === "KITCHEN") {
         const el = document.getElementById('v-loc-kitchen'); if (el) el.style.display = 'block';
         if (locTextEl) locTextEl.innerHTML = "🍳 地表村莊 ➔ 皇家料理屋";
@@ -286,7 +286,7 @@ function switchVillageLocation(targetLoc) {
     } 
     else if (targetLoc === "SQUARE") {
         const el = document.getElementById('v-loc-square'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "🏛️ 地表村莊 ➔ 中央廣場";
+        if (locTextEl) locTextEl.innerHTML = "💬 地表村莊 ➔ 中央廣場";
     }
     else if (targetLoc === "WORKSHOP") {
         const el = document.getElementById('v-loc-workshop'); if (el) el.style.display = 'block';
@@ -396,43 +396,68 @@ function updateUI() {
     syncCharacterDataUi();
 }
 
-function changeCookingTab(selectedRange) {
-    activeCookingRange = selectedRange;
-    const container = document.getElementById('v-loc-kitchen');
-    if (container) {
-        const btns = container.querySelectorAll('.tab-filter-row button');
-        btns.forEach(btn => {
-            if (btn.getAttribute('onclick').includes(`'${selectedRange}'`)) btn.className = "btn-game btn-rerun";
-            else btn.className = "btn-game btn-rest";
-        });
-    }
-    renderVillageCookingWorkshop();
-}
+// 🏛️ 渲染冒險者公會技能商店
+function renderVillageGuild() {
+    const container = document.getElementById('guild-skills-container');
+    if (!container || typeof SKILLS_DATABASE === "undefined") return;
+    container.innerHTML = "";
 
-function changeCraftingCat(selectedCat) {
-    activeCraftingCategory = selectedCat;
-    const row = document.getElementById('workshop-cat-row');
-    if (row) {
-        const btns = row.querySelectorAll('button');
-        btns.forEach(btn => {
-            if (btn.getAttribute('onclick').includes(`'${selectedCat}'`)) btn.className = "btn-game btn-rerun";
-            else btn.className = "btn-game btn-rest";
-        });
-    }
-    renderVillageWorkshop();
-}
+    const jobSkills = SKILLS_DATABASE[currentRun.job] || [];
 
-function changeCraftingLvl(selectedLvl) {
-    activeCraftingLvlRange = selectedLvl;
-    const row = document.getElementById('workshop-lvl-row');
-    if (row) {
-        const btns = row.querySelectorAll('button');
-        btns.forEach(btn => {
-            if (btn.getAttribute('onclick').includes(`'${selectedLvl}'`)) btn.className = "btn-game btn-rerun";
-            else btn.className = "btn-game btn-rest";
-        });
-    }
-    renderVillageWorkshop();
+    jobSkills.forEach(s => {
+        let card = document.createElement('div');
+        card.style.background = "rgba(0,0,0,0.3)";
+        card.style.padding = "10px";
+        card.style.borderRadius = "8px";
+        card.style.border = "1px solid rgba(255,255,255,0.05)";
+        card.style.marginBottom = "8px";
+        card.style.width = "100%";
+
+        let isLearned = currentRun.skills && currentRun.skills[s.name];
+        let hasLevel = (accountMeta.lv || currentRun.lv || 1) >= s.reqLv;
+        let hasGold = currentRun.gold >= s.goldCost;
+        
+        let reqMatText = Object.keys(s.reqMat || {}).map(k => `${k} x${s.reqMat[k]}`).join(", ");
+        let hasMats = true;
+        for (let mat in s.reqMat) {
+            if ((accountMeta.warehouse[mat] || 0) < s.reqMat[mat]) hasMats = false;
+        }
+
+        let statusBadge = "";
+        let btnDisabled = false;
+
+        if (isLearned) {
+            statusBadge = `<span style="color: #2ecc71; font-weight: bold; font-size: 11px;">[已精通]</span>`;
+            btnDisabled = true;
+        } else if (!hasLevel) {
+            statusBadge = `<span style="color: #e74c3c; font-size: 11px;">[需 Lv.${s.reqLv}]</span>`;
+            btnDisabled = true;
+        } else if (!hasGold || !hasMats) {
+            statusBadge = `<span style="color: #e67e22; font-size: 11px;">[資源不足]</span>`;
+            btnDisabled = true;
+        }
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: #ffd700; font-size: 13px;">${s.name} ${statusBadge}</strong>
+                <span style="font-size: 11px; color: #00ffcc;">消耗: 🪙 ${s.goldCost} G</span>
+            </div>
+            <p style="font-size: 11px; color: #aaa; margin: 4px 0;">${s.desc}</p>
+            ${reqMatText ? `<div style="font-size: 10px; color: #8e8e93;">📦 所需素材：${reqMatText}</div>` : ""}
+            <div style="margin-top: 6px;"></div>
+        `;
+
+        let btnLearn = document.createElement('button');
+        btnLearn.className = "btn-game btn-explore";
+        btnLearn.style.padding = "4px 10px";
+        btnLearn.style.fontSize = "11px";
+        btnLearn.innerText = isLearned ? "✅ 已習得" : "🎓 學習傳承技能";
+        btnLearn.disabled = btnDisabled;
+        btnLearn.onclick = () => { executeLearnSkill(s); };
+
+        card.appendChild(btnLearn);
+        container.appendChild(card);
+    });
 }
 
 function renderVillageCookingWorkshop() {
@@ -625,55 +650,6 @@ function renderVillageWorkshop() {
         }
 
         bContainer.appendChild(btnWrapper);
-    });
-}
-
-// 💡 補全：職業選擇器動態渲染邏輯
-function renderVillageJobSelectors() {
-    const container = document.getElementById('job-choices-container');
-    if (!container) return;
-    container.innerHTML = "";
-
-    const jobs = [
-        { id: "novice", name: "初心者", icon: "🎭", desc: "追求全方位均衡發展的冒險者。" },
-        { id: "swordsman", name: "劍士", icon: "⚔️", desc: "擁有強大物理近戰爆發與硬核防禦。" },
-        { id: "magician", name: "魔法師", icon: "🔮", desc: "掌握元素奧術，具備極高魔力與控場。" },
-        { id: "acolyte", name: "服事", icon: "✨", desc: "獲得神聖庇護，擅長自我治療與輔助。" }
-    ];
-
-    jobs.forEach(j => {
-        let card = document.createElement('div');
-        let isCurrent = (currentRun.job === j.id);
-        card.style.cssText = `
-            background: ${isCurrent ? "rgba(0, 255, 204, 0.1)" : "rgba(0, 0, 0, 0.3)"};
-            border: 1px solid ${isCurrent ? "#00ffcc" : "rgba(255, 255, 255, 0.1)"};
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        `;
-        card.innerHTML = `
-            <div style="font-size: 20px;">${j.icon}</div>
-            <strong style="color: ${isCurrent ? "#00ffcc" : "#fff"}; font-size: 13px;">${j.name}</strong>
-            <p style="font-size: 10px; color: #aaa; margin: 4px 0 8px 0;">${j.desc}</p>
-            <button class="btn-game ${isCurrent ? "btn-rerun" : "btn-explore"}" style="padding: 4px 8px; font-size: 10px;" ${isCurrent ? "disabled" : ""}>
-                ${isCurrent ? "現職中" : "切換轉職"}
-            </button>
-        `;
-        card.onclick = () => {
-            if (isCurrent) return;
-            currentRun.job = j.id;
-            if (!accountMeta.unlockedJobs.includes(j.id)) {
-                accountMeta.unlockedJobs.push(j.id);
-            }
-            resetCurrentRunData();
-            saveGameData();
-            addLog(`🎭 成功轉換職業為 ➔ <strong>${j.name}</strong>！`, "perfect");
-            updateUI();
-            renderVillageJobSelectors();
-        };
-        container.appendChild(card);
     });
 }
 
