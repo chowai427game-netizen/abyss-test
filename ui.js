@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、公會技能學習、轉職/洗點及 QTE 面板同步核心
+// 📺 ui.js：分頁渲染、配點 UI（六大屬性）與 QTE 面板同步核心
 // ==========================================================================
 
 const DOM = {
@@ -33,7 +33,7 @@ let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
 // ==========================================
-// 1. 屬性點數分配邏輯
+// 1. 六大屬性點數分配邏輯 (STR, AGI, VIT, INT, DEX, LUK)
 // ==========================================
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
@@ -42,7 +42,7 @@ function allocateStatPoint(statKey) {
     }
     
     if (!accountMeta.stats) {
-        accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+        accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
     
     accountMeta.statPoints--;
@@ -78,26 +78,27 @@ function syncCharacterDataUi() {
     let folderSummary = document.getElementById('char-folder-summary');
     if (folderSummary) {
         if (pts > 0) {
-            folderSummary.innerHTML = `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold; animation: textPulse 1s infinite alternate;">[✨ ${pts} 點數待分配]</span>`;
+            folderSummary.innerHTML = `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold;">[✨ ${pts} 點數待分配]</span>`;
         } else {
             folderSummary.innerHTML = `🔍 展開查看 戰偶裝備、配點與詳細數值`;
         }
     }
 
+    // 🏛️ 六大能力值面板
     let gridEl = document.getElementById('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
         const statConfig = [
-            { key: "ATK", name: "⚔️ 力量", desc: "+3 攻擊" },
-            { key: "VIT", name: "🛡️ 體力", desc: "+15 HP, +0.5 格擋" },
-            { key: "INT", name: "🔮 智力", desc: "+10 MP, +1 回藍" },
-            { key: "DEX", name: "🎯 靈巧", desc: "+1 速度, +0.5% 暴擊" },
-            { key: "AGI", name: "⚡ 敏捷", desc: "+2 速度, +0.8% 閃避" },
-            { key: "LUK", name: "🎰 幸運", desc: "+1% 暴擊, +0.5% 連擊" }
+            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重上限" },
+            { key: "AGI", name: "⚡ 敏捷", desc: "攻速ASPD / 迴避FLEE" },
+            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / 物理DEF" },
+            { key: "INT", name: "🔮 智力", desc: "魔攻MATK / MP/MDEF" },
+            { key: "DEX", name: "🎯 靈巧", desc: "命中HIT / 遠程/縮詠" },
+            { key: "LUK", name: "🎰 幸運", desc: "暴擊CRIT / 完全迴避" }
         ];
 
         let hasPoints = pts > 0;
-        let currentStats = accountMeta.stats || { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+        let currentStats = accountMeta.stats || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
 
         statConfig.forEach(s => {
             let val = currentStats[s.key] || 0;
@@ -163,14 +164,15 @@ function syncCharacterDataUi() {
         }
     }
 
+    // ⚔️ 數值欄位更新 (支援 MATK, DEF, MDEF, HIT, FLEE)
     let setTxt = (id, txt) => { let e = document.getElementById(id); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
-    setTxt('p-atk', currentRun.atk);
-    setTxt('p-block', currentRun.block);
+    setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk})`);
+    setTxt('p-block', `${currentRun.def} (魔防 ${currentRun.mdef})`);
     setTxt('p-spd', currentRun.spd);
     setTxt('p-crit', `${currentRun.critChance}%`);
-    setTxt('p-dodge', `${currentRun.dodgeChance}%`);
-    setTxt('p-vamp', `${currentRun.vampRate}%`);
+    setTxt('p-dodge', `${Math.floor(currentRun.flee)} (完迴 ${currentRun.perfectDodge}%)`);
+    setTxt('p-vamp', `${Math.floor(currentRun.hit)} HIT`);
 
     let skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
     const skillListEl = document.getElementById('p-skills-list');
@@ -233,7 +235,6 @@ function syncCharacterDataUi() {
     }
 }
 
-// 🌐 職業名稱映射
 function getJobChineseName(j) {
     if (j === "swordsman") return "劍士";
     if (j === "magician") return "魔法師";
@@ -243,7 +244,6 @@ function getJobChineseName(j) {
     return "劍士";
 }
 
-// ⛺ 村莊地點切換
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
@@ -396,7 +396,6 @@ function updateUI() {
     syncCharacterDataUi();
 }
 
-// 🏛️ 渲染冒險者公會技能商店
 function renderVillageGuild() {
     const container = document.getElementById('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
