@@ -72,15 +72,24 @@ function syncCharacterDataUi() {
     if (lvEl) lvEl.innerText = accountMeta.lv || currentRun.lv || 1;
     if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || currentRun.nextExp || 30}`;
 
-    // 未分配點數渲染
+    // 未分配點數與摺疊標題提示
+    let pts = accountMeta.statPoints || 0;
     let ptsEl = document.getElementById('p-stat-points');
-    if (ptsEl) ptsEl.innerText = accountMeta.statPoints || 0;
+    if (ptsEl) ptsEl.innerText = pts;
 
-    // 渲染 6 大屬性與點數加號按鈕
+    let folderSummary = document.getElementById('char-folder-summary');
+    if (folderSummary) {
+        if (pts > 0) {
+            folderSummary.innerHTML = `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold; animation: textPulse 1s infinite alternate;">[✨ ${pts} 點數待分配]</span>`;
+        } else {
+            folderSummary.innerHTML = `🔍 展開查看 戰偶裝備、配點與詳細數值`;
+        }
+    }
+
+    // 渲染 6 大屬性與加號按鈕
     let gridEl = document.getElementById('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
-        
         const statConfig = [
             { key: "ATK", name: "⚔️ 力量", desc: "+3 攻擊" },
             { key: "VIT", name: "🛡️ 體力", desc: "+15 HP, +0.5 格擋" },
@@ -90,7 +99,7 @@ function syncCharacterDataUi() {
             { key: "LUK", name: "🎰 幸運", desc: "+1% 暴擊, +0.5% 連擊" }
         ];
 
-        let hasPoints = (accountMeta.statPoints || 0) > 0;
+        let hasPoints = pts > 0;
         let currentStats = accountMeta.stats || { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
 
         statConfig.forEach(s => {
@@ -136,7 +145,7 @@ function syncCharacterDataUi() {
     if (hpBar) hpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.hp / currentRun.maxHp) * 100))}%`;
     if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
-    // ⚡ 玩家無縫線性 ATB 更新
+    // ⚡ 玩家 ATB 更新
     const pAtbRow = document.getElementById('p-atb-row');
     if (pAtbRow) {
         if (gameState === "VILLAGE") {
@@ -159,7 +168,7 @@ function syncCharacterDataUi() {
         }
     }
 
-    // 戰鬥次要屬性面板
+    // 更新詳細數據
     let setTxt = (id, txt) => { let e = document.getElementById(id); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
     setTxt('p-atk', currentRun.atk);
@@ -167,13 +176,14 @@ function syncCharacterDataUi() {
     setTxt('p-spd', currentRun.spd);
     setTxt('p-crit', `${currentRun.critChance}%`);
     setTxt('p-dodge', `${currentRun.dodgeChance}%`);
+    setTxt('p-vamp', `${currentRun.vampRate}%`);
 
     // 技能清單
     let skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
     const skillListEl = document.getElementById('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
 
-    // 裝備與星級顯示
+    // 裝備與星級
     let wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
     let aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
     let cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
@@ -186,9 +196,9 @@ function syncCharacterDataUi() {
     if (slotArmor) slotArmor.innerText = (accountMeta.equipment?.armor || "布衣") + aStar;
     if (slotAccessory) slotAccessory.innerText = (accountMeta.equipment?.accessory || "無") + cStar;
 
-    // 背包容量與圖標渲染 (MAX_BAG_SIZE = 6)
+    // 背包渲染
     let bagCapTxt = document.getElementById('bag-capacity-text');
-    if (bagCapTxt) bagCapTxt.innerText = `${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`;
+    if (bagCapTxt) bagCapTxt.innerText = `🎒 ${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`;
 
     let bagContainer = document.getElementById('bag-slots-container');
     if (bagContainer) {
@@ -231,7 +241,6 @@ function syncCharacterDataUi() {
         }
     }
 }
-
 function getJobChineseName(j) {
     if (j === "novice") return "初心者";
     if (j === "swordsman") return "劍士";
