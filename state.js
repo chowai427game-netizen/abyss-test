@@ -229,10 +229,8 @@ async function initOrLoadPlayer(inputName, inputPin) {
         }
 
         if (data.isNewUser) {
-            // 全新角色初始化
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
         } else if (data.activeChar) {
-            // 載入雲端存檔
             accountMeta = Object.assign({}, createDefaultAccountMeta(targetName, targetPin), data.activeChar);
             accountMeta.name = targetName;
             accountMeta.pin = targetPin;
@@ -240,7 +238,6 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
     } catch (err) {
         console.warn("無法連線雲端驗證，採用本地快取登入方案。");
-        // 本地安全備用機制
         const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
         const localPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${targetName}`);
 
@@ -267,6 +264,12 @@ async function initOrLoadPlayer(inputName, inputPin) {
     resetCurrentRunData();
     saveGameData();
     return true;
+}
+
+// 🔗 補回相容性接口 (供 game.js 呼叫，解決 Uncaught ReferenceError)
+function loadGameData(playerName, playerPin) {
+    const pin = playerPin || (document.getElementById('player-pin-input')?.value) || accountMeta.pin;
+    return initOrLoadPlayer(playerName || accountMeta.name, pin);
 }
 
 // 供外部發動開始遊戲
