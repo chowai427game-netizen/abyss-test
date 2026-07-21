@@ -1,5 +1,5 @@
 // ==========================================================================
-// 💾 state.js：永久帳號存檔結構、6大能力值換算、雲端雙向同步與冷啟動引擎
+// 💾 state.js：永久帳號存檔結構、即時名字檢測、雲端雙向同步與快取清理引擎
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
@@ -53,7 +53,7 @@ let dungeonFloor = 0;
 let playerShield = 0;
 let activeMonster = null;
 let playerStatusEffects = { burn: 0, poison: 0 };
-let gameState = "VILLAGE"; // VILLAGE, BATTLE, REWARD, ENCOUNTER, ENCOUNTER_RESOLVED
+let gameState = "VILLAGE";
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
 
@@ -124,32 +124,56 @@ function applyEquipmentStats(slot) {
 }
 
 // ==========================================================================
-// 🌌 頁面初始化：預載上次角色與喚醒 Render 免費伺服器
+// 🔍 即時動態名稱檢測 (打字時立刻更新提示)
+// ==========================================================================
+function checkPlayerNameLive(inputName) {
+    const legacyBox = document.getElementById('legacy-box');
+    if (!legacyBox) return;
+
+    const targetName = inputName ? inputName.trim() : "";
+    if (!targetName) {
+        legacyBox.innerHTML = "請輸入名字以查詢雲端帳戶血脈...";
+        return;
+    }
+
+    // 1. 先查本地是否有該名字的專屬存檔
+    const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
+    if (localData) {
+        try {
+            const parsed = JSON.parse(localData);
+            legacyBox.innerHTML = `✨ 檢測到本地血脈紀錄：<strong>${parsed.name}</strong> (Lv.${parsed.lv || 1})`;
+            return;
+        } catch(e) {}
+    }
+
+    // 2. 沒有舊紀錄時顯示準備創角
+    legacyBox.innerHTML = `✨ 尚未發現 [<strong>${targetName}</strong>] 紀錄，進入將創立全新血脈！`;
+}
+
+// ==========================================================================
+// 🌌 頁面初始化：綁定輸入監聽與喚醒 Render 免費伺服器
 // ==========================================================================
 window.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingBarFill = document.getElementById('loading-bar-fill');
     const loadingFlavorText = document.getElementById('loading-flavor-text');
+    const inputNameEl = document.getElementById('player-name-input');
 
-    // 1. 自動偵測 LocalStorage 歷史存檔，進行封面預填
+    // 1. 自動預填上次名字並執行首次動態檢測
     const lastActiveUser = localStorage.getItem("ABYSS_DESTINY_LAST_USER");
-    if (lastActiveUser) {
-        const inputName = document.getElementById('player-name-input');
-        if (inputName) inputName.value = lastActiveUser;
-        
-        const legacyBox = document.getElementById('legacy-box');
-        if (legacyBox) {
-            const lastSaveData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${lastActiveUser}`);
-            if (lastSaveData) {
-                try {
-                    const parsed = JSON.parse(lastSaveData);
-                    legacyBox.innerHTML = `✨ 檢測到雲端血脈歷史紀錄：<strong>${parsed.name}</strong> (Lv.${parsed.lv || 1})`;
-                } catch(e) {}
-            }
-        }
+    if (lastActiveUser && inputNameEl) {
+        inputNameEl.value = lastActiveUser;
+        checkPlayerNameLive(lastActiveUser);
     }
 
-    // 2. 喚醒 Render 伺服器 (GET /)
+    // 2. 為輸入框掛載「即時打字監聽 (input)」
+    if (inputNameEl) {
+        inputNameEl.addEventListener('input', (e) => {
+            checkPlayerNameLive(e.target.value);
+        });
+    }
+
+    // 3. 喚醒 Render 伺服器 (GET /)
     if (loadingFlavorText) {
         loadingFlavorText.innerText = "正在撕裂虛空裂縫，呼喚 Render 冥河伺服器...";
     }
@@ -183,13 +207,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================================================
-// 🔑 角色初始化與雙向讀檔引擎 (本地優先 + 雲端同步)
+// 🔑 角色初始化與雙向讀檔引擎
 // ==========================================================================
 function initOrLoadPlayer(inputName) {
     const targetName = inputName ? inputName.trim() : "無名勇者";
     if (!targetName) return;
 
-    // A. 優先嘗試載入本地存檔 (秒開遊戲)
+    // A. 優先嘗試載入本地存檔
     const specificData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
     if (specificData) {
         try {
@@ -206,16 +230,14 @@ function initOrLoadPlayer(inputName) {
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
     resetCurrentRunData();
 
-    // B. 背景非同步向 MongoDB 請求最新雲端存檔
+    // B. 背景同步向 MongoDB 請求最新雲端存檔
     fetchCloudSave(targetName);
 }
 
-// 供 game.js 呼叫的相容接口
 function loadGameData(playerName) {
     initOrLoadPlayer(playerName || accountMeta.name);
 }
 
-// 向後端 MongoDB 抓取雲端存檔
 async function fetchCloudSave(playerName) {
     try {
         const controller = new AbortController();
@@ -230,11 +252,9 @@ async function fetchCloudSave(playerName) {
         if (res.ok) {
             const data = await res.json();
             if (data.success && data.activeChar) {
-                // 將雲端最新的存檔覆蓋進 accountMeta
                 accountMeta = Object.assign({}, createDefaultAccountMeta(playerName), data.activeChar);
                 accountMeta.name = playerName;
 
-                // 寫回 LocalStorage 做快取
                 localStorage.setItem(`ABYSS_DESTINY_SAVE_${playerName}`, JSON.stringify(accountMeta));
 
                 resetCurrentRunData();
@@ -245,19 +265,18 @@ async function fetchCloudSave(playerName) {
             }
         }
     } catch (err) {
-        console.warn("無法連線至雲端資料庫，將繼續使用本地快取存檔。");
+        console.warn("無法連線至雲端資料庫，繼續使用本地快取存檔。");
     }
 }
 
 // ==========================================
-// 💾 自動雙向存檔引擎 (同步至 LocalStorage 及 MongoDB)
+// 💾 自動雙向存檔引擎
 // ==========================================
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
     const charKey = `ABYSS_DESTINY_SAVE_${accountMeta.name}`;
 
-    // 1. 先寫入本地 LocalStorage 確保安全
     try {
         localStorage.setItem(charKey, JSON.stringify(accountMeta));
         localStorage.setItem("ABYSS_DESTINY_LAST_USER", accountMeta.name);
@@ -265,17 +284,16 @@ async function saveGameData() {
         console.error("LocalStorage 寫入失敗:", e);
     }
 
-    // 2. 傳送至 Render + MongoDB 雲端資料庫
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
 
         const payload = {
             name: accountMeta.name,
-            activeChar: accountMeta // 直接上傳完整的 accountMeta 結構
+            activeChar: accountMeta
         };
 
-        const response = await fetch(`${SERVER_URL}/api/active/save`, {
+        await fetch(`${SERVER_URL}/api/active/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -286,4 +304,21 @@ async function saveGameData() {
     } catch (error) {
         console.warn("網絡連線異常，雲端存檔未完成（已安全儲存於本地）。");
     }
+}
+
+// ==========================================
+// 🧹 清空本地快取存檔 (供 HTML 按鈕呼叫)
+// ==========================================
+function clearAllLegacySaves() {
+    localStorage.removeItem("ABYSS_DESTINY_SAVE");
+    localStorage.removeItem("ABYSS_DESTINY_LAST_USER");
+    
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("ABYSS_DESTINY_SAVE")) {
+            localStorage.removeItem(key);
+        }
+    });
+
+    alert("🧹 已成功清空所有本地舊快取存檔！頁面將重置。");
+    location.reload();
 }
