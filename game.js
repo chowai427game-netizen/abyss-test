@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：真・ATB 運算、智慧自動戰鬥 AI、進階乘算傷害、QTE 判定鏈接 (修正優化版)
+// 🕹️ game.js：戰鬥ATB、新玩家初始選職、公會技能研習與轉職洗點控制庫
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -10,10 +10,10 @@ let monsterAtb = 0;
 let envAtb = 0;
 let battleTimeElapsed = 0;
 let isQteActive = false;
-let activeTactic = "MANUAL"; // 預設戰術
+let activeTactic = "MANUAL";
 
 // ==========================================================================
-// 🧮 經典乘算傷害與隨機浮動計算引擎
+// 🧮 乘算傷害算式
 // ==========================================================================
 function calculateDamage(atk, defense, isPlayerAttacking = true) {
     let k = isPlayerAttacking ? 50 : 35; 
@@ -33,22 +33,87 @@ function calculateDamage(atk, defense, isPlayerAttacking = true) {
 }
 
 // ==========================================================================
-// 🔑 修正版開始遊戲處理 (必須 await 等待 PIN 碼驗證，失敗則不上傳/不切頁)
+// 🔑 登入與創角流程
 // ==========================================================================
 async function handleStartGame() {
     const inputName = document.getElementById('player-name-input')?.value;
     const inputPin = document.getElementById('player-pin-input')?.value;
 
-    // 1. 異步等待 state.js 的雲端 PIN 碼驗證結果
-    const success = await initOrLoadPlayer(inputName, inputPin);
+    const result = await initOrLoadPlayer(inputName, inputPin);
 
-    // 2. 🔐 驗證失敗 (PIN 碼錯誤或未輸入) -> 直接中斷，絕對不切換畫面！
-    if (!success) {
+    if (!result.success) {
         console.warn("🔐 PIN 碼驗證失敗，阻擋進入遊戲。");
         return; 
     }
 
-    // 3. 🟢 驗證成功 -> 隱藏封面，展開遊戲主介面
+    // 若為全新玩家或尚未選擇職業，跳出「初始職業抉擇 Modal」
+    if (result.isNewUser || !accountMeta.job || accountMeta.job === "novice") {
+        renderInitialJobModal();
+        return;
+    }
+
+    // 舊玩家直接進入地表村莊
+    enterGameMainShell();
+}
+
+function renderInitialJobModal() {
+    const modal = document.getElementById('initial-job-modal');
+    const list = document.getElementById('initial-job-list');
+    if (!modal || !list) return;
+
+    list.innerHTML = "";
+    modal.style.display = "flex";
+
+    const jobs = [
+        { id: "swordsman", name: "⚔️ 劍士", desc: "高 HP 與物理減傷，擁有強力近戰爆發與硬核重擊。" },
+        { id: "magician", name: "🔮 魔法師", desc: "掌握冰火雷奧術，具備極高魔力傷害與凍結控場。" },
+        { id: "acolyte", name: "✨ 服事", desc: "獲得神聖庇護，擅長百分比自癒、極速閃避與驅魔。" },
+        { id: "thief", name: "🗡️ 盜賊", desc: "高閃避與暴擊，擅長注入劇毒、連擊撕裂與偷竊素材。" },
+        { id: "archer", name: "🏹 弓箭手", desc: "極速二連矢連射，擁有貫穿甲防與遠程爆頭狙擊。" }
+    ];
+
+    jobs.forEach(j => {
+        let card = document.createElement('div');
+        card.style.cssText = `
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        `;
+        card.innerHTML = `
+            <div style="font-size: 14px; font-weight: bold; color: #00ffcc; margin-bottom: 4px;">${j.name}</div>
+            <div style="font-size: 11px; color: #aaa;">${j.desc}</div>
+        `;
+        card.onclick = () => {
+            selectInitialJob(j.id);
+        };
+        list.appendChild(card);
+    });
+}
+
+function selectInitialJob(jobId) {
+    accountMeta.job = jobId;
+    currentRun.job = jobId;
+
+    // 給予該職業第一招免費初始技能
+    if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[jobId]) {
+        let firstSkill = SKILLS_DATABASE[jobId][0].name;
+        currentRun.skills = {};
+        currentRun.skills[firstSkill] = 1;
+    }
+
+    saveGameData();
+
+    const modal = document.getElementById('initial-job-modal');
+    if (modal) modal.style.display = "none";
+
+    enterGameMainShell();
+}
+
+function enterGameMainShell() {
     const titleBox = document.getElementById('title-box');
     const statusPanel = document.getElementById('status-panel-box');
     const actionPanel = document.getElementById('action-panel-box');
@@ -63,9 +128,105 @@ async function handleStartGame() {
 
     if (typeof updateUI === "function") updateUI();
     if (typeof addLog === "function") {
-        addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利驗證血脈，踏入深淵邊境！`, "perfect");
+        addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利踏入深淵邊境！當前血脈職業：<strong>${getJobChineseName(currentRun.job)}</strong>。`, "perfect");
     }
 }
+
+// ==========================================================================
+// 🏛️ 冒險者公會：技能學習、重洗點數與重選職業
+// ==========================================================================
+
+function executeLearnSkill(skillMeta) {
+    if (currentRun.gold < skillMeta.goldCost) {
+        alert("🪙 金幣不足，無法傳承此技能！");
+        return;
+    }
+
+    for (let mat in skillMeta.reqMat) {
+        if ((accountMeta.warehouse[mat] || 0) < skillMeta.reqMat[mat]) {
+            alert(`📦 倉庫內缺乏所需素材：${mat}！`);
+            return;
+        }
+    }
+
+    currentRun.gold -= skillMeta.goldCost;
+    for (let mat in skillMeta.reqMat) {
+        accountMeta.warehouse[mat] -= skillMeta.reqMat[mat];
+    }
+
+    if (!currentRun.skills) currentRun.skills = {};
+    currentRun.skills[skillMeta.name] = 1;
+
+    addLog(`🎓🎓【公會技能傳承】成功領悟專屬奧義 ➔ <strong>[${skillMeta.name}]</strong>！`, "perfect");
+    saveGameData();
+    updateUI();
+    if (typeof renderVillageGuild === "function") renderVillageGuild();
+}
+
+function executeResetStats() {
+    if (currentRun.gold < 300) {
+        alert("🪙 重洗屬性點需要消耗 300 G，當前金幣不足！");
+        return;
+    }
+
+    if (!confirm("確定要消耗 300 G 洗回所有已分配的屬性點嗎？")) return;
+
+    currentRun.gold -= 300;
+
+    let s = accountMeta.stats || { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+    let totalAllocated = (s.ATK || 0) + (s.VIT || 0) + (s.INT || 0) + (s.DEX || 0) + (s.AGI || 0) + (s.LUK || 0);
+
+    accountMeta.statPoints = (accountMeta.statPoints || 0) + totalAllocated;
+    accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+
+    resetCurrentRunData();
+    saveGameData();
+    addLog(`🎯⚖️【洗點完畢】已退還 <strong>${totalAllocated} 點</strong> 自由能力點數！`, "perfect");
+    updateUI();
+}
+
+function triggerReselectJobUI() {
+    if (currentRun.gold < 1000) {
+        alert("🪙 重選職業洗禮需要消耗 1,000 G，當前金幣不足！");
+        return;
+    }
+
+    if (!confirm("⚠️ 警告：重選職業將使等級重置為 Lv.1，並重新選擇職業！裝備、金幣與素材將完全保留。確定進行？")) return;
+
+    renderInitialJobModal();
+}
+
+// 供 Modal 點選完成重選職業
+function executeReselectJob(newJobId) {
+    currentRun.gold -= 1000;
+
+    accountMeta.job = newJobId;
+    currentRun.job = newJobId;
+
+    // 清空等級與屬性點，回歸 Lv.1
+    accountMeta.lv = 1;
+    accountMeta.exp = 0;
+    accountMeta.nextExp = 30;
+    accountMeta.statPoints = 0;
+    accountMeta.stats = { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 };
+
+    // 給予新職業第1招技能
+    if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[newJobId]) {
+        let firstSkill = SKILLS_DATABASE[newJobId][0].name;
+        currentRun.skills = {};
+        currentRun.skills[firstSkill] = 1;
+    }
+
+    resetCurrentRunData();
+    saveGameData();
+
+    addLog(`🔄⚖️【轉職洗禮完成】已成功將血脈重置為 ➔ <strong>${getJobChineseName(newJobId)} (Lv.1)</strong>！`, "perfect");
+    updateUI();
+}
+
+// ==========================================================================
+// 地下城戰鬥與動作連結 (保全原本的戰鬥邏輯)
+// ==========================================================================
 
 function handleMainAction() {
     try {
@@ -143,10 +304,6 @@ function tryEquipItemToBag(itemName) {
     addLog(`🎒 已將 <strong>${itemName}</strong> 裝入戰術快捷欄。`);
     saveGameData();
     updateUI();
-    
-    if (typeof currentVillageLocation !== "undefined" && currentVillageLocation === "KITCHEN") {
-        if (typeof renderVillageCookingWorkshop === "function") renderVillageCookingWorkshop();
-    }
 }
 
 function removeBagItem(index) {
@@ -191,9 +348,7 @@ function executeUseDungeonItem(itemName, index) {
 }
 
 function executeAutoBattleAiTurn() {
-    if (activeTactic === "MANUAL") {
-        return false; 
-    }
+    if (activeTactic === "MANUAL") return false;
 
     let hpRatio = currentRun.hp / currentRun.maxHp;
 
@@ -208,7 +363,6 @@ function executeAutoBattleAiTurn() {
 
         let healSkill = null;
         if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
-        else if (currentRun.skills["緊急治療"] && currentRun.mp >= 15) healSkill = "緊急治療";
 
         if (hpRatio < 0.60 && healSkill && typeof SKILLS_DATABASE !== "undefined") {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === healSkill);
@@ -224,7 +378,7 @@ function executeAutoBattleAiTurn() {
 
         let mpRatio = currentRun.mp / currentRun.maxMp;
         if (mpRatio > 0.30 && typeof SKILLS_DATABASE !== "undefined") {
-            let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
+            let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術") || [];
             activeSkills.sort((a, b) => b.mp - a.mp); 
 
             for (let sMeta of activeSkills) {
@@ -248,7 +402,7 @@ function executeAutoBattleAiTurn() {
     }
 
     if (activeTactic === "OFFENSIVE" && typeof SKILLS_DATABASE !== "undefined") {
-        let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術" && s.name !== "緊急治療" && s.name !== "天使之淚") || [];
+        let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術") || [];
         activeSkills.sort((a, b) => b.mp - a.mp);
 
         for (let sMeta of activeSkills) {
@@ -283,7 +437,6 @@ function triggerVillageQte(type, targetData, successCallback) {
 
     overlay.style.display = "flex";
     isQteActive = true;
-
     document.body.style.overflow = "hidden";
 
     if (type === "COOK") {
@@ -485,8 +638,6 @@ async function runDungeonLoop() {
         }
         
         updateUI();
-        if (currentRun.job === "magician" && currentRun.skills["能量外套"]) { playerShield += 250 * currentRun.skills["能量外套"]; }
-        if (currentRun.skills["天使之護"]) { currentRun.block += 4 * currentRun.skills["天使之護"]; }
 
         playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
         if(combatTickerTimer) clearInterval(combatTickerTimer);
@@ -721,26 +872,18 @@ function triggerRandomAbyssEvent() {
     
     let isChestEvent = Math.random() < 0.5;
 
-    // 1. 🌌 隨機奇遇事件
     if (!isChestEvent && typeof ABYSS_EVENTS_DATABASE !== "undefined" && ABYSS_EVENTS_DATABASE.length > 0) {
         let randomEvent = ABYSS_EVENTS_DATABASE[Math.floor(Math.random() * ABYSS_EVENTS_DATABASE.length)];
         title.innerHTML = randomEvent.title;
         
         let descP = document.createElement('p');
-        descP.style.fontSize = "12px";
-        descP.style.color = "#babcbf";
-        descP.style.lineHeight = "1.6";
-        descP.style.marginBottom = "15px";
+        descP.style.fontSize = "12px"; descP.style.color = "#babcbf"; descP.style.lineHeight = "1.6"; descP.style.marginBottom = "15px";
         descP.innerHTML = randomEvent.desc;
         container.appendChild(descP);
 
-        // 渲染選項
         randomEvent.choices.forEach(choice => {
             let btn = document.createElement('button');
-            btn.className = "btn-game btn-cook";
-            btn.style.width = "100%";
-            btn.style.marginBottom = "8px";
-            btn.style.fontSize = "11px";
+            btn.className = "btn-game btn-cook"; btn.style.width = "100%"; btn.style.marginBottom = "8px"; btn.style.fontSize = "11px";
             btn.innerHTML = choice.text;
             btn.onclick = () => {
                 let resultLog = choice.run(currentRun, accountMeta);
@@ -750,11 +893,8 @@ function triggerRandomAbyssEvent() {
             container.appendChild(btn);
         });
 
-        // 🏃 離開按鈕（預設可無傷繞過）
         let btnLeave = document.createElement('button');
-        btnLeave.className = "btn-game btn-rest";
-        btnLeave.style.width = "100%";
-        btnLeave.style.fontSize = "11px";
+        btnLeave.className = "btn-game btn-rest"; btnLeave.style.width = "100%"; btnLeave.style.fontSize = "11px";
         btnLeave.innerHTML = "🏃 靜靜離開，不做理會";
         btnLeave.onclick = () => {
             addLog("🏃 你決定不輕舉妄動，警惕地繞開此處繼續前進。");
@@ -762,24 +902,17 @@ function triggerRandomAbyssEvent() {
         };
         container.appendChild(btnLeave);
     } 
-    // 2. 🎁 寶箱 QTE 事件
     else if (typeof TREASURE_CHESTS_POOL !== "undefined" && TREASURE_CHESTS_POOL.length > 0) {
         let rolledChest = TREASURE_CHESTS_POOL[Math.floor(Math.random() * TREASURE_CHESTS_POOL.length)];
         title.innerHTML = `🎁 發現古老遺蹟：[${rolledChest.name}] 🎁`;
 
         let descP = document.createElement('p');
-        descP.style.fontSize = "12px";
-        descP.style.color = "#babcbf";
-        descP.style.lineHeight = "1.6";
-        descP.style.marginBottom = "15px";
+        descP.style.fontSize = "12px"; descP.style.color = "#babcbf"; descP.style.lineHeight = "1.6"; descP.style.marginBottom = "15px";
         descP.innerHTML = `地面上靜靜躺著一個【${rolledChest.name}】。你可以專心嘗試開鎖解開密碼，或者直接繞過。`;
         container.appendChild(descP);
 
-        // 🔓 專心開鎖 QTE 按鈕
         let btnLockpick = document.createElement('button');
-        btnLockpick.className = "btn-game btn-explore";
-        btnLockpick.style.width = "100%";
-        btnLockpick.style.marginBottom = "8px";
+        btnLockpick.className = "btn-game btn-explore"; btnLockpick.style.width = "100%"; btnLockpick.style.marginBottom = "8px";
         btnLockpick.innerHTML = `🔓 專心開鎖 (啟動開鎖 QTE)`;
         btnLockpick.onclick = () => {
             triggerVillageQte("LOCKPICK", rolledChest, (rating) => {
@@ -824,10 +957,8 @@ function triggerRandomAbyssEvent() {
         };
         container.appendChild(btnLockpick);
 
-        // 🏃 離開按鈕
         let btnLeave = document.getElementById('btn-leave-chest') || document.createElement('button');
-        btnLeave.className = "btn-game btn-rest";
-        btnLeave.style.width = "100%";
+        btnLeave.className = "btn-game btn-rest"; btnLeave.style.width = "100%";
         btnLeave.innerHTML = `🏃 繞過寶箱，繼續探險`;
         btnLeave.onclick = () => {
             addLog(`🏃 你謹慎地繞過了 [${rolledChest.name}]，繼續向深淵推進。`);
