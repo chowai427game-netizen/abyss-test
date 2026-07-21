@@ -15,7 +15,7 @@ function createDefaultAccountMeta(name, pin) {
         nextExp: 30,
         statPoints: 0,
         stats: { ATK: 0, VIT: 0, INT: 0, DEX: 0, AGI: 0, LUK: 0 },
-        unlockedJobs: ["novice"],
+        unlockedJobs: ["swordsman"],
         warehouse: {},
         equipment: { weapon: null, armor: null, accessory: null },
         equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
@@ -26,7 +26,7 @@ let accountMeta = createDefaultAccountMeta("無名勇者", "000000");
 
 // 當前單次冒險/戰鬥狀態
 let currentRun = {
-    job: "novice",
+    job: "swordsman",
     lv: 1,
     exp: 0,
     nextExp: 30,
@@ -85,11 +85,11 @@ function resetCurrentRunData() {
     
     currentRun.critChance = Math.min(75, Math.floor((s.DEX * 0.5) + (s.LUK * 1.0))); 
     currentRun.dodgeChance = Math.min(50, Math.floor(s.AGI * 0.8)); 
-    currentRun.vampRate = 0;       
+    currentRun.vampRate = 0;        
     currentRun.doubleStrike = Math.min(50, Math.floor(s.LUK * 0.5));   
 
     if (!currentRun.skills || Object.keys(currentRun.skills).length === 0) {
-        currentRun.skills = { "緊急治療": 1 };
+        currentRun.skills = {};
     }
     
     currentRun.qteBuffDuration = 0; 
@@ -124,9 +124,6 @@ function applyEquipmentStats(slot) {
     if (st.doubleStrike) currentRun.doubleStrike = Math.min(50, currentRun.doubleStrike + Math.floor(st.doubleStrike * multiplier));  
 }
 
-// ==========================================================================
-// 🔍 動態檢測輸入框
-// ==========================================================================
 function checkPlayerNameLive() {
     const legacyBox = document.getElementById('legacy-box');
     const nameEl = document.getElementById('player-name-input');
@@ -150,9 +147,6 @@ function checkPlayerNameLive() {
     legacyBox.innerHTML = `✨ 準備創立全新血脈：[<strong>${targetName}</strong>]！請設定你的 6 位數 PIN 碼。`;
 }
 
-// ==========================================================================
-// 🌌 頁面初始化
-// ==========================================================================
 window.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingBarFill = document.getElementById('loading-bar-fill');
@@ -160,7 +154,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     const inputNameEl = document.getElementById('player-name-input');
     const inputPinEl = document.getElementById('player-pin-input');
 
-    // 1. 自動填入上次登入的角色名與 PIN 碼
     const lastActiveUser = localStorage.getItem("ABYSS_DESTINY_LAST_USER");
     if (lastActiveUser && inputNameEl) {
         inputNameEl.value = lastActiveUser;
@@ -171,7 +164,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     if (inputNameEl) inputNameEl.addEventListener('input', checkPlayerNameLive);
 
-    // 2. 喚醒 Render 伺服器
     if (loadingFlavorText) loadingFlavorText.innerText = "正在撕裂虛空裂縫，呼喚 Render 冥河伺服器...";
 
     try {
@@ -197,7 +189,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================================================
-// 🔑 角色登入與雲端驗證引擎 (回傳規格化物件)
+// 🔑 角色登入與雲端驗證引擎
 // ==========================================================================
 async function initOrLoadPlayer(inputName, inputPin) {
     const targetName = inputName ? inputName.trim() : "";
@@ -215,7 +207,6 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
     let isNewUser = false;
 
-    // A. 嘗試向雲端伺服器進行身分驗證
     try {
         const res = await fetch(`${SERVER_URL}/api/auth/login`, {
             method: 'POST',
@@ -263,7 +254,6 @@ async function initOrLoadPlayer(inputName, inputPin) {
         }
     }
 
-    // B. 保存登入快取並寫入系統狀態
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
     localStorage.setItem(`ABYSS_DESTINY_PIN_${targetName}`, targetPin);
 
@@ -272,42 +262,6 @@ async function initOrLoadPlayer(inputName, inputPin) {
     return { success: true, isNewUser: isNewUser };
 }
 
-// 🔗 相容性接口 (必須回傳 await Promise)
-async function loadGameData(playerName, playerPin) {
-    const pin = playerPin || (document.getElementById('player-pin-input')?.value) || accountMeta.pin;
-    return await initOrLoadPlayer(playerName || accountMeta.name, pin);
-}
-
-// 供外部發動開始遊戲
-async function handleStartGame() {
-    const inputName = document.getElementById('player-name-input')?.value;
-    const inputPin = document.getElementById('player-pin-input')?.value;
-
-    const success = await initOrLoadPlayer(inputName, inputPin);
-    if (!success) return;
-
-    // 隱藏 Title，開啟主遊戲畫面與面板
-    const titleBox = document.getElementById('title-box');
-    const statusPanel = document.getElementById('status-panel-box');
-    const actionPanel = document.getElementById('action-panel-box');
-    const villagePanel = document.getElementById('village-panel-box');
-    const logWrapper = document.getElementById('log-wrapper-box');
-
-    if (titleBox) titleBox.style.display = 'none';
-    if (statusPanel) statusPanel.style.display = 'block';
-    if (actionPanel) actionPanel.style.display = 'flex';
-    if (villagePanel) villagePanel.style.display = 'block';
-    if (logWrapper) logWrapper.style.display = 'block';
-
-    if (typeof updateUI === "function") updateUI();
-    if (typeof addLog === "function") {
-        addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利踏入深淵邊境！`, "perfect");
-    }
-}
-
-// ==========================================
-// 💾 自動雙向存檔引擎
-// ==========================================
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
@@ -338,9 +292,6 @@ async function saveGameData() {
     }
 }
 
-// ==========================================
-// 🧹 清理快取
-// ==========================================
 function clearAllLegacySaves() {
     localStorage.clear();
     alert("🧹 已成功清空所有本地舊快取存檔！頁面將重置。");
