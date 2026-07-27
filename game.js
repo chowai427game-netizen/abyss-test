@@ -12,31 +12,26 @@ let battleTimeElapsed = 0;
 let isQteActive = false;
 let activeTactic = "MANUAL";
 
-// ==========================================================================
-// 🔑 登入與創角流程 (精確解析物件回傳)
-// ==========================================================================
 async function handleStartGame() {
     const inputName = document.getElementById('player-name-input')?.value;
     const inputPin = document.getElementById('player-pin-input')?.value;
 
     const result = await initOrLoadPlayer(inputName, inputPin);
 
-    // 🔐 驗證失敗 -> 直接阻擋
     if (!result || !result.success) {
         console.warn("🔐 PIN 碼驗證失敗，阻擋進入遊戲。");
         return; 
     }
 
-    // 若為全新玩家或尚未選擇職業，跳出「初始職業選擇 Modal」
     if (result.isNewUser || !accountMeta.job || accountMeta.job === "novice") {
-        renderInitialJobModal();
+        renderInitialJobModal(false);
         return;
     }
 
     enterGameMainShell();
 }
 
-function renderInitialJobModal() {
+function renderInitialJobModal(isReselect = false) {
     const modal = document.getElementById('initial-job-modal');
     const list = document.getElementById('initial-job-list');
     if (!modal || !list) return;
@@ -57,17 +52,20 @@ function renderInitialJobModal() {
         card.style.cssText = `
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(0, 255, 204, 0.2);
-            border-radius: 8px;
-            padding: 12px;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.2s;
+            border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; transition: all 0.2s;
         `;
         card.innerHTML = `
             <div style="font-size: 14px; font-weight: bold; color: #00ffcc; margin-bottom: 4px;">${j.name}</div>
             <div style="font-size: 11px; color: #aaa;">${j.desc}</div>
         `;
-        card.onclick = () => { selectInitialJob(j.id); };
+        card.onclick = () => { 
+            if (isReselect) {
+                executeReselectJob(j.id);
+            } else {
+                selectInitialJob(j.id);
+            }
+            modal.style.display = "none";
+        };
         list.appendChild(card);
     });
 }
@@ -109,10 +107,6 @@ function enterGameMainShell() {
         addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利踏入深淵邊境！當前血脈職業：<strong>${getJobChineseName(currentRun.job)}</strong>。`, "perfect");
     }
 }
-
-// ==========================================================================
-// 🏛️ 冒險者公會：技能學習、重洗點數與轉職
-// ==========================================================================
 
 function executeLearnSkill(skillMeta) {
     if (currentRun.gold < skillMeta.goldCost) {
@@ -171,7 +165,7 @@ function triggerReselectJobUI() {
 
     if (!confirm("⚠️ 警告：重選職業將使等級重置為 Lv.1，並重新選擇職業！裝備、金幣與素材將完全保留。確定進行？")) return;
 
-    renderInitialJobModal();
+    renderInitialJobModal(true);
 }
 
 function executeReselectJob(newJobId) {
@@ -198,10 +192,6 @@ function executeReselectJob(newJobId) {
     addLog(`🔄⚖️【轉職洗禮完成】已成功將血脈重置為 ➔ <strong>${getJobChineseName(newJobId)} (Lv.1)</strong>！`, "perfect");
     updateUI();
 }
-
-// ==========================================================================
-// 地下城戰鬥與動作連結
-// ==========================================================================
 
 function handleMainAction() {
     try {
@@ -326,6 +316,8 @@ function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
 
     let hpRatio = currentRun.hp / currentRun.maxHp;
+    const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
+    const baseAtkPower = isMagicJob ? currentRun.matk : currentRun.atk;
 
     if (activeTactic === "BALANCED") {
         if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
@@ -343,7 +335,7 @@ function executeAutoBattleAiTurn() {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === healSkill);
             if (sMeta) {
                 currentRun.mp -= sMeta.mp;
-                let eff = sMeta.run(currentRun.skills[healSkill], currentRun.atk, currentRun.maxMp, currentRun.hp);
+                let eff = sMeta.run(currentRun.skills[healSkill], baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                 let h = Math.floor(eff.lostHp * eff.healPercent); 
                 currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
                 addLog(`🩹⚖️【均衡自癒】引導【${healSkill}】！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
@@ -359,9 +351,10 @@ function executeAutoBattleAiTurn() {
             for (let sMeta of activeSkills) {
                 if (currentRun.mp >= sMeta.mp) {
                     currentRun.mp -= sMeta.mp;
-                    let monsterDef = Math.floor(dungeonFloor * 1.2);
-                    let rawAtk = currentRun.atk * 1.5;
-                    let dmgRes = calculateDamage(rawAtk, monsterDef, true, (currentRun.job === "magician" || currentRun.job === "acolyte"));
+                    let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
+                    let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
+                    let rawAtk = eff.dmg || (baseAtkPower * 1.5);
+                    let dmgRes = calculateDamage(rawAtk, monsterDef, true, isMagicJob);
                     
                     if (dmgRes.isMiss) {
                         addLog(`🔮⚖️【均衡戰術】施展【${sMeta.name}】，但攻擊被 <span style="color:#8e8e93;">[MISS 迴避]</span>！`);
@@ -369,7 +362,7 @@ function executeAutoBattleAiTurn() {
                     }
 
                     activeMonster.hp -= dmgRes.damage;
-                    let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                    let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                     let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                     
                     addLog(`🔮⚖️【均衡戰術突擊】施展【${sMeta.name}】！`);
@@ -388,9 +381,10 @@ function executeAutoBattleAiTurn() {
         for (let sMeta of activeSkills) {
             if (currentRun.mp >= sMeta.mp) {
                 currentRun.mp -= sMeta.mp;
-                let monsterDef = Math.floor(dungeonFloor * 1.2);
-                let rawAtk = currentRun.atk * 1.8; 
-                let dmgRes = calculateDamage(rawAtk, monsterDef, true, (currentRun.job === "magician" || currentRun.job === "acolyte"));
+                let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
+                let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
+                let rawAtk = eff.dmg || (baseAtkPower * 1.8); 
+                let dmgRes = calculateDamage(rawAtk, monsterDef, true, isMagicJob);
                 
                 if (dmgRes.isMiss) {
                     addLog(`🔥⚔️【狂暴轟炸】吟唱【${sMeta.name}】，但魔物靈巧地 <span style="color:#8e8e93;">[MISS 閃過]</span>！`);
@@ -398,7 +392,7 @@ function executeAutoBattleAiTurn() {
                 }
 
                 activeMonster.hp -= dmgRes.damage;
-                let numClass = currentRun.job === "magician" ? "num-m-dmg" : "num-p-dmg";
+                let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                 let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                 
                 addLog(`🔥⚔️【狂暴連鎖轟炸】暴烈吟唱【${sMeta.name}】！`);
@@ -550,6 +544,13 @@ function executeSlotStarUp(slot) {
     let cost = getStarUpCost(slot, currentStar);
     
     for (let ing in cost) {
+        if ((accountMeta.warehouse[ing] || 0) < cost[ing]) {
+            alert(`📦 素材不足：缺少 ${ing} x${cost[ing]}`);
+            return;
+        }
+    }
+
+    for (let ing in cost) {
         accountMeta.warehouse[ing] -= cost[ing];
     }
     
@@ -659,11 +660,11 @@ function executeEnvironmentTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
-// ⚔️ 玩家攻擊時使用 statengine.js 的 calculateDamage(..., isMagic)
 function executePlayerActionTick() {
     let activeTriggered = false;
     const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
-    
+    const baseAtkPower = isMagicJob ? currentRun.matk : currentRun.atk;
+
     if (activeTactic !== "MANUAL") {
         activeTriggered = executeAutoBattleAiTurn();
     } else if (typeof SKILLS_DATABASE !== "undefined") {
@@ -673,9 +674,10 @@ function executePlayerActionTick() {
                 addLog(`🔮 引導【${sName}】`); activeTriggered = true;
                 let isPerfect = (Math.random() < 0.75);
                 let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
+                
                 if (isPerfect) {
                     currentRun.mp -= sMeta.mp; 
-                    let eff = sMeta.run(currentRun.skills[sName], currentRun.atk, currentRun.maxMp, currentRun.hp);
+                    let eff = sMeta.run(currentRun.skills[sName], baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                     
                     if (eff.dmg) { 
                         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
@@ -690,13 +692,13 @@ function executePlayerActionTick() {
                         }
                     }
                     if (eff.healPercent) {
-                        let h = Math.floor(eff.lostHp * eff.healPercent); currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
+                        let h = Math.floor(eff.lostHp * eff.healPercent); 
+                        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
                         addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
                     }
                 } else {
                     let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
-                    let atkVal = isMagicJob ? currentRun.matk : currentRun.atk;
-                    let dmgRes = calculateDamage(atkVal, monsterDef, true, isMagicJob);
+                    let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
                     
                     if (dmgRes.isMiss) {
                         addLog(`💨 普攻被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span> 了！`);
@@ -713,8 +715,7 @@ function executePlayerActionTick() {
 
     if (!activeTriggered) { 
         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || Math.floor(dungeonFloor * 1.2));
-        let atkVal = isMagicJob ? currentRun.matk : currentRun.atk;
-        let dmgRes = calculateDamage(atkVal, monsterDef, true, isMagicJob);
+        let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
         
         if (dmgRes.isMiss) {
             addLog(`💨 揮砍被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span> 了！`);
@@ -959,7 +960,7 @@ function triggerRandomAbyssEvent() {
         };
         container.appendChild(btnLockpick);
 
-        let btnLeave = document.getElementById('btn-leave-chest') || document.createElement('button');
+        let btnLeave = document.createElement('button');
         btnLeave.className = "btn-game btn-rest"; btnLeave.style.width = "100%";
         btnLeave.innerHTML = `🏃 繞過寶箱，繼續探險`;
         btnLeave.onclick = () => {
