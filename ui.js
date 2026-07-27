@@ -32,15 +32,11 @@ let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
-// ==========================================
-// 1. 六大屬性點數分配邏輯 (STR, AGI, VIT, INT, DEX, LUK)
-// ==========================================
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
         alert("尚無可分配的能力點數！");
         return;
     }
-    
     if (!accountMeta.stats) {
         accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
@@ -55,9 +51,6 @@ function allocateStatPoint(statKey) {
     updateUI();
 }
 
-// ==========================================
-// 2. 介面同步主函數
-// ==========================================
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
@@ -84,17 +77,16 @@ function syncCharacterDataUi() {
         }
     }
 
-    // 🏛️ 六大能力值面板
     let gridEl = document.getElementById('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
         const statConfig = [
-            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重上限" },
-            { key: "AGI", name: "⚡ 敏捷", desc: "攻速ASPD / 迴避FLEE" },
-            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / 物理DEF" },
-            { key: "INT", name: "🔮 智力", desc: "魔攻MATK / MP/MDEF" },
-            { key: "DEX", name: "🎯 靈巧", desc: "命中HIT / 遠程/縮詠" },
-            { key: "LUK", name: "🎰 幸運", desc: "暴擊CRIT / 完全迴避" }
+            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重" },
+            { key: "AGI", name: "⚡ 敏捷", desc: "攻速 / FLEE" },
+            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / DEF" },
+            { key: "INT", name: "🔮 智力", desc: "MATK / MDEF" },
+            { key: "DEX", name: "🎯 靈巧", desc: "HIT / 遠程/縮詠" },
+            { key: "LUK", name: "🎰 幸運", desc: "CRIT / 完迴" }
         ];
 
         let hasPoints = pts > 0;
@@ -106,11 +98,8 @@ function syncCharacterDataUi() {
             cell.style.cssText = `
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 4px;
-                padding: 4px 6px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+                border-radius: 4px; padding: 4px 6px;
+                display: flex; justify-content: space-between; align-items: center;
             `;
 
             cell.innerHTML = `
@@ -164,7 +153,6 @@ function syncCharacterDataUi() {
         }
     }
 
-    // ⚔️ 數值欄位更新 (支援 MATK, DEF, MDEF, HIT, FLEE)
     let setTxt = (id, txt) => { let e = document.getElementById(id); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
     setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk})`);
@@ -203,23 +191,15 @@ function syncCharacterDataUi() {
                 height: 32px;
                 border: 1px dashed ${item ? "rgba(255,215,0,0.5)" : "rgba(255,255,255,0.15)"};
                 background: ${item ? "rgba(255,215,0,0.08)" : "rgba(0,0,0,0.2)"};
-                border-radius: 4px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 10px;
-                cursor: ${item ? "pointer" : "default"};
-                position: relative;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                padding: 0 2px;
+                border-radius: 4px; display: flex; align-items: center; justify-content: center;
+                font-size: 10px; cursor: ${item ? "pointer" : "default"}; position: relative;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px;
                 color: ${item ? "#ffd700" : "#666"};
             `;
 
             if (item) {
                 slot.innerText = item;
-                slot.title = `戰鬥中點擊使用 / 村莊點擊移回倉庫 (${item})`;
+                slot.title = `點擊使用或退回 (${item})`;
                 slot.onclick = () => {
                     if (gameState === "BATTLE") {
                         executeUseDungeonItem(item, i);
@@ -246,7 +226,6 @@ function getJobChineseName(j) {
 
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
-    
     const panels = ['v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
     panels.forEach(p => {
         const el = document.getElementById(p);
@@ -481,12 +460,9 @@ function renderVillageCookingWorkshop() {
     filteredRecipes.forEach(recipe => {
         let card = document.createElement('div');
         card.style.background = "rgba(0,0,0,0.25)";
-        card.style.padding = "12px";
-        card.style.borderRadius = "10px";
+        card.style.padding = "12px"; card.style.borderRadius = "10px";
         card.style.border = "1px solid rgba(255,255,255,0.03)";
-        card.style.marginBottom = "8px";
-        card.style.width = "100%";
-        card.style.textAlign = "left";
+        card.style.marginBottom = "8px"; card.style.width = "100%"; card.style.textAlign = "left";
 
         let ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
         let hasIngredients = true;
@@ -503,8 +479,7 @@ function renderVillageCookingWorkshop() {
 
         let btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
-        btnCook.style.padding = "4px 10px";
-        btnCook.style.fontSize = "11px";
+        btnCook.style.padding = "4px 10px"; btnCook.style.fontSize = "11px";
         btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪納入快捷欄";
         btnCook.disabled = !hasIngredients;
         btnCook.onclick = () => { executeVillageCooking(recipe); };
@@ -559,9 +534,7 @@ function renderVillageWorkshop() {
     starPanel.className = "dynamic-panel reward-style";
     starPanel.style.border = "1px solid rgba(212, 175, 55, 0.4)";
     starPanel.style.background = "rgba(15, 13, 10, 0.5)";
-    starPanel.style.marginBottom = "15px";
-    starPanel.style.padding = "12px";
-    starPanel.style.width = "100%";
+    starPanel.style.marginBottom = "15px"; starPanel.style.padding = "12px"; starPanel.style.width = "100%";
     
     starPanel.innerHTML = `
         <div class="panel-title" style="color: #ffd700; margin-bottom: 8px;">🌟 皇家部位星級精煉台 (永久繼承) 🌟</div>
@@ -591,12 +564,9 @@ function renderVillageWorkshop() {
     filteredBlueprints.forEach(blueprint => {
         let btnWrapper = document.createElement('div');
         btnWrapper.style.background = "rgba(0,0,0,0.2)";
-        btnWrapper.style.padding = "14px";
-        btnWrapper.style.borderRadius = "12px";
+        btnWrapper.style.padding = "14px"; btnWrapper.style.borderRadius = "12px";
         btnWrapper.style.border = "1px solid rgba(255,255,255,0.04)";
-        btnWrapper.style.marginBottom = "10px";
-        btnWrapper.style.textAlign = "left";
-        btnWrapper.style.width = "100%";
+        btnWrapper.style.marginBottom = "10px"; btnWrapper.style.textAlign = "left"; btnWrapper.style.width = "100%";
 
         let reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
         let statText = Object.keys(blueprint.stats).map(k => {
