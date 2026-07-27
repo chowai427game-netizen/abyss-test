@@ -5,7 +5,6 @@
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 const MAX_BAG_SIZE = 6;
 
-// 預設帳號資料範本
 function createDefaultAccountMeta(name, pin) {
     return {
         name: name || "無名勇者",
@@ -24,7 +23,6 @@ function createDefaultAccountMeta(name, pin) {
 
 let accountMeta = createDefaultAccountMeta("無名勇者", "000000");
 
-// 全局冒險實時資料
 let currentRun = {
     job: "swordsman",
     lv: 1,
@@ -66,7 +64,6 @@ let gameState = "VILLAGE";
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
 
-// 🔍 輸入框實時檢測
 function checkPlayerNameLive() {
     const legacyBox = document.getElementById('legacy-box');
     const nameEl = document.getElementById('player-name-input');
@@ -90,7 +87,6 @@ function checkPlayerNameLive() {
     legacyBox.innerHTML = `✨ 準備創立全新血脈：[<strong>${targetName}</strong>]！請設定你的 6 位數 PIN 碼。`;
 }
 
-// 🌌 初始化動畫與喚醒 Server
 window.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingBarFill = document.getElementById('loading-bar-fill');
@@ -132,7 +128,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     }, 600);
 });
 
-// 🔑 帳號登入與驗證
 async function initOrLoadPlayer(inputName, inputPin) {
     const targetName = inputName ? inputName.trim() : "";
     const targetPin = inputPin ? inputPin.trim() : "";
@@ -204,7 +199,6 @@ async function initOrLoadPlayer(inputName, inputPin) {
     return { success: true, isNewUser: isNewUser };
 }
 
-// 💾 雲端與本地存檔
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
@@ -235,7 +229,6 @@ async function saveGameData() {
     }
 }
 
-// 🧹 清理快取
 function clearAllLegacySaves() {
     localStorage.clear();
     alert("🧹 已成功清空所有本地舊快取存檔！頁面將重置。");
