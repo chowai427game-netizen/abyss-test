@@ -10,12 +10,16 @@ const DOM = {
         const keys = [
             'p-name', 'p-job', 'p-lv', 'p-exp-text', 'p-hp', 'p-maxhp', 'p-mp', 'p-maxmp',
             'hp-bar-fill', 'mp-bar-fill', 'p-atb-row', 'p-atb-text', 'p-atb-bar-fill',
-            'p-gold', 'p-block', 'p-crit', 'p-spd', 'p-dodge', 'p-skills-list', 'p-stat-points',
-            'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory', 'btn-main-action',
-            'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle', 'env-alert-bar',
-            'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar', 'm-atb-row', 'm-atb-text',
-            'm-atb-bar-fill', 'm-atk', 'm-spd', 'reward-panel-box', 'log-box', 'title-box',
-            'status-panel-box', 'action-panel-box', 'village-panel-box', 'log-wrapper-box'
+            'p-gold', 'p-atk', 'p-block', 'p-crit', 'p-spd', 'p-dodge', 'p-vamp',
+            'p-skills-list', 'p-stat-points', 'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory',
+            'btn-main-action', 'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle',
+            'env-alert-bar', 'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar',
+            'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
+            'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
+            'village-panel-box', 'log-wrapper-box', 'tactics-drawer-box', 'char-folder-summary',
+            'stat-alloc-grid', 'bag-capacity-text', 'bag-slots-container', 'location-text',
+            'guild-skills-container', 'kitchen-warehouse-display', 'recipes-container',
+            'workshop-warehouse-display', 'blueprints-container'
         ];
         keys.forEach(key => {
             this.elements[key] = document.getElementById(key);
@@ -24,7 +28,7 @@ const DOM = {
     },
     get(key) {
         if (!this.isInitialized) this.init();
-        return this.elements[key];
+        return this.elements[key] || document.getElementById(key);
     }
 };
 
@@ -32,11 +36,15 @@ let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
+// ==========================================
+// 1. 六大屬性點數分配邏輯 (STR, AGI, VIT, INT, DEX, LUK)
+// ==========================================
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
         alert("尚無可分配的能力點數！");
         return;
     }
+    
     if (!accountMeta.stats) {
         accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
@@ -51,50 +59,54 @@ function allocateStatPoint(statKey) {
     updateUI();
 }
 
+// ==========================================
+// 2. 角色資料與裝備介面同步
+// ==========================================
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
-    let nameEl = document.getElementById('p-name');
-    let jobEl = document.getElementById('p-job');
-    let lvEl = document.getElementById('p-lv');
-    let expTextEl = document.getElementById('p-exp-text');
+    // 基本資訊
+    const nameEl = DOM.get('p-name');
+    const jobEl = DOM.get('p-job');
+    const lvEl = DOM.get('p-lv');
+    const expTextEl = DOM.get('p-exp-text');
     
     if (nameEl) nameEl.innerText = accountMeta.name || "無名勇者";
     if (jobEl) jobEl.innerText = getJobChineseName(currentRun.job);
     if (lvEl) lvEl.innerText = accountMeta.lv || currentRun.lv || 1;
     if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || currentRun.nextExp || 30}`;
 
-    let pts = accountMeta.statPoints || 0;
-    let ptsEl = document.getElementById('p-stat-points');
+    // 可用點數與摺疊面板標題
+    const pts = accountMeta.statPoints || 0;
+    const ptsEl = DOM.get('p-stat-points');
     if (ptsEl) ptsEl.innerText = pts;
 
-    let folderSummary = document.getElementById('char-folder-summary');
+    const folderSummary = DOM.get('char-folder-summary');
     if (folderSummary) {
-        if (pts > 0) {
-            folderSummary.innerHTML = `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold;">[✨ ${pts} 點數待分配]</span>`;
-        } else {
-            folderSummary.innerHTML = `🔍 展開查看 戰偶裝備、配點與詳細數值`;
-        }
+        folderSummary.innerHTML = pts > 0 
+            ? `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold;">[✨ ${pts} 點數待分配]</span>`
+            : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
-    let gridEl = document.getElementById('stat-alloc-grid');
+    // 六大屬性配點矩陣
+    const gridEl = DOM.get('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
         const statConfig = [
-            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重" },
-            { key: "AGI", name: "⚡ 敏捷", desc: "攻速 / FLEE" },
-            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / DEF" },
-            { key: "INT", name: "🔮 智力", desc: "MATK / MDEF" },
-            { key: "DEX", name: "🎯 靈巧", desc: "HIT / 遠程/縮詠" },
-            { key: "LUK", name: "🎰 幸運", desc: "CRIT / 完迴" }
+            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重上限" },
+            { key: "AGI", name: "⚡ 敏捷", desc: "攻速ASPD / 迴避FLEE" },
+            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / 物理DEF" },
+            { key: "INT", name: "🔮 智力", desc: "魔攻MATK / 魔防MDEF" },
+            { key: "DEX", name: "🎯 靈巧", desc: "命中HIT / 縮短詠唱" },
+            { key: "LUK", name: "🎰 幸運", desc: "暴擊CRIT / 完全迴避" }
         ];
 
-        let hasPoints = pts > 0;
-        let currentStats = accountMeta.stats || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+        const hasPoints = pts > 0;
+        const currentStats = accountMeta.stats || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
 
         statConfig.forEach(s => {
-            let val = currentStats[s.key] || 0;
-            let cell = document.createElement('div');
+            const val = currentStats[s.key] || 0;
+            const cell = document.createElement('div');
             cell.style.cssText = `
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.08);
@@ -116,36 +128,38 @@ function syncCharacterDataUi() {
         });
     }
 
-    let hpEl = document.getElementById('p-hp');
-    let maxHpEl = document.getElementById('p-maxhp');
-    let mpEl = document.getElementById('p-mp');
-    let maxMpEl = document.getElementById('p-maxmp');
+    // 生命與能量條
+    const hpEl = DOM.get('p-hp');
+    const maxHpEl = DOM.get('p-maxhp');
+    const mpEl = DOM.get('p-mp');
+    const maxMpEl = DOM.get('p-maxmp');
     
     if (hpEl) hpEl.innerText = currentRun.hp;
     if (maxHpEl) maxHpEl.innerText = currentRun.maxHp;
     if (mpEl) mpEl.innerText = currentRun.mp;
     if (maxMpEl) maxMpEl.innerText = currentRun.maxMp;
 
-    let hpBar = document.getElementById('hp-bar-fill');
-    let mpBar = document.getElementById('mp-bar-fill');
+    const hpBar = DOM.get('hp-bar-fill');
+    const mpBar = DOM.get('mp-bar-fill');
     if (hpBar) hpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.hp / currentRun.maxHp) * 100))}%`;
     if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
-    const pAtbRow = document.getElementById('p-atb-row');
+    // 玩家 ATB 蓄力軌道
+    const pAtbRow = DOM.get('p-atb-row');
     if (pAtbRow) {
         if (gameState === "VILLAGE") {
             pAtbRow.style.display = "none";
         } else {
             pAtbRow.style.display = "block";
-            let pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
-            const pAtbBar = document.getElementById('p-atb-bar-fill');
+            const pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
+            const pAtbBar = DOM.get('p-atb-bar-fill');
             
             if (pAtbBar) {
-                let currentW = parseFloat(pAtbBar.style.width) || 0;
+                const currentW = parseFloat(pAtbBar.style.width) || 0;
                 if (pAtbPercent < currentW) {
                     pAtbBar.style.transition = "none";
                     pAtbBar.style.width = "0%";
-                    pAtbBar.offsetHeight; 
+                    pAtbBar.offsetHeight; // 強制重繪
                 }
                 pAtbBar.style.transition = "width 0.25s linear";
                 pAtbBar.style.width = `${pAtbPercent}%`;
@@ -153,7 +167,8 @@ function syncCharacterDataUi() {
         }
     }
 
-    let setTxt = (id, txt) => { let e = document.getElementById(id); if (e) e.innerText = txt; };
+    // 詳細面板數值更新
+    const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
     setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk})`);
     setTxt('p-block', `${currentRun.def} (魔防 ${currentRun.mdef})`);
@@ -162,31 +177,28 @@ function syncCharacterDataUi() {
     setTxt('p-dodge', `${Math.floor(currentRun.flee)} (完迴 ${currentRun.perfectDodge}%)`);
     setTxt('p-vamp', `${Math.floor(currentRun.hit)} HIT`);
 
-    let skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
-    const skillListEl = document.getElementById('p-skills-list');
+    const skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
+    const skillListEl = DOM.get('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
 
-    let wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
-    let aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
-    let cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
+    // 裝備與星級
+    const wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
+    const aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
+    const cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
 
-    const slotWeapon = document.getElementById('p-equip-weapon');
-    const slotArmor = document.getElementById('p-equip-armor');
-    const slotAccessory = document.getElementById('p-equip-accessory');
+    setTxt('p-equip-weapon', (accountMeta.equipment?.weapon || "空手") + wStar);
+    setTxt('p-equip-armor', (accountMeta.equipment?.armor || "布衣") + aStar);
+    setTxt('p-equip-accessory', (accountMeta.equipment?.accessory || "無") + cStar);
 
-    if (slotWeapon) slotWeapon.innerText = (accountMeta.equipment?.weapon || "空手") + wStar;
-    if (slotArmor) slotArmor.innerText = (accountMeta.equipment?.armor || "布衣") + aStar;
-    if (slotAccessory) slotAccessory.innerText = (accountMeta.equipment?.accessory || "無") + cStar;
+    // 行軍背包
+    setTxt('bag-capacity-text', `🎒 ${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`);
 
-    let bagCapTxt = document.getElementById('bag-capacity-text');
-    if (bagCapTxt) bagCapTxt.innerText = `🎒 ${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`;
-
-    let bagContainer = document.getElementById('bag-slots-container');
+    const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
         bagContainer.innerHTML = "";
         for (let i = 0; i < MAX_BAG_SIZE; i++) {
-            let item = currentRun.inventory[i];
-            let slot = document.createElement('div');
+            const item = currentRun.inventory[i];
+            const slot = document.createElement('div');
             slot.style.cssText = `
                 height: 32px;
                 border: 1px dashed ${item ? "rgba(255,215,0,0.5)" : "rgba(255,255,255,0.15)"};
@@ -199,7 +211,7 @@ function syncCharacterDataUi() {
 
             if (item) {
                 slot.innerText = item;
-                slot.title = `點擊使用或退回 (${item})`;
+                slot.title = `戰鬥中點擊使用 / 村莊點擊退回倉庫 (${item})`;
                 slot.onclick = () => {
                     if (gameState === "BATTLE") {
                         executeUseDungeonItem(item, i);
@@ -216,19 +228,25 @@ function syncCharacterDataUi() {
 }
 
 function getJobChineseName(j) {
-    if (j === "swordsman") return "劍士";
-    if (j === "magician") return "魔法師";
-    if (j === "acolyte") return "服事";
-    if (j === "thief") return "盜賊";
-    if (j === "archer") return "弓箭手";
-    return "劍士";
+    const jobNames = {
+        swordsman: "劍士",
+        magician: "魔法師",
+        acolyte: "服事",
+        thief: "盜賊",
+        archer: "弓箭手"
+    };
+    return jobNames[j] || "劍士";
 }
 
+// ==========================================
+// 3. 村莊地點切換
+// ==========================================
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
+    
     const panels = ['v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
     panels.forEach(p => {
-        const el = document.getElementById(p);
+        const el = DOM.get(p);
         if (el) el.style.display = 'none';
     });
     
@@ -241,51 +259,45 @@ function switchVillageLocation(targetLoc) {
     };
     
     Object.keys(tabs).forEach(k => {
-        const tBtn = document.getElementById(tabs[k]);
+        const tBtn = DOM.get(tabs[k]);
         if (tBtn) {
-            if (k === targetLoc) tBtn.classList.add('active');
-            else tBtn.classList.remove('active');
+            tBtn.classList.toggle('active', k === targetLoc);
         }
     });
     
-    const locTextEl = document.getElementById('location-text');
-    if (targetLoc === "GATE") {
-        const el = document.getElementById('v-loc-gate'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "⛺ 地表村莊 ➔ 傳送大殿";
-    } 
-    else if (targetLoc === "GUILD") {
-        const el = document.getElementById('v-loc-guild'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "🏛️ 地表村莊 ➔ 冒險者公會";
-        renderVillageGuild();
-    }
-    else if (targetLoc === "KITCHEN") {
-        const el = document.getElementById('v-loc-kitchen'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "🍳 地表村莊 ➔ 皇家料理屋";
-        renderVillageCookingWorkshop();
-    } 
-    else if (targetLoc === "SQUARE") {
-        const el = document.getElementById('v-loc-square'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "💬 地表村莊 ➔ 中央廣場";
-    }
-    else if (targetLoc === "WORKSHOP") {
-        const el = document.getElementById('v-loc-workshop'); if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = "🛠️ 地表村莊 ➔ 魔導加工所";
-        renderVillageWorkshop();
+    const locTextEl = DOM.get('location-text');
+    const locMap = {
+        GATE: { el: 'v-loc-gate', text: "⛺ 地表村莊 ➔ 傳送大殿" },
+        GUILD: { el: 'v-loc-guild', text: "🏛️ 地表村莊 ➔ 冒險者公會", render: renderVillageGuild },
+        KITCHEN: { el: 'v-loc-kitchen', text: "🍳 地表村莊 ➔ 皇家料理屋", render: renderVillageCookingWorkshop },
+        SQUARE: { el: 'v-loc-square', text: "💬 地表村莊 ➔ 中央廣場" },
+        WORKSHOP: { el: 'v-loc-workshop', text: "🛠️ 地表村莊 ➔ 魔導加工所", render: renderVillageWorkshop }
+    };
+
+    if (locMap[targetLoc]) {
+        const target = locMap[targetLoc];
+        const el = DOM.get(target.el);
+        if (el) el.style.display = 'block';
+        if (locTextEl) locTextEl.innerHTML = target.text;
+        if (target.render) target.render();
     }
     
     updateUI();
 }
 
+// ==========================================
+// 4. 全局 UI 狀態同步與更新
+// ==========================================
 function updateUI() {
-    const titleBox = document.getElementById('title-box');
-    const statusBox = document.getElementById('status-panel-box');
-    const actionBox = document.getElementById('action-panel-box');
-    const villageBox = document.getElementById('village-panel-box');
-    const rewardBox = document.getElementById('reward-panel-box');
-    const logBox = document.getElementById('log-box');
-    const envBar = document.getElementById('env-alert-bar');
-    const autoBtn = document.getElementById('btn-auto-battle');
-    const logWrapper = document.getElementById('log-wrapper-box');
+    const titleBox = DOM.get('title-box');
+    const statusBox = DOM.get('status-panel-box');
+    const actionBox = DOM.get('action-panel-box');
+    const villageBox = DOM.get('village-panel-box');
+    const rewardBox = DOM.get('reward-panel-box');
+    const logBox = DOM.get('log-box');
+    const envBar = DOM.get('env-alert-bar');
+    const autoBtn = DOM.get('btn-auto-battle');
+    const logWrapper = DOM.get('log-wrapper-box');
 
     if (gameState === "VILLAGE") {
         if (titleBox) titleBox.style.display = "none"; 
@@ -298,15 +310,15 @@ function updateUI() {
         if (envBar) envBar.style.display = "none";
         if (autoBtn) autoBtn.style.display = "none";
         
-        const drawer = document.getElementById('tactics-drawer-box');
+        const drawer = DOM.get('tactics-drawer-box');
         if (drawer) drawer.classList.remove('expanded');
         
-        const mainActionBtn = document.getElementById('btn-main-action');
+        const mainActionBtn = DOM.get('btn-main-action');
         if (mainActionBtn) {
             mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
             mainActionBtn.disabled = false; 
         }
-        const rerunBtn = document.getElementById('btn-rerun-action');
+        const rerunBtn = DOM.get('btn-rerun-action');
         if (rerunBtn) rerunBtn.style.display = "none";
         
         syncCharacterDataUi();
@@ -322,11 +334,11 @@ function updateUI() {
     if (envBar) envBar.style.display = "block";
     if (autoBtn) autoBtn.style.display = "block"; 
     
-    let actBtn = document.getElementById('btn-main-action');
+    const actBtn = DOM.get('btn-main-action');
     if (actBtn) {
         actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
     }
-    let rerunBtn = document.getElementById('btn-rerun-action');
+    const rerunBtn = DOM.get('btn-rerun-action');
     if (rerunBtn) {
         rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
     }
@@ -336,23 +348,23 @@ function updateUI() {
         envBar.innerHTML = `${ENVIRONMENT_DATABASE[currentEnvironment].logText} (B${dungeonFloor}F)`;
     }
 
-    let monBox = document.getElementById('monster-status-card');
+    const monBox = DOM.get('monster-status-card');
     if (activeMonster && monBox) {
         monBox.style.display = "block";
-        document.getElementById('m-name').innerText = activeMonster.name;
-        document.getElementById('m-hp-text').innerText = `${activeMonster.hp} / ${activeMonster.maxHp}`;
-        document.getElementById('m-hp-bar').style.width = `${Math.max(0, (activeMonster.hp / activeMonster.maxHp) * 100)}%`;
-        document.getElementById('m-atk').innerText = activeMonster.atk;
-        document.getElementById('m-spd').innerText = activeMonster.spd;
+        DOM.get('m-name').innerText = activeMonster.name;
+        DOM.get('m-hp-text').innerText = `${activeMonster.hp} / ${activeMonster.maxHp}`;
+        DOM.get('m-hp-bar').style.width = `${Math.max(0, (activeMonster.hp / activeMonster.maxHp) * 100)}%`;
+        DOM.get('m-atk').innerText = activeMonster.atk;
+        DOM.get('m-spd').innerText = activeMonster.spd;
 
-        const mAtbRow = document.getElementById('m-atb-row');
+        const mAtbRow = DOM.get('m-atb-row');
         if (mAtbRow) {
             mAtbRow.style.display = "block";
-            let mAtbPercent = Math.min(100, Math.max(0, typeof monsterAtb !== "undefined" ? monsterAtb : 0));
-            const mAtbBar = document.getElementById('m-atb-bar-fill');
+            const mAtbPercent = Math.min(100, Math.max(0, typeof monsterAtb !== "undefined" ? monsterAtb : 0));
+            const mAtbBar = DOM.get('m-atb-bar-fill');
             
             if (mAtbBar) {
-                let currentW = parseFloat(mAtbBar.style.width) || 0;
+                const currentW = parseFloat(mAtbBar.style.width) || 0;
                 if (mAtbPercent < currentW) {
                     mAtbBar.style.transition = "none";
                     mAtbBar.style.width = "0%";
@@ -364,7 +376,7 @@ function updateUI() {
         }
     } else if (monBox) {
         monBox.style.display = "none";
-        const mAtbRow = document.getElementById('m-atb-row');
+        const mAtbRow = DOM.get('m-atb-row');
         if (mAtbRow) mAtbRow.style.display = "none";
     }
 
@@ -375,27 +387,25 @@ function updateUI() {
     syncCharacterDataUi();
 }
 
+// ==========================================
+// 5. 公會技能頁面渲染
+// ==========================================
 function renderVillageGuild() {
-    const container = document.getElementById('guild-skills-container');
+    const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
     container.innerHTML = "";
 
     const jobSkills = SKILLS_DATABASE[currentRun.job] || [];
 
     jobSkills.forEach(s => {
-        let card = document.createElement('div');
-        card.style.background = "rgba(0,0,0,0.3)";
-        card.style.padding = "10px";
-        card.style.borderRadius = "8px";
-        card.style.border = "1px solid rgba(255,255,255,0.05)";
-        card.style.marginBottom = "8px";
-        card.style.width = "100%";
+        const card = document.createElement('div');
+        card.style.cssText = "background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; width: 100%;";
 
-        let isLearned = currentRun.skills && currentRun.skills[s.name];
-        let hasLevel = (accountMeta.lv || currentRun.lv || 1) >= s.reqLv;
-        let hasGold = currentRun.gold >= s.goldCost;
+        const isLearned = currentRun.skills && currentRun.skills[s.name];
+        const hasLevel = (accountMeta.lv || currentRun.lv || 1) >= s.reqLv;
+        const hasGold = currentRun.gold >= s.goldCost;
         
-        let reqMatText = Object.keys(s.reqMat || {}).map(k => `${k} x${s.reqMat[k]}`).join(", ");
+        const reqMatText = Object.keys(s.reqMat || {}).map(k => `${k} x${s.reqMat[k]}`).join(", ");
         let hasMats = true;
         for (let mat in s.reqMat) {
             if ((accountMeta.warehouse[mat] || 0) < s.reqMat[mat]) hasMats = false;
@@ -425,10 +435,9 @@ function renderVillageGuild() {
             <div style="margin-top: 6px;"></div>
         `;
 
-        let btnLearn = document.createElement('button');
+        const btnLearn = document.createElement('button');
         btnLearn.className = "btn-game btn-explore";
-        btnLearn.style.padding = "4px 10px";
-        btnLearn.style.fontSize = "11px";
+        btnLearn.style.cssText = "padding: 4px 10px; font-size: 11px;";
         btnLearn.innerText = isLearned ? "✅ 已習得" : "🎓 學習傳承技能";
         btnLearn.disabled = btnDisabled;
         btnLearn.onclick = () => { executeLearnSkill(s); };
@@ -438,14 +447,17 @@ function renderVillageGuild() {
     });
 }
 
+// ==========================================
+// 6. 料理屋頁面渲染
+// ==========================================
 function renderVillageCookingWorkshop() {
-    const wBox = document.getElementById('kitchen-warehouse-display');
-    if (!wBox) return;
+    const wBox = DOM.get('kitchen-warehouse-display');
+    if (wBox) {
+        const wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
+        wBox.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${wItems || "暫無任何行軍素材"}`;
+    }
     
-    let wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-    wBox.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${wItems || "暫無任何行軍素材"}`;
-    
-    const rContainer = document.getElementById('recipes-container');
+    const rContainer = DOM.get('recipes-container');
     if (!rContainer) return;
     rContainer.innerHTML = "";
 
@@ -458,13 +470,10 @@ function renderVillageCookingWorkshop() {
     }
 
     filteredRecipes.forEach(recipe => {
-        let card = document.createElement('div');
-        card.style.background = "rgba(0,0,0,0.25)";
-        card.style.padding = "12px"; card.style.borderRadius = "10px";
-        card.style.border = "1px solid rgba(255,255,255,0.03)";
-        card.style.marginBottom = "8px"; card.style.width = "100%"; card.style.textAlign = "left";
+        const card = document.createElement('div');
+        card.style.cssText = "background: rgba(0,0,0,0.25); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03); margin-bottom: 8px; width: 100%; text-align: left;";
 
-        let ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
+        const ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
         let hasIngredients = true;
         for (let ing in recipe.ingredients) {
             if ((accountMeta.warehouse[ing] || 0) < recipe.ingredients[ing]) hasIngredients = false;
@@ -477,9 +486,9 @@ function renderVillageCookingWorkshop() {
             <div style="margin-top:8px;"></div>
         `;
 
-        let btnCook = document.createElement('button');
+        const btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
-        btnCook.style.padding = "4px 10px"; btnCook.style.fontSize = "11px";
+        btnCook.style.cssText = "padding: 4px 10px; font-size: 11px;";
         btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪納入快捷欄";
         btnCook.disabled = !hasIngredients;
         btnCook.onclick = () => { executeVillageCooking(recipe); };
@@ -489,15 +498,18 @@ function renderVillageCookingWorkshop() {
     });
 }
 
+// ==========================================
+// 7. 精煉升星與加工所頁面渲染
+// ==========================================
 function renderStarUpRow(slot, displayName, currentStar) {
-    let starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
+    const starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
     let upgradeBtn = "";
     
     if (currentStar >= 5) {
         upgradeBtn = `<span style="color: #ffd700; font-size: 11px; font-weight: bold;">[已臻滿星]</span>`;
     } else {
-        let cost = getStarUpCost(slot, currentStar);
-        let costText = Object.keys(cost).map(k => `${k} x${cost[k]}`).join(", ");
+        const cost = getStarUpCost(slot, currentStar);
+        const costText = Object.keys(cost).map(k => `${k} x${cost[k]}`).join(", ");
         
         let canUpgrade = true;
         for (let ing in cost) {
@@ -520,21 +532,19 @@ function renderStarUpRow(slot, displayName, currentStar) {
 }
 
 function renderVillageWorkshop() {
-    const wBox = document.getElementById('workshop-warehouse-display');
-    if (!wBox) return;
+    const wBox = DOM.get('workshop-warehouse-display');
+    if (wBox) {
+        const wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
+        wBox.innerHTML = `📦 <strong>雲端永久素材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
+    }
     
-    let wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-    wBox.innerHTML = `📦 <strong>雲端永久素材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
-    
-    const bContainer = document.getElementById('blueprints-container');
+    const bContainer = DOM.get('blueprints-container');
     if (!bContainer) return;
     bContainer.innerHTML = "";
     
-    let starPanel = document.createElement('div');
+    const starPanel = document.createElement('div');
     starPanel.className = "dynamic-panel reward-style";
-    starPanel.style.border = "1px solid rgba(212, 175, 55, 0.4)";
-    starPanel.style.background = "rgba(15, 13, 10, 0.5)";
-    starPanel.style.marginBottom = "15px"; starPanel.style.padding = "12px"; starPanel.style.width = "100%";
+    starPanel.style.cssText = "border: 1px solid rgba(212, 175, 55, 0.4); background: rgba(15, 13, 10, 0.5); margin-bottom: 15px; padding: 12px; width: 100%;";
     
     starPanel.innerHTML = `
         <div class="panel-title" style="color: #ffd700; margin-bottom: 8px;">🌟 皇家部位星級精煉台 (永久繼承) 🌟</div>
@@ -555,28 +565,26 @@ function renderVillageWorkshop() {
     });
 
     if (filteredBlueprints.length === 0) {
-        let emptyDiv = document.createElement('div');
+        const emptyDiv = document.createElement('div');
         emptyDiv.innerHTML = `<div style="color:#555; font-size:12px; padding:20px; width:100%; text-align:center;">🔨 該級別無此分類神裝，等待神匠開拓藍圖...</div>`;
         bContainer.appendChild(emptyDiv);
         return;
     }
 
     filteredBlueprints.forEach(blueprint => {
-        let btnWrapper = document.createElement('div');
-        btnWrapper.style.background = "rgba(0,0,0,0.2)";
-        btnWrapper.style.padding = "14px"; btnWrapper.style.borderRadius = "12px";
-        btnWrapper.style.border = "1px solid rgba(255,255,255,0.04)";
-        btnWrapper.style.marginBottom = "10px"; btnWrapper.style.textAlign = "left"; btnWrapper.style.width = "100%";
+        const btnWrapper = document.createElement('div');
+        btnWrapper.style.cssText = "background: rgba(0,0,0,0.2); padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); margin-bottom: 10px; text-align: left; width: 100%;";
 
-        let reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
-        let statText = Object.keys(blueprint.stats).map(k => {
-            let name = k === "atk" ? "攻擊" : k === "spd" ? "速度" : k === "mpRegen" ? "回魔" : k === "block" ? "減傷" : k === "maxHp" ? "生命" : "閃避";
+        const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
+        const statText = Object.keys(blueprint.stats).map(k => {
+            const nameMap = { atk: "攻擊", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", flee: "閃避" };
+            const name = nameMap[k] || k;
             return `${name} ${blueprint.stats[k] > 0 ? '+' : ''}${blueprint.stats[k]}`;
         }).join(", ");
 
-        let titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
-        let infoP = document.createElement('p');
-        infoP.style.margin = "0 0 10px 0"; infoP.style.fontSize = "12px"; infoP.style.color = "#babcbf"; infoP.style.lineHeight = "1.5";
+        const titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
+        const infoP = document.createElement('p');
+        infoP.style.cssText = "margin: 0 0 10px 0; font-size: 12px; color: #babcbf; line-height: 1.5;";
         infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
         btnWrapper.appendChild(infoP);
 
@@ -585,34 +593,35 @@ function renderVillageWorkshop() {
             if ((accountMeta.warehouse[ing] || 0) < blueprint.ingredients[ing]) canForge = false;
         }
 
-        let btnForge = document.createElement('button');
+        const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
-        btnForge.style.padding = "6px 12px"; btnForge.style.fontSize = "11px"; btnForge.style.marginRight = "8px";
+        btnForge.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 8px;";
         btnForge.innerHTML = "🔨 消耗材料打造";
         btnForge.disabled = !canForge; 
         btnForge.onclick = () => { executeForgeEquipment(blueprint); };
         btnWrapper.appendChild(btnForge);
 
-        let isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
-        let hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
+        const isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
+        const hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
 
         if (isEquipped) {
-            let btnUnequip = document.createElement('button');
-            btnUnequip.className = "btn-game btn-rest"; btnUnequip.style.padding = "6px 12px"; btnUnequip.style.fontSize = "11px";
+            const btnUnequip = document.createElement('button');
+            btnUnequip.className = "btn-game btn-rest"; 
+            btnUnequip.style.cssText = "padding: 6px 12px; font-size: 11px;";
             btnUnequip.innerHTML = "❌ 卸下神裝";
             btnUnequip.onclick = () => { executeEquipAction(blueprint.name, "unequip"); };
             btnWrapper.appendChild(btnUnequip);
         } else if (hasInWarehouse) {
-            let btnEquip = document.createElement('button');
-            btnEquip.className = "btn-game btn-rerun"; btnEquip.style.padding = "6px 12px"; btnEquip.style.fontSize = "11px";
+            const btnEquip = document.createElement('button');
+            btnEquip.className = "btn-game btn-rerun"; 
+            btnEquip.style.cssText = "padding: 6px 12px; font-size: 11px;";
             btnEquip.innerHTML = "⚡ 穿戴上身";
             btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
             btnWrapper.appendChild(btnEquip);
 
-            let btnDismantle = document.createElement('button');
+            const btnDismantle = document.createElement('button');
             btnDismantle.className = "btn-game btn-rest"; 
-            btnDismantle.style.padding = "6px 12px"; btnDismantle.style.fontSize = "11px"; btnDismantle.style.marginLeft = "6px";
-            btnDismantle.style.background = "linear-gradient(135deg, #c0392b 0%, #962d00 100%) !important";
+            btnDismantle.style.cssText = "padding: 6px 12px; font-size: 11px; margin-left: 6px; background: linear-gradient(135deg, #c0392b 0%, #962d00 100%) !important;";
             btnDismantle.innerHTML = "♻️ 拆解回收";
             btnDismantle.onclick = () => { executeDismantle(blueprint.name); };
             btnWrapper.appendChild(btnDismantle);
@@ -622,17 +631,22 @@ function renderVillageWorkshop() {
     });
 }
 
+// ==========================================
+// 8. 戰鬥日誌添加器
+// ==========================================
 function addLog(msg, type = "deal") {
-    let box = document.getElementById('log-box');
+    const box = DOM.get('log-box');
     if (!box) return;
-    let className = "log-row-box";
-    if (type === "take") className += " log-take-dmg";
-    if (type === "perfect") className += " log-perfect";
-    if (type === "env") className += " log-env-tick";
-    if (type === "victory-badge") className += " log-victory-badge";
-    
-    let p = document.createElement('div');
-    p.className = className;
+
+    const classMap = {
+        take: " log-take-dmg",
+        perfect: " log-perfect",
+        env: " log-env-tick",
+        "victory-badge": " log-victory-badge"
+    };
+
+    const p = document.createElement('div');
+    p.className = `log-row-box${classMap[type] || ""}`;
     p.innerHTML = msg;
     box.appendChild(p);
     
