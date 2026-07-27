@@ -5,6 +5,7 @@
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 const MAX_BAG_SIZE = 6;
 
+// 🏛️ 預設帳號資料結構範本
 function createDefaultAccountMeta(name, pin) {
     return {
         name: name || "無名勇者",
@@ -23,6 +24,7 @@ function createDefaultAccountMeta(name, pin) {
 
 let accountMeta = createDefaultAccountMeta("無名勇者", "000000");
 
+// ⚔️ 全局單次冒險（Current Run）實時狀態數據
 let currentRun = {
     job: "swordsman",
     lv: 1,
@@ -64,6 +66,9 @@ let gameState = "VILLAGE";
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
 
+// ==========================================
+// 🔍 輸入框實時血脈檢測
+// ==========================================
 function checkPlayerNameLive() {
     const legacyBox = document.getElementById('legacy-box');
     const nameEl = document.getElementById('player-name-input');
@@ -87,6 +92,9 @@ function checkPlayerNameLive() {
     legacyBox.innerHTML = `✨ 準備創立全新血脈：[<strong>${targetName}</strong>]！請設定你的 6 位數 PIN 碼。`;
 }
 
+// ==========================================
+// 🌌 DOM 載入與 Render 伺服器冷啟動喚醒
+// ==========================================
 window.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingBarFill = document.getElementById('loading-bar-fill');
@@ -94,6 +102,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const inputNameEl = document.getElementById('player-name-input');
     const inputPinEl = document.getElementById('player-pin-input');
 
+    // 自動填入上次使用的勇者名稱與 PIN 碼
     const lastActiveUser = localStorage.getItem("ABYSS_DESTINY_LAST_USER");
     if (lastActiveUser && inputNameEl) {
         inputNameEl.value = lastActiveUser;
@@ -108,7 +117,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 秒發起冷啟動超時保護
 
         await fetch(SERVER_URL, { method: 'GET', signal: controller.signal }).catch(() => {});
         clearTimeout(timeoutId);
@@ -128,6 +137,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     }, 600);
 });
 
+// ==========================================
+// 🔑 帳號登入、身分驗證與存檔載入
+// ==========================================
 async function initOrLoadPlayer(inputName, inputPin) {
     const targetName = inputName ? inputName.trim() : "";
     const targetPin = inputPin ? inputPin.trim() : "";
@@ -163,13 +175,14 @@ async function initOrLoadPlayer(inputName, inputPin) {
         if (data.isNewUser) {
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
         } else if (data.activeChar) {
-            accountMeta = Object.assign({}, createDefaultAccountMeta(targetName, targetPin), data.activeChar);
+            // 安全合併：確保缺少的預設欄位會被補齊，避免存檔破損
+            accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), data.activeChar);
             accountMeta.name = targetName;
             accountMeta.pin = targetPin;
         }
 
     } catch (err) {
-        console.warn("無法連線雲端驗證，採用本地快取登入方案。");
+        console.warn("網絡連線失敗，自動切換至本地離線驗證方案。");
         const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
         const localPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${targetName}`);
 
@@ -180,7 +193,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
         if (localData) {
             try {
-                accountMeta = Object.assign({}, createDefaultAccountMeta(targetName, targetPin), JSON.parse(localData));
+                accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), JSON.parse(localData));
             } catch(e) {
                 accountMeta = createDefaultAccountMeta(targetName, targetPin);
                 isNewUser = true;
@@ -191,6 +204,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
         }
     }
 
+    // 紀錄最後登入資訊
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
     localStorage.setItem(`ABYSS_DESTINY_PIN_${targetName}`, targetPin);
 
@@ -199,19 +213,24 @@ async function initOrLoadPlayer(inputName, inputPin) {
     return { success: true, isNewUser: isNewUser };
 }
 
+// ==========================================
+// 💾 本地與雲端雙軌同步存檔機制
+// ==========================================
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
     const charKey = `ABYSS_DESTINY_SAVE_${accountMeta.name}`;
 
+    // 1. 本地快取寫入
     try {
         localStorage.setItem(charKey, JSON.stringify(accountMeta));
         localStorage.setItem(`ABYSS_DESTINY_PIN_${accountMeta.name}`, accountMeta.pin);
         localStorage.setItem("ABYSS_DESTINY_LAST_USER", accountMeta.name);
     } catch (e) {
-        console.error("LocalStorage 寫入失敗:", e);
+        console.error("LocalStorage 容量受限或寫入失敗:", e);
     }
 
+    // 2. 雲端同步寫入
     try {
         const payload = {
             name: accountMeta.name,
@@ -225,12 +244,17 @@ async function saveGameData() {
             body: JSON.stringify(payload)
         });
     } catch (error) {
-        console.warn("網絡連線異常，已暫存於本地。");
+        console.warn("雲端同步異常，數據已暫存於本地快取。");
     }
 }
 
+// ==========================================
+// 🧹 清理本地快取存檔
+// ==========================================
 function clearAllLegacySaves() {
-    localStorage.clear();
-    alert("🧹 已成功清空所有本地舊快取存檔！頁面將重置。");
-    location.reload();
+    if (confirm("⚠️ 確定要清空本地所有快取資料嗎？")) {
+        localStorage.clear();
+        alert("🧹 已成功清空所有本地舊快取存檔！頁面將重置。");
+        location.reload();
+    }
 }
