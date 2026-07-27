@@ -1,10 +1,9 @@
-<!-- 主頁 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>命運深淵：血脈傳承 - 獨立直欄雙軌制版</title>
+    <title>命運深淵：血脈傳承</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,7 +27,6 @@
         <h2 style="color: #00ffcc; margin-top: 0;">🎭 選擇你的初始冒險血脈</h2>
         <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">踏入深淵前，請定下你的戰鬥道路！（未來可於公會付費重選）</p>
         <div id="initial-job-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto;">
-            <!-- 由 ui.js 動態渲染五大職業 -->
         </div>
     </div>
 </div>
@@ -70,7 +68,7 @@
         <!-- ⬅️ 左側直欄 -->
         <div class="left-layout-column">
             
-            <!-- 📊 2. 勇者狀態數據面板 (瘦身一屏版) -->
+            <!-- 📊 2. 勇者狀態數據面板 -->
             <div class="status-panel" id="status-panel-box" style="display: none;">
                 <div class="status-header-row">
                     <span>👤 <strong id="p-name">--</strong></span>
@@ -129,7 +127,7 @@
                                 <div class="grid-cell">⚡ 攻速: <span id="p-spd">20</span></div>
                                 <div class="grid-cell">💥 暴擊: <span id="p-crit">0%</span></div>
                                 <div class="grid-cell">🏃 閃避: <span id="p-dodge">0%</span></div>
-                                <div class="grid-cell">🩸 吸血: <span id="p-vamp">0%</span></div>
+                                <div class="grid-cell">🩸 命中: <span id="p-vamp">0</span></div>
                             </div>
                         </div>
 
@@ -160,7 +158,7 @@
                 </div>
             </div>
 
-        </div> <!-- 左側直欄結束 -->
+        </div>
 
         <!-- ➡️ 右側直欄 -->
         <div class="right-layout-column">
@@ -175,7 +173,6 @@
                     <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">💬 廣場</button>
                 </div>
 
-                <!-- 門口大殿 -->
                 <div id="v-loc-gate" class="v-sub-loc-panel">
                     <div class="placeholder-card" style="background: rgba(20, 25, 40, 0.7); border: 1px solid rgba(0, 255, 204, 0.2); text-align: center; padding: 20px;">
                         <h3 style="color: #00ffcc; margin-top: 0;">🌀 深淵傳送大門</h3>
@@ -183,18 +180,15 @@
                     </div>
                 </div>
 
-                <!-- 🏛️ 新增：冒險者公會面板 -->
                 <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style" style="border-color: rgba(155, 89, 182, 0.3); background: linear-gradient(180deg, rgba(155, 89, 182, 0.05) 0%, rgba(0,0,0,0) 100%);">
                         <div class="panel-title" style="color: #9b59b6;">🏛️ 皇家冒險者公會</div>
                         
-                        <!-- 🎓 技能學習專區 -->
                         <div style="margin-bottom: 15px;">
                             <div style="font-size: 13px; color: #ffd700; font-weight: bold; margin-bottom: 8px;">🎓 職業專屬技能傳承</div>
                             <div id="guild-skills-container" class="flex-layout"></div>
                         </div>
 
-                        <!-- ⚖️ 洗點與轉職服務專區 -->
                         <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px; margin-top: 12px;">
                             <div style="font-size: 13px; color: #00ffcc; font-weight: bold; margin-bottom: 8px;">⚖️ 命運洗禮 (洗點與轉職)</div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -209,7 +203,6 @@
                     </div>
                 </div>
 
-                <!-- 料理屋 -->
                 <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
                         <div class="panel-title">🍳 皇家後勤料理屋</div>
@@ -225,7 +218,6 @@
                     </div>
                 </div>
 
-                <!-- 廣場 -->
                 <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
                     <div class="placeholder-card">
                         <h3>💬 中央交流廣場</h3>
@@ -234,7 +226,6 @@
                     </div>
                 </div>
 
-                <!-- 加工所 -->
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style" style="border-color: rgba(230, 126, 34, 0.2); background: linear-gradient(180deg, rgba(230,126,34,0.02) 0%, rgba(0,0,0,0) 100%);">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
@@ -312,8 +303,8 @@
                 </div>
             </div>
 
-        </div> <!-- 右側直欄結束 -->
-    </div> <!-- 雙欄核心分流包殼容器結束 -->
+        </div>
+    </div>
 </div>
 
 <!-- 全螢幕 QTE 視窗 -->
@@ -342,17 +333,17 @@
     </div>
 </div>
     
-<!-- JavaScript 檔案載入順序 -->
-<script src="monsterdata.js"></script>
-<script src="itemdata.js"></script>
-<script src="eventdata.js"></script>
+<!-- JS 載入順序：環境與職業資料庫最優先載入以完成正確 deepFreeze 綁定 -->
 <script src="environmentdata.js"></script>
 <script src="jobdata.js"></script>
+<script src="itemdata.js"></script>
+<script src="monsterdata.js"></script>
+<script src="eventdata.js"></script>
 
 <!-- 帳號與登入核心 -->
 <script src="state.js"></script>
 
-<!-- 🧮 新增：屬性與戰鬥計算引擎 -->
+<!-- 屬性與戰鬥計算引擎 -->
 <script src="statengine.js"></script>
 
 <script src="ui.js"></script>
