@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與轉職洗點控制庫（存檔同步修復版）
+// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習(Lv10上限)與轉職存檔控制庫
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -115,7 +115,6 @@ function selectInitialJob(jobId) {
         initialSkills[firstSkill] = 1;
     }
 
-    // ✨ 存檔修正：雙向寫入技能
     accountMeta.skills = { ...initialSkills };
     currentRun.skills = { ...initialSkills };
 
@@ -148,34 +147,53 @@ function enterGameMainShell() {
 }
 
 // ==========================================
-// 🏛️ 2. 公會服務：技能傳承、洗點與轉職 (✨ 修正存檔)
+// 🏛️ 2. 公會服務：技能傳承與修煉 (✨ 支持 Lv.10 上限與升級)
 // ==========================================
 function executeLearnSkill(skillMeta) {
-    if (currentRun.gold < skillMeta.goldCost) {
-        alert("🪙 金幣不足，無法傳承此技能！");
+    if (!accountMeta.skills) accountMeta.skills = {};
+    if (!currentRun.skills) currentRun.skills = {};
+
+    let currentLv = (accountMeta.skills[skillMeta.name] || currentRun.skills[skillMeta.name] || 0);
+
+    // ✨ 1. LV10 升級上限判斷
+    if (currentLv >= 10) {
+        alert(`⚠️ 技能 [${skillMeta.name}] 已達到最高等級上限 (Lv.10)！`);
+        return;
+    }
+
+    let nextLv = currentLv + 1;
+    let goldCost = skillMeta.goldCost * nextLv; // 隨等級增加消耗金幣
+
+    if (currentRun.gold < goldCost) {
+        alert(`🪙 金幣不足！將【${skillMeta.name}】提升至 Lv.${nextLv} 需要 ${goldCost} G！`);
         return;
     }
 
     for (let mat in skillMeta.reqMat) {
-        if ((accountMeta.warehouse[mat] || 0) < skillMeta.reqMat[mat]) {
-            alert(`📦 倉庫內缺乏所需素材：${mat}！`);
+        let reqQty = skillMeta.reqMat[mat] * nextLv;
+        if ((accountMeta.warehouse[mat] || 0) < reqQty) {
+            alert(`📦 倉庫內缺乏所需素材：${mat} x${reqQty}！`);
             return;
         }
     }
 
-    currentRun.gold -= skillMeta.goldCost;
+    // 扣除金幣與素材
+    currentRun.gold -= goldCost;
     for (let mat in skillMeta.reqMat) {
-        accountMeta.warehouse[mat] -= skillMeta.reqMat[mat];
+        let reqQty = skillMeta.reqMat[mat] * nextLv;
+        accountMeta.warehouse[mat] -= reqQty;
     }
 
-    // ✨ 存檔修正：技能寫入 accountMeta 永久存檔
-    if (!accountMeta.skills) accountMeta.skills = {};
-    if (!currentRun.skills) currentRun.skills = {};
+    // ✨ 2. 更新技能等級 (最高 Lv.10)
+    accountMeta.skills[skillMeta.name] = nextLv;
+    currentRun.skills[skillMeta.name] = nextLv;
 
-    accountMeta.skills[skillMeta.name] = 1;
-    currentRun.skills[skillMeta.name] = 1;
+    if (currentLv === 0) {
+        addLog(`🎓🎓【公會技能傳承】成功領悟專屬奧義 ➔ <strong>[${skillMeta.name}] (Lv.1)</strong>！`, "perfect");
+    } else {
+        addLog(`🎓✨【公會技能突破】成功將奧義 ➔ <strong>[${skillMeta.name}]</strong> 提升至 <strong>Lv.${nextLv}</strong> (上限 Lv.10)！`, "perfect");
+    }
 
-    addLog(`🎓🎓【公會技能傳承】成功領悟專屬奧義 ➔ <strong>[${skillMeta.name}]</strong>！`, "perfect");
     saveGameData();
     updateUI();
     if (typeof renderVillageGuild === "function") renderVillageGuild();
@@ -217,7 +235,6 @@ function triggerReselectJobUI() {
 function executeReselectJob(newJobId) {
     currentRun.gold -= 1000;
 
-    // ✨ 存檔修正 1：同步更新永久存檔 (accountMeta) 的職業與等級數據
     accountMeta.job = newJobId;
     accountMeta.lv = 1;
     accountMeta.exp = 0;
@@ -233,11 +250,9 @@ function executeReselectJob(newJobId) {
 
     accountMeta.skills = { ...initialSkills };
 
-    // ✨ 存檔修正 2：同步更新當前單局 (currentRun)
     currentRun.job = newJobId;
     currentRun.skills = { ...initialSkills };
 
-    // ✨ 存檔修正 3：先重新計算數值，然後立刻寫入 LocalStorage
     resetCurrentRunData();
     saveGameData();
 
@@ -246,7 +261,7 @@ function executeReselectJob(newJobId) {
 }
 
 // ==========================================
-// ⚔️ 3. 地下城進退與背包互動
+// ⚔️ 3. 地下城進退與背包互動 (✨ 回城加滿血魔 & 隱藏 SAVEPOINT)
 // ==========================================
 function handleMainAction() {
     try {
@@ -288,8 +303,11 @@ function handleSecondaryAction() {
         isQteActive = false;
         document.getElementById('qte-overlay').style.display = 'none';
     }
-    
-    addLog(`🏃【撤退】你驚險逃回地表村莊！等級與裝備完美保留，素材已安全歸倉！`, "perfect");
+
+    // 💾 隱藏存檔點 1：記錄歷史最高探險層數
+    if (!accountMeta.maxFloor || dungeonFloor > accountMeta.maxFloor) {
+        accountMeta.maxFloor = dungeonFloor;
+    }
     
     if (currentRun.inventory) {
         currentRun.inventory.forEach(item => {
@@ -299,8 +317,18 @@ function handleSecondaryAction() {
         });
     }
     
-    saveGameData(); 
     resetCurrentRunData();
+
+    // 💖 回城全額補滿生命值 (HP) 與魔力值 (MP)
+    currentRun.hp = currentRun.maxHp;
+    currentRun.mp = currentRun.maxMp;
+
+    // 💾 隱藏存檔點 2：回城自動寫入雲端與本地快取
+    saveGameData(); 
+
+    addLog(`🏃【撤退成功】你驚險逃回地表村莊！等級與裝備完美保留，素材已安全歸倉！`, "perfect");
+    addLog(`💖💾【村莊泉水庇護】狀態已全額恢復 (HP/MP)，遊戲進度與歷史紀錄 (最高 B${accountMeta.maxFloor || 1}F) 已自動存檔！`, "perfect");
+
     updateUI();
     switchVillageLocation("GATE");
 }
@@ -410,7 +438,8 @@ function executeAutoBattleAiTurn() {
             for (let sMeta of activeSkills) {
                 if (currentRun.mp >= sMeta.mp) {
                     currentRun.mp -= sMeta.mp;
-                    let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
+                    let skLv = currentRun.skills[sMeta.name] || 1;
+                    let eff = sMeta.run(skLv, baseAtkPower);
                     
                     if (eff && typeof eff.dmg !== "undefined") {
                         triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
@@ -419,7 +448,7 @@ function executeAutoBattleAiTurn() {
                         let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                         
                         if (dmgRes.isMiss) {
-                            addLog(`🔮⚖️【均衡戰術】施展【${sMeta.name}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
+                            addLog(`🔮⚖️【均衡戰術】施展【${sMeta.name} Lv.${skLv}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
                             return true;
                         }
 
@@ -427,10 +456,10 @@ function executeAutoBattleAiTurn() {
                         let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                         let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                         
-                        addLog(`🔮⚖️【均衡戰術突擊】爆烈吟唱 <span class="${skillFxClass}">【${sMeta.name}】</span>！`, "skill-hit");
+                        addLog(`🔮⚖️【均衡戰術突擊】爆烈吟唱 <span class="${skillFxClass}">【${sMeta.name} Lv.${skLv}】</span>！`, "skill-hit");
                         addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
                     } else {
-                        addLog(`🛡️【均衡防禦整備】施展【${sMeta.name}】戰術姿態！`, "perfect");
+                        addLog(`🛡️【均衡防禦整備】施展【${sMeta.name} Lv.${skLv}】戰術姿態！`, "perfect");
                     }
                     return true;
                 }
@@ -446,7 +475,8 @@ function executeAutoBattleAiTurn() {
         for (let sMeta of activeSkills) {
             if (currentRun.mp >= sMeta.mp) {
                 currentRun.mp -= sMeta.mp;
-                let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
+                let skLv = currentRun.skills[sMeta.name] || 1;
+                let eff = sMeta.run(skLv, baseAtkPower);
                 
                 if (eff && typeof eff.dmg !== "undefined") {
                     triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
@@ -455,7 +485,7 @@ function executeAutoBattleAiTurn() {
                     let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                     
                     if (dmgRes.isMiss) {
-                        addLog(`🔥⚔️【狂暴轟炸】吟唱【${sMeta.name}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
+                        addLog(`🔥⚔️【狂暴轟炸】吟唱【${sMeta.name} Lv.${skLv}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
                         return true;
                     }
 
@@ -463,10 +493,10 @@ function executeAutoBattleAiTurn() {
                     let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                     let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                     
-                    addLog(`🔥⚔️【狂暴連鎖轟炸】極速施展 <span class="${skillFxClass}">【${sMeta.name}】</span>！`, "skill-hit");
+                    addLog(`🔥⚔️【狂暴連鎖轟炸】極速施展 <span class="${skillFxClass}">【${sMeta.name} Lv.${skLv}】</span>！`, "skill-hit");
                     addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
                 } else {
-                    addLog(`🔥【狂暴態勢】發動【${sMeta.name}】增強姿態！`, "take");
+                    addLog(`🔥【狂暴態勢】發動【${sMeta.name} Lv.${skLv}】增強姿態！`, "take");
                 }
                 return true;
             }
@@ -752,10 +782,11 @@ function executePlayerActionTick() {
                 activeTriggered = true;
                 let isPerfect = (Math.random() < 0.75);
                 let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
+                let skLv = currentRun.skills[sName] || 1;
                 
                 if (isPerfect) {
                     currentRun.mp -= sMeta.mp; 
-                    let eff = sMeta.run(currentRun.skills[sName], baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
+                    let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                     
                     if (eff && typeof eff.dmg !== "undefined") { 
                         triggerProjectileFX(detectProjectileType(sName, currentRun.job));
@@ -764,11 +795,11 @@ function executePlayerActionTick() {
                         let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                         
                         if (dmgRes.isMiss) {
-                            addLog(`💨 施展【${sName}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
+                            addLog(`💨 施展【${sName} Lv.${skLv}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
                         } else {
                             activeMonster.hp -= dmgRes.damage; 
                             let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                            addLog(`💥 核心奧義！${critText}施展 <span class="${skillFxClass}">【${sName}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit"); 
+                            addLog(`💥 核心奧義！${critText}施展 <span class="${skillFxClass}">【${sName} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit"); 
                         }
                     }
                     if (eff && eff.healPercent) {
