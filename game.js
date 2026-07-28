@@ -12,6 +12,9 @@ let battleTimeElapsed = 0;
 let isQteActive = false;
 let activeTactic = "MANUAL";
 
+// ==========================================
+// 🔑 1. 登入、創角與職業選擇 Modal 邏輯
+// ==========================================
 async function handleStartGame() {
     const inputName = document.getElementById('player-name-input')?.value;
     const inputPin = document.getElementById('player-pin-input')?.value;
@@ -108,6 +111,9 @@ function enterGameMainShell() {
     }
 }
 
+// ==========================================
+// 🏛️ 2. 公會服務：技能傳承、洗點與轉職
+// ==========================================
 function executeLearnSkill(skillMeta) {
     if (currentRun.gold < skillMeta.goldCost) {
         alert("🪙 金幣不足，無法傳承此技能！");
@@ -193,6 +199,9 @@ function executeReselectJob(newJobId) {
     updateUI();
 }
 
+// ==========================================
+// ⚔️ 3. 地下城進退與背包互動
+// ==========================================
 function handleMainAction() {
     try {
         if (gameState === "VILLAGE") {
@@ -290,7 +299,7 @@ function executeUseDungeonItem(itemName, index) {
         let dmg = currentEnvironment === "POISON" ? 30 : 15;
         currentRun.hp = Math.max(1, currentRun.hp - dmg);
         currentRun.qteBuffDuration = currentEnvironment === "POISON" ? 800 : 500; 
-        currentRun.qteBuffTurns = 3;      
+        currentRun.qteBuffTurns = 3;       
         addLog(`🪨 焦黑物體反噬扣血！但神經受到特大刺激，冷卻判定安全時間延長！`, "take");
     } 
     else if (itemName.includes("厚牛巨堡")) {
@@ -312,6 +321,9 @@ function executeUseDungeonItem(itemName, index) {
     updateUI();
 }
 
+// ==========================================
+// 🤖 4. 自動戰鬥 AI 邏輯引擎
+// ==========================================
 function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
 
@@ -406,6 +418,9 @@ function executeAutoBattleAiTurn() {
     return false;
 }
 
+// ==========================================
+// 🔨 5. 村莊 QTE、烹飪與鍛造系統
+// ==========================================
 function triggerVillageQte(type, targetData, successCallback) {
     const overlay = document.getElementById('qte-overlay');
     const title = document.getElementById('qte-skill-name');
@@ -582,6 +597,9 @@ function executeDismantle(equipName) {
     if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
 
+// ==========================================
+// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick
+// ==========================================
 async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
@@ -755,6 +773,9 @@ function executeMonsterActionTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
+// ==========================================
+// 🏆 7. 勝利、失敗與經驗升級結算
+// ==========================================
 function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
     currentRun.gold += isBossFloor ? 150 : 20; currentRun.exp += isBossFloor ? 100 : 15;
@@ -867,6 +888,9 @@ function checkLevelUpAndTriggerSelect() {
     updateUI();
 }
 
+// ==========================================
+// 🎲 8. 隨機深淵事件與遺蹟寶箱 QTE
+// ==========================================
 function triggerRandomAbyssEvent() {
     const container = document.getElementById('reward-choices-container');
     const title = document.getElementById('reward-title-text');
@@ -976,6 +1000,9 @@ function triggerRandomAbyssEvent() {
 
 function resolveAbyssEvent() { gameState = "ENCOUNTER_RESOLVED"; document.getElementById('btn-main-action').disabled = false; updateUI(); runDungeonLoop(); }
 
+// ==========================================
+// 🛡️ 9. 裝備穿脫與戰術面板控制
+// ==========================================
 function executeEquipAction(equipName, actionType) {
     let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName); if (!blueprint) return;
     let slot = blueprint.type;
