@@ -13,14 +13,14 @@ let isQteActive = false;
 let activeTactic = "MANUAL";
 
 // ==========================================
-// 🚀 投射物 (Projectile) 純 CSS 特效生成引擎 (無 Emoji 版)
+// 🚀 投射物 (Projectile) 純 CSS 特效生成引擎 (✨ 無 Icon 版)
 // ==========================================
 function triggerProjectileFX(type = 'arcane') {
     const container = document.querySelector('.game-container') || document.body;
     const proj = document.createElement('div');
     proj.className = `projectile-entity proj-${type}`;
     
-    // 生成純 CSS 繪製的元素發光核心 (搭配你的 CSS 樣式)
+    // 生成純 CSS 發光核心 DOM
     proj.innerHTML = `<div class="fx-core"></div>`;
     container.appendChild(proj);
 
@@ -140,7 +140,7 @@ function enterGameMainShell() {
 }
 
 // ==========================================
-// 🏛️ 2. 公會服務：技能傳承與修煉 (✨ 支持 Lv.10 上限與升級)
+// 🏛️ 2. 公會服務：技能傳承與修煉 (支持 Lv.10 上限)
 // ==========================================
 function executeLearnSkill(skillMeta) {
     if (!accountMeta.skills) accountMeta.skills = {};
@@ -148,14 +148,13 @@ function executeLearnSkill(skillMeta) {
 
     let currentLv = (accountMeta.skills[skillMeta.name] || currentRun.skills[skillMeta.name] || 0);
 
-    // ✨ 1. LV10 升級上限判斷
     if (currentLv >= 10) {
         alert(`⚠️ 技能 [${skillMeta.name}] 已達到最高等級上限 (Lv.10)！`);
         return;
     }
 
     let nextLv = currentLv + 1;
-    let goldCost = skillMeta.goldCost * nextLv; // 隨等級增加消耗金幣
+    let goldCost = skillMeta.goldCost * nextLv;
 
     if (currentRun.gold < goldCost) {
         alert(`🪙 金幣不足！將【${skillMeta.name}】提升至 Lv.${nextLv} 需要 ${goldCost} G！`);
@@ -170,14 +169,12 @@ function executeLearnSkill(skillMeta) {
         }
     }
 
-    // 扣除金幣與素材
     currentRun.gold -= goldCost;
     for (let mat in skillMeta.reqMat) {
         let reqQty = skillMeta.reqMat[mat] * nextLv;
         accountMeta.warehouse[mat] -= reqQty;
     }
 
-    // ✨ 2. 更新技能等級 (最高 Lv.10)
     accountMeta.skills[skillMeta.name] = nextLv;
     currentRun.skills[skillMeta.name] = nextLv;
 
@@ -254,7 +251,7 @@ function executeReselectJob(newJobId) {
 }
 
 // ==========================================
-// ⚔️ 3. 地下城進退與背包互動 (✨ 回城加滿血魔 & 隱藏 SAVEPOINT)
+// ⚔️ 3. 地下城進退與背包互動 (回城加滿血魔 & 隱藏 SAVEPOINT)
 // ==========================================
 function handleMainAction() {
     try {
@@ -309,19 +306,15 @@ function handleSecondaryAction() {
         });
     }
     
-    // 🪙 關鍵修復 1：撤退前先將本輪獲得的金幣同步回主存檔 accountMeta
-    accountMeta.gold = currentRun.gold;
-
     resetCurrentRunData();
 
     currentRun.hp = currentRun.maxHp;
     currentRun.mp = currentRun.maxMp;
 
-    // 💾 寫入雲端與本地存檔
     saveGameData(); 
 
-    addLog(`🏃【撤退成功】你驚險逃回地表村莊！金幣 (💰${accountMeta.gold} G)、等級與裝備完美保留！`, "perfect");
-    addLog(`💖💾【村莊泉水庇護】狀態已全額恢復 (HP/MP)，遊戲進度已自動存檔！`, "perfect");
+    addLog(`🏃【撤退成功】你驚險逃回地表村莊！等級與裝備完美保留，素材已安全歸倉！`, "perfect");
+    addLog(`💖💾【村莊泉水庇護】狀態已全額恢復 (HP/MP)，遊戲進度與歷史紀錄 (最高 B${accountMeta.maxFloor || 1}F) 已自動存檔！`, "perfect");
 
     updateUI();
     switchVillageLocation("GATE");
@@ -968,8 +961,6 @@ function checkLevelUpAndTriggerSelect() {
         currentRun.exp = accountMeta.exp;
         currentRun.nextExp = accountMeta.nextExp;
         
-        // 升級同步金幣
-        accountMeta.gold = currentRun.gold;
         resetCurrentRunData();
         currentRun.hp = currentRun.maxHp;
         currentRun.mp = currentRun.maxMp;
@@ -978,12 +969,9 @@ function checkLevelUpAndTriggerSelect() {
         saveGameData(); 
     }
     
-    // 🎯 關鍵修復 2：戰鬥或結算完成後，同步解鎖主按鈕與重巡按鈕！
     if (gameState === "BATTLE") { 
         let btnMain = document.getElementById('btn-main-action');
-        let btnRerun = document.getElementById('btn-rerun-action');
         if (btnMain) btnMain.disabled = false; 
-        if (btnRerun) btnRerun.disabled = false; // ✨ 9F 打完後重巡按鈕順利解鎖！
     }
     updateUI();
 }
@@ -1161,25 +1149,4 @@ function syncTacticButtonsUi() {
             }
         }
     });
-// ==========================================
-// 🎨 補全烹飪與鍛造頁籤/分類切換控制庫 (解決 ReferenceError)
-// ==========================================
-let currentCookingTab = 'all';
-let currentCraftingCat = 'all';
-let currentCraftingLvl = 'all';
-
-function changeCookingTab(tab) {
-    currentCookingTab = tab;
-    if (typeof renderVillageCookingWorkshop === "function") renderVillageCookingWorkshop();
-}
-
-function changeCraftingCat(cat) {
-    currentCraftingCat = cat;
-    if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
-}
-
-function changeCraftingLvl(lvl) {
-    currentCraftingLvl = lvl;
-    if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
-}
 }
