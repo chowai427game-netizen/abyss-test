@@ -13,22 +13,15 @@ let isQteActive = false;
 let activeTactic = "MANUAL";
 
 // ==========================================
-// 🚀 投射物 (Projectile) 特效生成引擎
+// 🚀 投射物 (Projectile) 純 CSS 特效生成引擎 (無 Emoji 版)
 // ==========================================
 function triggerProjectileFX(type = 'arcane') {
     const container = document.querySelector('.game-container') || document.body;
     const proj = document.createElement('div');
     proj.className = `projectile-entity proj-${type}`;
     
-    const icons = {
-        fire: '☄️',
-        ice: '❄️',
-        lightning: '⚡',
-        arcane: '🔮',
-        arrow: '🏹'
-    };
-
-    proj.innerHTML = icons[type] || '✨';
+    // 生成純 CSS 繪製的元素發光核心 (搭配你的 CSS 樣式)
+    proj.innerHTML = `<div class="fx-core"></div>`;
     container.appendChild(proj);
 
     setTimeout(() => {
