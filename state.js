@@ -1,11 +1,11 @@
 // ==========================================================================
-// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎
+// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎（修正版）
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 const MAX_BAG_SIZE = 6;
 
-// 🏛️ 預設帳號資料結構範本
+// 🏛️ 預設帳號資料結構範本 (✨ 已補上 skills 預設值)
 function createDefaultAccountMeta(name, pin) {
     return {
         name: name || "無名勇者",
@@ -16,6 +16,7 @@ function createDefaultAccountMeta(name, pin) {
         statPoints: 0,
         stats: { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 },
         job: "swordsman",
+        skills: {}, // ✨ 修正：確保永久存檔有技能資料欄位
         warehouse: {},
         equipment: { weapon: null, armor: null, accessory: null },
         equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
@@ -175,7 +176,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
         if (data.isNewUser) {
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
         } else if (data.activeChar) {
-            // 安全合併：確保缺少的預設欄位會被補齊，避免存檔破損
+            // 安全合併：確保缺少的預設欄位會被補齊
             accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), data.activeChar);
             accountMeta.name = targetName;
             accountMeta.pin = targetPin;
@@ -202,6 +203,14 @@ async function initOrLoadPlayer(inputName, inputPin) {
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
             isNewUser = true;
         }
+    }
+
+    // ✨ 存檔還原補強：確保載入存檔時，職業與已學技能同步寫入當前冒險 (currentRun)
+    if (accountMeta.skills) {
+        currentRun.skills = { ...accountMeta.skills };
+    }
+    if (accountMeta.job) {
+        currentRun.job = accountMeta.job;
     }
 
     // 紀錄最後登入資訊
