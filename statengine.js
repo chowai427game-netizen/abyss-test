@@ -1,22 +1,32 @@
 // ==========================================================================
-// 🧮 statengine.js：RO 六大能力值轉換公式、裝備加成與戰鬥傷害算式內核
+// 🧮 statengine.js：修復版（包含全面防毒與保底機制）
 // ==========================================================================
 
 /**
  * 重置並重新計算玩家單次冒險 (Current Run) 的所有基礎屬性與面板
  */
 function resetCurrentRunData() {
+    // 🛡️ 1. 屬性物件保底與單鍵補齊防爆
     if (!accountMeta.stats) {
         accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
     
-    const s = accountMeta.stats;
+    // 確保即使舊存檔缺鍵，取出的數值也絕對是數字（避免 undefined * 3 變成 NaN）
+    const s = {
+        STR: Number(accountMeta.stats.STR) || 0,
+        AGI: Number(accountMeta.stats.AGI) || 0,
+        VIT: Number(accountMeta.stats.VIT) || 0,
+        INT: Number(accountMeta.stats.INT) || 0,
+        DEX: Number(accountMeta.stats.DEX) || 0,
+        LUK: Number(accountMeta.stats.LUK) || 0
+    };
+
     const job = currentRun.job || "swordsman";
 
     // 基礎等級與經驗同步
-    currentRun.lv = accountMeta.lv || 1; 
-    currentRun.exp = accountMeta.exp || 0; 
-    currentRun.nextExp = accountMeta.nextExp || 30;
+    currentRun.lv = Number(accountMeta.lv) || 1; 
+    currentRun.exp = Number(accountMeta.exp) || 0; 
+    currentRun.nextExp = Number(accountMeta.nextExp) || 30;
 
     // ⚔️ 1. STR (力量)：近戰 ATK、負重上限
     const strBonusAtk = s.STR * 3 + Math.pow(Math.floor(s.STR / 10), 2);
@@ -95,36 +105,38 @@ function applyEquipmentStats(slot) {
 
 /**
  * 雙向戰鬥傷害算式（含 Perfect Dodge, HIT, FLEE, DEF, MDEF, CRIT）
- * @param {number} attackerAtk 攻擊方 ATK / MATK
- * @param {number} defenderDef 防禦方 DEF / MDEF
- * @param {boolean} isPlayerAttacking 是否為玩家發動攻擊（false 表示魔物攻擊玩家）
- * @param {boolean} isMagic 是否為魔法攻擊（忽略 FLEE 與 Perfect Dodge）
  */
 function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isMagic = false) {
+    // 🛡️ 2. 攻防數值保底轉換（關鍵修復！）
+    const atk = Math.max(0, Number(attackerAtk) || 0);
+    const def = Math.max(0, Number(defenderDef) || 0);
+
     if (isPlayerAttacking && activeMonster) {
         // A1. 玩家攻擊：魔物完全迴避
-        if (!isMagic && Math.random() * 100 < (activeMonster.perfectDodge || 0)) {
+        if (!isMagic && Math.random() * 100 < (Number(activeMonster.perfectDodge) || 0)) {
             return { damage: 0, isCrit: false, isMiss: true, isPerfectDodge: true };
         }
 
         // B1. 玩家攻擊：命中率判定 (Player HIT vs Monster FLEE)
         if (!isMagic) {
-            const monsterFlee = activeMonster.flee || (dungeonFloor * 3);
-            const hitRate = Math.max(10, Math.min(95, currentRun.hit - monsterFlee));
+            const monsterFlee = Number(activeMonster.flee) || (dungeonFloor * 3);
+            const playerHit = Number(currentRun.hit) || 80;
+            const hitRate = Math.max(10, Math.min(95, playerHit - monsterFlee));
             if (Math.random() * 100 > hitRate) {
                 return { damage: 0, isCrit: false, isMiss: true };
             }
         }
     } else if (!isPlayerAttacking && activeMonster) {
-        // A2. 魔物攻擊玩家：玩家完全迴避 (LUK 完美迴避機制)
-        if (!isMagic && Math.random() * 100 < (currentRun.perfectDodge || 0)) {
+        // A2. 魔物攻擊玩家：玩家完全迴避
+        if (!isMagic && Math.random() * 100 < (Number(currentRun.perfectDodge) || 0)) {
             return { damage: 0, isCrit: false, isMiss: true, isPerfectDodge: true };
         }
 
-        // B2. 魔物攻擊玩家：命中率判定 (Monster HIT vs Player FLEE)
+        // B2. 魔物攻擊玩家：命中率判定
         if (!isMagic) {
-            const monsterHit = activeMonster.hit || (dungeonFloor * 4 + 75);
-            const hitRate = Math.max(10, Math.min(95, monsterHit - currentRun.flee));
+            const monsterHit = Number(activeMonster.hit) || (dungeonFloor * 4 + 75);
+            const playerFlee = Number(currentRun.flee) || 10;
+            const hitRate = Math.max(10, Math.min(95, monsterHit - playerFlee));
             if (Math.random() * 100 > hitRate) {
                 return { damage: 0, isCrit: false, isMiss: true };
             }
@@ -133,8 +145,8 @@ function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isM
 
     // C. 減傷算式 (Soft DEF / MDEF)
     const defConst = isMagic ? 40 : 50;
-    const reduction = defenderDef / (defenderDef + Math.max(1, defConst));
-    let baseDmg = attackerAtk * (1 - reduction);
+    const reduction = def / (def + Math.max(1, defConst));
+    let baseDmg = atk * (1 - reduction);
     
     // 浮動傷害 (90% ~ 110%)
     let variance = 0.9 + Math.random() * 0.2;
@@ -142,7 +154,8 @@ function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isM
     
     // D. 暴擊判定 (玩家物理攻擊特有)
     let isCrit = false;
-    if (isPlayerAttacking && !isMagic && Math.random() * 100 < currentRun.critChance) {
+    const playerCrit = Number(currentRun.critChance) || 0;
+    if (isPlayerAttacking && !isMagic && Math.random() * 100 < playerCrit) {
         isCrit = true;
         finalDmg = Math.floor(finalDmg * 1.5);
     }
