@@ -143,9 +143,17 @@ const ADVANCED_JOBS_DATABASE = {
     ]
 };
 
+// ==========================================================================
+// 🛠️ 職業輔助邏輯與驗證函式
+// ==========================================================================
+
+/**
+ * 獲取職業計算後的額外屬性加成 (根據 Job Level 比例算)
+ */
 function getJobBonusStats(jobId, jobLevel = 1) {
     const baseBonus = JOB_STAT_BONUS[jobId] || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     const factor = Math.min(2.0, 1.0 + (jobLevel - 1) * 0.05);
+    
     let calculated = {};
     for (let key in baseBonus) {
         calculated[key] = Math.floor(baseBonus[key] * factor);
@@ -153,6 +161,9 @@ function getJobBonusStats(jobId, jobLevel = 1) {
     return calculated;
 }
 
+/**
+ * 檢查角色是否滿足學習某技能的條件
+ */
 function canLearnSkill(playerData, skill, warehouse) {
     if (playerData.level < skill.reqLv) {
         return { canLearn: false, reason: `等級不足！需達到 Lv.${skill.reqLv}` };
@@ -169,7 +180,10 @@ function canLearnSkill(playerData, skill, warehouse) {
     return { canLearn: true };
 }
 
-deepFreeze(JOB_DATABASE);
-deepFreeze(JOB_STAT_BONUS);
-deepFreeze(SKILLS_DATABASE);
-deepFreeze(ADVANCED_JOBS_DATABASE);
+// 凍結保護
+if (typeof deepFreeze === "function") {
+    deepFreeze(JOB_DATABASE);
+    deepFreeze(JOB_STAT_BONUS);
+    deepFreeze(SKILLS_DATABASE);
+    deepFreeze(ADVANCED_JOBS_DATABASE);
+}
