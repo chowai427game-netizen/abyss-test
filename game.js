@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與投射物特效控制庫
+// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與轉職洗點控制庫（存檔同步修復版）
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -109,11 +109,15 @@ function selectInitialJob(jobId) {
     accountMeta.job = jobId;
     currentRun.job = jobId;
 
+    let initialSkills = {};
     if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[jobId]) {
         let firstSkill = SKILLS_DATABASE[jobId][0].name;
-        currentRun.skills = {};
-        currentRun.skills[firstSkill] = 1;
+        initialSkills[firstSkill] = 1;
     }
+
+    // ✨ 存檔修正：雙向寫入技能
+    accountMeta.skills = { ...initialSkills };
+    currentRun.skills = { ...initialSkills };
 
     resetCurrentRunData();
     saveGameData();
@@ -144,7 +148,7 @@ function enterGameMainShell() {
 }
 
 // ==========================================
-// 🏛️ 2. 公會服務：技能傳承、洗點與轉職
+// 🏛️ 2. 公會服務：技能傳承、洗點與轉職 (✨ 修正存檔)
 // ==========================================
 function executeLearnSkill(skillMeta) {
     if (currentRun.gold < skillMeta.goldCost) {
@@ -164,7 +168,11 @@ function executeLearnSkill(skillMeta) {
         accountMeta.warehouse[mat] -= skillMeta.reqMat[mat];
     }
 
+    // ✨ 存檔修正：技能寫入 accountMeta 永久存檔
+    if (!accountMeta.skills) accountMeta.skills = {};
     if (!currentRun.skills) currentRun.skills = {};
+
+    accountMeta.skills[skillMeta.name] = 1;
     currentRun.skills[skillMeta.name] = 1;
 
     addLog(`🎓🎓【公會技能傳承】成功領悟專屬奧義 ➔ <strong>[${skillMeta.name}]</strong>！`, "perfect");
@@ -209,21 +217,27 @@ function triggerReselectJobUI() {
 function executeReselectJob(newJobId) {
     currentRun.gold -= 1000;
 
+    // ✨ 存檔修正 1：同步更新永久存檔 (accountMeta) 的職業與等級數據
     accountMeta.job = newJobId;
-    currentRun.job = newJobId;
-
     accountMeta.lv = 1;
     accountMeta.exp = 0;
     accountMeta.nextExp = 30;
     accountMeta.statPoints = 0;
     accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
 
+    let initialSkills = {};
     if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[newJobId]) {
         let firstSkill = SKILLS_DATABASE[newJobId][0].name;
-        currentRun.skills = {};
-        currentRun.skills[firstSkill] = 1;
+        initialSkills[firstSkill] = 1;
     }
 
+    accountMeta.skills = { ...initialSkills };
+
+    // ✨ 存檔修正 2：同步更新當前單局 (currentRun)
+    currentRun.job = newJobId;
+    currentRun.skills = { ...initialSkills };
+
+    // ✨ 存檔修正 3：先重新計算數值，然後立刻寫入 LocalStorage
     resetCurrentRunData();
     saveGameData();
 
@@ -354,7 +368,7 @@ function executeUseDungeonItem(itemName, index) {
 }
 
 // ==========================================
-// 🤖 4. 自動戰鬥 AI 邏輯引擎 (✨ 投射物觸發整合)
+// 🤖 4. 自動戰鬥 AI 邏輯引擎
 // ==========================================
 function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
@@ -399,7 +413,6 @@ function executeAutoBattleAiTurn() {
                     let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
                     
                     if (eff && typeof eff.dmg !== "undefined") {
-                        // 🚀 觸發投射物飛行
                         triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
 
                         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
@@ -436,7 +449,6 @@ function executeAutoBattleAiTurn() {
                 let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
                 
                 if (eff && typeof eff.dmg !== "undefined") {
-                    // 🚀 觸發投射物飛行
                     triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
 
                     let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
@@ -645,7 +657,7 @@ function executeDismantle(equipName) {
 }
 
 // ==========================================
-// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick (✨ 投射物觸發整合)
+// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick
 // ==========================================
 async function runDungeonLoop() {
     try {
@@ -746,7 +758,6 @@ function executePlayerActionTick() {
                     let eff = sMeta.run(currentRun.skills[sName], baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                     
                     if (eff && typeof eff.dmg !== "undefined") { 
-                        // 🚀 觸發投射物飛行動畫
                         triggerProjectileFX(detectProjectileType(sName, currentRun.job));
 
                         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
