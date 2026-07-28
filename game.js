@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與轉職洗點控制庫（修復版）
+// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與轉職洗點控制庫（特效整合修復版）
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -322,7 +322,7 @@ function executeUseDungeonItem(itemName, index) {
 }
 
 // ==========================================
-// 🤖 4. 自動戰鬥 AI 邏輯引擎 (含安全傷害判定)
+// 🤖 4. 自動戰鬥 AI 邏輯引擎 (✨ 支援光粒與 MISS 動畫)
 // ==========================================
 function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
@@ -330,6 +330,7 @@ function executeAutoBattleAiTurn() {
     let hpRatio = currentRun.hp / currentRun.maxHp;
     const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
     const baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
+    const skillFxClass = isMagicJob ? "skill-magic" : "skill-bash";
 
     if (activeTactic === "BALANCED") {
         if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
@@ -370,7 +371,7 @@ function executeAutoBattleAiTurn() {
                         let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                         
                         if (dmgRes.isMiss) {
-                            addLog(`🔮⚖️【均衡戰術】施展【${sMeta.name}】，但攻擊被 <span style="color:#8e8e93;">[MISS 迴避]</span>！`);
+                            addLog(`🔮⚖️【均衡戰術】施展【${sMeta.name}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
                             return true;
                         }
 
@@ -378,8 +379,8 @@ function executeAutoBattleAiTurn() {
                         let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                         let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                         
-                        addLog(`🔮⚖️【均衡戰術突擊】施展【${sMeta.name}】！`);
-                        addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect");
+                        addLog(`🔮⚖️【均衡戰術突擊】爆烈施展 <span class="${skillFxClass}">【${sMeta.name}】</span>！`, "skill-hit");
+                        addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
                     } else {
                         addLog(`🛡️【均衡防禦整備】施展【${sMeta.name}】戰術姿態！`, "perfect");
                     }
@@ -404,7 +405,7 @@ function executeAutoBattleAiTurn() {
                     let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                     
                     if (dmgRes.isMiss) {
-                        addLog(`🔥⚔️【狂暴轟炸】吟唱【${sMeta.name}】，但魔物靈巧地 <span style="color:#8e8e93;">[MISS 閃過]</span>！`);
+                        addLog(`🔥⚔️【狂暴轟炸】吟唱【${sMeta.name}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
                         return true;
                     }
 
@@ -412,8 +413,8 @@ function executeAutoBattleAiTurn() {
                     let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                     let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                     
-                    addLog(`🔥⚔️【狂暴連鎖轟炸】暴烈吟唱【${sMeta.name}】！`);
-                    addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "take");
+                    addLog(`🔥⚔️【狂暴連鎖轟炸】極速施展 <span class="${skillFxClass}">【${sMeta.name}】</span>！`, "skill-hit");
+                    addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
                 } else {
                     addLog(`🔥【狂暴態勢】發動【${sMeta.name}】增強姿態！`, "take");
                 }
@@ -606,7 +607,7 @@ function executeDismantle(equipName) {
 }
 
 // ==========================================
-// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick
+// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick (✨ 特效整合)
 // ==========================================
 async function runDungeonLoop() {
     try {
@@ -690,6 +691,7 @@ function executePlayerActionTick() {
     let activeTriggered = false;
     const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
     const baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
+    const skillFxClass = isMagicJob ? "skill-magic" : "skill-bash";
 
     if (activeTactic !== "MANUAL") {
         activeTriggered = executeAutoBattleAiTurn();
@@ -697,7 +699,7 @@ function executePlayerActionTick() {
         for (let sName of Object.keys(currentRun.skills)) {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
             if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
-                addLog(`🔮 引導【${sName}】`); activeTriggered = true;
+                activeTriggered = true;
                 let isPerfect = (Math.random() < 0.75);
                 let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                 
@@ -710,11 +712,11 @@ function executePlayerActionTick() {
                         let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                         
                         if (dmgRes.isMiss) {
-                            addLog(`💨【${sName}】技能被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span>！`);
+                            addLog(`💨 施展【${sName}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
                         } else {
                             activeMonster.hp -= dmgRes.damage; 
                             let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                            addLog(`💥 核心技！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "perfect"); 
+                            addLog(`💥 核心奧義！${critText}施展 <span class="${skillFxClass}">【${sName}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit"); 
                         }
                     }
                     if (eff && eff.healPercent) {
@@ -727,7 +729,7 @@ function executePlayerActionTick() {
                     let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
                     
                     if (dmgRes.isMiss) {
-                        addLog(`💨 普攻被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span> 了！`);
+                        addLog(`💨 普攻被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
                     } else {
                         activeMonster.hp -= dmgRes.damage; 
                         let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
@@ -744,7 +746,7 @@ function executePlayerActionTick() {
         let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
         
         if (dmgRes.isMiss) {
-            addLog(`💨 揮砍被魔物 <span style="color:#8e8e93;">[MISS 迴避]</span> 了！`);
+            addLog(`💨 揮砍被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
         } else {
             activeMonster.hp -= dmgRes.damage; 
             let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
@@ -777,8 +779,13 @@ function executeMonsterActionTick() {
     let playerDef = currentRun.def || 0;
     
     let dmgRes = calculateDamage(monsterAtk, playerDef, false, false);
-    let finalDmg = dmgRes.damage;
     
+    if (dmgRes.isMiss) {
+        addLog(`💨 勇者身形閃爍，成功 <span class="miss-effect">[MISS 閃過]</span> 了魔物的猛攻！<span class="num-popup num-miss">MISS</span>`, "miss");
+        return;
+    }
+
+    let finalDmg = dmgRes.damage;
     currentRun.hp -= finalDmg; 
     addLog(`🔴 魔物暴虐反噬！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
