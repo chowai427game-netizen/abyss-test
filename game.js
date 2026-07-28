@@ -297,7 +297,6 @@ function handleSecondaryAction() {
         document.getElementById('qte-overlay').style.display = 'none';
     }
 
-    // 💾 隱藏存檔點 1：記錄歷史最高探險層數
     if (!accountMeta.maxFloor || dungeonFloor > accountMeta.maxFloor) {
         accountMeta.maxFloor = dungeonFloor;
     }
@@ -310,17 +309,19 @@ function handleSecondaryAction() {
         });
     }
     
+    // 🪙 關鍵修復 1：撤退前先將本輪獲得的金幣同步回主存檔 accountMeta
+    accountMeta.gold = currentRun.gold;
+
     resetCurrentRunData();
 
-    // 💖 回城全額補滿生命值 (HP) 與魔力值 (MP)
     currentRun.hp = currentRun.maxHp;
     currentRun.mp = currentRun.maxMp;
 
-    // 💾 隱藏存檔點 2：回城自動寫入雲端與本地快取
+    // 💾 寫入雲端與本地存檔
     saveGameData(); 
 
-    addLog(`🏃【撤退成功】你驚險逃回地表村莊！等級與裝備完美保留，素材已安全歸倉！`, "perfect");
-    addLog(`💖💾【村莊泉水庇護】狀態已全額恢復 (HP/MP)，遊戲進度與歷史紀錄 (最高 B${accountMeta.maxFloor || 1}F) 已自動存檔！`, "perfect");
+    addLog(`🏃【撤退成功】你驚險逃回地表村莊！金幣 (💰${accountMeta.gold} G)、等級與裝備完美保留！`, "perfect");
+    addLog(`💖💾【村莊泉水庇護】狀態已全額恢復 (HP/MP)，遊戲進度已自動存檔！`, "perfect");
 
     updateUI();
     switchVillageLocation("GATE");
@@ -967,6 +968,8 @@ function checkLevelUpAndTriggerSelect() {
         currentRun.exp = accountMeta.exp;
         currentRun.nextExp = accountMeta.nextExp;
         
+        // 升級同步金幣
+        accountMeta.gold = currentRun.gold;
         resetCurrentRunData();
         currentRun.hp = currentRun.maxHp;
         currentRun.mp = currentRun.maxMp;
@@ -975,9 +978,12 @@ function checkLevelUpAndTriggerSelect() {
         saveGameData(); 
     }
     
+    // 🎯 關鍵修復 2：戰鬥或結算完成後，同步解鎖主按鈕與重巡按鈕！
     if (gameState === "BATTLE") { 
         let btnMain = document.getElementById('btn-main-action');
+        let btnRerun = document.getElementById('btn-rerun-action');
         if (btnMain) btnMain.disabled = false; 
+        if (btnRerun) btnRerun.disabled = false; // ✨ 9F 打完後重巡按鈕順利解鎖！
     }
     updateUI();
 }
@@ -1155,4 +1161,25 @@ function syncTacticButtonsUi() {
             }
         }
     });
+// ==========================================
+// 🎨 補全烹飪與鍛造頁籤/分類切換控制庫 (解決 ReferenceError)
+// ==========================================
+let currentCookingTab = 'all';
+let currentCraftingCat = 'all';
+let currentCraftingLvl = 'all';
+
+function changeCookingTab(tab) {
+    currentCookingTab = tab;
+    if (typeof renderVillageCookingWorkshop === "function") renderVillageCookingWorkshop();
+}
+
+function changeCraftingCat(cat) {
+    currentCraftingCat = cat;
+    if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
+}
+
+function changeCraftingLvl(lvl) {
+    currentCraftingLvl = lvl;
+    if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
+}
 }
