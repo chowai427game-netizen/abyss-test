@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與轉職洗點控制庫（特效整合修復版）
+// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習與投射物特效控制庫
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -11,6 +11,38 @@ let envAtb = 0;
 let battleTimeElapsed = 0;
 let isQteActive = false;
 let activeTactic = "MANUAL";
+
+// ==========================================
+// 🚀 投射物 (Projectile) 特效生成引擎
+// ==========================================
+function triggerProjectileFX(type = 'arcane') {
+    const container = document.querySelector('.game-container') || document.body;
+    const proj = document.createElement('div');
+    proj.className = `projectile-entity proj-${type}`;
+    
+    const icons = {
+        fire: '☄️',
+        ice: '❄️',
+        lightning: '⚡',
+        arcane: '🔮',
+        arrow: '🏹'
+    };
+
+    proj.innerHTML = icons[type] || '✨';
+    container.appendChild(proj);
+
+    setTimeout(() => {
+        proj.remove();
+    }, 450);
+}
+
+function detectProjectileType(skillName, job) {
+    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆")) return "fire";
+    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍")) return "ice";
+    if (skillName.includes("雷") || skillName.includes("電") || skillName.includes("震")) return "lightning";
+    if (job === "archer") return "arrow";
+    return "arcane";
+}
 
 // ==========================================
 // 🔑 1. 登入、創角與職業選擇 Modal 邏輯
@@ -322,7 +354,7 @@ function executeUseDungeonItem(itemName, index) {
 }
 
 // ==========================================
-// 🤖 4. 自動戰鬥 AI 邏輯引擎 (✨ 支援光粒與 MISS 動畫)
+// 🤖 4. 自動戰鬥 AI 邏輯引擎 (✨ 投射物觸發整合)
 // ==========================================
 function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
@@ -367,6 +399,9 @@ function executeAutoBattleAiTurn() {
                     let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
                     
                     if (eff && typeof eff.dmg !== "undefined") {
+                        // 🚀 觸發投射物飛行
+                        triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
+
                         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
                         let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                         
@@ -379,7 +414,7 @@ function executeAutoBattleAiTurn() {
                         let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
                         let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                         
-                        addLog(`🔮⚖️【均衡戰術突擊】爆烈施展 <span class="${skillFxClass}">【${sMeta.name}】</span>！`, "skill-hit");
+                        addLog(`🔮⚖️【均衡戰術突擊】爆烈吟唱 <span class="${skillFxClass}">【${sMeta.name}】</span>！`, "skill-hit");
                         addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
                     } else {
                         addLog(`🛡️【均衡防禦整備】施展【${sMeta.name}】戰術姿態！`, "perfect");
@@ -401,6 +436,9 @@ function executeAutoBattleAiTurn() {
                 let eff = sMeta.run(currentRun.skills[sMeta.name], baseAtkPower);
                 
                 if (eff && typeof eff.dmg !== "undefined") {
+                    // 🚀 觸發投射物飛行
+                    triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
+
                     let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
                     let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                     
@@ -607,7 +645,7 @@ function executeDismantle(equipName) {
 }
 
 // ==========================================
-// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick (✨ 特效整合)
+// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick (✨ 投射物觸發整合)
 // ==========================================
 async function runDungeonLoop() {
     try {
@@ -708,6 +746,9 @@ function executePlayerActionTick() {
                     let eff = sMeta.run(currentRun.skills[sName], baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                     
                     if (eff && typeof eff.dmg !== "undefined") { 
+                        // 🚀 觸發投射物飛行動畫
+                        triggerProjectileFX(detectProjectileType(sName, currentRun.job));
+
                         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
                         let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
                         
