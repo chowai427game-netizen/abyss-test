@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整無閠版地下城遊戲邏輯核心 (Full Integrated Edition)
+// 🕹️ game.js：完整無閠修復版地下城遊戲邏輯核心 (Full Debugged Edition)
 // ==========================================================================
 
 // --------------------------------------------------------------------------
@@ -66,6 +66,7 @@ function detectSkillCssClass(skillName) {
 }
 
 function calculateDamage(rawAtk, targetDef, isPlayerAttacker = true, isMagic = false) {
+    let safeDef = Math.max(-90, targetDef || 0); // 避免負防導致分母為零或 NaN
     let critChance = isPlayerAttacker ? (currentRun.critChance || 5) : 5;
     let isCrit = Math.random() * 100 < critChance;
     
@@ -79,7 +80,7 @@ function calculateDamage(rawAtk, targetDef, isPlayerAttacker = true, isMagic = f
     }
 
     let multiplier = isCrit ? 1.5 : 1.0;
-    let defFactor = 100 / (100 + targetDef);
+    let defFactor = 100 / (100 + safeDef);
     let finalDmg = Math.max(1, Math.floor(rawAtk * multiplier * defFactor));
 
     return { damage: finalDmg, isCrit: isCrit, isMiss: false };
@@ -754,19 +755,56 @@ async function runDungeonLoop() {
         currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
         
         if (isBossFloor) {
-            let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { name: `👹 深淵無名魔皇`, baseHp: dungeonFloor * 40, baseAtk: dungeonFloor * 3, baseSpd: 20, dropItem: "史萊姆黏液" };
-            activeMonster = { name: bossMeta.name, hp: bossMeta.baseHp, maxHp: bossMeta.baseHp, atk: bossMeta.baseAtk, spd: bossMeta.baseSpd, freezeTurns: 0, isSkipped: false, isBoss: true, fixedDrop: bossMeta.dropItem };
+            let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { 
+                name: `👹 深淵無名魔皇`, 
+                baseHp: dungeonFloor * 40, 
+                baseAtk: dungeonFloor * 3, 
+                baseDef: dungeonFloor * 2,
+                baseMdef: dungeonFloor * 2,
+                baseSpd: 20, 
+                dropItem: "史萊姆黏液" 
+            };
+            
+            // 修復：補齊 Boss 的 def / mdef 欄位
+            activeMonster = { 
+                name: bossMeta.name, 
+                hp: bossMeta.baseHp, 
+                maxHp: bossMeta.baseHp, 
+                atk: bossMeta.baseAtk, 
+                def: bossMeta.baseDef || bossMeta.def || (dungeonFloor * 2),
+                mdef: bossMeta.baseMdef || bossMeta.mdef || (dungeonFloor * 2),
+                spd: bossMeta.baseSpd, 
+                freezeTurns: 0, 
+                isSkipped: false, 
+                isBoss: true, 
+                fixedDrop: bossMeta.dropItem 
+            };
             addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
             let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
             if (availableMonsters.length === 0 && typeof REGULAR_MONSTERS_POOL !== "undefined") availableMonsters = REGULAR_MONSTERS_POOL;
             
-            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseSpd: 15 };
-            let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * rollSeed.hpScale);
-            let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * rollSeed.atkScale);
-            let finalSpd = rollSeed.baseSpd;
+            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { 
+                name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseDef: 1, baseSpd: 15 
+            };
+            let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * (rollSeed.hpScale || 5));
+            let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * (rollSeed.atkScale || 1));
+            let scaledDef = Math.floor((rollSeed.baseDef || 1) + dungeonFloor * 0.5);
+            let finalSpd = rollSeed.baseSpd || 15;
             
-            activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, spd: finalSpd, freezeTurns: 0, isSkipped: false, isBoss: false };
+            // 修復：補齊一般魔物的 def / mdef 欄位
+            activeMonster = { 
+                name: rollSeed.name, 
+                hp: scaledHp, 
+                maxHp: scaledHp, 
+                atk: scaledAtk, 
+                def: scaledDef,
+                mdef: scaledDef,
+                spd: finalSpd, 
+                freezeTurns: 0, 
+                isSkipped: false, 
+                isBoss: false 
+            };
             addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
         }
         
@@ -785,8 +823,16 @@ async function runDungeonLoop() {
             envAtb += 15;
 
             if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
-            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { playerAtb -= 100; executePlayerActionTick(); }
-            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { monsterAtb -= 100; executeMonsterActionTick(); }
+            
+            // 修復：ATB 溢出處理，防止過高速度卡死迴圈
+            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                playerAtb = Math.min(100, playerAtb - 100); 
+                executePlayerActionTick(); 
+            }
+            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                monsterAtb = Math.min(100, monsterAtb - 100); 
+                executeMonsterActionTick(); 
+            }
             updateUI();
         }, 250);
     } catch(err) { 
@@ -872,6 +918,15 @@ function executePlayerActionTick() {
             let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
             let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
             addLog(`⚔️ 普攻揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
+
+            // 補齊：被動連擊 / 殘影追擊 (Double Strike) 判定
+            if (currentRun.doubleStrike && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
+                let extraDmg = calculateDamage(Math.floor(baseAtkPower * 0.7), monsterDef, true, isMagicJob);
+                if (!extraDmg.isMiss) {
+                    activeMonster.hp -= extraDmg.damage;
+                    addLog(`⚡【殘影追擊】二次追擊重影！重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${extraDmg.damage} HP</span>`, "deal");
+                }
+            }
         }
     }
 
@@ -924,7 +979,6 @@ function executeDungeonVictorySequence() {
 
 function triggerBossTalentReward() {
     addLog(`👑🌟【Boss 史詩突破】你征服了 B${dungeonFloor}F 領主，獲得永久血脈天賦覺醒選擇！`, "perfect");
-    // 預設給予隨機永久屬性提升
     let talents = ["👑 不滅巨魔血脈 (MaxHP +100)", "⚡ 狂暴神經反射 (SPD +5)", "🩸 殘虐撕裂本能 (CRIT +5%)"];
     let chosen = talents[Math.floor(Math.random() * talents.length)];
     
