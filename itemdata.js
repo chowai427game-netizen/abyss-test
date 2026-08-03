@@ -126,7 +126,7 @@ const RECIPES_DATABASE = [
     { name: "🍬 怨靈薄荷糖", range: "1-10", ingredients: { "怨靈淚晶": 2, "史萊姆黏液": 1 }, type: "village_eat", desc: "進城前吃：激發精神活性，永久暴擊機率固定 +3%。" },
 
     { name: "🍮 奧術史萊姆凍", range: "11-20", ingredients: { "史萊姆黏液": 2, "巨石苔蘚": 1 }, type: "village_eat", desc: "進城前吃：Max MP 永久 +30，每回合 MP 自動回復固定 +3。" },
-    { name: "🍧 萬年永凍刨冰", range: "21-30", ingredients: { "永凍冰晶": 1, "怨靈淚晶": 1 }, type: "dungeon_use", desc: "局內攜帶：當前對戰魔物強行陷入【凍結】狀態 2 回合（封鎖再生）。" },
+    { name: "🍧 萬年永凍刨冰", range: "21-30", ingredients: { "寒冰霜塵": 2, "怨靈淚晶": 1 }, type: "dungeon_use", desc: "局內攜帶：當前對戰魔物強行陷入【凍結】狀態 2 回合（封鎖再生）。" },
     { name: "🍲 霜殼滋補陸龜湯", range: "11-20", ingredients: { "硬殼龜甲": 1, "獸人後腿肉": 2 }, type: "village_eat", desc: "進城前吃：體表硬化，戰鬥開始時永久獲得 150 點物理晶體防盾。" },
     { name: "🧪 毒腺烈性催化劑", range: "11-20", ingredients: { "毒蜘蛛腺體": 2, "史萊姆黏液": 2 }, type: "dungeon_use", desc: "局內攜帶：捏碎後對魔物造成 150 點即死毒屬性傷害。" },
     { name: "🥩 烤冰蝠薄切", range: "11-20", ingredients: { "怨念皮翼": 2, "哥布林香料": 1 }, type: "village_eat", desc: "進城前吃：神經突觸流速增加，基礎攻速永久增加 +5 點。" },
@@ -147,13 +147,7 @@ const RECIPES_DATABASE = [
     { name: "🍲 惡魔骨湯大砂鍋", range: "41-50", ingredients: { "惡魔之角": 2, "硬殼龜甲": 10 }, type: "village_eat", desc: "進城前吃：骨骼魔化，最大生命上限永久 +300 點。" },
     { name: "🥩 暗刃鐵板黑胡椒牛扒", range: "41-50", ingredients: { "暗刃鋼片": 2, "食人魔厚皮": 8 }, type: "village_eat", desc: "進城前吃：殺意浸透，基礎攻擊力永久暴力加成 +25 點。" },
     { name: "🥗 奪心魔靈精神沙律", range: "41-50", ingredients: { "奪心碎晶": 2, "魔導碎頁": 10 }, type: "village_eat", desc: "進城前吃：腦容量翻倍，Max MP 永久 +80，每回合回魔 +5。" },
-    { name: "🍟 地龍魔爪厚炸薯", range: "41-50", ingredients: { "地龍魔爪": 2, "獸人後腿肉": 12 }, type: "dungeon_use", desc: "局內攜帶：當場補滿 250 點 HP，並移除自身身上的灼燒狀態。" },
-
-    { name: "🌌 星塵漫游太空冰霜凍", range: "51-60", ingredients: { "星塵碎片": 2, "寒冰霜塵": 15 }, type: "village_eat", desc: "進城前吃：星體護體，全戰局完美閃避率永久 +12%。" },
-    { name: "🍛 混沌核心大亂燉", range: "51-60", ingredients: { "混沌核心": 2, "獸人後腿肉": 20 }, type: "village_eat", desc: "進城前吃：基因崩潰，全戰局物理連擊率 (Double Strike) 永久 +15%。" },
-    { name: "🍧 奇異點重力刨冰", range: "51-60", ingredients: { "重力奇點": 2, "烈焰餘燼": 15 }, type: "dungeon_use", desc: "局內攜帶：重力崩塌，強行將敵方魔物的速度（Spd）永久砍半！" },
-    { name: "🍷 死神寂滅葡萄酒", range: "51-60", ingredients: { "死神鐮刃": 1, "吸血毒牙": 12 }, type: "village_eat", desc: "進城前吃：寂滅死氣，物理揮砍永久附帶 10% 吸血與 5% 暴擊。" },
-    { name: "🍗 秩序大天使聖輝雞翼", range: "51-60", ingredients: { "裁決羽毛": 2, "巨石苔蘚": 25 }, type: "village_eat", desc: "進城前吃：天使之光，戰鬥開始時獲得極厚的 600 點物理晶體神盾。" }
+    { name: "🍟 地龍魔爪厚炸薯", range: "41-50", ingredients: { "地龍魔爪": 2, "獸人後腿肉": 12 }, type: "dungeon_use", desc: "局內攜帶：當場補滿 250 點 HP，並移除自身身上的灼燒狀態。" }
 ];
 
 const MARKET_ITEMS_POOL = [
