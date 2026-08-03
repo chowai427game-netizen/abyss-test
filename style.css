@@ -381,7 +381,7 @@ body {
    ========================================================================== */
 .log-panel {
     height: 250px; overflow-y: auto; overflow-x: hidden;
-    position: relative; /* 限制所有攻擊、投射物與技能特效作用範圍 */
+    position: relative; /* 限制所有攻擊、投射物與技能特效作用範圍在戰鬥日記之內 */
     background: radial-gradient(circle at 50% 100%, rgba(15, 15, 22, 0.9) 0%, rgba(7, 7, 10, 0.98) 100%);
     padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
@@ -766,7 +766,7 @@ body {
 }
 
 /* ==========================================================================
-   🏆 ZONE 10: Boss 史詩大勝利與 QTE 全螢幕彈窗樣式
+   🏆 ZONE 10: Boss 勝利與 QTE 彈窗，及素材不足專屬彈窗
    ========================================================================== */
 .log-victory-badge {
     background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(0, 0, 0, 0.4) 80%) !important;
@@ -896,7 +896,7 @@ body {
     box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); position: absolute; top: 0; left: 0; z-index: 1; transition: width 0.025s linear;
 }
 
-/* ⚠️ 素材/資源不足專屬警告 Modal 彈窗 */
+/* ⚠️ 素材與資源不足專屬 Modal 彈窗 */
 #mat-alert-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
