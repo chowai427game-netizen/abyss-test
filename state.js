@@ -5,7 +5,9 @@
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 const MAX_BAG_SIZE = 6;
 
-// 🏛️ 預設帳號資料結構範本 (✨ 已補上 skills 預設值)
+// ==========================================
+// 🏛️ 修改 state.js 中的 createDefaultAccountMeta
+// ==========================================
 function createDefaultAccountMeta(name, pin) {
     return {
         name: name || "無名勇者",
@@ -13,10 +15,11 @@ function createDefaultAccountMeta(name, pin) {
         lv: 1,
         exp: 0,
         nextExp: 30,
+        gold: 0, // ✨ 補上永久金幣欄位
         statPoints: 0,
         stats: { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 },
         job: "swordsman",
-        skills: {}, // ✨ 修正：確保永久存檔有技能資料欄位
+        skills: {},
         warehouse: {},
         equipment: { weapon: null, armor: null, accessory: null },
         equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
@@ -213,6 +216,10 @@ async function initOrLoadPlayer(inputName, inputPin) {
         currentRun.job = accountMeta.job;
     }
 
+    if (accountMeta.gold !== undefined) {
+        currentRun.gold = accountMeta.gold;
+    }
+    
     // 紀錄最後登入資訊
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
     localStorage.setItem(`ABYSS_DESTINY_PIN_${targetName}`, targetPin);
@@ -228,9 +235,13 @@ async function initOrLoadPlayer(inputName, inputPin) {
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
+    // ✨ 存檔前將目前冒險獲得的金幣同步回永久帳號存檔
+    if (typeof currentRun !== "undefined" && currentRun.gold !== undefined) {
+        accountMeta.gold = currentRun.gold;
+    }
+
     const charKey = `ABYSS_DESTINY_SAVE_${accountMeta.name}`;
 
-    // 1. 本地快取寫入
     try {
         localStorage.setItem(charKey, JSON.stringify(accountMeta));
         localStorage.setItem(`ABYSS_DESTINY_PIN_${accountMeta.name}`, accountMeta.pin);
@@ -239,7 +250,6 @@ async function saveGameData() {
         console.error("LocalStorage 容量受限或寫入失敗:", e);
     }
 
-    // 2. 雲端同步寫入
     try {
         const payload = {
             name: accountMeta.name,
