@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整無閠修復版地下城遊戲邏輯核心 (Full Debugged Edition)
+// 🕹️ game.js：完整地下城遊戲邏輯核心 (Clean Single-Instance Edition)
 // ==========================================================================
 
 // --------------------------------------------------------------------------
@@ -66,7 +66,7 @@ function detectSkillCssClass(skillName) {
 }
 
 function calculateDamage(rawAtk, targetDef, isPlayerAttacker = true, isMagic = false) {
-    let safeDef = Math.max(-90, targetDef || 0); // 避免負防導致分母為零或 NaN
+    let safeDef = Math.max(-90, targetDef || 0);
     let critChance = isPlayerAttacker ? (currentRun.critChance || 5) : 5;
     let isCrit = Math.random() * 100 < critChance;
     
@@ -701,7 +701,6 @@ function triggerVillageQte(type, targetData, successCallback) {
 function triggerRandomAbyssEvent() {
     let roll = Math.random();
     if (roll < 0.5) {
-        // 寶箱 QTE 事件
         addLog(`📦【深淵遺蹟】你在角落發現了一座古老的魔導寶箱！`, "perfect");
         triggerVillageQte("CHEST", { name: "古老寶箱" }, (rating) => {
             if (rating === "PERFECT") {
@@ -720,7 +719,6 @@ function triggerRandomAbyssEvent() {
             resolveAbyssEvent();
         });
     } else {
-        // 泉水祝福事件
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 30);
         addLog(`⛲【遠古泉水】遇見淨化泉水，HP 回復 +30。`, "perfect");
         resolveAbyssEvent();
@@ -765,7 +763,6 @@ async function runDungeonLoop() {
                 dropItem: "史萊姆黏液" 
             };
             
-            // 修復：補齊 Boss 的 def / mdef 欄位
             activeMonster = { 
                 name: bossMeta.name, 
                 hp: bossMeta.baseHp, 
@@ -792,7 +789,6 @@ async function runDungeonLoop() {
             let scaledDef = Math.floor((rollSeed.baseDef || 1) + dungeonFloor * 0.5);
             let finalSpd = rollSeed.baseSpd || 15;
             
-            // 修復：補齊一般魔物的 def / mdef 欄位
             activeMonster = { 
                 name: rollSeed.name, 
                 hp: scaledHp, 
@@ -823,8 +819,6 @@ async function runDungeonLoop() {
             envAtb += 15;
 
             if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
-            
-            // 修復：ATB 溢出處理，防止過高速度卡死迴圈
             if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
                 playerAtb = Math.min(100, playerAtb - 100); 
                 executePlayerActionTick(); 
@@ -843,7 +837,6 @@ async function runDungeonLoop() {
 function executeEnvironmentTick() {
     currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + Math.floor((currentRun.mpRegen || 15) / 2));
 
-    // 環境灼傷與毒素實時傷害 Tick
     if (currentEnvironment === "FIRE") {
         let burnDmg = 5;
         currentRun.hp = Math.max(1, currentRun.hp - burnDmg);
@@ -856,7 +849,6 @@ function executeEnvironmentTick() {
 }
 
 function executePlayerActionTick() {
-    // 優先執行戰術 AI
     if (executeAutoBattleAiTurn()) {
         if (activeMonster && activeMonster.hp <= 0) {
             clearInterval(combatTickerTimer); executeDungeonVictorySequence();
@@ -893,7 +885,6 @@ function executePlayerActionTick() {
                     let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
                     addLog(`💥 核心奧義！${critText}施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
                     
-                    // 被動吸血判定 (Vampirism)
                     if (currentRun.vampRate && currentRun.vampRate > 0) {
                         let vampVal = Math.floor(dmgRes.damage * (currentRun.vampRate / 100));
                         if (vampVal > 0) {
@@ -919,7 +910,6 @@ function executePlayerActionTick() {
             let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
             addLog(`⚔️ 普攻揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
 
-            // 補齊：被動連擊 / 殘影追擊 (Double Strike) 判定
             if (currentRun.doubleStrike && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
                 let extraDmg = calculateDamage(Math.floor(baseAtkPower * 0.7), monsterDef, true, isMagicJob);
                 if (!extraDmg.isMiss) {
@@ -968,7 +958,6 @@ function executeDungeonVictorySequence() {
     
     addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 戰鬥勝利！獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
     
-    // Boss 戰特有天賦解鎖彈窗
     if (isBossFloor) {
         triggerBossTalentReward();
     }
