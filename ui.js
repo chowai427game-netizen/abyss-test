@@ -1,7 +1,10 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、下拉清單控制、配點 UI 與彈窗通知
+// 📺 ui.js：完整整合版介面控制、選單渲染與數據同步核心 (Full UI Engine)
 // ==========================================================================
 
+// --------------------------------------------------------------------------
+// 🌐 Zone 1: DOM 快取物件與篩選器狀態變數
+// --------------------------------------------------------------------------
 const DOM = {
     isInitialized: false,
     elements: {},
@@ -36,9 +39,9 @@ let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
-// ==========================================
-// ⚠️ 0. 自訂材料不足彈窗 (Material Alert Modal)
-// ==========================================
+// --------------------------------------------------------------------------
+// ⚠️ Zone 2: 自訂材料與資源不足警告 Modal 彈窗 (Material Alert Modal)
+// --------------------------------------------------------------------------
 function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣不足！") {
     let overlay = document.getElementById('mat-alert-overlay');
     if (!overlay) {
@@ -74,9 +77,9 @@ function hideMaterialAlert() {
     if (overlay) overlay.classList.remove('active');
 }
 
-// ==========================================
-// 1. 六大屬性點數分配邏輯
-// ==========================================
+// --------------------------------------------------------------------------
+// 📊 Zone 3: 六大能力點數分配邏輯 (STR/AGI/VIT/INT/DEX/LUK)
+// --------------------------------------------------------------------------
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
         showMaterialAlert(["自由能力點數不足，無法升級屬性！"], "⚠️ 點數不足");
@@ -97,9 +100,9 @@ function allocateStatPoint(statKey) {
     updateUI();
 }
 
-// ==========================================
-// 2. 角色資料與裝備介面同步
-// ==========================================
+// --------------------------------------------------------------------------
+// 🎭 Zone 4: 勇者資訊與戰偶紙娃娃同步 (Character Data & Gear Sync)
+// --------------------------------------------------------------------------
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
@@ -262,9 +265,9 @@ function getJobChineseName(j) {
     return jobNames[j] || "劍士";
 }
 
-// ==========================================
-// 3. 村莊地點切換
-// ==========================================
+// --------------------------------------------------------------------------
+// 🗺️ Zone 5: 村莊設施與導覽頁面切換
+// --------------------------------------------------------------------------
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
@@ -301,9 +304,9 @@ function switchVillageLocation(targetLoc) {
     updateUI();
 }
 
-// ==========================================
-// 4. 全局 UI 狀態同步與更新
-// ==========================================
+// --------------------------------------------------------------------------
+// ⚙️ Zone 6: 全局 UI 主狀態與控制矩陣更新
+// --------------------------------------------------------------------------
 function updateUI() {
     const titleBox = DOM.get('title-box');
     const statusBox = DOM.get('status-panel-box');
@@ -402,9 +405,9 @@ function updateUI() {
     syncCharacterDataUi();
 }
 
-// ==========================================
-// 5. 公會技能頁面渲染
-// ==========================================
+// --------------------------------------------------------------------------
+// 🏛️ Zone 7: 冒險者公會（技能傳承與升級）選單渲染
+// --------------------------------------------------------------------------
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
@@ -485,9 +488,9 @@ function renderVillageGuild() {
     });
 }
 
-// ==========================================
-// 6. 料理屋頁面渲染 (包含 樓層 下拉選擇清單)
-// ==========================================
+// --------------------------------------------------------------------------
+// 🍳 Zone 8: 皇家料理屋選單（含食譜樓層下拉選單）
+// --------------------------------------------------------------------------
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
@@ -499,7 +502,7 @@ function renderVillageCookingWorkshop() {
     if (!rContainer) return;
     rContainer.innerHTML = "";
 
-    // 🥣 新增「樓層選擇」下拉清單
+    // 🥣 「食譜樓層選擇」下拉清單
     const selectorControl = document.createElement('div');
     selectorControl.style.cssText = "margin-bottom: 12px; width: 100%;";
     selectorControl.innerHTML = `
@@ -552,9 +555,9 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// ==========================================
-// 7. 精煉升星與加工所頁面渲染 (包含 LV 與種類 下拉選擇清單)
-// ==========================================
+// --------------------------------------------------------------------------
+// 🛠️ Zone 9: 魔導加工所（含精煉星級與雙下拉選單）
+// --------------------------------------------------------------------------
 function renderStarUpRow(slot, displayName, currentStar) {
     const starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
     let upgradeBtn = "";
@@ -606,7 +609,7 @@ function renderVillageWorkshop() {
     `;
     bContainer.appendChild(starPanel);
 
-    // 🔨 新增「種類」與「LV」雙下拉選擇清單
+    // 🔨 「種類」與「LV」雙下拉選擇清單
     const selectorWrapper = document.createElement('div');
     selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; width: 100%;";
     selectorWrapper.innerHTML = `
@@ -699,9 +702,9 @@ function renderVillageWorkshop() {
     });
 }
 
-// ==========================================
-// 8. 戰鬥日誌添加器
-// ==========================================
+// --------------------------------------------------------------------------
+// 📜 Zone 10: 戰鬥日誌輸出與下拉選單事件監聽 handlers
+// --------------------------------------------------------------------------
 function addLog(msg, type = "deal") {
     const box = DOM.get('log-box');
     if (!box) return;
