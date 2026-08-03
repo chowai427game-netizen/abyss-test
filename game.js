@@ -274,9 +274,16 @@ function handleMainAction() {
 
 function handleRerunAction() {
     try {
-        clearInterval(combatTickerTimer);
+        if (combatTickerTimer) clearInterval(combatTickerTimer);
         addLog(`🔄【重巡整備】你留在深淵 B${dungeonFloor}F 進行重巡狩獵，戰局重新載入！`, "perfect");
         gameState = "BATTLE";
+        
+        // 確保按鈕狀態被重置
+        const mainBtn = document.getElementById('btn-main-action');
+        const rerunBtn = document.getElementById('btn-rerun-action');
+        if (mainBtn) mainBtn.disabled = false;
+        if (rerunBtn) rerunBtn.disabled = false;
+
         updateUI();
         runDungeonLoop();
     } catch(err) {
@@ -1086,8 +1093,15 @@ function triggerRandomAbyssEvent() {
     updateUI();
 }
 
-function resolveAbyssEvent() { gameState = "ENCOUNTER_RESOLVED"; document.getElementById('btn-main-action').disabled = false; updateUI(); runDungeonLoop(); }
-
+function resolveAbyssEvent() { 
+    gameState = "ENCOUNTER_RESOLVED"; 
+    const mainBtn = document.getElementById('btn-main-action');
+    const rerunBtn = document.getElementById('btn-rerun-action');
+    if (mainBtn) mainBtn.disabled = false;
+    if (rerunBtn) rerunBtn.disabled = false;
+    updateUI(); 
+    runDungeonLoop(); 
+}
 // ==========================================
 // 🛡️ 9. 裝備穿脫與戰術面板控制
 // ==========================================
