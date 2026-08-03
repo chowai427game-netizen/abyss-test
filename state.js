@@ -1,13 +1,10 @@
 // ==========================================================================
-// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎（修正版）
+// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 const MAX_BAG_SIZE = 6;
 
-// ==========================================
-// 🏛️ 修改 state.js 中的 createDefaultAccountMeta
-// ==========================================
 function createDefaultAccountMeta(name, pin) {
     return {
         name: name || "無名勇者",
@@ -15,7 +12,8 @@ function createDefaultAccountMeta(name, pin) {
         lv: 1,
         exp: 0,
         nextExp: 30,
-        gold: 0, // ✨ 補上永久金幣欄位
+        gold: 0,
+        maxFloor: 1,
         statPoints: 0,
         stats: { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 },
         job: "swordsman",
@@ -28,7 +26,7 @@ function createDefaultAccountMeta(name, pin) {
 
 let accountMeta = createDefaultAccountMeta("無名勇者", "000000");
 
-// ⚔️ 全局單次冒險（Current Run）實時狀態數據
+// ⚔️ 全局單次冒險實時狀態數據
 let currentRun = {
     job: "swordsman",
     lv: 1,
@@ -58,21 +56,18 @@ let currentRun = {
     skills: {},
     inventory: [],
     qteBuffDuration: 0,
-    qteBuffTurns: 0,
-    activeVillageBuffs: []
+    qteBuffTurns: 0
 };
 
 let dungeonFloor = 0;
 let playerShield = 0;
 let activeMonster = null;
-let playerStatusEffects = { burn: 0, poison: 0 };
+let playerStatusEffects = { burn: 0, poison: 0, freeze: 0 };
+let activeVillageBuffs = { maxHpAdd: 0, maxMpAdd: 0, atkAdd: 0, expRate: 1.0 };
 let gameState = "VILLAGE";
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
 
-// ==========================================
-// 🔍 輸入框實時血脈檢測
-// ==========================================
 function checkPlayerNameLive() {
     const legacyBox = document.getElementById('legacy-box');
     const nameEl = document.getElementById('player-name-input');
@@ -96,9 +91,6 @@ function checkPlayerNameLive() {
     legacyBox.innerHTML = `✨ 準備創立全新血脈：[<strong>${targetName}</strong>]！請設定你的 6 位數 PIN 碼。`;
 }
 
-// ==========================================
-// 🌌 DOM 載入與 Render 伺服器冷啟動喚醒
-// ==========================================
 window.addEventListener('DOMContentLoaded', async () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingBarFill = document.getElementById('loading-bar-fill');
@@ -106,7 +98,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     const inputNameEl = document.getElementById('player-name-input');
     const inputPinEl = document.getElementById('player-pin-input');
 
-    // 自動填入上次使用的勇者名稱與 PIN 碼
     const lastActiveUser = localStorage.getItem("ABYSS_DESTINY_LAST_USER");
     if (lastActiveUser && inputNameEl) {
         inputNameEl.value = lastActiveUser;
@@ -117,11 +108,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     if (inputNameEl) inputNameEl.addEventListener('input', checkPlayerNameLive);
 
-    if (loadingFlavorText) loadingFlavorText.innerText = "正在撕裂虛空裂縫，呼喚 Render 冥河伺服器...";
+    if (loadingFlavorText) loadingFlavorText.innerText = "正在撕裂虛空裂縫，呼喚 Render 伺服器...";
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 秒發起冷啟動超時保護
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
 
         await fetch(SERVER_URL, { method: 'GET', signal: controller.signal }).catch(() => {});
         clearTimeout(timeoutId);
@@ -141,9 +132,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     }, 600);
 });
 
-// ==========================================
-// 🔑 帳號登入、身分驗證與存檔載入
-// ==========================================
 async function initOrLoadPlayer(inputName, inputPin) {
     const targetName = inputName ? inputName.trim() : "";
     const targetPin = inputPin ? inputPin.trim() : "";
@@ -179,14 +167,13 @@ async function initOrLoadPlayer(inputName, inputPin) {
         if (data.isNewUser) {
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
         } else if (data.activeChar) {
-            // 安全合併：確保缺少的預設欄位會被補齊
             accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), data.activeChar);
             accountMeta.name = targetName;
             accountMeta.pin = targetPin;
         }
 
     } catch (err) {
-        console.warn("網絡連線失敗，自動切換至本地離線驗證方案。");
+        console.warn("網絡連線失敗，切換至離線存檔驗證。");
         const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
         const localPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${targetName}`);
 
@@ -208,19 +195,10 @@ async function initOrLoadPlayer(inputName, inputPin) {
         }
     }
 
-    // ✨ 存檔還原補強：確保載入存檔時，職業與已學技能同步寫入當前冒險 (currentRun)
-    if (accountMeta.skills) {
-        currentRun.skills = { ...accountMeta.skills };
-    }
-    if (accountMeta.job) {
-        currentRun.job = accountMeta.job;
-    }
-
-    if (accountMeta.gold !== undefined) {
-        currentRun.gold = accountMeta.gold;
-    }
+    if (accountMeta.skills) currentRun.skills = { ...accountMeta.skills };
+    if (accountMeta.job) currentRun.job = accountMeta.job;
+    if (accountMeta.gold !== undefined) currentRun.gold = accountMeta.gold;
     
-    // 紀錄最後登入資訊
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
     localStorage.setItem(`ABYSS_DESTINY_PIN_${targetName}`, targetPin);
 
@@ -229,13 +207,9 @@ async function initOrLoadPlayer(inputName, inputPin) {
     return { success: true, isNewUser: isNewUser };
 }
 
-// ==========================================
-// 💾 本地與雲端雙軌同步存檔機制
-// ==========================================
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
-    // ✨ 存檔前將目前冒險獲得的金幣同步回永久帳號存檔
     if (typeof currentRun !== "undefined" && currentRun.gold !== undefined) {
         accountMeta.gold = currentRun.gold;
     }
@@ -247,7 +221,7 @@ async function saveGameData() {
         localStorage.setItem(`ABYSS_DESTINY_PIN_${accountMeta.name}`, accountMeta.pin);
         localStorage.setItem("ABYSS_DESTINY_LAST_USER", accountMeta.name);
     } catch (e) {
-        console.error("LocalStorage 容量受限或寫入失敗:", e);
+        console.error("LocalStorage 寫入失敗:", e);
     }
 
     try {
@@ -263,17 +237,14 @@ async function saveGameData() {
             body: JSON.stringify(payload)
         });
     } catch (error) {
-        console.warn("雲端同步異常，數據已暫存於本地快取。");
+        console.warn("雲端同步異常，數據暫存於本地快取。");
     }
 }
 
-// ==========================================
-// 🧹 清理本地快取存檔
-// ==========================================
 function clearAllLegacySaves() {
     if (confirm("⚠️ 確定要清空本地所有快取資料嗎？")) {
         localStorage.clear();
-        alert("🧹 已成功清空所有本地舊快取存檔！頁面將重置。");
+        alert("🧹 已清空所有本地舊快取存檔！頁面將重置。");
         location.reload();
     }
 }
