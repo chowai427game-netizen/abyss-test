@@ -401,44 +401,69 @@ function renderVillageGuild() {
         const card = document.createElement('div');
         card.style.cssText = "background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; width: 100%;";
 
-        const isLearned = currentRun.skills && currentRun.skills[s.name];
+        // 取得當前技能等級 (預設為 0)
+        const currentLv = (accountMeta.skills && accountMeta.skills[s.name]) || (currentRun.skills && currentRun.skills[s.name]) || 0;
+        const isMaxLevel = currentLv >= 10;
+        const nextLv = currentLv + 1;
+
+        // 計算升級所需費用與素材 (隨等級遞增)
+        const goldCost = s.goldCost * nextLv;
         const hasLevel = (accountMeta.lv || currentRun.lv || 1) >= s.reqLv;
-        const hasGold = currentRun.gold >= s.goldCost;
+        const hasGold = currentRun.gold >= goldCost;
         
-        const reqMatText = Object.keys(s.reqMat || {}).map(k => `${k} x${s.reqMat[k]}`).join(", ");
+        let reqMatTextArr = [];
         let hasMats = true;
         for (let mat in s.reqMat) {
-            if ((accountMeta.warehouse[mat] || 0) < s.reqMat[mat]) hasMats = false;
+            let reqQty = s.reqMat[mat] * nextLv;
+            reqMatTextArr.push(`${mat} x${reqQty}`);
+            if ((accountMeta.warehouse[mat] || 0) < reqQty) hasMats = false;
         }
+        const reqMatText = reqMatTextArr.join(", ");
 
         let statusBadge = "";
         let btnDisabled = false;
 
-        if (isLearned) {
-            statusBadge = `<span style="color: #2ecc71; font-weight: bold; font-size: 11px;">[已精通]</span>`;
+        if (isMaxLevel) {
+            statusBadge = `<span style="color: #ffd700; font-weight: bold; font-size: 11px;">[已滿級 Lv.10]</span>`;
             btnDisabled = true;
-        } else if (!hasLevel) {
-            statusBadge = `<span style="color: #e74c3c; font-size: 11px;">[需 Lv.${s.reqLv}]</span>`;
-            btnDisabled = true;
-        } else if (!hasGold || !hasMats) {
-            statusBadge = `<span style="color: #e67e22; font-size: 11px;">[資源不足]</span>`;
-            btnDisabled = true;
+        } else if (currentLv > 0) {
+            statusBadge = `<span style="color: #2ecc71; font-weight: bold; font-size: 11px;">[當前 Lv.${currentLv}]</span>`;
+        } else {
+            statusBadge = `<span style="color: #8e8e93; font-size: 11px;">[未習得]</span>`;
+        }
+
+        if (!isMaxLevel) {
+            if (!hasLevel) {
+                statusBadge += ` <span style="color: #e74c3c; font-size: 11px;">(需 Lv.${s.reqLv})</span>`;
+                btnDisabled = true;
+            } else if (!hasGold || !hasMats) {
+                statusBadge += ` <span style="color: #e67e22; font-size: 11px;">(資源不足)</span>`;
+                btnDisabled = true;
+            }
         }
 
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <strong style="color: #ffd700; font-size: 13px;">${s.name} ${statusBadge}</strong>
-                <span style="font-size: 11px; color: #00ffcc;">消耗: 🪙 ${s.goldCost} G</span>
+                <span style="font-size: 11px; color: #00ffcc;">${isMaxLevel ? "已達上限" : `下級消耗: 🪙 ${goldCost} G`}</span>
             </div>
             <p style="font-size: 11px; color: #aaa; margin: 4px 0;">${s.desc}</p>
-            ${reqMatText ? `<div style="font-size: 10px; color: #8e8e93;">📦 所需素材：${reqMatText}</div>` : ""}
+            ${(!isMaxLevel && reqMatText) ? `<div style="font-size: 10px; color: #8e8e93;">📦 升級素材：${reqMatText}</div>` : ""}
             <div style="margin-top: 6px;"></div>
         `;
 
         const btnLearn = document.createElement('button');
         btnLearn.className = "btn-game btn-explore";
         btnLearn.style.cssText = "padding: 4px 10px; font-size: 11px;";
-        btnLearn.innerText = isLearned ? "✅ 已習得" : "🎓 學習傳承技能";
+        
+        if (isMaxLevel) {
+            btnLearn.innerText = "👑 已達滿級 (Lv.10)";
+        } else if (currentLv > 0) {
+            btnLearn.innerText = `⚡ 升級至 Lv.${nextLv}`;
+        } else {
+            btnLearn.innerText = "🎓 學習傳承技能";
+        }
+
         btnLearn.disabled = btnDisabled;
         btnLearn.onclick = () => { executeLearnSkill(s); };
 
@@ -446,7 +471,6 @@ function renderVillageGuild() {
         container.appendChild(card);
     });
 }
-
 // ==========================================
 // 6. 料理屋頁面渲染
 // ==========================================
@@ -654,4 +678,19 @@ function addLog(msg, type = "deal") {
         top: box.scrollHeight,
         behavior: 'smooth'
     });
+}
+
+function changeCookingTab(range) {
+    activeCookingRange = range;
+    renderVillageCookingWorkshop();
+}
+
+function changeCraftingCat(cat) {
+    activeCraftingCategory = cat;
+    renderVillageWorkshop();
+}
+
+function changeCraftingLvl(range) {
+    activeCraftingLvlRange = range;
+    renderVillageWorkshop();
 }
