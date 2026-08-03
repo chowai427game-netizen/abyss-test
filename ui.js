@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：分頁渲染、配點 UI（六大屬性）與 QTE 面板同步核心
+// 📺 ui.js：分頁渲染、下拉清單控制、配點 UI 與彈窗通知
 // ==========================================================================
 
 const DOM = {
@@ -37,11 +37,49 @@ let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
 // ==========================================
-// 1. 六大屬性點數分配邏輯 (STR, AGI, VIT, INT, DEX, LUK)
+// ⚠️ 0. 自訂材料不足彈窗 (Material Alert Modal)
+// ==========================================
+function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣不足！") {
+    let overlay = document.getElementById('mat-alert-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'mat-alert-overlay';
+        overlay.innerHTML = `
+            <div class="mat-alert-box">
+                <div class="mat-alert-header" id="mat-alert-header-title">⚠️ 材料不足</div>
+                <div class="mat-alert-content" id="mat-alert-body-content"></div>
+                <button class="mat-alert-btn" onclick="hideMaterialAlert()">確認並返回</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    const titleEl = document.getElementById('mat-alert-header-title');
+    const bodyEl = document.getElementById('mat-alert-body-content');
+
+    if (titleEl) titleEl.innerText = title;
+    if (bodyEl) {
+        if (Array.isArray(missingDetails)) {
+            bodyEl.innerHTML = missingDetails.map(item => `• ${item}`).join('<br>');
+        } else {
+            bodyEl.innerHTML = missingDetails;
+        }
+    }
+
+    overlay.classList.add('active');
+}
+
+function hideMaterialAlert() {
+    const overlay = document.getElementById('mat-alert-overlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// ==========================================
+// 1. 六大屬性點數分配邏輯
 // ==========================================
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
-        alert("尚無可分配的能力點數！");
+        showMaterialAlert(["自由能力點數不足，無法升級屬性！"], "⚠️ 點數不足");
         return;
     }
     
@@ -65,7 +103,6 @@ function allocateStatPoint(statKey) {
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
-    // 基本資訊
     const nameEl = DOM.get('p-name');
     const jobEl = DOM.get('p-job');
     const lvEl = DOM.get('p-lv');
@@ -76,7 +113,6 @@ function syncCharacterDataUi() {
     if (lvEl) lvEl.innerText = accountMeta.lv || currentRun.lv || 1;
     if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || currentRun.nextExp || 30}`;
 
-    // 可用點數與摺疊面板標題
     const pts = accountMeta.statPoints || 0;
     const ptsEl = DOM.get('p-stat-points');
     if (ptsEl) ptsEl.innerText = pts;
@@ -88,17 +124,16 @@ function syncCharacterDataUi() {
             : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
-    // 六大屬性配點矩陣
     const gridEl = DOM.get('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
         const statConfig = [
-            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重上限" },
-            { key: "AGI", name: "⚡ 敏捷", desc: "攻速ASPD / 迴避FLEE" },
-            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / 物理DEF" },
-            { key: "INT", name: "🔮 智力", desc: "魔攻MATK / 魔防MDEF" },
-            { key: "DEX", name: "🎯 靈巧", desc: "命中HIT / 縮短詠唱" },
-            { key: "LUK", name: "🎰 幸運", desc: "暴擊CRIT / 完全迴避" }
+            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重" },
+            { key: "AGI", name: "⚡ 敏捷", desc: "攻速 / 迴避" },
+            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / 防禦" },
+            { key: "INT", name: "🔮 智力", desc: "魔攻 / 魔防" },
+            { key: "DEX", name: "🎯 靈巧", desc: "命中 / 詠唱" },
+            { key: "LUK", name: "🎰 幸運", desc: "暴擊 / 完迴" }
         ];
 
         const hasPoints = pts > 0;
@@ -128,7 +163,6 @@ function syncCharacterDataUi() {
         });
     }
 
-    // 生命與能量條
     const hpEl = DOM.get('p-hp');
     const maxHpEl = DOM.get('p-maxhp');
     const mpEl = DOM.get('p-mp');
@@ -144,7 +178,6 @@ function syncCharacterDataUi() {
     if (hpBar) hpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.hp / currentRun.maxHp) * 100))}%`;
     if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
-    // 玩家 ATB 蓄力軌道
     const pAtbRow = DOM.get('p-atb-row');
     if (pAtbRow) {
         if (gameState === "VILLAGE") {
@@ -159,7 +192,7 @@ function syncCharacterDataUi() {
                 if (pAtbPercent < currentW) {
                     pAtbBar.style.transition = "none";
                     pAtbBar.style.width = "0%";
-                    pAtbBar.offsetHeight; // 強制重繪
+                    pAtbBar.offsetHeight;
                 }
                 pAtbBar.style.transition = "width 0.25s linear";
                 pAtbBar.style.width = `${pAtbPercent}%`;
@@ -167,7 +200,6 @@ function syncCharacterDataUi() {
         }
     }
 
-    // 詳細面板數值更新
     const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
     setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk})`);
@@ -181,7 +213,6 @@ function syncCharacterDataUi() {
     const skillListEl = DOM.get('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
 
-    // 裝備與星級
     const wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
     const aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
     const cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
@@ -190,7 +221,6 @@ function syncCharacterDataUi() {
     setTxt('p-equip-armor', (accountMeta.equipment?.armor || "布衣") + aStar);
     setTxt('p-equip-accessory', (accountMeta.equipment?.accessory || "無") + cStar);
 
-    // 行軍背包
     setTxt('bag-capacity-text', `🎒 ${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`);
 
     const bagContainer = DOM.get('bag-slots-container');
@@ -211,7 +241,7 @@ function syncCharacterDataUi() {
 
             if (item) {
                 slot.innerText = item;
-                slot.title = `戰鬥中點擊使用 / 村莊點擊退回倉庫 (${item})`;
+                slot.title = `點擊使用 / 退回倉庫 (${item})`;
                 slot.onclick = () => {
                     if (gameState === "BATTLE") {
                         executeUseDungeonItem(item, i);
@@ -228,13 +258,7 @@ function syncCharacterDataUi() {
 }
 
 function getJobChineseName(j) {
-    const jobNames = {
-        swordsman: "劍士",
-        magician: "魔法師",
-        acolyte: "服事",
-        thief: "盜賊",
-        archer: "弓箭手"
-    };
+    const jobNames = { swordsman: "劍士", magician: "魔法師", acolyte: "服事", thief: "盜賊", archer: "弓箭手" };
     return jobNames[j] || "劍士";
 }
 
@@ -250,19 +274,11 @@ function switchVillageLocation(targetLoc) {
         if (el) el.style.display = 'none';
     });
     
-    const tabs = { 
-        'GATE': 'btn-tab-gate', 
-        'GUILD': 'btn-tab-guild',
-        'KITCHEN': 'btn-tab-kitchen', 
-        'SQUARE': 'btn-tab-square', 
-        'WORKSHOP': 'btn-tab-workshop' 
-    };
+    const tabs = { 'GATE': 'btn-tab-gate', 'GUILD': 'btn-tab-guild', 'KITCHEN': 'btn-tab-kitchen', 'SQUARE': 'btn-tab-square', 'WORKSHOP': 'btn-tab-workshop' };
     
     Object.keys(tabs).forEach(k => {
         const tBtn = DOM.get(tabs[k]);
-        if (tBtn) {
-            tBtn.classList.toggle('active', k === targetLoc);
-        }
+        if (tBtn) tBtn.classList.toggle('active', k === targetLoc);
     });
     
     const locTextEl = DOM.get('location-text');
@@ -305,7 +321,6 @@ function updateUI() {
         if (actionBox) actionBox.style.display = "flex";
         if (villageBox) villageBox.style.display = "block";
         if (rewardBox) rewardBox.style.display = "none";
-        
         if (logWrapper) logWrapper.style.display = "block"; 
         if (envBar) envBar.style.display = "none";
         if (autoBtn) autoBtn.style.display = "none";
@@ -401,12 +416,10 @@ function renderVillageGuild() {
         const card = document.createElement('div');
         card.style.cssText = "background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; width: 100%;";
 
-        // 取得當前技能等級 (預設為 0)
         const currentLv = (accountMeta.skills && accountMeta.skills[s.name]) || (currentRun.skills && currentRun.skills[s.name]) || 0;
         const isMaxLevel = currentLv >= 10;
         const nextLv = currentLv + 1;
 
-        // 計算升級所需費用與素材 (隨等級遞增)
         const goldCost = s.goldCost * nextLv;
         const hasLevel = (accountMeta.lv || currentRun.lv || 1) >= s.reqLv;
         const hasGold = currentRun.gold >= goldCost;
@@ -471,8 +484,9 @@ function renderVillageGuild() {
         container.appendChild(card);
     });
 }
+
 // ==========================================
-// 6. 料理屋頁面渲染
+// 6. 料理屋頁面渲染 (包含 樓層 下拉選擇清單)
 // ==========================================
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
@@ -485,11 +499,28 @@ function renderVillageCookingWorkshop() {
     if (!rContainer) return;
     rContainer.innerHTML = "";
 
+    // 🥣 新增「樓層選擇」下拉清單
+    const selectorControl = document.createElement('div');
+    selectorControl.style.cssText = "margin-bottom: 12px; width: 100%;";
+    selectorControl.innerHTML = `
+        <label style="font-size: 11px; color: #ffd700; font-weight: bold; display: block; margin-bottom: 4px;">🍳 選擇食譜開發樓層：</label>
+        <select class="select-game" onchange="changeCookingTab(this.value)">
+            <option value="1-10" ${activeCookingRange === "1-10" ? "selected" : ""}>📜 深淵階層 B1F ~ B10F 食譜</option>
+            <option value="11-20" ${activeCookingRange === "11-20" ? "selected" : ""}>📜 深淵階層 B11F ~ B20F 食譜</option>
+            <option value="21-30" ${activeCookingRange === "21-30" ? "selected" : ""}>📜 深淵階層 B21F ~ B30F 食譜</option>
+            <option value="31-50" ${activeCookingRange === "31-50" ? "selected" : ""}>📜 深淵階層 B31F ~ B50F 食譜</option>
+        </select>
+    `;
+    rContainer.appendChild(selectorControl);
+
     if (typeof RECIPES_DATABASE === "undefined") return;
     const filteredRecipes = RECIPES_DATABASE.filter(r => r.range === activeCookingRange);
 
     if (filteredRecipes.length === 0) {
-        rContainer.innerHTML = `<div style="color:#555; font-size:12px; padding:15px; width:100%; text-align:center;">🌿 該層數配方尚在通訊重構成形中...</div>`;
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.cssText = "color:#555; font-size:12px; padding:15px; width:100%; text-align:center;";
+        emptyMsg.innerText = "🌿 該層數配方尚在通訊重構成形中...";
+        rContainer.appendChild(emptyMsg);
         return;
     }
 
@@ -514,7 +545,6 @@ function renderVillageCookingWorkshop() {
         btnCook.className = "btn-game btn-cook";
         btnCook.style.cssText = "padding: 4px 10px; font-size: 11px;";
         btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪納入快捷欄";
-        btnCook.disabled = !hasIngredients;
         btnCook.onclick = () => { executeVillageCooking(recipe); };
         
         card.appendChild(btnCook);
@@ -523,7 +553,7 @@ function renderVillageCookingWorkshop() {
 }
 
 // ==========================================
-// 7. 精煉升星與加工所頁面渲染
+// 7. 精煉升星與加工所頁面渲染 (包含 LV 與種類 下拉選擇清單)
 // ==========================================
 function renderStarUpRow(slot, displayName, currentStar) {
     const starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
@@ -535,13 +565,8 @@ function renderStarUpRow(slot, displayName, currentStar) {
         const cost = getStarUpCost(slot, currentStar);
         const costText = Object.keys(cost).map(k => `${k} x${cost[k]}`).join(", ");
         
-        let canUpgrade = true;
-        for (let ing in cost) {
-            if ((accountMeta.warehouse[ing] || 0) < cost[ing]) canUpgrade = false;
-        }
-        
         upgradeBtn = `
-            <button class="btn-game btn-rerun" style="padding: 4px 8px; font-size: 11px;" ${canUpgrade ? "" : "disabled"} onclick="executeSlotStarUp('${slot}')">
+            <button class="btn-game btn-rerun" style="padding: 4px 8px; font-size: 11px;" onclick="executeSlotStarUp('${slot}')">
                 🔥 升星 (需 ${costText})
             </button>
         `;
@@ -581,6 +606,31 @@ function renderVillageWorkshop() {
     `;
     bContainer.appendChild(starPanel);
 
+    // 🔨 新增「種類」與「LV」雙下拉選擇清單
+    const selectorWrapper = document.createElement('div');
+    selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; width: 100%;";
+    selectorWrapper.innerHTML = `
+        <div>
+            <label style="font-size: 11px; color: #ffd700; font-weight: bold; display: block; margin-bottom: 4px;">🛠️ 選擇藍圖種類：</label>
+            <select class="select-game" onchange="changeCraftingCat(this.value)">
+                <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部神裝藍圖</option>
+                <option value="weapon" ${activeCraftingCategory === "weapon" ? "selected" : ""}>🗡️ 武器藍圖</option>
+                <option value="armor" ${activeCraftingCategory === "armor" ? "selected" : ""}>👕 防具藍圖</option>
+                <option value="accessory" ${activeCraftingCategory === "accessory" ? "selected" : ""}>💍 飾品藍圖</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size: 11px; color: #ffd700; font-weight: bold; display: block; margin-bottom: 4px;">📜 選擇解鎖等級：</label>
+            <select class="select-game" onchange="changeCraftingLvl(this.value)">
+                <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 階層 B1F ~ B10F</option>
+                <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 階層 B11F ~ B20F</option>
+                <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 階層 B21F ~ B30F</option>
+                <option value="31-50" ${activeCraftingLvlRange === "31-50" ? "selected" : ""}>📜 階層 B31F ~ B50F</option>
+            </select>
+        </div>
+    `;
+    bContainer.appendChild(selectorWrapper);
+
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
@@ -612,16 +662,10 @@ function renderVillageWorkshop() {
         infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
         btnWrapper.appendChild(infoP);
 
-        let canForge = true;
-        for (let ing in blueprint.ingredients) {
-            if ((accountMeta.warehouse[ing] || 0) < blueprint.ingredients[ing]) canForge = false;
-        }
-
         const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
         btnForge.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 8px;";
         btnForge.innerHTML = "🔨 消耗材料打造";
-        btnForge.disabled = !canForge; 
         btnForge.onclick = () => { executeForgeEquipment(blueprint); };
         btnWrapper.appendChild(btnForge);
 
@@ -666,6 +710,8 @@ function addLog(msg, type = "deal") {
         take: " log-take-dmg",
         perfect: " log-perfect",
         env: " log-env-tick",
+        miss: " log-miss",
+        "skill-hit": " log-skill-hit",
         "victory-badge": " log-victory-badge"
     };
 
