@@ -1,10 +1,7 @@
 // ==========================================================================
-// 📺 ui.js：完整整合版介面控制、選單渲染與數據同步核心 (Full UI Engine)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心
 // ==========================================================================
 
-// --------------------------------------------------------------------------
-// 🌐 Zone 1: DOM 快取物件與篩選器狀態變數
-// --------------------------------------------------------------------------
 const DOM = {
     isInitialized: false,
     elements: {},
@@ -39,9 +36,6 @@ let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 
-// --------------------------------------------------------------------------
-// ⚠️ Zone 2: 自訂材料與資源不足警告 Modal 彈窗 (Material Alert Modal)
-// --------------------------------------------------------------------------
 function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣不足！") {
     let overlay = document.getElementById('mat-alert-overlay');
     if (!overlay) {
@@ -77,9 +71,6 @@ function hideMaterialAlert() {
     if (overlay) overlay.classList.remove('active');
 }
 
-// --------------------------------------------------------------------------
-// 📊 Zone 3: 六大能力點數分配邏輯 (STR/AGI/VIT/INT/DEX/LUK)
-// --------------------------------------------------------------------------
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
         showMaterialAlert(["自由能力點數不足，無法升級屬性！"], "⚠️ 點數不足");
@@ -100,9 +91,6 @@ function allocateStatPoint(statKey) {
     updateUI();
 }
 
-// --------------------------------------------------------------------------
-// 🎭 Zone 4: 勇者資訊與戰偶紙娃娃同步 (Character Data & Gear Sync)
-// --------------------------------------------------------------------------
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
@@ -265,9 +253,6 @@ function getJobChineseName(j) {
     return jobNames[j] || "劍士";
 }
 
-// --------------------------------------------------------------------------
-// 🗺️ Zone 5: 村莊設施與導覽頁面切換
-// --------------------------------------------------------------------------
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
@@ -304,9 +289,6 @@ function switchVillageLocation(targetLoc) {
     updateUI();
 }
 
-// --------------------------------------------------------------------------
-// ⚙️ Zone 6: 全局 UI 主狀態與控制矩陣更新
-// --------------------------------------------------------------------------
 function updateUI() {
     const titleBox = DOM.get('title-box');
     const statusBox = DOM.get('status-panel-box');
@@ -405,9 +387,6 @@ function updateUI() {
     syncCharacterDataUi();
 }
 
-// --------------------------------------------------------------------------
-// 🏛️ Zone 7: 冒險者公會（技能傳承與升級）選單渲染
-// --------------------------------------------------------------------------
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
@@ -488,9 +467,6 @@ function renderVillageGuild() {
     });
 }
 
-// --------------------------------------------------------------------------
-// 🍳 Zone 8: 皇家料理屋選單（含食譜樓層下拉選單）
-// --------------------------------------------------------------------------
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
@@ -502,7 +478,6 @@ function renderVillageCookingWorkshop() {
     if (!rContainer) return;
     rContainer.innerHTML = "";
 
-    // 🥣 「食譜樓層選擇」下拉清單
     const selectorControl = document.createElement('div');
     selectorControl.style.cssText = "margin-bottom: 12px; width: 100%;";
     selectorControl.innerHTML = `
@@ -511,7 +486,8 @@ function renderVillageCookingWorkshop() {
             <option value="1-10" ${activeCookingRange === "1-10" ? "selected" : ""}>📜 深淵階層 B1F ~ B10F 食譜</option>
             <option value="11-20" ${activeCookingRange === "11-20" ? "selected" : ""}>📜 深淵階層 B11F ~ B20F 食譜</option>
             <option value="21-30" ${activeCookingRange === "21-30" ? "selected" : ""}>📜 深淵階層 B21F ~ B30F 食譜</option>
-            <option value="31-50" ${activeCookingRange === "31-50" ? "selected" : ""}>📜 深淵階層 B31F ~ B50F 食譜</option>
+            <option value="31-40" ${activeCookingRange === "31-40" ? "selected" : ""}>📜 深淵階層 B31F ~ B40F 食譜</option>
+            <option value="41-50" ${activeCookingRange === "41-50" ? "selected" : ""}>📜 深淵階層 B41F ~ B50F 食譜</option>
         </select>
     `;
     rContainer.appendChild(selectorControl);
@@ -555,9 +531,6 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// --------------------------------------------------------------------------
-// 🛠️ Zone 9: 魔導加工所（含精煉星級與雙下拉選單）
-// --------------------------------------------------------------------------
 function renderStarUpRow(slot, displayName, currentStar) {
     const starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
     let upgradeBtn = "";
@@ -609,7 +582,6 @@ function renderVillageWorkshop() {
     `;
     bContainer.appendChild(starPanel);
 
-    // 🔨 「種類」與「LV」雙下拉選擇清單
     const selectorWrapper = document.createElement('div');
     selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; width: 100%;";
     selectorWrapper.innerHTML = `
@@ -628,7 +600,9 @@ function renderVillageWorkshop() {
                 <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 階層 B1F ~ B10F</option>
                 <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 階層 B11F ~ B20F</option>
                 <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 階層 B21F ~ B30F</option>
-                <option value="31-50" ${activeCraftingLvlRange === "31-50" ? "selected" : ""}>📜 階層 B31F ~ B50F</option>
+                <option value="31-40" ${activeCraftingLvlRange === "31-40" ? "selected" : ""}>📜 階層 B31F ~ B40F</option>
+                <option value="41-50" ${activeCraftingLvlRange === "41-50" ? "selected" : ""}>📜 階層 B41F ~ B50F</option>
+                <option value="51-60" ${activeCraftingLvlRange === "51-60" ? "selected" : ""}>📜 階層 B51F ~ B60F</option>
             </select>
         </div>
     `;
@@ -702,9 +676,6 @@ function renderVillageWorkshop() {
     });
 }
 
-// --------------------------------------------------------------------------
-// 📜 Zone 10: 戰鬥日誌輸出與下拉選單事件監聽 handlers
-// --------------------------------------------------------------------------
 function addLog(msg, type = "deal") {
     const box = DOM.get('log-box');
     if (!box) return;
