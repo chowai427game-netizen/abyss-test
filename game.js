@@ -1,716 +1,991 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心
+// 🕹️ game.js：完整地下城遊戲邏輯核心
 // ==========================================================================
 
-const DOM = {
-    isInitialized: false,
-    elements: {},
-    init() {
-        if (this.isInitialized) return;
-        const keys = [
-            'p-name', 'p-job', 'p-lv', 'p-exp-text', 'p-hp', 'p-maxhp', 'p-mp', 'p-maxmp',
-            'hp-bar-fill', 'mp-bar-fill', 'p-atb-row', 'p-atb-text', 'p-atb-bar-fill',
-            'p-gold', 'p-atk', 'p-block', 'p-crit', 'p-spd', 'p-dodge', 'p-vamp',
-            'p-skills-list', 'p-stat-points', 'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory',
-            'btn-main-action', 'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle',
-            'env-alert-bar', 'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar',
-            'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
-            'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
-            'village-panel-box', 'log-wrapper-box', 'tactics-drawer-box', 'char-folder-summary',
-            'stat-alloc-grid', 'bag-capacity-text', 'bag-slots-container', 'location-text',
-            'guild-skills-container', 'kitchen-warehouse-display', 'recipes-container',
-            'workshop-warehouse-display', 'blueprints-container'
-        ];
-        keys.forEach(key => {
-            this.elements[key] = document.getElementById(key);
-        });
-        this.isInitialized = true;
-    },
-    get(key) {
-        if (!this.isInitialized) this.init();
-        return this.elements[key] || document.getElementById(key);
+let combatTickerTimer = null; 
+let combatRoundCounter = 1;    
+
+let playerAtb = 0;
+let monsterAtb = 0;
+let envAtb = 0;
+let battleTimeElapsed = 0;
+
+let isQteActive = false;
+let activeTactic = "BALANCED";
+
+function triggerProjectileFX(type = 'arcane') {
+    const logContainer = document.getElementById('log-box');
+    if (!logContainer) return;
+
+    const proj = document.createElement('div');
+    proj.className = `projectile-entity proj-${type}`;
+    proj.innerHTML = `<div class="fx-core"></div>`;
+    
+    logContainer.appendChild(proj);
+
+    setTimeout(() => {
+        proj.remove();
+    }, 450);
+}
+
+function detectProjectileType(skillName, job) {
+    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆")) return "fire";
+    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍")) return "ice";
+    if (skillName.includes("雷") || skillName.includes("電") || skillName.includes("震")) return "lightning";
+    if (job === "archer") return "arrow";
+    return "arcane";
+}
+
+function detectSkillCssClass(skillName) {
+    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆")) return "skill-fire";
+    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍")) return "skill-ice";
+    if (skillName.includes("雷") || skillName.includes("電") || skillName.includes("震")) return "skill-lightning";
+    if (skillName.includes("聖") || skillName.includes("治癒") || skillName.includes("光")) return "skill-holy";
+    if (skillName.includes("毒")) return "skill-poison";
+    return "skill-bash";
+}
+
+async function handleStartGame() {
+    const inputName = document.getElementById('player-name-input')?.value;
+    const inputPin = document.getElementById('player-pin-input')?.value;
+
+    const result = await initOrLoadPlayer(inputName, inputPin);
+
+    if (!result || !result.success) {
+        console.warn("🔐 PIN 碼驗證失敗，阻擋進入遊戲。");
+        return; 
     }
-};
 
-let activeCookingRange = "1-10";
-let activeCraftingCategory = "all";
-let activeCraftingLvlRange = "1-10";
+    if (result.isNewUser || !accountMeta.job || accountMeta.job === "novice") {
+        renderInitialJobModal(false);
+        return;
+    }
 
-function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣不足！") {
-    let overlay = document.getElementById('mat-alert-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'mat-alert-overlay';
-        overlay.innerHTML = `
-            <div class="mat-alert-box">
-                <div class="mat-alert-header" id="mat-alert-header-title">⚠️ 材料不足</div>
-                <div class="mat-alert-content" id="mat-alert-body-content"></div>
-                <button class="mat-alert-btn" onclick="hideMaterialAlert()">確認並返回</button>
-            </div>
+    enterGameMainShell();
+}
+
+function renderInitialJobModal(isReselect = false) {
+    const modal = document.getElementById('initial-job-modal');
+    const list = document.getElementById('initial-job-list');
+    if (!modal || !list) return;
+
+    list.innerHTML = "";
+    modal.style.display = "flex";
+
+    const jobs = [
+        { id: "swordsman", name: "⚔️ 劍士", desc: "高 HP 與物理減傷 (STR/VIT)，近戰重擊。" },
+        { id: "magician", name: "🔮 魔法師", desc: "掌控冰火雷奧術 (INT/DEX)，極高魔傷與控場。" },
+        { id: "acolyte", name: "✨ 服事", desc: "神聖庇護 (INT/VIT)，百分比自癒與驅魔。" },
+        { id: "thief", name: "🗡️ 盜賊", desc: "高閃避與暴擊 (AGI/LUK)，劇毒與連擊。" },
+        { id: "archer", name: "🏹 弓箭手", desc: "極速貫穿連射 (DEX/AGI)，遠程爆頭狙擊。" }
+    ];
+
+    jobs.forEach(j => {
+        let card = document.createElement('div');
+        card.style.cssText = `
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; transition: all 0.2s;
         `;
-        document.body.appendChild(overlay);
+        card.innerHTML = `
+            <div style="font-size: 14px; font-weight: bold; color: #00ffcc; margin-bottom: 4px;">${j.name}</div>
+            <div style="font-size: 11px; color: #aaa;">${j.desc}</div>
+        `;
+        card.onclick = () => { 
+            if (isReselect) {
+                executeReselectJob(j.id);
+            } else {
+                selectInitialJob(j.id);
+            }
+            modal.style.display = "none";
+        };
+        list.appendChild(card);
+    });
+}
+
+function selectInitialJob(jobId) {
+    accountMeta.job = jobId;
+    currentRun.job = jobId;
+
+    let initialSkills = {};
+    if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[jobId]) {
+        let firstSkill = SKILLS_DATABASE[jobId][0].name;
+        initialSkills[firstSkill] = 1;
     }
 
-    const titleEl = document.getElementById('mat-alert-header-title');
-    const bodyEl = document.getElementById('mat-alert-body-content');
+    accountMeta.skills = { ...initialSkills };
+    currentRun.skills = { ...initialSkills };
 
-    if (titleEl) titleEl.innerText = title;
-    if (bodyEl) {
-        if (Array.isArray(missingDetails)) {
-            bodyEl.innerHTML = missingDetails.map(item => `• ${item}`).join('<br>');
-        } else {
-            bodyEl.innerHTML = missingDetails;
+    resetCurrentRunData();
+    saveGameData();
+
+    const modal = document.getElementById('initial-job-modal');
+    if (modal) modal.style.display = "none";
+
+    enterGameMainShell();
+}
+
+function enterGameMainShell() {
+    const titleBox = document.getElementById('title-box');
+    const statusPanel = document.getElementById('status-panel-box');
+    const actionPanel = document.getElementById('action-panel-box');
+    const villagePanel = document.getElementById('village-panel-box');
+    const logWrapper = document.getElementById('log-wrapper-box');
+
+    if (titleBox) titleBox.style.display = 'none';
+    if (statusPanel) statusPanel.style.display = 'block';
+    if (actionPanel) actionPanel.style.display = 'flex';
+    if (villagePanel) villagePanel.style.display = 'block';
+    if (logWrapper) logWrapper.style.display = 'block';
+
+    if (typeof updateUI === "function") updateUI();
+    if (typeof addLog === "function") {
+        addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利踏入深淵邊境！當前血脈職業：<strong>${getJobChineseName(currentRun.job)}</strong>。`, "perfect");
+    }
+}
+
+function executeLearnSkill(skillMeta) {
+    if (!accountMeta.skills) accountMeta.skills = {};
+    if (!currentRun.skills) currentRun.skills = {};
+
+    let currentLv = (accountMeta.skills[skillMeta.name] || currentRun.skills[skillMeta.name] || 0);
+
+    if (currentLv >= 10) {
+        showMaterialAlert([`技能 [${skillMeta.name}] 已達到最高等級上限 (Lv.10)！`], "👑 已達滿級");
+        return;
+    }
+
+    let nextLv = currentLv + 1;
+    let goldCost = skillMeta.goldCost * nextLv;
+    let missingList = [];
+
+    if (currentRun.gold < goldCost) {
+        missingList.push(`🪙 金幣不足：尚缺 ${goldCost - currentRun.gold} G (需 ${goldCost} G)`);
+    }
+
+    for (let mat in skillMeta.reqMat) {
+        let reqQty = skillMeta.reqMat[mat] * nextLv;
+        let currentQty = accountMeta.warehouse[mat] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`📦 素材 [${mat}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
         }
     }
 
-    overlay.classList.add('active');
-}
-
-function hideMaterialAlert() {
-    const overlay = document.getElementById('mat-alert-overlay');
-    if (overlay) overlay.classList.remove('active');
-}
-
-function allocateStatPoint(statKey) {
-    if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
-        showMaterialAlert(["自由能力點數不足，無法升級屬性！"], "⚠️ 點數不足");
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 技能 [${skillMeta.name}] 研習資源不足`);
         return;
     }
+
+    currentRun.gold -= goldCost;
+    for (let mat in skillMeta.reqMat) {
+        let reqQty = skillMeta.reqMat[mat] * nextLv;
+        accountMeta.warehouse[mat] -= reqQty;
+    }
+
+    accountMeta.skills[skillMeta.name] = nextLv;
+    currentRun.skills[skillMeta.name] = nextLv;
+
+    if (currentLv === 0) {
+        addLog(`🎓🎓【公會技能傳承】成功領悟專屬奧義 ➔ <strong>[${skillMeta.name}] (Lv.1)</strong>！`, "perfect");
+    } else {
+        addLog(`🎓✨【公會技能突破】成功將奧義 ➔ <strong>[${skillMeta.name}]</strong> 提升至 <strong>Lv.${nextLv}</strong>！`, "perfect");
+    }
+
+    saveGameData();
+    updateUI();
+    if (typeof renderVillageGuild === "function") renderVillageGuild();
+}
+
+function executeResetStats() {
+    if (currentRun.gold < 300) {
+        showMaterialAlert([`🪙 金幣不足：洗點需要 300 G (當前僅有 ${currentRun.gold} G)`], "⚠️ 金幣不足");
+        return;
+    }
+
+    if (!confirm("確定要消耗 300 G 洗回所有已分配的屬性點嗎？")) return;
+
+    currentRun.gold -= 300;
+
+    let s = accountMeta.stats || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+    let totalAllocated = (s.STR || 0) + (s.AGI || 0) + (s.VIT || 0) + (s.INT || 0) + (s.DEX || 0) + (s.LUK || 0);
+
+    accountMeta.statPoints = (accountMeta.statPoints || 0) + totalAllocated;
+    accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+
+    resetCurrentRunData();
+    saveGameData();
+    addLog(`🎯⚖️【洗點完畢】已退還 <strong>${totalAllocated} 點</strong> 自由能力點數！`, "perfect");
+    updateUI();
+}
+
+function triggerReselectJobUI() {
+    if (currentRun.gold < 1000) {
+        showMaterialAlert([`🪙 金幣不足：轉職洗禮需要 1,000 G (當前僅有 ${currentRun.gold} G)`], "⚠️ 金幣不足");
+        return;
+    }
+
+    if (!confirm("⚠️ 警告：重選職業將使等級重置為 Lv.1！裝備與倉庫素材完好保留。確定進行？")) return;
+
+    renderInitialJobModal(true);
+}
+
+function executeReselectJob(newJobId) {
+    currentRun.gold -= 1000;
+
+    accountMeta.job = newJobId;
+    accountMeta.lv = 1;
+    accountMeta.exp = 0;
+    accountMeta.nextExp = 30;
+    accountMeta.statPoints = 0;
+    accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+
+    let initialSkills = {};
+    if (typeof SKILLS_DATABASE !== "undefined" && SKILLS_DATABASE[newJobId]) {
+        let firstSkill = SKILLS_DATABASE[newJobId][0].name;
+        initialSkills[firstSkill] = 1;
+    }
+
+    accountMeta.skills = { ...initialSkills };
+    currentRun.job = newJobId;
+    currentRun.skills = { ...initialSkills };
+
+    resetCurrentRunData();
+    saveGameData();
+
+    addLog(`🔄⚖️【轉職洗禮完成】已成功將血脈重置為 ➔ <strong>${getJobChineseName(newJobId)} (Lv.1)</strong>！`, "perfect");
+    updateUI();
+}
+
+function toggleTacticsDrawer() {
+    const drawer = document.getElementById('tactics-drawer-box');
+    if (drawer) {
+        drawer.classList.toggle('expanded');
+    }
+}
+
+function selectTactic(tacticMode) {
+    activeTactic = tacticMode;
+    syncTacticButtonsUi();
+    addLog(`🛡️【戰術切換】當前戰術姿態調控為：<strong>${tacticMode === 'OFFENSIVE' ? '🔥 狂暴強擊' : tacticMode === 'BALANCED' ? '🛡️ 均衡防守' : '🎮 手動微操'}</strong>`, "perfect");
+}
+
+function syncTacticButtonsUi() {
+    const modes = ['MANUAL', 'BALANCED', 'OFFENSIVE'];
+    modes.forEach(m => {
+        const btn = document.getElementById(`tactic-btn-${m}`);
+        if (btn) {
+            btn.classList.toggle('active', activeTactic === m);
+        }
+    });
+}
+
+function executeAutoBattleAiTurn() {
+    if (activeTactic === "MANUAL") return false;
+
+    let hpPercent = (currentRun.hp / currentRun.maxHp) * 100;
     
-    if (!accountMeta.stats) {
-        accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+    if (activeTactic === "BALANCED" && hpPercent < 35 && currentRun.inventory) {
+        let foodIdx = currentRun.inventory.findIndex(item => item.includes("牛巨堡") || item.includes("料理"));
+        if (foodIdx !== -1) {
+            executeUseDungeonItem(currentRun.inventory[foodIdx], foodIdx);
+            return true;
+        }
+    }
+
+    if (hpPercent < 60 && currentRun.skills["治癒術"] && currentRun.mp >= 20) {
+        let skLv = currentRun.skills["治癒術"];
+        let healAmount = Math.floor(currentRun.maxHp * (0.18 + skLv * 0.08));
+        currentRun.mp -= 20;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healAmount);
+        addLog(`✨ 智能 AI 自動觸發 <span class="skill-holy">【治癒術 Lv.${skLv}】</span> 回復 <span class="heal-effect">+${healAmount} HP</span>！`, "perfect");
+        return true;
+    }
+
+    if (activeTactic === "OFFENSIVE" && typeof SKILLS_DATABASE !== "undefined") {
+        let jobSkills = SKILLS_DATABASE[currentRun.job] || [];
+        for (let i = jobSkills.length - 1; i >= 0; i--) {
+            let sMeta = jobSkills[i];
+            if (currentRun.skills[sMeta.name] && currentRun.mp >= sMeta.mp) {
+                currentRun.mp -= sMeta.mp;
+                let skLv = currentRun.skills[sMeta.name];
+                let isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
+                let baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
+                let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
+                
+                triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
+                let fxClass = detectSkillCssClass(sMeta.name);
+
+                let monsterDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
+                let dmgRes = calculateDamage(eff.dmg || baseAtkPower, monsterDef, true, (isMagicJob || eff.isMagic));
+
+                if (dmgRes.isMiss) {
+                    addLog(`💨 狂暴發動 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
+                } else {
+                    activeMonster.hp -= dmgRes.damage;
+                    addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "skill-hit");
+                }
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function handleMainAction() {
+    try {
+        if (gameState === "VILLAGE") {
+            gameState = "BATTLE";
+            dungeonFloor = 1;
+            document.getElementById('btn-secondary-action').style.display = "block";
+            document.getElementById('btn-secondary-action').innerText = "🏃 撤退逃回地表村莊";
+            updateUI();
+            runDungeonLoop();
+        } else if (gameState === "BATTLE") {
+            dungeonFloor++;
+            updateUI();
+            runDungeonLoop();
+        }
+    } catch(err) {
+        addLog(`🚨【動作發動失敗】主按鈕鏈接錯誤：${err.message}`, "take");
+    }
+}
+
+function handleRerunAction() {
+    try {
+        if (combatTickerTimer) clearInterval(combatTickerTimer);
+        addLog(`🔄【重巡整備】你留在深淵 B${dungeonFloor}F 進行重巡狩獵，戰局重新載入！`, "perfect");
+        gameState = "BATTLE";
+        
+        const mainBtn = document.getElementById('btn-main-action');
+        const rerunBtn = document.getElementById('btn-rerun-action');
+        if (mainBtn) mainBtn.disabled = false;
+        if (rerunBtn) rerunBtn.disabled = false;
+
+        updateUI();
+        runDungeonLoop();
+    } catch(err) {
+        addLog(`🚨【重巡失敗】: ${err.message}`, "take");
+    }
+}
+
+function handleSecondaryAction() {
+    clearInterval(combatTickerTimer);
+    gameState = "VILLAGE";
+    currentEnvironment = "NORMAL";
+    document.getElementById('btn-secondary-action').style.display = "none";
+    if (isQteActive) {
+        isQteActive = false;
+        document.getElementById('qte-overlay').style.display = 'none';
+    }
+
+    if (!accountMeta.maxFloor || dungeonFloor > accountMeta.maxFloor) {
+        accountMeta.maxFloor = dungeonFloor;
     }
     
-    accountMeta.statPoints--;
-    accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
+    if (currentRun.inventory) {
+        currentRun.inventory.forEach(item => {
+            if(typeof MONSTER_DROPS !== "undefined" && (MONSTER_DROPS[item] || Object.values(MONSTER_DROPS).includes(item) || item.includes("未知物體"))) {
+                accountMeta.warehouse[item] = (accountMeta.warehouse[item] || 0) + 1;
+            }
+        });
+    }
+    
+    resetCurrentRunData();
+    currentRun.hp = currentRun.maxHp;
+    currentRun.mp = currentRun.maxMp;
+
+    saveGameData(); 
+
+    addLog(`🏃【撤退成功】你驚險逃回地表村莊！等級與裝備完美保留，素材已安全歸倉！`, "perfect");
+    addLog(`💖💾【村莊泉水庇護】狀態已全額恢復，遊戲進度與歷史紀錄 (最高 B${accountMeta.maxFloor || 1}F) 已自動存檔！`, "perfect");
+
+    updateUI();
+    switchVillageLocation("GATE");
+}
+
+function removeBagItem(index) {
+    if (!currentRun.inventory || index < 0 || index >= currentRun.inventory.length) return;
+    
+    const itemName = currentRun.inventory.splice(index, 1)[0];
+    accountMeta.warehouse[itemName] = (accountMeta.warehouse[itemName] || 0) + 1;
+    
+    addLog(`📦 已將 <strong>${itemName}</strong> 放回倉庫。`);
+    saveGameData();
+    updateUI();
+}
+
+function executeUseDungeonItem(itemName, index) {
+    if (gameState !== "BATTLE" || !activeMonster) return;
+    addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
+    
+    if (itemName.includes("厚牛巨堡") || itemName.includes("料理")) {
+        let healVal = Math.floor(currentRun.maxHp * 0.5);
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+        addLog(`🌭 熱量充能！血量大幅度回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+    } 
+    else if (itemName.includes("永凍刨冰")) {
+        activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 2;
+        addLog(`❄️ 冰爽極限！魔物被徹底凍結 <strong>2 回合</strong> 無法行動！`, "perfect");
+    }
+    else if (itemName.includes("禁忌血釀")) {
+        let selfDmg = Math.floor(currentRun.hp * 0.2);
+        currentRun.hp = Math.max(1, currentRun.hp - selfDmg);
+        activeMonster.hp = 0;
+        addLog(`🍷 獻祭血液扣減 ${selfDmg} HP，釋放禁忌詛咒秒殺魔物！`, "perfect");
+        clearInterval(combatTickerTimer);
+        executeDungeonVictorySequence();
+    }
+    else if (itemName.includes("未知物體")) {
+        let dmg = currentEnvironment === "POISON" ? 30 : 15;
+        currentRun.hp = Math.max(1, currentRun.hp - dmg);
+        addLog(`🪨 焦黑物體反噬扣血！扣減 ${dmg} HP！`, "take");
+    }
+    
+    currentRun.inventory.splice(index, 1);
+    updateUI();
+}
+
+function executeVillageCooking(recipe) {
+    let missingList = [];
+    for (let ing in recipe.ingredients) {
+        let reqQty = recipe.ingredients[ing];
+        let currentQty = accountMeta.warehouse[ing] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`🌾 食材 [${ing}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
+        }
+    }
+
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 料理 [${recipe.name}] 所需食材不足`);
+        return;
+    }
+
+    for (let ing in recipe.ingredients) { 
+        accountMeta.warehouse[ing] -= recipe.ingredients[ing]; 
+    }
+    
+    triggerVillageQte("COOK", recipe, (rating) => {
+        if (rating === "PERFECT") {
+            if (recipe.type === "village_eat") {
+                activeVillageBuffs.maxHpAdd += 50;
+                currentRun.maxHp += 50;
+                currentRun.hp += 50;
+                addLog(`🍳👑【皇家廚神・美味絕頂】現場進食！最大 HP 永久加成 +50！`, "perfect");
+            } else {
+                addLog(`🍳👑【皇家廚神・大成功】雙倍成品！獲得 <strong>${recipe.name} x2</strong>！`, "perfect");
+                accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 2;
+            }
+        } 
+        else if (rating === "GOOD") {
+            if (recipe.type === "village_eat") {
+                activeVillageBuffs.maxHpAdd += 25;
+                currentRun.maxHp += 25;
+                currentRun.hp += 25;
+                addLog(`🍳【進食成功】體能滋補！最大 HP 加成 +25！`, "perfect");
+            } else {
+                addLog(`🍳【料理烹飪成功】獲得 <strong>${recipe.name} (x1)</strong>！`, "perfect");
+                accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 1;
+            }
+        } 
+        else {
+            addLog(`💥【料理大失敗】湯汁溢出熔毀，化為：<strong>🪨 焦黑的未知物體</strong>！`, "take");
+            accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
+        }
+        saveGameData(); updateUI(); renderVillageCookingWorkshop();
+    });
+}
+
+function executeForgeEquipment(blueprint) {
+    let missingList = [];
+    for (let ing in blueprint.ingredients) {
+        let reqQty = blueprint.ingredients[ing];
+        let currentQty = accountMeta.warehouse[ing] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`🔨 素材 [${ing}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
+        }
+    }
+
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 裝備 [${blueprint.name}] 鍛造素材不足`);
+        return;
+    }
+
+    for (let ing in blueprint.ingredients) { 
+        accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; 
+    }
+    
+    triggerVillageQte("FORGE", blueprint, (rating) => {
+        if (rating === "PERFECT") {
+            let firstIngKey = Object.keys(blueprint.ingredients)[0];
+            if (firstIngKey) {
+                accountMeta.warehouse[firstIngKey] = (accountMeta.warehouse[firstIngKey] || 0) + 1;
+            }
+            addLog(`🔨🌟【神匠顯靈・完美大成功】精工鑄造神裝：<strong>${blueprint.name}</strong>！返還素材 ${firstIngKey} x1！`, "perfect");
+            accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
+        } 
+        else if (rating === "GOOD") {
+            addLog(`🛠️【鍛造成功】成功鑄造神裝：<strong>${blueprint.name}</strong>！`, "perfect");
+            accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
+        } 
+        else {
+            addLog(`🚨【鍛造失敗】化為廢鐵：<strong>🪨 焦黑的未知物體</strong>！`, "take");
+            accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
+        }
+        saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+    });
+}
+
+function getStarUpCost(slot, currentStar) {
+    let nextStar = currentStar + 1;
+    if (slot === "weapon") {
+        return { "獸人後腿肉": nextStar * 2, "史萊姆黏液": nextStar };
+    } else if (slot === "armor") {
+        return { "巨石苔蘚": nextStar * 2, "哥布林香料": nextStar };
+    } else { 
+        return { "怨靈淚晶": nextStar * 2, "祭司血清": nextStar };
+    }
+}
+
+function executeSlotStarUp(slot) {
+    let currentStar = accountMeta.equipmentStars[slot];
+    if (currentStar >= 5) return;
+    let cost = getStarUpCost(slot, currentStar);
+    
+    let missingList = [];
+    for (let ing in cost) {
+        let reqQty = cost[ing];
+        let currentQty = accountMeta.warehouse[ing] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`🔥 精煉素材 [${ing}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
+        }
+    }
+
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 部位精煉升星素材不足`);
+        return;
+    }
+
+    for (let ing in cost) {
+        accountMeta.warehouse[ing] -= cost[ing];
+    }
+    
+    accountMeta.equipmentStars[slot]++;
+    addLog(`🌟【槽位精煉成功】你的 <strong>[${slot === 'weapon' ? '武器' : slot === 'armor' ? '防具' : '飾品'}]</strong> 部位升星至 ⭐ x${accountMeta.equipmentStars[slot]}！`, "perfect");
     
     resetCurrentRunData();
     saveGameData();
-    
-    addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！`, "perfect");
     updateUI();
+    if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
 
-function syncCharacterDataUi() {
-    if (!accountMeta || !currentRun) return;
-
-    const nameEl = DOM.get('p-name');
-    const jobEl = DOM.get('p-job');
-    const lvEl = DOM.get('p-lv');
-    const expTextEl = DOM.get('p-exp-text');
+function executeDismantle(equipName) {
+    let b = CRAFTING_BLUEPRINTS.find(x => x.name === equipName); if (!b) return;
+    accountMeta.warehouse[equipName]--;
     
-    if (nameEl) nameEl.innerText = accountMeta.name || "無名勇者";
-    if (jobEl) jobEl.innerText = getJobChineseName(currentRun.job);
-    if (lvEl) lvEl.innerText = accountMeta.lv || currentRun.lv || 1;
-    if (expTextEl) expTextEl.innerText = `${accountMeta.exp || 0} / ${accountMeta.nextExp || currentRun.nextExp || 30}`;
-
-    const pts = accountMeta.statPoints || 0;
-    const ptsEl = DOM.get('p-stat-points');
-    if (ptsEl) ptsEl.innerText = pts;
-
-    const folderSummary = DOM.get('char-folder-summary');
-    if (folderSummary) {
-        folderSummary.innerHTML = pts > 0 
-            ? `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold;">[✨ ${pts} 點數待分配]</span>`
-            : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
+    let refunded = [];
+    for (let ing in b.ingredients) {
+        let refundQty = Math.ceil(b.ingredients[ing] * 0.5);
+        accountMeta.warehouse[ing] = (accountMeta.warehouse[ing] || 0) + refundQty;
+        refunded.push(`${ing} x${refundQty}`);
     }
-
-    const gridEl = DOM.get('stat-alloc-grid');
-    if (gridEl) {
-        gridEl.innerHTML = "";
-        const statConfig = [
-            { key: "STR", name: "⚔️ 力量", desc: "近戰ATK / 負重" },
-            { key: "AGI", name: "⚡ 敏捷", desc: "攻速 / 迴避" },
-            { key: "VIT", name: "🛡️ 體質", desc: "HP上限 / 防禦" },
-            { key: "INT", name: "🔮 智力", desc: "魔攻 / 魔防" },
-            { key: "DEX", name: "🎯 靈巧", desc: "命中 / 詠唱" },
-            { key: "LUK", name: "🎰 幸運", desc: "暴擊 / 完迴" }
-        ];
-
-        const hasPoints = pts > 0;
-        const currentStats = accountMeta.stats || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
-
-        statConfig.forEach(s => {
-            const val = currentStats[s.key] || 0;
-            const cell = document.createElement('div');
-            cell.style.cssText = `
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 4px; padding: 4px 6px;
-                display: flex; justify-content: space-between; align-items: center;
-            `;
-
-            cell.innerHTML = `
-                <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 11px; color: #ddd;">${s.name} <b style="color: #00ffcc;">${val}</b></span>
-                    <span style="font-size: 9px; color: #777;">${s.desc}</span>
-                </div>
-                <button class="btn-game" 
-                    style="padding: 2px 6px; font-size: 11px; min-width: 22px; height: 22px; line-height: 1;"
-                    ${hasPoints ? "" : "disabled"} 
-                    onclick="allocateStatPoint('${s.key}')">+</button>
-            `;
-            gridEl.appendChild(cell);
-        });
-    }
-
-    const hpEl = DOM.get('p-hp');
-    const maxHpEl = DOM.get('p-maxhp');
-    const mpEl = DOM.get('p-mp');
-    const maxMpEl = DOM.get('p-maxmp');
     
-    if (hpEl) hpEl.innerText = currentRun.hp;
-    if (maxHpEl) maxHpEl.innerText = currentRun.maxHp;
-    if (mpEl) mpEl.innerText = currentRun.mp;
-    if (maxMpEl) maxMpEl.innerText = currentRun.maxMp;
-
-    const hpBar = DOM.get('hp-bar-fill');
-    const mpBar = DOM.get('mp-bar-fill');
-    if (hpBar) hpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.hp / currentRun.maxHp) * 100))}%`;
-    if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
-
-    const pAtbRow = DOM.get('p-atb-row');
-    if (pAtbRow) {
-        if (gameState === "VILLAGE") {
-            pAtbRow.style.display = "none";
-        } else {
-            pAtbRow.style.display = "block";
-            const pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
-            const pAtbBar = DOM.get('p-atb-bar-fill');
-            
-            if (pAtbBar) {
-                const currentW = parseFloat(pAtbBar.style.width) || 0;
-                if (pAtbPercent < currentW) {
-                    pAtbBar.style.transition = "none";
-                    pAtbBar.style.width = "0%";
-                    pAtbBar.offsetHeight;
-                }
-                pAtbBar.style.transition = "width 0.25s linear";
-                pAtbBar.style.width = `${pAtbPercent}%`;
-            }
-        }
-    }
-
-    const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
-    setTxt('p-gold', currentRun.gold || 0);
-    setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk})`);
-    setTxt('p-block', `${currentRun.def} (魔防 ${currentRun.mdef})`);
-    setTxt('p-spd', currentRun.spd);
-    setTxt('p-crit', `${currentRun.critChance}%`);
-    setTxt('p-dodge', `${Math.floor(currentRun.flee)} (完迴 ${currentRun.perfectDodge}%)`);
-    setTxt('p-vamp', `${Math.floor(currentRun.hit)} HIT`);
-
-    const skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
-    const skillListEl = DOM.get('p-skills-list');
-    if (skillListEl) skillListEl.innerText = skList || "基本打擊";
-
-    const wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
-    const aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
-    const cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
-
-    setTxt('p-equip-weapon', (accountMeta.equipment?.weapon || "空手") + wStar);
-    setTxt('p-equip-armor', (accountMeta.equipment?.armor || "布衣") + aStar);
-    setTxt('p-equip-accessory', (accountMeta.equipment?.accessory || "無") + cStar);
-
-    setTxt('bag-capacity-text', `🎒 ${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`);
-
-    const bagContainer = DOM.get('bag-slots-container');
-    if (bagContainer) {
-        bagContainer.innerHTML = "";
-        for (let i = 0; i < MAX_BAG_SIZE; i++) {
-            const item = currentRun.inventory[i];
-            const slot = document.createElement('div');
-            slot.style.cssText = `
-                height: 32px;
-                border: 1px dashed ${item ? "rgba(255,215,0,0.5)" : "rgba(255,255,255,0.15)"};
-                background: ${item ? "rgba(255,215,0,0.08)" : "rgba(0,0,0,0.2)"};
-                border-radius: 4px; display: flex; align-items: center; justify-content: center;
-                font-size: 10px; cursor: ${item ? "pointer" : "default"}; position: relative;
-                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px;
-                color: ${item ? "#ffd700" : "#666"};
-            `;
-
-            if (item) {
-                slot.innerText = item;
-                slot.title = `點擊使用 / 退回倉庫 (${item})`;
-                slot.onclick = () => {
-                    if (gameState === "BATTLE") {
-                        executeUseDungeonItem(item, i);
-                    } else {
-                        removeBagItem(i);
-                    }
-                };
-            } else {
-                slot.innerHTML = `<span style="color:#444;">空</span>`;
-            }
-            bagContainer.appendChild(slot);
-        }
-    }
+    addLog(`♻️【拆解回收】你成功拆解了 [${equipName}]，獲得原料 ➔ ${refunded.join(", ")}。`, "perfect");
+    saveGameData();
+    updateUI();
+    if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
 
-function getJobChineseName(j) {
-    const jobNames = { swordsman: "劍士", magician: "魔法師", acolyte: "服事", thief: "盜賊", archer: "弓箭手" };
-    return jobNames[j] || "劍士";
-}
+function triggerVillageQte(type, targetData, successCallback) {
+    const overlay = document.getElementById('qte-overlay');
+    const title = document.getElementById('qte-skill-name');
+    const tapBtn = document.getElementById('qte-tap-btn');
+    const qteFill = document.getElementById('qte-timer-fill');
 
-function switchVillageLocation(targetLoc) {
-    currentVillageLocation = targetLoc;
-    
-    const panels = ['v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
-    panels.forEach(p => {
-        const el = DOM.get(p);
-        if (el) el.style.display = 'none';
-    });
-    
-    const tabs = { 'GATE': 'btn-tab-gate', 'GUILD': 'btn-tab-guild', 'KITCHEN': 'btn-tab-kitchen', 'SQUARE': 'btn-tab-square', 'WORKSHOP': 'btn-tab-workshop' };
-    
-    Object.keys(tabs).forEach(k => {
-        const tBtn = DOM.get(tabs[k]);
-        if (tBtn) tBtn.classList.toggle('active', k === targetLoc);
-    });
-    
-    const locTextEl = DOM.get('location-text');
-    const locMap = {
-        GATE: { el: 'v-loc-gate', text: "⛺ 地表村莊 ➔ 傳送大殿" },
-        GUILD: { el: 'v-loc-guild', text: "🏛️ 地表村莊 ➔ 冒險者公會", render: renderVillageGuild },
-        KITCHEN: { el: 'v-loc-kitchen', text: "🍳 地表村莊 ➔ 皇家料理屋", render: renderVillageCookingWorkshop },
-        SQUARE: { el: 'v-loc-square', text: "💬 地表村莊 ➔ 中央廣場" },
-        WORKSHOP: { el: 'v-loc-workshop', text: "🛠️ 地表村莊 ➔ 魔導加工所", render: renderVillageWorkshop }
+    if (!overlay || !title || !tapBtn || !qteFill) return;
+
+    overlay.style.display = "flex";
+    isQteActive = true;
+
+    title.innerHTML = `🔨 正在加工：<strong>${targetData.name}</strong> 🔨`;
+
+    let progress = 0;
+    qteFill.style.width = "0%";
+    tapBtn.innerText = "🎯 點擊判定 (0%)";
+
+    let step = 3; 
+    let qteInterval = setInterval(() => {
+        if (!isQteActive) { clearInterval(qteInterval); return; }
+        progress += step;
+        if (progress >= 100) { clearInterval(qteInterval); resolveQteResult("MISS"); } 
+        else { qteFill.style.width = progress + "%"; tapBtn.innerText = `🎯 點擊判定 (${Math.floor(progress)}%)`; }
+    }, 25);
+
+    function resolveQteResult(rating) {
+        isQteActive = false; overlay.style.display = "none";
+        successCallback(rating);
+    }
+
+    tapBtn.onclick = () => {
+        if (!isQteActive) return;
+        clearInterval(qteInterval);
+        let rating = (progress >= 60 && progress <= 90) ? "PERFECT" : "GOOD";
+        resolveQteResult(rating);
     };
-
-    if (locMap[targetLoc]) {
-        const target = locMap[targetLoc];
-        const el = DOM.get(target.el);
-        if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = target.text;
-        if (target.render) target.render();
-    }
-    
-    updateUI();
 }
 
-function updateUI() {
-    const titleBox = DOM.get('title-box');
-    const statusBox = DOM.get('status-panel-box');
-    const actionBox = DOM.get('action-panel-box');
-    const villageBox = DOM.get('village-panel-box');
-    const rewardBox = DOM.get('reward-panel-box');
-    const logBox = DOM.get('log-box');
-    const envBar = DOM.get('env-alert-bar');
-    const autoBtn = DOM.get('btn-auto-battle');
-    const logWrapper = DOM.get('log-wrapper-box');
+function triggerRandomAbyssEvent() {
+    let roll = Math.random();
+    if (roll < 0.5) {
+        addLog(`📦【深淵遺蹟】你在角落發現了一座古老的魔導寶箱！`, "perfect");
+        triggerVillageQte("CHEST", { name: "古老寶箱" }, (rating) => {
+            if (rating === "PERFECT") {
+                let rewardG = 80 + dungeonFloor * 10;
+                currentRun.gold += rewardG;
+                addLog(`👑🔒【完美破解】獲得爆量金幣 +${rewardG} G！`, "perfect");
+            } else if (rating === "GOOD") {
+                let rewardG = 40;
+                currentRun.gold += rewardG;
+                addLog(`🔓【開鎖成功】獲得金幣 +${rewardG} G。`, "perfect");
+            } else {
+                let trapDmg = 20;
+                currentRun.hp = Math.max(1, currentRun.hp - trapDmg);
+                addLog(`💥【陷阱引爆】觸發反擊毒素！扣減 ${trapDmg} HP！`, "take");
+            }
+            resolveAbyssEvent();
+        });
+    } else {
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 30);
+        addLog(`⛲【遠古泉水】遇見淨化泉水，HP 回復 +30。`, "perfect");
+        resolveAbyssEvent();
+    }
+}
 
-    if (gameState === "VILLAGE") {
-        if (titleBox) titleBox.style.display = "none"; 
-        if (statusBox) statusBox.style.display = "grid";
-        if (actionBox) actionBox.style.display = "flex";
-        if (villageBox) villageBox.style.display = "block";
-        if (rewardBox) rewardBox.style.display = "none";
-        if (logWrapper) logWrapper.style.display = "block"; 
-        if (envBar) envBar.style.display = "none";
-        if (autoBtn) autoBtn.style.display = "none";
-        
-        const drawer = DOM.get('tactics-drawer-box');
-        if (drawer) drawer.classList.remove('expanded');
-        
-        const mainActionBtn = DOM.get('btn-main-action');
-        if (mainActionBtn) {
-            mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
-            mainActionBtn.disabled = false; 
+function resolveAbyssEvent() { 
+    gameState = "ENCOUNTER_RESOLVED"; 
+    const mainBtn = document.getElementById('btn-main-action');
+    const rerunBtn = document.getElementById('btn-rerun-action');
+    if (mainBtn) mainBtn.disabled = false;
+    if (rerunBtn) rerunBtn.disabled = false;
+    updateUI(); 
+    runDungeonLoop(); 
+}
+
+async function runDungeonLoop() {
+    try {
+        document.getElementById('btn-main-action').disabled = true;
+        const rerunBtn = document.getElementById('btn-rerun-action');
+        if(rerunBtn) rerunBtn.disabled = true;
+
+        let isBossFloor = (dungeonFloor % 10 === 0);
+        if (!isBossFloor && Math.random() < 0.25 && gameState !== "ENCOUNTER_RESOLVED") {
+            gameState = "ENCOUNTER"; updateUI(); triggerRandomAbyssEvent(); return; 
         }
-        const rerunBtn = DOM.get('btn-rerun-action');
-        if (rerunBtn) rerunBtn.style.display = "none";
+        if (gameState === "ENCOUNTER_RESOLVED") { gameState = "BATTLE"; }
+
+        currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
         
-        syncCharacterDataUi();
+        if (isBossFloor) {
+            let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { 
+                name: `👹 深淵無名魔皇`, 
+                baseHp: dungeonFloor * 40, 
+                baseAtk: dungeonFloor * 3, 
+                baseDef: dungeonFloor * 2,
+                baseMdef: dungeonFloor * 2,
+                baseSpd: 20, 
+                dropItem: "史萊姆黏液" 
+            };
+            
+            activeMonster = { 
+                name: bossMeta.name, 
+                hp: bossMeta.baseHp, 
+                maxHp: bossMeta.baseHp, 
+                atk: bossMeta.baseAtk, 
+                def: bossMeta.baseDef || bossMeta.def || (dungeonFloor * 2),
+                mdef: bossMeta.baseMdef || bossMeta.mdef || (dungeonFloor * 2),
+                spd: bossMeta.baseSpd, 
+                freezeTurns: 0, 
+                isSkipped: false, 
+                isBoss: true, 
+                fixedDrop: bossMeta.dropItem 
+            };
+            addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
+        } else {
+            let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
+            if (availableMonsters.length === 0 && typeof REGULAR_MONSTERS_POOL !== "undefined") availableMonsters = REGULAR_MONSTERS_POOL;
+            
+            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { 
+                name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseDef: 1, baseSpd: 15 
+            };
+            let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * (rollSeed.hpScale || 5));
+            let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * (rollSeed.atkScale || 1));
+            let scaledDef = Math.floor((rollSeed.baseDef || 1) + dungeonFloor * 0.5);
+            let finalSpd = rollSeed.baseSpd || 15;
+            
+            activeMonster = { 
+                name: rollSeed.name, 
+                hp: scaledHp, 
+                maxHp: scaledHp, 
+                atk: scaledAtk, 
+                def: scaledDef,
+                mdef: scaledDef,
+                spd: finalSpd, 
+                freezeTurns: 0, 
+                isSkipped: false, 
+                isBoss: false 
+            };
+            addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
+        }
+        
+        updateUI();
+
+        playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
+        if(combatTickerTimer) clearInterval(combatTickerTimer);
+
+        combatTickerTimer = setInterval(() => {
+            if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
+                clearInterval(combatTickerTimer); return;
+            }
+            battleTimeElapsed += 0.25;
+            playerAtb += (currentRun.spd || 20);
+            monsterAtb += (activeMonster.spd || 15);
+            envAtb += 15;
+
+            if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
+            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                playerAtb = Math.min(100, playerAtb - 100); 
+                executePlayerActionTick(); 
+            }
+            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                monsterAtb = Math.min(100, monsterAtb - 100); 
+                executeMonsterActionTick(); 
+            }
+            updateUI();
+        }, 250);
+    } catch(err) { 
+        addLog(`🚨 地下城異常：${err.message}`, "take"); 
+    }
+}
+
+function executeEnvironmentTick() {
+    currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + Math.floor((currentRun.mpRegen || 15) / 2));
+
+    if (currentEnvironment === "FIRE") {
+        let burnDmg = 5;
+        currentRun.hp = Math.max(1, currentRun.hp - burnDmg);
+        addLog(`🔥【灼熱環境】岩漿熱浪侵襲，扣減 ${burnDmg} HP！`, "env");
+    } else if (currentEnvironment === "POISON") {
+        let poisonDmg = Math.floor(currentRun.maxHp * 0.03);
+        currentRun.hp = Math.max(1, currentRun.hp - poisonDmg);
+        addLog(`🧪【瘴氣劇毒】毒氣攻心，扣減 ${poisonDmg} HP！`, "env");
+    }
+}
+
+function executePlayerActionTick() {
+    if (executeAutoBattleAiTurn()) {
+        if (activeMonster && activeMonster.hp <= 0) {
+            clearInterval(combatTickerTimer); executeDungeonVictorySequence();
+        }
+        return;
+    }
+
+    const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
+    const baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
+    let executedSkill = false;
+
+    if (typeof SKILLS_DATABASE !== "undefined") {
+        for (let sName of Object.keys(currentRun.skills)) {
+            let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
+            if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.45) {
+                executedSkill = true;
+                currentRun.mp -= sMeta.mp;
+                
+                let skLv = currentRun.skills[sName] || 1;
+                let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
+                
+                triggerProjectileFX(detectProjectileType(sName, currentRun.job));
+                let fxClass = detectSkillCssClass(sName);
+
+                // 1. 治癒與回復類
+                if (eff.healPercent || eff.healAmount) {
+                    let healVal = eff.healAmount || Math.floor((currentRun.maxHp || 100) * eff.healPercent);
+                    currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+                    addLog(`✨ 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+                }
+                // 2. MP 恢復類 (如禪心)
+                else if (eff.mpRestore) {
+                    currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore);
+                    addLog(`🧘 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${eff.mpRestore} MP</span>！`, "perfect");
+                }
+                // 3. 戰鬥護盾與屬性 Buff 類 (如霸體、天使之賜福)
+                else if (eff.blockBuff || eff.permAtk || eff.permHp || eff.dodgeBuff) {
+                    if (eff.blockBuff) currentRun.def += eff.blockBuff;
+                    if (eff.permAtk) currentRun.atk += eff.permAtk;
+                    if (eff.permHp) { currentRun.maxHp += eff.permHp; currentRun.hp += eff.permHp; }
+                    if (eff.dodgeBuff) currentRun.flee += eff.dodgeBuff;
+                    addLog(`🛡️ 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span> 成功加載戰術防禦與屬性增益！`, "perfect");
+                }
+                // 4. 攻擊傷害類
+                else if (eff.dmg) {
+                    let monsterDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
+                    let dmgRes = calculateDamage(eff.dmg, monsterDef, true, (isMagicJob || eff.isMagic));
+
+                    if (dmgRes.isMiss) {
+                        addLog(`💨 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
+                    } else {
+                        activeMonster.hp -= dmgRes.damage;
+                        let numClass = (isMagicJob || eff.isMagic) ? "num-m-dmg" : "num-p-dmg";
+                        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                        addLog(`💥 核心奧義！${critText}施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
+                        
+                        if (eff.freezeChance && Math.random() * 100 < eff.freezeChance) {
+                            activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 1;
+                            addLog(`❄️ 魔物被強行【凍結】1 回合！`, "perfect");
+                        }
+                        if (eff.stunChance && Math.random() * 100 < eff.stunChance) {
+                            activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 1;
+                            addLog(`💫 魔物被【眩暈】無法行動！`, "perfect");
+                        }
+
+                        if (currentRun.vampRate && currentRun.vampRate > 0) {
+                            let vampVal = Math.floor(dmgRes.damage * (currentRun.vampRate / 100));
+                            if (vampVal > 0) {
+                                currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vampVal);
+                                addLog(`🩸【血脈吸吮】汲取生命 <span class="heal-effect">+${vampVal} HP</span>`, "perfect");
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    if (!executedSkill) {
+        let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
+        let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
+        
+        if (dmgRes.isMiss) {
+            addLog(`💨 揮砍被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
+        } else {
+            activeMonster.hp -= dmgRes.damage; 
+            let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
+            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+            addLog(`⚔️ 普攻揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
+
+            if (currentRun.doubleStrike && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
+                let extraDmg = calculateDamage(Math.floor(baseAtkPower * 0.7), monsterDef, true, isMagicJob);
+                if (!extraDmg.isMiss) {
+                    activeMonster.hp -= extraDmg.damage;
+                    addLog(`⚡【殘影追擊】二次追擊重影！重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${extraDmg.damage} HP</span>`, "deal");
+                }
+            }
+        }
+    }
+
+    if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
+}
+
+function executeMonsterActionTick() {
+    if (activeMonster.freezeTurns > 0) { 
+        activeMonster.freezeTurns--; 
+        addLog(`❄️ 魔物處於冰凍狀態，無法行動！(剩餘 ${activeMonster.freezeTurns} 回合)`);
         return; 
     }
     
-    if (titleBox) titleBox.style.display = "none";
-    if (statusBox) statusBox.style.display = "grid";
-    if (actionBox) actionBox.style.display = "flex";
-    if (villageBox) villageBox.style.display = "none";
-    if (logBox) logBox.style.display = "block";
-    if (logWrapper) logWrapper.style.display = "block"; 
-    if (envBar) envBar.style.display = "block";
-    if (autoBtn) autoBtn.style.display = "block"; 
+    let monsterAtk = activeMonster.atk || 5;
+    let playerDef = currentRun.def || 0;
     
-    const actBtn = DOM.get('btn-main-action');
-    if (actBtn) {
-        actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
-    }
-    const rerunBtn = DOM.get('btn-rerun-action');
-    if (rerunBtn) {
-        rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
-    }
-
-    if (envBar && typeof ENVIRONMENT_DATABASE !== "undefined" && ENVIRONMENT_DATABASE[currentEnvironment]) {
-        envBar.className = ENVIRONMENT_DATABASE[currentEnvironment].className;
-        envBar.innerHTML = `${ENVIRONMENT_DATABASE[currentEnvironment].logText} (B${dungeonFloor}F)`;
-    }
-
-    const monBox = DOM.get('monster-status-card');
-    if (activeMonster && monBox) {
-        monBox.style.display = "block";
-        DOM.get('m-name').innerText = activeMonster.name;
-        DOM.get('m-hp-text').innerText = `${activeMonster.hp} / ${activeMonster.maxHp}`;
-        DOM.get('m-hp-bar').style.width = `${Math.max(0, (activeMonster.hp / activeMonster.maxHp) * 100)}%`;
-        DOM.get('m-atk').innerText = activeMonster.atk;
-        DOM.get('m-spd').innerText = activeMonster.spd;
-
-        const mAtbRow = DOM.get('m-atb-row');
-        if (mAtbRow) {
-            mAtbRow.style.display = "block";
-            const mAtbPercent = Math.min(100, Math.max(0, typeof monsterAtb !== "undefined" ? monsterAtb : 0));
-            const mAtbBar = DOM.get('m-atb-bar-fill');
-            
-            if (mAtbBar) {
-                const currentW = parseFloat(mAtbBar.style.width) || 0;
-                if (mAtbPercent < currentW) {
-                    mAtbBar.style.transition = "none";
-                    mAtbBar.style.width = "0%";
-                    mAtbBar.offsetHeight; 
-                }
-                mAtbBar.style.transition = "width 0.25s linear"; 
-                mAtbBar.style.width = `${mAtbPercent}%`;
-            }
-        }
-    } else if (monBox) {
-        monBox.style.display = "none";
-        const mAtbRow = DOM.get('m-atb-row');
-        if (mAtbRow) mAtbRow.style.display = "none";
-    }
-
-    if (rewardBox) {
-        rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
-    }
+    let dmgRes = calculateDamage(monsterAtk, playerDef, false, false);
     
-    syncCharacterDataUi();
-}
-
-function renderVillageGuild() {
-    const container = DOM.get('guild-skills-container');
-    if (!container || typeof SKILLS_DATABASE === "undefined") return;
-    container.innerHTML = "";
-
-    const jobSkills = SKILLS_DATABASE[currentRun.job] || [];
-
-    jobSkills.forEach(s => {
-        const card = document.createElement('div');
-        card.style.cssText = "background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; width: 100%;";
-
-        const currentLv = (accountMeta.skills && accountMeta.skills[s.name]) || (currentRun.skills && currentRun.skills[s.name]) || 0;
-        const isMaxLevel = currentLv >= 10;
-        const nextLv = currentLv + 1;
-
-        const goldCost = s.goldCost * nextLv;
-        const hasLevel = (accountMeta.lv || currentRun.lv || 1) >= s.reqLv;
-        const hasGold = currentRun.gold >= goldCost;
-        
-        let reqMatTextArr = [];
-        let hasMats = true;
-        for (let mat in s.reqMat) {
-            let reqQty = s.reqMat[mat] * nextLv;
-            reqMatTextArr.push(`${mat} x${reqQty}`);
-            if ((accountMeta.warehouse[mat] || 0) < reqQty) hasMats = false;
-        }
-        const reqMatText = reqMatTextArr.join(", ");
-
-        let statusBadge = "";
-        let btnDisabled = false;
-
-        if (isMaxLevel) {
-            statusBadge = `<span style="color: #ffd700; font-weight: bold; font-size: 11px;">[已滿級 Lv.10]</span>`;
-            btnDisabled = true;
-        } else if (currentLv > 0) {
-            statusBadge = `<span style="color: #2ecc71; font-weight: bold; font-size: 11px;">[當前 Lv.${currentLv}]</span>`;
-        } else {
-            statusBadge = `<span style="color: #8e8e93; font-size: 11px;">[未習得]</span>`;
-        }
-
-        if (!isMaxLevel) {
-            if (!hasLevel) {
-                statusBadge += ` <span style="color: #e74c3c; font-size: 11px;">(需 Lv.${s.reqLv})</span>`;
-                btnDisabled = true;
-            } else if (!hasGold || !hasMats) {
-                statusBadge += ` <span style="color: #e67e22; font-size: 11px;">(資源不足)</span>`;
-                btnDisabled = true;
-            }
-        }
-
-        card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <strong style="color: #ffd700; font-size: 13px;">${s.name} ${statusBadge}</strong>
-                <span style="font-size: 11px; color: #00ffcc;">${isMaxLevel ? "已達上限" : `下級消耗: 🪙 ${goldCost} G`}</span>
-            </div>
-            <p style="font-size: 11px; color: #aaa; margin: 4px 0;">${s.desc}</p>
-            ${(!isMaxLevel && reqMatText) ? `<div style="font-size: 10px; color: #8e8e93;">📦 升級素材：${reqMatText}</div>` : ""}
-            <div style="margin-top: 6px;"></div>
-        `;
-
-        const btnLearn = document.createElement('button');
-        btnLearn.className = "btn-game btn-explore";
-        btnLearn.style.cssText = "padding: 4px 10px; font-size: 11px;";
-        
-        if (isMaxLevel) {
-            btnLearn.innerText = "👑 已達滿級 (Lv.10)";
-        } else if (currentLv > 0) {
-            btnLearn.innerText = `⚡ 升級至 Lv.${nextLv}`;
-        } else {
-            btnLearn.innerText = "🎓 學習傳承技能";
-        }
-
-        btnLearn.disabled = btnDisabled;
-        btnLearn.onclick = () => { executeLearnSkill(s); };
-
-        card.appendChild(btnLearn);
-        container.appendChild(card);
-    });
-}
-
-function renderVillageCookingWorkshop() {
-    const wBox = DOM.get('kitchen-warehouse-display');
-    if (wBox) {
-        const wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-        wBox.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${wItems || "暫無任何行軍素材"}`;
-    }
-    
-    const rContainer = DOM.get('recipes-container');
-    if (!rContainer) return;
-    rContainer.innerHTML = "";
-
-    const selectorControl = document.createElement('div');
-    selectorControl.style.cssText = "margin-bottom: 12px; width: 100%;";
-    selectorControl.innerHTML = `
-        <label style="font-size: 11px; color: #ffd700; font-weight: bold; display: block; margin-bottom: 4px;">🍳 選擇食譜開發樓層：</label>
-        <select class="select-game" onchange="changeCookingTab(this.value)">
-            <option value="1-10" ${activeCookingRange === "1-10" ? "selected" : ""}>📜 深淵階層 B1F ~ B10F 食譜</option>
-            <option value="11-20" ${activeCookingRange === "11-20" ? "selected" : ""}>📜 深淵階層 B11F ~ B20F 食譜</option>
-            <option value="21-30" ${activeCookingRange === "21-30" ? "selected" : ""}>📜 深淵階層 B21F ~ B30F 食譜</option>
-            <option value="31-40" ${activeCookingRange === "31-40" ? "selected" : ""}>📜 深淵階層 B31F ~ B40F 食譜</option>
-            <option value="41-50" ${activeCookingRange === "41-50" ? "selected" : ""}>📜 深淵階層 B41F ~ B50F 食譜</option>
-        </select>
-    `;
-    rContainer.appendChild(selectorControl);
-
-    if (typeof RECIPES_DATABASE === "undefined") return;
-    const filteredRecipes = RECIPES_DATABASE.filter(r => r.range === activeCookingRange);
-
-    if (filteredRecipes.length === 0) {
-        const emptyMsg = document.createElement('div');
-        emptyMsg.style.cssText = "color:#555; font-size:12px; padding:15px; width:100%; text-align:center;";
-        emptyMsg.innerText = "🌿 該層數配方尚在通訊重構成形中...";
-        rContainer.appendChild(emptyMsg);
+    if (dmgRes.isMiss) {
+        addLog(`💨 勇者身形閃爍，成功 <span class="miss-effect">[MISS 閃過]</span> 了魔物的猛攻！<span class="num-popup num-miss">MISS</span>`, "miss");
         return;
     }
 
-    filteredRecipes.forEach(recipe => {
-        const card = document.createElement('div');
-        card.style.cssText = "background: rgba(0,0,0,0.25); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03); margin-bottom: 8px; width: 100%; text-align: left;";
-
-        const ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
-        let hasIngredients = true;
-        for (let ing in recipe.ingredients) {
-            if ((accountMeta.warehouse[ing] || 0) < recipe.ingredients[ing]) hasIngredients = false;
-        }
-
-        card.innerHTML = `
-            <strong style="color:#2ecc71; font-size:13px;">${recipe.name}</strong>
-            <p style="margin:4px 0; font-size:12px; color:#aaa;">${recipe.desc}</p>
-            <span style="font-size:11px; color:#8e8e93;">🌾 所需配料：${ingList}</span>
-            <div style="margin-top:8px;"></div>
-        `;
-
-        const btnCook = document.createElement('button');
-        btnCook.className = "btn-game btn-cook";
-        btnCook.style.cssText = "padding: 4px 10px; font-size: 11px;";
-        btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪納入快捷欄";
-        btnCook.onclick = () => { executeVillageCooking(recipe); };
-        
-        card.appendChild(btnCook);
-        rContainer.appendChild(card);
-    });
+    let finalDmg = dmgRes.damage;
+    currentRun.hp -= finalDmg; 
+    addLog(`🔴 魔物暴虐反噬！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
+    if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
-function renderStarUpRow(slot, displayName, currentStar) {
-    const starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
-    let upgradeBtn = "";
+function executeDungeonVictorySequence() {
+    let isBossFloor = (dungeonFloor % 10 === 0);
+    let rewardG = isBossFloor ? (150 + dungeonFloor * 10) : (15 + Math.floor(dungeonFloor * 1.5));
+    let rewardExp = isBossFloor ? (100 + dungeonFloor * 5) : (12 + dungeonFloor * 2);
+
+    currentRun.gold += rewardG; 
+    addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 戰鬥勝利！獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
     
-    if (currentStar >= 5) {
-        upgradeBtn = `<span style="color: #ffd700; font-size: 11px; font-weight: bold;">[已臻滿星]</span>`;
+    // 🎁 自動結算掉落物
+    let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" ? MONSTER_DROPS[activeMonster?.name] : null);
+    if (dropItemName) {
+        let msg = safePushToInventory(currentRun, accountMeta, dropItemName);
+        addLog(msg, "perfect");
+    }
+
+    if (isBossFloor) {
+        triggerBossTalentReward();
+    }
+
+    activeMonster = null; 
+    addExperience(rewardExp);
+}
+
+function triggerBossTalentReward() {
+    addLog(`👑🌟【Boss 史詩突破】你征服了 B${dungeonFloor}F 領主，獲得永久血脈天賦覺醒選擇！`, "perfect");
+    let talents = ["👑 不滅巨魔血脈 (MaxHP +100)", "⚡ 狂暴神經反射 (SPD +5)", "🩸 殘虐撕裂本能 (CRIT +5%)"];
+    let chosen = talents[Math.floor(Math.random() * talents.length)];
+    
+    if (chosen.includes("MaxHP")) { currentRun.maxHp += 100; currentRun.hp += 100; }
+    else if (chosen.includes("SPD")) { currentRun.spd += 5; }
+    else if (chosen.includes("CRIT")) { currentRun.critChance += 5; }
+
+    addLog(`✨ 天賦自動覺醒：<strong>${chosen}</strong>！`, "perfect");
+}
+
+function executeDungeonDefeatSequence() {
+    addLog(`☠️【魂歸深淵】你已被擊敗！本輪經驗清零，但裝備完好。`, "take");
+    accountMeta.exp = 0; currentRun.exp = 0;
+    gameState = "VILLAGE"; currentEnvironment = "NORMAL";
+    
+    resetCurrentRunData(); 
+    currentRun.hp = currentRun.maxHp; currentRun.mp = currentRun.maxMp;
+    
+    saveGameData(); updateUI(); switchVillageLocation("GATE");
+}
+
+function addExperience(amount) {
+    accountMeta.exp = (accountMeta.exp || 0) + amount;
+    currentRun.exp = accountMeta.exp;
+    checkLevelUpAndTriggerSelect();
+}
+
+function checkLevelUpAndTriggerSelect() {
+    while (accountMeta.exp >= accountMeta.nextExp) {
+        accountMeta.exp -= accountMeta.nextExp;
+        accountMeta.lv = (accountMeta.lv || 1) + 1;
+        accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; 
+        accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
+        addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點能力點數！`, "perfect");
+    }
+    
+    if (gameState === "BATTLE") { 
+        let btnMain = document.getElementById('btn-main-action');
+        if (btnMain) btnMain.disabled = false; 
+    }
+    saveGameData();
+    updateUI();
+}
+
+function executeEquipAction(equipName, actionType) {
+    let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName); if (!blueprint) return;
+    let slot = blueprint.type;
+    if (actionType === "equip") {
+        if (accountMeta.equipment[slot]) { let old = accountMeta.equipment[slot]; accountMeta.warehouse[old] = (accountMeta.warehouse[old] || 0) + 1; }
+        accountMeta.warehouse[equipName]--; accountMeta.equipment[slot] = equipName;
     } else {
-        const cost = getStarUpCost(slot, currentStar);
-        const costText = Object.keys(cost).map(k => `${k} x${cost[k]}`).join(", ");
-        
-        upgradeBtn = `
-            <button class="btn-game btn-rerun" style="padding: 4px 8px; font-size: 11px;" onclick="executeSlotStarUp('${slot}')">
-                🔥 升星 (需 ${costText})
-            </button>
-        `;
+        accountMeta.equipment[slot] = null; accountMeta.warehouse[equipName] = (accountMeta.warehouse[equipName] || 0) + 1;
     }
-    
-    return `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px;">
-            <span style="font-size: 12px; font-weight: bold; color: #fff;">${displayName} [${starsStr}]</span>
-            ${upgradeBtn}
-        </div>
-    `;
-}
-
-function renderVillageWorkshop() {
-    const wBox = DOM.get('workshop-warehouse-display');
-    if (wBox) {
-        const wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-        wBox.innerHTML = `📦 <strong>雲端永久素材與裝備庫存：</strong><br>${wItems || "倉庫空空如也"}`;
-    }
-    
-    const bContainer = DOM.get('blueprints-container');
-    if (!bContainer) return;
-    bContainer.innerHTML = "";
-    
-    const starPanel = document.createElement('div');
-    starPanel.className = "dynamic-panel reward-style";
-    starPanel.style.cssText = "border: 1px solid rgba(212, 175, 55, 0.4); background: rgba(15, 13, 10, 0.5); margin-bottom: 15px; padding: 12px; width: 100%;";
-    
-    starPanel.innerHTML = `
-        <div class="panel-title" style="color: #ffd700; margin-bottom: 8px;">🌟 皇家部位星級精煉台 (永久繼承) 🌟</div>
-        <p style="font-size: 11px; color: #8e8e93; text-align: center; margin: 0 0 10px 0;">部位強化屬性永久提升：每⭐提升對應部位屬性額外加乘 +15%</p>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${renderStarUpRow("weapon", "🗡️ 武器槽位", accountMeta.equipmentStars.weapon)}
-            ${renderStarUpRow("armor", "👕 防具槽位", accountMeta.equipmentStars.armor)}
-            ${renderStarUpRow("accessory", "💍 飾品槽位", accountMeta.equipmentStars.accessory)}
-        </div>
-    `;
-    bContainer.appendChild(starPanel);
-
-    const selectorWrapper = document.createElement('div');
-    selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; width: 100%;";
-    selectorWrapper.innerHTML = `
-        <div>
-            <label style="font-size: 11px; color: #ffd700; font-weight: bold; display: block; margin-bottom: 4px;">🛠️ 選擇藍圖種類：</label>
-            <select class="select-game" onchange="changeCraftingCat(this.value)">
-                <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部神裝藍圖</option>
-                <option value="weapon" ${activeCraftingCategory === "weapon" ? "selected" : ""}>🗡️ 武器藍圖</option>
-                <option value="armor" ${activeCraftingCategory === "armor" ? "selected" : ""}>👕 防具藍圖</option>
-                <option value="accessory" ${activeCraftingCategory === "accessory" ? "selected" : ""}>💍 飾品藍圖</option>
-            </select>
-        </div>
-        <div>
-            <label style="font-size: 11px; color: #ffd700; font-weight: bold; display: block; margin-bottom: 4px;">📜 選擇解鎖等級：</label>
-            <select class="select-game" onchange="changeCraftingLvl(this.value)">
-                <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 階層 B1F ~ B10F</option>
-                <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 階層 B11F ~ B20F</option>
-                <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 階層 B21F ~ B30F</option>
-                <option value="31-40" ${activeCraftingLvlRange === "31-40" ? "selected" : ""}>📜 階層 B31F ~ B40F</option>
-                <option value="41-50" ${activeCraftingLvlRange === "41-50" ? "selected" : ""}>📜 階層 B41F ~ B50F</option>
-                <option value="51-60" ${activeCraftingLvlRange === "51-60" ? "selected" : ""}>📜 階層 B51F ~ B60F</option>
-            </select>
-        </div>
-    `;
-    bContainer.appendChild(selectorWrapper);
-
-    if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
-    const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
-        const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
-        const matchLvl = (b.range === activeCraftingLvlRange);
-        return matchCat && matchLvl;
-    });
-
-    if (filteredBlueprints.length === 0) {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.innerHTML = `<div style="color:#555; font-size:12px; padding:20px; width:100%; text-align:center;">🔨 該級別無此分類神裝，等待神匠開拓藍圖...</div>`;
-        bContainer.appendChild(emptyDiv);
-        return;
-    }
-
-    filteredBlueprints.forEach(blueprint => {
-        const btnWrapper = document.createElement('div');
-        btnWrapper.style.cssText = "background: rgba(0,0,0,0.2); padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); margin-bottom: 10px; text-align: left; width: 100%;";
-
-        const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
-        const statText = Object.keys(blueprint.stats).map(k => {
-            const nameMap = { atk: "攻擊", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", flee: "閃避" };
-            const name = nameMap[k] || k;
-            return `${name} ${blueprint.stats[k] > 0 ? '+' : ''}${blueprint.stats[k]}`;
-        }).join(", ");
-
-        const titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
-        const infoP = document.createElement('p');
-        infoP.style.cssText = "margin: 0 0 10px 0; font-size: 12px; color: #babcbf; line-height: 1.5;";
-        infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
-        btnWrapper.appendChild(infoP);
-
-        const btnForge = document.createElement('button');
-        btnForge.className = "btn-game btn-explore";
-        btnForge.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 8px;";
-        btnForge.innerHTML = "🔨 消耗材料打造";
-        btnForge.onclick = () => { executeForgeEquipment(blueprint); };
-        btnWrapper.appendChild(btnForge);
-
-        const isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
-        const hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
-
-        if (isEquipped) {
-            const btnUnequip = document.createElement('button');
-            btnUnequip.className = "btn-game btn-rest"; 
-            btnUnequip.style.cssText = "padding: 6px 12px; font-size: 11px;";
-            btnUnequip.innerHTML = "❌ 卸下神裝";
-            btnUnequip.onclick = () => { executeEquipAction(blueprint.name, "unequip"); };
-            btnWrapper.appendChild(btnUnequip);
-        } else if (hasInWarehouse) {
-            const btnEquip = document.createElement('button');
-            btnEquip.className = "btn-game btn-rerun"; 
-            btnEquip.style.cssText = "padding: 6px 12px; font-size: 11px;";
-            btnEquip.innerHTML = "⚡ 穿戴上身";
-            btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
-            btnWrapper.appendChild(btnEquip);
-
-            const btnDismantle = document.createElement('button');
-            btnDismantle.className = "btn-game btn-rest"; 
-            btnDismantle.style.cssText = "padding: 6px 12px; font-size: 11px; margin-left: 6px; background: linear-gradient(135deg, #c0392b 0%, #962d00 100%) !important;";
-            btnDismantle.innerHTML = "♻️ 拆解回收";
-            btnDismantle.onclick = () => { executeDismantle(blueprint.name); };
-            btnWrapper.appendChild(btnDismantle);
-        }
-
-        bContainer.appendChild(btnWrapper);
-    });
-}
-
-function addLog(msg, type = "deal") {
-    const box = DOM.get('log-box');
-    if (!box) return;
-
-    const classMap = {
-        take: " log-take-dmg",
-        perfect: " log-perfect",
-        env: " log-env-tick",
-        miss: " log-miss",
-        "skill-hit": " log-skill-hit",
-        "victory-badge": " log-victory-badge"
-    };
-
-    const p = document.createElement('div');
-    p.className = `log-row-box${classMap[type] || ""}`;
-    p.innerHTML = msg;
-    box.appendChild(p);
-    
-    box.scrollTo({
-        top: box.scrollHeight,
-        behavior: 'smooth'
-    });
-}
-
-function changeCookingTab(range) {
-    activeCookingRange = range;
-    renderVillageCookingWorkshop();
-}
-
-function changeCraftingCat(cat) {
-    activeCraftingCategory = cat;
-    renderVillageWorkshop();
-}
-
-function changeCraftingLvl(range) {
-    activeCraftingLvlRange = range;
-    renderVillageWorkshop();
+    resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
