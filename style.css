@@ -165,6 +165,41 @@ body {
 .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .flex-layout { display: flex; flex-direction: column; gap: 10px; }
 
+/* 🎛️ 通用魔導下拉選單 (Select UI Component) */
+.select-game {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold-glow);
+    background: rgba(12, 12, 18, 0.9);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 10px rgba(255, 215, 0, 0.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%23ffd700' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 18px;
+    padding-right: 32px;
+}
+
+.select-game:hover, .select-game:focus {
+    border-color: var(--gold-glow);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+    background-color: rgba(20, 20, 30, 0.95);
+}
+
+.select-game option {
+    background: #111116;
+    color: #e3e3e6;
+    padding: 10px;
+}
+
 /* ==========================================================================
    🌅 ZONE 2: 封面歡迎與環境狀態監控模組
    ========================================================================== */
@@ -278,7 +313,6 @@ body {
     border-radius: 6px; padding: 5px; font-size: 11px; text-align: center; color: #d1d1d6;
 }
 
-/* 📂 摺疊收納架樣式 */
 .char-details-folder {
     grid-column: span 2; border-radius: 8px; overflow: hidden;
     background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s ease;
@@ -338,7 +372,6 @@ body {
 .placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 30px 20px; text-align: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
 .placeholder-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #fff; letter-spacing: 1px; }
 
-/* 流派樣式邊框 */
 .job-select-style { border-color: rgba(0, 206, 166, 0.15); background: linear-gradient(180deg, rgba(0,206,166,0.02) 0%, rgba(0,0,0,0) 100%); }
 .cooking-style { border-color: rgba(155, 89, 182, 0.15); background: linear-gradient(180deg, rgba(155, 89, 182, 0.02) 0%, rgba(0,0,0,0) 100%); }
 .reward-style { border: 1px solid var(--gold-glow); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
@@ -347,7 +380,8 @@ body {
    📜 ZONE 5: 日誌與電影級打擊感系統
    ========================================================================== */
 .log-panel {
-    height: 250px; overflow-y: auto;
+    height: 250px; overflow-y: auto; overflow-x: hidden;
+    position: relative; /* 限制所有攻擊、投射物與技能特效作用範圍 */
     background: radial-gradient(circle at 50% 100%, rgba(15, 15, 22, 0.9) 0%, rgba(7, 7, 10, 0.98) 100%);
     padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
@@ -355,6 +389,7 @@ body {
 }
 
 .log-row-box {
+    position: relative;
     background: rgba(255, 255, 255, 0.01); border-radius: 8px; padding: 8px 14px; margin: 7px 0;
     border-left: 3px solid rgba(255, 255, 255, 0.15); color: #e3e3e6; border-top: 1px solid rgba(255, 255, 255, 0.02);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3); animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -378,7 +413,6 @@ body {
     border-left: 3px solid #ff4757 !important; color: #ffffff !important; box-shadow: 0 2px 8px rgba(255, 71, 87, 0.04);
 }
 
-/* 💥 技能打擊專屬日誌樣式 */
 .log-skill-hit {
     background: linear-gradient(90deg, rgba(255, 159, 67, 0.2) 0%, rgba(255, 71, 87, 0.05) 100%) !important;
     border-left: 4px solid #ff9f43 !important;
@@ -391,7 +425,6 @@ body {
     100% { filter: brightness(1); }
 }
 
-/* 💨 MISS 閃避專屬日誌樣式 */
 .log-miss {
     background: linear-gradient(90deg, rgba(142, 142, 147, 0.12) 0%, rgba(0,0,0,0) 100%) !important;
     border-left: 3px solid #8e8e93 !important;
@@ -436,7 +469,7 @@ body {
 }
 
 /* ==========================================================================
-   💥 ZONE 6: 刀芒、奧義光粒爆散與 MISS 殘影特效系統
+   💥 ZONE 6: 多元素技能樣式與擊中特效 (完全內聚於戰鬥日記)
    ========================================================================== */
 .strike-slash, .strike-monster, .heal-effect {
     display: inline-block; position: relative; color: #ffffff !important;
@@ -472,15 +505,58 @@ body {
     100% { transform: rotate(45deg) scale(0.8) translateX(20px); opacity: 0; filter: blur(5px); }
 }
 
-/* ⚡ 1. 狂擊 / 重擊光粒散開特效 (Bash & Heavy Impact) */
-.skill-bash, .skill-impact {
-    display: inline-block;
-    position: relative;
-    color: #fff2a8 !important;
-    font-weight: 900 !important;
-    padding: 0 6px;
-    text-shadow: 0 0 8px #ff9f43, 0 0 18px #ff5252;
-    animation: bashImpactText 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+/* 🔥 1. 烈焰爆裂 (Fire Burst) */
+.skill-fire {
+    display: inline-block; position: relative; color: #ffbe76 !important; font-weight: 900 !important; padding: 0 6px;
+    text-shadow: 0 0 8px #ff4757, 0 0 18px #ff7f50; animation: firePulse 0.4s ease-out forwards;
+}
+.skill-fire::before {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: #ffffff;
+    pointer-events: none; z-index: 3; transform: translate(-50%, -50%); animation: fireParticles 0.5s ease-out forwards;
+}
+@keyframes fireParticles {
+    0% { opacity: 1; box-shadow: 0 0 0 #fff; }
+    100% { opacity: 0; box-shadow: -22px -18px 4px 2px #ff4757, 25px -15px 3px 2px #ff7f50, -20px 20px 4px 1px #ffa502, 22px 22px 3px 2px #ffbe76; }
+}
+
+/* ❄️ 2. 極寒霜凍 (Ice Freeze) */
+.skill-ice {
+    display: inline-block; position: relative; color: #a0e6ff !important; font-weight: 900 !important; padding: 0 6px;
+    text-shadow: 0 0 10px #70a1ff, 0 0 20px #00d2d3; animation: iceShimmer 0.45s ease-out forwards;
+}
+.skill-ice::after {
+    content: "❄"; position: absolute; right: -12px; top: -6px; font-size: 12px; color: #70a1ff; opacity: 0;
+    animation: iceCrystal 0.5s ease-out forwards;
+}
+@keyframes iceCrystal { 0% { transform: scale(0.2) rotate(0deg); opacity: 1; } 100% { transform: scale(1.4) rotate(180deg); opacity: 0; } }
+
+/* ⚡ 3. 雷霆電光 (Lightning Shock) */
+.skill-lightning {
+    display: inline-block; position: relative; color: #fff2a8 !important; font-weight: 900 !important; padding: 0 6px;
+    text-shadow: 0 0 10px #f1c40f, 0 0 20px #eccc68; animation: lightningJitter 0.3s steps(2, start) infinite;
+}
+@keyframes lightningJitter { 0% { transform: skewX(-10deg) scale(1.1); } 50% { transform: skewX(10deg) scale(0.95); } 100% { transform: skewX(0deg) scale(1); } }
+
+/* 🔮 4. 奧術風暴 (Arcane Plasma) */
+.skill-arcane {
+    display: inline-block; position: relative; color: #e8dbff !important; font-weight: 900 !important; padding: 0 6px;
+    text-shadow: 0 0 10px #a55eea, 0 0 20px #8854d0; animation: arcaneGlow 0.5s ease-out forwards;
+}
+
+/* ✨ 5. 神聖庇護/治癒 (Holy Healing) */
+.skill-holy {
+    display: inline-block; position: relative; color: #ffd700 !important; font-weight: 900 !important; padding: 0 6px;
+    text-shadow: 0 0 10px #2ecc71, 0 0 20px #ffd700; animation: holyRadiance 0.6s ease-in-out forwards;
+}
+
+/* 🧪 6. 劇毒與出血 (Poison & Bleed) */
+.skill-poison { color: #2ecc71 !important; text-shadow: 0 0 8px #27ae60, 0 0 15px #11998e; }
+.skill-bleed { color: #e74c3c !important; text-shadow: 0 0 8px #c0392b, 0 0 15px #8e44ad; }
+
+/* 💥 7. 物理重擊/狂擊 (Bash & Critical Impact) */
+.skill-bash, .skill-crit {
+    display: inline-block; position: relative; color: #fff2a8 !important; font-weight: 900 !important; padding: 0 6px;
+    text-shadow: 0 0 8px #ff9f43, 0 0 18px #ff5252; animation: bashImpactText 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 @keyframes bashImpactText {
@@ -489,117 +565,9 @@ body {
     100% { transform: scale(1); filter: brightness(1.2); }
 }
 
-/* 狂擊光粒散射 ::before (使用 box-shadow 模擬多顆點狀光粒向外擴散) */
-.skill-bash::before, .skill-impact::before {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    background: #ffffff;
-    pointer-events: none;
-    z-index: 3;
-    transform: translate(-50%, -50%);
-    animation: sparkParticlesScatter 0.5s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
-}
-
-@keyframes sparkParticlesScatter {
-    0% {
-        opacity: 1;
-        box-shadow: 
-            0 0 0 #fff,
-            0 0 0 #ffd700,
-            0 0 0 #ff6b6b,
-            0 0 0 #ffa502,
-            0 0 0 #fff,
-            0 0 0 #ffd700,
-            0 0 0 #ff4757,
-            0 0 0 #eccc68;
-    }
-    100% {
-        opacity: 0;
-        box-shadow: 
-            -28px -25px 4px 1.5px #ffd700,
-             32px -20px 3px 2px #ff6b6b,
-            -35px  18px 4px 1px #ffa502,
-             25px  28px 3px 2px #ffffff,
-              0px -38px 5px 2px #ffd700,
-              0px  35px 4px 1.5px #ff4757,
-            -40px   0px 3px 2px #eccc68,
-             38px   2px 4px 1px #ffffff;
-    }
-}
-
-/* 狂擊衝擊波黃金環 ::after */
-.skill-bash::after, .skill-impact::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 12px; height: 12px;
-    margin-top: -6px; margin-left: -6px;
-    border-radius: 50%;
-    border: 2px solid #ffd700;
-    box-shadow: 0 0 12px #ff4757, inset 0 0 8px #ffd700;
-    pointer-events: none;
-    opacity: 0;
-    animation: bashShockwave 0.42s ease-out forwards;
-}
-
-@keyframes bashShockwave {
-    0% { transform: scale(0.2); opacity: 1; border-width: 4px; }
-    50% { opacity: 0.9; }
-    100% { transform: scale(3.8); opacity: 0; border-width: 0.5px; filter: blur(2px); }
-}
-
-/* 🔮 2. 奧術魔法粒子爆散特效 (Magic Sparks) */
-.skill-magic {
-    display: inline-block;
-    position: relative;
-    color: #a0e6ff !important;
-    font-weight: 900 !important;
-    padding: 0 6px;
-    text-shadow: 0 0 10px #00d2d3, 0 0 20px #54a0ff;
-    animation: magicImpactText 0.4s ease-out forwards;
-}
-
-.skill-magic::before {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    background: #ffffff;
-    pointer-events: none;
-    z-index: 3;
-    transform: translate(-50%, -50%);
-    animation: magicParticlesScatter 0.55s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
-}
-
-@keyframes magicParticlesScatter {
-    0% {
-        opacity: 1;
-        box-shadow: 0 0 0 #fff, 0 0 0 #00d2d3, 0 0 0 #54a0ff, 0 0 0 #9b59b6;
-    }
-    100% {
-        opacity: 0;
-        box-shadow: 
-            -30px -18px 4px 2px #00d2d3,
-             28px -28px 4px 1.5px #54a0ff,
-            -22px  26px 4px 2px #9b59b6,
-             32px  20px 4px 1px #70a1ff,
-              0px -35px 5px 2px #ffffff,
-              0px  32px 4px 2px #00d2d3;
-    }
-}
-
-/* 💨 3. MISS 專屬風速閃避與殘影特效 (Wind Ghost Dodge) */
+/* 💨 8. MISS 閃避特效 */
 .miss-effect {
-    display: inline-block;
-    position: relative;
-    color: #d1d1d6 !important;
-    font-weight: bold;
-    font-style: italic;
-    padding: 0 4px;
+    display: inline-block; position: relative; color: #d1d1d6 !important; font-weight: bold; font-style: italic; padding: 0 4px;
     text-shadow: 0 0 6px rgba(255, 255, 255, 0.6), 0 0 12px rgba(160, 160, 200, 0.4);
     animation: missGhostGlitch 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
@@ -607,30 +575,7 @@ body {
 @keyframes missGhostGlitch {
     0% { transform: scale(0.6) translateX(-18px) skewX(-20deg); opacity: 0; filter: blur(4px); }
     40% { transform: scale(1.3) translateX(6px) skewX(12deg); opacity: 1; filter: blur(0); }
-    70% { transform: scale(0.95) translateX(-2px) skewX(-3deg); }
     100% { transform: scale(1) translateX(0) skewX(0); filter: blur(0); }
-}
-
-/* MISS 殘影疾風切割線 */
-.miss-effect::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: -30%;
-    width: 160%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
-    box-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
-    transform: translateY(-50%) rotate(-8deg);
-    opacity: 0;
-    pointer-events: none;
-    animation: missWindSlash 0.35s ease-out forwards;
-}
-
-@keyframes missWindSlash {
-    0% { transform: translateY(-50%) translateX(-25px) rotate(-8deg) scaleX(0.2); opacity: 0; }
-    50% { opacity: 1; transform: translateY(-50%) translateX(0px) rotate(-8deg) scaleX(1.3); }
-    100% { opacity: 0; transform: translateY(-50%) translateX(25px) rotate(-8deg) scaleX(1.6); filter: blur(3px); }
 }
 
 .heal-effect { animation: textGreenFlash 0.6s ease-in-out forwards; }
@@ -758,7 +703,7 @@ body {
    🧭 ZONE 9: 戰術抽屜與 ATB 平滑線性過渡
    ========================================================================== */
 .log-wrapper {
-    position: relative; width: 100%; height: 180px; margin-top: 8px;
+    position: relative; width: 100%; height: 260px; margin-top: 8px;
     overflow: hidden; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(10, 10, 15, 0.4);
 }
 
@@ -951,6 +896,30 @@ body {
     box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); position: absolute; top: 0; left: 0; z-index: 1; transition: width 0.025s linear;
 }
 
+/* ⚠️ 素材/資源不足專屬警告 Modal 彈窗 */
+#mat-alert-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 100005; display: flex; justify-content: center; align-items: center;
+    opacity: 0; visibility: hidden; transition: all 0.25s ease-out;
+}
+
+#mat-alert-overlay.active { opacity: 1; visibility: visible; }
+
+.mat-alert-box {
+    background: radial-gradient(circle at 50% 0%, rgba(231, 76, 60, 0.25) 0%, rgba(15, 12, 15, 0.98) 80%);
+    border: 1px solid rgba(231, 76, 60, 0.5); border-radius: 18px; padding: 25px;
+    width: 90%; max-width: 360px; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(231, 76, 60, 0.2);
+    transform: scale(0.85); transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#mat-alert-overlay.active .mat-alert-box { transform: scale(1); }
+
+.mat-alert-header { font-size: 16px; font-weight: 900; color: #ff4757; margin-bottom: 12px; letter-spacing: 1px; }
+.mat-alert-content { font-size: 13px; color: #d1d1d6; line-height: 1.6; margin-bottom: 20px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+.mat-alert-btn { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border: 1px solid #ff6b6b; color: #fff; width: 100%; padding: 12px; font-weight: bold; border-radius: 10px; cursor: pointer; }
+
 /* ==========================================================================
    📦 ZONE 11: 容器滾動條與響應式雙軌/手機佈局
    ========================================================================== */
@@ -993,206 +962,57 @@ body {
 }
 
 /* ==========================================================================
-   🚀 ZONE 12: 魔法投射物 (Projectiles) 動畫系統
+   🚀 ZONE 12: 戰鬥日記專屬純 CSS 投射物 (Log-Internal Projectiles)
    ========================================================================== */
-.game-container {
-    position: relative; /* 確保投射物能在容器內精確定位 */
-}
-
 .projectile-entity {
     position: absolute;
-    bottom: 220px;
-    left: 10%;
-    font-size: 32px;
-    z-index: 9999;
-    pointer-events: none;
-    animation: flyToMonster 0.42s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
-}
-
-/* 各元素專屬發光與影效 */
-.proj-fire { filter: drop-shadow(0 0 10px #ff4757) drop-shadow(0 0 20px #ffa502); }
-.proj-ice { filter: drop-shadow(0 0 10px #70a1ff) drop-shadow(0 0 20px #1e90ff); }
-.proj-lightning { filter: drop-shadow(0 0 10px #eccc68) drop-shadow(0 0 20px #ffa502); }
-.proj-arcane { filter: drop-shadow(0 0 10px #a55eea) drop-shadow(0 0 20px #4b7bec); }
-.proj-arrow { filter: drop-shadow(0 0 8px #2ecc71); }
-
-/* 飛行斜對角拋物軌跡動畫 */
-@keyframes flyToMonster {
-    0% {
-        transform: translate(0, 0) scale(0.3) rotate(-35deg);
-        opacity: 0;
-    }
-    20% {
-        opacity: 1;
-        transform: translate(50px, -30px) scale(1.3) rotate(-15deg);
-    }
-    80% {
-        opacity: 1;
-        transform: translate(240px, -130px) scale(1.1) rotate(20deg);
-    }
-    90% {
-        opacity: 1;
-        transform: translate(270px, -145px) scale(1.6) rotate(30deg);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(285px, -150px) scale(2.4) rotate(45deg);
-        filter: brightness(3) drop-shadow(0 0 35px #ffffff);
-    }
-}
-
-/* ==========================================================================
-   🚀 ZONE 12: 純 CSS 發光元素投射物 (No Emoji Particle Engine)
-   ========================================================================== */
-.game-container {
-    position: relative;
-}
-
-/* 投射物主容器與飛行動畫 */
-.projectile-entity {
-    position: absolute;
-    bottom: 220px;
-    left: 10%;
-    width: 40px;
-    height: 40px;
-    z-index: 9999;
+    bottom: 20px;
+    left: 10px;
+    width: 30px;
+    height: 30px;
+    z-index: 99;
     pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: flyToMonster 0.42s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
+    animation: flyToLogTarget 0.42s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
 }
 
-/* --------------------------------------------------
-   🔥 1. 烈焰爆裂球 (Fire Ball)
-   -------------------------------------------------- */
 .proj-fire .fx-core {
-    width: 24px;
-    height: 24px;
+    width: 16px; height: 16px;
     background: radial-gradient(circle, #ffffff 10%, #ffbe76 40%, #ff4757 80%, rgba(255, 71, 87, 0) 100%);
-    border-radius: 50%;
-    box-shadow: 0 0 12px #ff4757, 0 0 25px #ffa502, 0 0 40px #ff7f50;
-    position: relative;
-    animation: firePulse 0.15s infinite alternate;
-}
-.proj-fire .fx-core::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: -12px;
-    width: 30px; height: 18px;
-    background: linear-gradient(90deg, rgba(255, 71, 87, 0), #ff7f50);
-    border-radius: 50%;
-    filter: blur(3px);
+    border-radius: 50%; box-shadow: 0 0 10px #ff4757, 0 0 20px #ffa502;
 }
 
-/* --------------------------------------------------
-   ❄️ 2. 極寒菱形冰晶 (Ice Shard)
-   -------------------------------------------------- */
 .proj-ice .fx-core {
-    width: 18px;
-    height: 32px;
+    width: 12px; height: 22px;
     background: linear-gradient(135deg, #ffffff 0%, #70a1ff 50%, #1e90ff 100%);
     clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    box-shadow: 0 0 15px #70a1ff, 0 0 30px #00d2d3;
-    transform: rotate(45deg);
-    position: relative;
-}
-.proj-ice .fx-core::before {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    background: rgba(112, 161, 255, 0.4);
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    filter: blur(4px);
+    box-shadow: 0 0 12px #70a1ff, 0 0 20px #00d2d3;
 }
 
-/* --------------------------------------------------
-   ⚡ 3. 雷霆電弧 (Lightning Arc)
-   -------------------------------------------------- */
 .proj-lightning .fx-core {
-    width: 36px;
-    height: 12px;
-    background: #ffffff;
-    box-shadow: 0 0 10px #eccc68, 0 0 20px #f1c40f, 0 0 35px #ffffff;
+    width: 28px; height: 10px; background: #ffffff;
+    box-shadow: 0 0 10px #eccc68, 0 0 20px #f1c40f;
     clip-path: polygon(0% 40%, 30% 0%, 40% 50%, 70% 10%, 100% 60%, 60% 100%, 50% 50%, 20% 90%);
-    animation: lightningFlicker 0.08s infinite alternate;
 }
 
-/* --------------------------------------------------
-   🔮 4. 奧術粒子球 (Arcane Plasma)
-   -------------------------------------------------- */
 .proj-arcane .fx-core {
-    width: 22px;
-    height: 22px;
+    width: 16px; height: 16px;
     background: radial-gradient(circle, #ffffff 20%, #a55eea 60%, #4b7bec 100%);
-    border-radius: 50%;
-    box-shadow: 0 0 15px #a55eea, 0 0 30px #8854d0, inset 0 0 8px #ffffff;
-    position: relative;
-}
-.proj-arcane .fx-core::before {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border: 2px dashed #a55eea;
-    border-radius: 50%;
-    animation: arcaneRotate 0.3s linear infinite;
+    border-radius: 50%; box-shadow: 0 0 12px #a55eea, 0 0 22px #8854d0;
 }
 
-/* --------------------------------------------------
-   🏹 5. 疾風光箭 (Spectral Arrow)
-   -------------------------------------------------- */
 .proj-arrow .fx-core {
-    width: 42px;
-    height: 4px;
-    background: linear-gradient(90deg, rgba(46, 204, 113, 0) 0%, #2ecc71 50%, #ffffff 100%);
-    box-shadow: 0 0 10px #2ecc71, 0 0 20px #20bf6b;
-    position: relative;
-}
-.proj-arrow .fx-core::after {
-    content: '';
-    position: absolute;
-    right: -2px; top: -5px;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
-    border-left: 12px solid #ffffff;
-    filter: drop-shadow(0 0 5px #2ecc71);
+    width: 32px; height: 3px;
+    background: linear-gradient(90deg, transparent 0%, #2ecc71 50%, #ffffff 100%);
+    box-shadow: 0 0 8px #2ecc71;
 }
 
-/* --------------------------------------------------
-   🌀 微動畫與飛行動畫軌跡
-   -------------------------------------------------- */
-@keyframes firePulse {
-    0% { transform: scale(0.95); }
-    100% { transform: scale(1.15); }
-}
-
-@keyframes lightningFlicker {
-    0% { opacity: 0.8; transform: scaleY(0.8) rotate(-5deg); }
-    100% { opacity: 1; transform: scaleY(1.3) rotate(5deg); }
-}
-
-@keyframes arcaneRotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* 飛行與擊中瞬間膨脹爆裂 */
-@keyframes flyToMonster {
-    0% {
-        transform: translate(0, 0) scale(0.3) rotate(-30deg);
-        opacity: 0;
-    }
-    15% {
-        opacity: 1;
-        transform: translate(40px, -25px) scale(1.2) rotate(-10deg);
-    }
-    85% {
-        opacity: 1;
-        transform: translate(250px, -135px) scale(1.1) rotate(25deg);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(285px, -150px) scale(2.8) rotate(35deg);
-        filter: brightness(2.5) drop-shadow(0 0 40px #ffffff);
-    }
+/* 戰鬥日記內部彈道弧線動畫 */
+@keyframes flyToLogTarget {
+    0% { transform: translate(0, 0) scale(0.4) rotate(-20deg); opacity: 0; }
+    20% { opacity: 1; transform: translate(40px, -20px) scale(1.1) rotate(-10deg); }
+    80% { opacity: 1; transform: translate(180px, -60px) scale(1) rotate(15deg); }
+    100% { opacity: 0; transform: translate(220px, -80px) scale(1.8) rotate(25deg); filter: brightness(2); }
 }
