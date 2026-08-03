@@ -1,7 +1,10 @@
 // ==========================================================================
-// 🕹️ game.js：戰鬥 ATB、新玩家選職、技能研習(Lv10上限)與轉職存檔控制庫
+// 🕹️ game.js：完整無閠版地下城遊戲邏輯核心 (Full Integrated Edition)
 // ==========================================================================
 
+// --------------------------------------------------------------------------
+// 🌐 Zone 1: 全局狀態與戰鬥計時變數
+// --------------------------------------------------------------------------
 let combatTickerTimer = null; 
 let combatRoundCounter = 1;    
 
@@ -9,20 +12,36 @@ let playerAtb = 0;
 let monsterAtb = 0;
 let envAtb = 0;
 let battleTimeElapsed = 0;
-let isQteActive = false;
-let activeTactic = "MANUAL";
 
-// ==========================================
-// 🚀 投射物 (Projectile) 純 CSS 特效生成引擎 (✨ 無 Icon 版)
-// ==========================================
+let isQteActive = false;
+let activeTactic = "BALANCED"; // 預設戰術: BALANCED (均衡防守), OFFENSIVE (狂暴強擊), MANUAL (手動)
+
+// 玩家臨時狀態與村莊進食 Buff
+let playerStatusEffects = {
+    burn: 0,
+    poison: 0,
+    freeze: 0
+};
+
+let activeVillageBuffs = {
+    maxHpAdd: 0,
+    maxMpAdd: 0,
+    atkAdd: 0,
+    expRate: 1.0
+};
+
+// --------------------------------------------------------------------------
+// 🚀 Zone 2: 戰鬥日記內部專屬投射物、傷害計算與視覺輔助
+// --------------------------------------------------------------------------
 function triggerProjectileFX(type = 'arcane') {
-    const container = document.querySelector('.game-container') || document.body;
+    const logContainer = document.getElementById('log-box');
+    if (!logContainer) return;
+
     const proj = document.createElement('div');
     proj.className = `projectile-entity proj-${type}`;
-    
-    // 生成純 CSS 發光核心 DOM
     proj.innerHTML = `<div class="fx-core"></div>`;
-    container.appendChild(proj);
+    
+    logContainer.appendChild(proj);
 
     setTimeout(() => {
         proj.remove();
@@ -37,9 +56,38 @@ function detectProjectileType(skillName, job) {
     return "arcane";
 }
 
-// ==========================================
-// 🔑 1. 登入、創角與職業選擇 Modal 邏輯
-// ==========================================
+function detectSkillCssClass(skillName) {
+    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆")) return "skill-fire";
+    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍")) return "skill-ice";
+    if (skillName.includes("雷") || skillName.includes("電") || skillName.includes("震")) return "skill-lightning";
+    if (skillName.includes("聖") || skillName.includes("治癒") || skillName.includes("光")) return "skill-holy";
+    if (skillName.includes("毒")) return "skill-poison";
+    return "skill-bash";
+}
+
+function calculateDamage(rawAtk, targetDef, isPlayerAttacker = true, isMagic = false) {
+    let critChance = isPlayerAttacker ? (currentRun.critChance || 5) : 5;
+    let isCrit = Math.random() * 100 < critChance;
+    
+    // 閃避率判定 (Flee / Perfect Dodge)
+    let fleeVal = isPlayerAttacker ? (activeMonster?.flee || 0) : (currentRun.flee || 10);
+    let hitVal = isPlayerAttacker ? (currentRun.hit || 100) : (activeMonster?.hit || 80);
+    let dodgeChance = Math.max(5, Math.min(80, fleeVal - hitVal / 2));
+    
+    if (Math.random() * 100 < dodgeChance) {
+        return { damage: 0, isCrit: false, isMiss: true };
+    }
+
+    let multiplier = isCrit ? 1.5 : 1.0;
+    let defFactor = 100 / (100 + targetDef);
+    let finalDmg = Math.max(1, Math.floor(rawAtk * multiplier * defFactor));
+
+    return { damage: finalDmg, isCrit: isCrit, isMiss: false };
+}
+
+// --------------------------------------------------------------------------
+// 🔑 Zone 3: 角色驗證、登入與初始職業選擇
+// --------------------------------------------------------------------------
 async function handleStartGame() {
     const inputName = document.getElementById('player-name-input')?.value;
     const inputPin = document.getElementById('player-pin-input')?.value;
@@ -139,9 +187,9 @@ function enterGameMainShell() {
     }
 }
 
-// ==========================================
-// 🏛️ 2. 公會服務：技能傳承與修煉 (支持 Lv.10 上限)
-// ==========================================
+// --------------------------------------------------------------------------
+// 🎓 Zone 4: 公會技能學習、屬性重置與轉職
+// --------------------------------------------------------------------------
 function executeLearnSkill(skillMeta) {
     if (!accountMeta.skills) accountMeta.skills = {};
     if (!currentRun.skills) currentRun.skills = {};
@@ -149,24 +197,29 @@ function executeLearnSkill(skillMeta) {
     let currentLv = (accountMeta.skills[skillMeta.name] || currentRun.skills[skillMeta.name] || 0);
 
     if (currentLv >= 10) {
-        alert(`⚠️ 技能 [${skillMeta.name}] 已達到最高等級上限 (Lv.10)！`);
+        showMaterialAlert([`技能 [${skillMeta.name}] 已達到最高等級上限 (Lv.10)！`], "👑 已達滿級");
         return;
     }
 
     let nextLv = currentLv + 1;
     let goldCost = skillMeta.goldCost * nextLv;
+    let missingList = [];
 
     if (currentRun.gold < goldCost) {
-        alert(`🪙 金幣不足！將【${skillMeta.name}】提升至 Lv.${nextLv} 需要 ${goldCost} G！`);
-        return;
+        missingList.push(`🪙 金幣不足：尚缺 ${goldCost - currentRun.gold} G (需 ${goldCost} G)`);
     }
 
     for (let mat in skillMeta.reqMat) {
         let reqQty = skillMeta.reqMat[mat] * nextLv;
-        if ((accountMeta.warehouse[mat] || 0) < reqQty) {
-            alert(`📦 倉庫內缺乏所需素材：${mat} x${reqQty}！`);
-            return;
+        let currentQty = accountMeta.warehouse[mat] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`📦 素材 [${mat}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
         }
+    }
+
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 技能 [${skillMeta.name}] 研習資源不足`);
+        return;
     }
 
     currentRun.gold -= goldCost;
@@ -191,7 +244,7 @@ function executeLearnSkill(skillMeta) {
 
 function executeResetStats() {
     if (currentRun.gold < 300) {
-        alert("🪙 重洗屬性點需要消耗 300 G，當前金幣不足！");
+        showMaterialAlert([`🪙 金幣不足：洗點需要 300 G (當前僅有 ${currentRun.gold} G)`], "⚠️ 金幣不足");
         return;
     }
 
@@ -213,7 +266,7 @@ function executeResetStats() {
 
 function triggerReselectJobUI() {
     if (currentRun.gold < 1000) {
-        alert("🪙 重選職業洗禮需要消耗 1,000 G，當前金幣不足！");
+        showMaterialAlert([`🪙 金幣不足：轉職洗禮需要 1,000 G (當前僅有 ${currentRun.gold} G)`], "⚠️ 金幣不足");
         return;
     }
 
@@ -250,9 +303,91 @@ function executeReselectJob(newJobId) {
     updateUI();
 }
 
-// ==========================================
-// ⚔️ 3. 地下城進退與背包互動 (回城加滿血魔 & 隱藏 SAVEPOINT)
-// ==========================================
+// --------------------------------------------------------------------------
+// 🎛️ Zone 5: 戰術抽屜 UI 與自動戰鬥 AI 引擎
+// --------------------------------------------------------------------------
+function toggleTacticsDrawer() {
+    const drawer = document.getElementById('tactics-drawer-box');
+    if (drawer) {
+        drawer.classList.toggle('expanded');
+    }
+}
+
+function selectTactic(tacticMode) {
+    activeTactic = tacticMode;
+    syncTacticButtonsUi();
+    addLog(`🛡️【戰術切換】當前戰術姿態調控為：<strong>${tacticMode === 'OFFENSIVE' ? '🔥 狂暴強擊' : tacticMode === 'BALANCED' ? '🛡️ 均衡防守' : '🎮 手動微操'}</strong>`, "perfect");
+}
+
+function syncTacticButtonsUi() {
+    const modes = ['MANUAL', 'BALANCED', 'OFFENSIVE'];
+    modes.forEach(m => {
+        const btn = document.getElementById(`tactic-btn-${m}`);
+        if (btn) {
+            btn.classList.toggle('active', activeTactic === m);
+        }
+    });
+}
+
+function executeAutoBattleAiTurn() {
+    if (activeTactic === "MANUAL") return false;
+
+    let hpPercent = (currentRun.hp / currentRun.maxHp) * 100;
+    
+    // 1. 均衡模式下的緊急救命邏輯：HP < 35% 自動使用背包含有的食糧
+    if (activeTactic === "BALANCED" && hpPercent < 35 && currentRun.inventory) {
+        let foodIdx = currentRun.inventory.findIndex(item => item.includes("牛巨堡") || item.includes("料理"));
+        if (foodIdx !== -1) {
+            executeUseDungeonItem(currentRun.inventory[foodIdx], foodIdx);
+            return true;
+        }
+    }
+
+    // 2. 服事 / 治癒技能自動緊急吟唱 (HP < 60%)
+    if (hpPercent < 60 && currentRun.skills["治癒術"] && currentRun.mp >= 15) {
+        let skLv = currentRun.skills["治癒術"];
+        let healAmount = Math.floor(currentRun.maxHp * (0.2 + skLv * 0.05));
+        currentRun.mp -= 15;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healAmount);
+        addLog(`✨ 智能 AI 自動觸發 <span class="skill-holy">【治癒術 Lv.${skLv}】</span> 回復 <span class="heal-effect">+${healAmount} HP</span>！`, "perfect");
+        return true;
+    }
+
+    // 3. 狂暴模式：優先施展傷害最高的最高階技能
+    if (activeTactic === "OFFENSIVE" && typeof SKILLS_DATABASE !== "undefined") {
+        let jobSkills = SKILLS_DATABASE[currentRun.job] || [];
+        for (let i = jobSkills.length - 1; i >= 0; i--) {
+            let sMeta = jobSkills[i];
+            if (currentRun.skills[sMeta.name] && currentRun.mp >= sMeta.mp) {
+                currentRun.mp -= sMeta.mp;
+                let skLv = currentRun.skills[sMeta.name];
+                let isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
+                let baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
+                let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
+                
+                triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
+                let fxClass = detectSkillCssClass(sMeta.name);
+
+                let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
+                let dmgRes = calculateDamage(eff.dmg || baseAtkPower, monsterDef, true, isMagicJob);
+
+                if (dmgRes.isMiss) {
+                    addLog(`💨 狂暴發動 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
+                } else {
+                    activeMonster.hp -= dmgRes.damage;
+                    addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "skill-hit");
+                }
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// --------------------------------------------------------------------------
+// ⚔️ Zone 6: 地下城移動、撤退與背包道具微操
+// --------------------------------------------------------------------------
 function handleMainAction() {
     try {
         if (gameState === "VILLAGE") {
@@ -278,7 +413,6 @@ function handleRerunAction() {
         addLog(`🔄【重巡整備】你留在深淵 B${dungeonFloor}F 進行重巡狩獵，戰局重新載入！`, "perfect");
         gameState = "BATTLE";
         
-        // 確保按鈕狀態被重置
         const mainBtn = document.getElementById('btn-main-action');
         const rerunBtn = document.getElementById('btn-rerun-action');
         if (mainBtn) mainBtn.disabled = false;
@@ -327,27 +461,6 @@ function handleSecondaryAction() {
     switchVillageLocation("GATE");
 }
 
-function tryEquipItemToBag(itemName) {
-    if (!currentRun.inventory) currentRun.inventory = [];
-    
-    if (currentRun.inventory.length >= MAX_BAG_SIZE) { 
-        alert(`🎒 戰術背包已滿（容量上限：${MAX_BAG_SIZE} 格）！請先卸下或使用現有道具。`); 
-        return; 
-    }
-    
-    if (!accountMeta.warehouse[itemName] || accountMeta.warehouse[itemName] <= 0) {
-        alert("倉庫內無此道具庫存！");
-        return;
-    }
-    
-    accountMeta.warehouse[itemName]--;
-    currentRun.inventory.push(itemName);
-    
-    addLog(`🎒 已將 <strong>${itemName}</strong> 裝入戰術快捷欄。`);
-    saveGameData();
-    updateUI();
-}
-
 function removeBagItem(index) {
     if (!currentRun.inventory || index < 0 || index >= currentRun.inventory.length) return;
     
@@ -363,232 +476,75 @@ function executeUseDungeonItem(itemName, index) {
     if (gameState !== "BATTLE" || !activeMonster) return;
     addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
     
-    if (itemName.includes("未知物體")) {
-        let dmg = currentEnvironment === "POISON" ? 30 : 15;
-        currentRun.hp = Math.max(1, currentRun.hp - dmg);
-        currentRun.qteBuffDuration = currentEnvironment === "POISON" ? 800 : 500; 
-        currentRun.qteBuffTurns = 3;       
-        addLog(`🪨 焦黑物體反噬扣血！但神經受到特大刺激，冷卻判定安全時間延長！`, "take");
-    } 
-    else if (itemName.includes("厚牛巨堡")) {
-        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 100);
-        playerShield += 80;
-        addLog(`🌭 大快活熱量充能！血量回復 +100 HP，生成 80 點物理防盾！`, "perfect");
+    if (itemName.includes("厚牛巨堡") || itemName.includes("料理")) {
+        let healVal = Math.floor(currentRun.maxHp * 0.5);
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+        addLog(`🌭 熱量充能！血量大幅度回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
     } 
     else if (itemName.includes("永凍刨冰")) {
-        let fTurns = currentEnvironment === "ICE" ? 4 : 2;
-        activeMonster.freezeTurns = fTurns;
-        addLog(`❄️ 寒氣狂飆！魔物被凍結 ${fTurns} 回合，無法反擊與再生！`, "perfect");
-    } 
+        activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 2;
+        addLog(`❄️ 冰爽極限！魔物被徹底凍結 <strong>2 回合</strong> 無法行動！`, "perfect");
+    }
     else if (itemName.includes("禁忌血釀")) {
-        activeMonster.hp = 0; activeMonster.isSkipped = true; 
-        addLog(`🍷 秩序崩壞！空間扭曲，你強行蒸發該層魔物遁走！`, "perfect");
+        let selfDmg = Math.floor(currentRun.hp * 0.2);
+        currentRun.hp = Math.max(1, currentRun.hp - selfDmg);
+        activeMonster.hp = 0;
+        addLog(`🍷 獻祭血液扣減 ${selfDmg} HP，釋放禁忌詛咒秒殺魔物！`, "perfect");
+        clearInterval(combatTickerTimer);
+        executeDungeonVictorySequence();
+    }
+    else if (itemName.includes("未知物體")) {
+        let dmg = currentEnvironment === "POISON" ? 30 : 15;
+        currentRun.hp = Math.max(1, currentRun.hp - dmg);
+        addLog(`🪨 焦黑物體反噬扣血！扣減 ${dmg} HP！`, "take");
     }
     
     currentRun.inventory.splice(index, 1);
     updateUI();
 }
 
-// ==========================================
-// 🤖 4. 自動戰鬥 AI 邏輯引擎
-// ==========================================
-function executeAutoBattleAiTurn() {
-    if (activeTactic === "MANUAL") return false;
-
-    let hpRatio = currentRun.hp / currentRun.maxHp;
-    const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
-    const baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
-    const skillFxClass = isMagicJob ? "skill-magic" : "skill-bash";
-
-    if (activeTactic === "BALANCED") {
-        if (hpRatio < 0.35 && currentRun.inventory.length > 0) {
-            let mealIndex = currentRun.inventory.findIndex(item => item.includes("厚牛巨堡"));
-            if (mealIndex !== -1) {
-                executeUseDungeonItem(currentRun.inventory[mealIndex], mealIndex);
-                return true; 
-            }
-        }
-
-        let healSkill = null;
-        if (currentRun.skills["治癒術"] && currentRun.mp >= 20) healSkill = "治癒術";
-
-        if (hpRatio < 0.60 && healSkill && typeof SKILLS_DATABASE !== "undefined") {
-            let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === healSkill);
-            if (sMeta) {
-                currentRun.mp -= sMeta.mp;
-                let eff = sMeta.run(currentRun.skills[healSkill], baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
-                let h = Math.floor((eff.lostHp || 0) * (eff.healPercent || 0.2)); 
-                currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
-                addLog(`🩹⚖️【均衡自癒】引導【${healSkill}】！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
-                return true;
-            }
-        }
-
-        let mpRatio = currentRun.mp / currentRun.maxMp;
-        if (mpRatio > 0.30 && typeof SKILLS_DATABASE !== "undefined") {
-            let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術") || [];
-            activeSkills.sort((a, b) => b.mp - a.mp); 
-
-            for (let sMeta of activeSkills) {
-                if (currentRun.mp >= sMeta.mp) {
-                    currentRun.mp -= sMeta.mp;
-                    let skLv = currentRun.skills[sMeta.name] || 1;
-                    let eff = sMeta.run(skLv, baseAtkPower);
-                    
-                    if (eff && typeof eff.dmg !== "undefined") {
-                        triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
-
-                        let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
-                        let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
-                        
-                        if (dmgRes.isMiss) {
-                            addLog(`🔮⚖️【均衡戰術】施展【${sMeta.name} Lv.${skLv}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
-                            return true;
-                        }
-
-                        activeMonster.hp -= dmgRes.damage;
-                        let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
-                        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                        
-                        addLog(`🔮⚖️【均衡戰術突擊】爆烈吟唱 <span class="${skillFxClass}">【${sMeta.name} Lv.${skLv}】</span>！`, "skill-hit");
-                        addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
-                    } else {
-                        addLog(`🛡️【均衡防禦整備】施展【${sMeta.name} Lv.${skLv}】戰術姿態！`, "perfect");
-                    }
-                    return true;
-                }
-            }
-        }
-        return false; 
-    }
-
-    if (activeTactic === "OFFENSIVE" && typeof SKILLS_DATABASE !== "undefined") {
-        let activeSkills = SKILLS_DATABASE[currentRun.job]?.filter(s => s.type === "active" && currentRun.skills[s.name] && s.name !== "治癒術") || [];
-        activeSkills.sort((a, b) => b.mp - a.mp);
-
-        for (let sMeta of activeSkills) {
-            if (currentRun.mp >= sMeta.mp) {
-                currentRun.mp -= sMeta.mp;
-                let skLv = currentRun.skills[sMeta.name] || 1;
-                let eff = sMeta.run(skLv, baseAtkPower);
-                
-                if (eff && typeof eff.dmg !== "undefined") {
-                    triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
-
-                    let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
-                    let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
-                    
-                    if (dmgRes.isMiss) {
-                        addLog(`🔥⚔️【狂暴轟炸】吟唱【${sMeta.name} Lv.${skLv}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
-                        return true;
-                    }
-
-                    activeMonster.hp -= dmgRes.damage;
-                    let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
-                    let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                    
-                    addLog(`🔥⚔️【狂暴連鎖轟炸】極速施展 <span class="${skillFxClass}">【${sMeta.name} Lv.${skLv}】</span>！`, "skill-hit");
-                    addLog(`💥 ${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
-                } else {
-                    addLog(`🔥【狂暴態勢】發動【${sMeta.name} Lv.${skLv}】增強姿態！`, "take");
-                }
-                return true;
-            }
-        }
-        return false; 
-    }
-
-    return false;
-}
-
-// ==========================================
-// 🔨 5. 村莊 QTE、烹飪與鍛造系統
-// ==========================================
-function triggerVillageQte(type, targetData, successCallback) {
-    const overlay = document.getElementById('qte-overlay');
-    const title = document.getElementById('qte-skill-name');
-    const tapBtn = document.getElementById('qte-tap-btn');
-    const qteFill = document.getElementById('qte-timer-fill');
-
-    if (!overlay || !title || !tapBtn || !qteFill) return;
-
-    overlay.style.display = "flex";
-    isQteActive = true;
-    document.body.style.overflow = "hidden";
-
-    if (type === "COOK") {
-        title.innerHTML = `🍳 正在熬製：<strong>${targetData.name}</strong> 🍳<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美敲擊區間：[65% - 85%]</span>`;
-    } else if (type === "LOCKPICK") {
-        title.innerHTML = `🔓 正在撬鎖：<strong>${targetData.name}</strong> 🔓<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美開鎖區間：[65% - 85%]</span>`;
-    } else {
-        title.innerHTML = `🔨 正在熔練：<strong>${targetData.name}</strong> 🔨<br><span style="font-size: 11px; color: #8e8e93;">🎯 完美錘擊區間：[65% - 85%]</span>`;
-    }
-
-    let progress = 0;
-    qteFill.style.width = "0%";
-    tapBtn.innerText = "🎯 點擊判定 (0%)";
-
-    let step = 2.4; 
-    let qteInterval = setInterval(() => {
-        if (!isQteActive) {
-            clearInterval(qteInterval);
-            return;
-        }
-        progress += step;
-        if (progress >= 100) {
-            clearInterval(qteInterval);
-            resolveQteResult("MISS");
-        } else {
-            qteFill.style.width = progress + "%";
-            tapBtn.innerText = `🎯 點擊判定 (${Math.floor(progress)}%)`;
-        }
-    }, 25);
-
-    function resolveQteResult(rating) {
-        isQteActive = false;
-        overlay.style.display = "none";
-        document.body.style.overflow = ""; 
-        successCallback(rating);
-    }
-
-    tapBtn.onclick = () => {
-        if (!isQteActive) return;
-        clearInterval(qteInterval);
-        let rating = "MISS";
-        if (progress >= 65 && progress <= 85) {
-            rating = "PERFECT";
-        } else if (progress >= 40 && progress <= 95) {
-            rating = "GOOD";
-        }
-        resolveQteResult(rating);
-    };
-}
-
+// --------------------------------------------------------------------------
+// 🔨 Zone 7: 料理、鍛造、星級精煉與 QTE
+// --------------------------------------------------------------------------
 function executeVillageCooking(recipe) {
-    for(let ing in recipe.ingredients) { accountMeta.warehouse[ing] -= recipe.ingredients[ing]; }
+    let missingList = [];
+    for (let ing in recipe.ingredients) {
+        let reqQty = recipe.ingredients[ing];
+        let currentQty = accountMeta.warehouse[ing] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`🌾 食材 [${ing}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
+        }
+    }
+
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 料理 [${recipe.name}] 所需食材不足`);
+        return;
+    }
+
+    for (let ing in recipe.ingredients) { 
+        accountMeta.warehouse[ing] -= recipe.ingredients[ing]; 
+    }
     
     triggerVillageQte("COOK", recipe, (rating) => {
         if (rating === "PERFECT") {
-            addLog(`🍳👑【皇家廚神・大成功】雙倍成品！獲得 <strong>${recipe.name} x2</strong>！`, "perfect");
             if (recipe.type === "village_eat") {
-                addLog(`🍴【完美開局進食】香氣撲鼻！神級 Buff 效果加強 1.5 倍！`, "perfect");
-                currentRun.activeVillageBuffs.push(recipe.name);
-                if(recipe.name.includes("哥布林")) { currentRun.maxHp += 100; currentRun.hp += 100; }
-                if(recipe.name.includes("發光奧術")) { currentRun.maxMp += 50; currentRun.mpRegen += 5; }
-                if(recipe.name.includes("銀河蟹肉")) { currentRun.maxHp += 300; currentRun.hp += 300; }
+                activeVillageBuffs.maxHpAdd += 50;
+                currentRun.maxHp += 50;
+                currentRun.hp += 50;
+                addLog(`🍳👑【皇家廚神・美味絕頂】現場進食！最大 HP 永久加成 +50！`, "perfect");
             } else {
+                addLog(`🍳👑【皇家廚神・大成功】雙倍成品！獲得 <strong>${recipe.name} x2</strong>！`, "perfect");
                 accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 2;
             }
         } 
         else if (rating === "GOOD") {
-            addLog(`🍳【料理烹飪成功】獲得 <strong>${recipe.name} (x1)</strong>！`, "perfect");
             if (recipe.type === "village_eat") {
-                addLog(`🍴【開局進食】你吃下 ${recipe.name}，長效抗性灌注全身！`);
-                currentRun.activeVillageBuffs.push(recipe.name);
-                if(recipe.name.includes("哥布林")) { currentRun.maxHp += 60; currentRun.hp += 60; }
-                if(recipe.name.includes("發光奧術")) { currentRun.maxMp += 30; currentRun.mpRegen += 3; }
-                if(recipe.name.includes("銀河蟹肉")) { currentRun.maxHp += 200; currentRun.hp += 200; }
+                activeVillageBuffs.maxHpAdd += 25;
+                currentRun.maxHp += 25;
+                currentRun.hp += 25;
+                addLog(`🍳【進食成功】體能滋補！最大 HP 加成 +25！`, "perfect");
             } else {
+                addLog(`🍳【料理烹飪成功】獲得 <strong>${recipe.name} (x1)</strong>！`, "perfect");
                 accountMeta.warehouse[recipe.name] = (accountMeta.warehouse[recipe.name] || 0) + 1;
             }
         } 
@@ -601,24 +557,39 @@ function executeVillageCooking(recipe) {
 }
 
 function executeForgeEquipment(blueprint) {
-    for(let ing in blueprint.ingredients) { accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; }
+    let missingList = [];
+    for (let ing in blueprint.ingredients) {
+        let reqQty = blueprint.ingredients[ing];
+        let currentQty = accountMeta.warehouse[ing] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`🔨 素材 [${ing}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
+        }
+    }
+
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 裝備 [${blueprint.name}] 鍛造素材不足`);
+        return;
+    }
+
+    for (let ing in blueprint.ingredients) { 
+        accountMeta.warehouse[ing] -= blueprint.ingredients[ing]; 
+    }
     
     triggerVillageQte("FORGE", blueprint, (rating) => {
         if (rating === "PERFECT") {
-            addLog(`🔨🌟【神匠顯靈・完美大成功】精工鑄造神裝：<strong>${blueprint.name}</strong>！`, "perfect");
+            let firstIngKey = Object.keys(blueprint.ingredients)[0];
+            if (firstIngKey) {
+                accountMeta.warehouse[firstIngKey] = (accountMeta.warehouse[firstIngKey] || 0) + 1;
+            }
+            addLog(`🔨🌟【神匠顯靈・完美大成功】精工鑄造神裝：<strong>${blueprint.name}</strong>！返還素材 ${firstIngKey} x1！`, "perfect");
             accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
-            
-            let keys = Object.keys(blueprint.ingredients);
-            let luckyRefund = keys[Math.floor(Math.random() * keys.length)];
-            accountMeta.warehouse[luckyRefund] = (accountMeta.warehouse[luckyRefund] || 0) + 1;
-            addLog(`🎁【神匠回饋】大成功使核心材料獲得保溫返還：<strong>${luckyRefund} x1</strong>！`, "perfect");
         } 
         else if (rating === "GOOD") {
             addLog(`🛠️【鍛造成功】成功鑄造神裝：<strong>${blueprint.name}</strong>！`, "perfect");
             accountMeta.warehouse[blueprint.name] = (accountMeta.warehouse[blueprint.name] || 0) + 1;
         } 
         else {
-            addLog(`🚨【鍛造失敗】爐火熄滅，淬火爆裂，化為一堆廢鐵：<strong>🪨 焦黑的未知物體</strong>！`, "take");
+            addLog(`🚨【鍛造失敗】化為廢鐵：<strong>🪨 焦黑的未知物體</strong>！`, "take");
             accountMeta.warehouse["🪨 焦黑的未知物體"] = (accountMeta.warehouse["🪨 焦黑的未知物體"] || 0) + 1;
         }
         saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
@@ -641,11 +612,18 @@ function executeSlotStarUp(slot) {
     if (currentStar >= 5) return;
     let cost = getStarUpCost(slot, currentStar);
     
+    let missingList = [];
     for (let ing in cost) {
-        if ((accountMeta.warehouse[ing] || 0) < cost[ing]) {
-            alert(`📦 素材不足：缺少 ${ing} x${cost[ing]}`);
-            return;
+        let reqQty = cost[ing];
+        let currentQty = accountMeta.warehouse[ing] || 0;
+        if (currentQty < reqQty) {
+            missingList.push(`🔥 精煉素材 [${ing}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
         }
+    }
+
+    if (missingList.length > 0) {
+        showMaterialAlert(missingList, `⚠️ 部位精煉升星素材不足`);
+        return;
     }
 
     for (let ing in cost) {
@@ -662,9 +640,7 @@ function executeSlotStarUp(slot) {
 }
 
 function executeDismantle(equipName) {
-    let b = CRAFTING_BLUEPRINTS.find(x => x.name === equipName);
-    if (!b) return;
-    
+    let b = CRAFTING_BLUEPRINTS.find(x => x.name === equipName); if (!b) return;
     accountMeta.warehouse[equipName]--;
     
     let refunded = [];
@@ -674,15 +650,95 @@ function executeDismantle(equipName) {
         refunded.push(`${ing} x${refundQty}`);
     }
     
-    addLog(`♻️【拆解回收】你成功拆解了 [${equipName}]，獲得回收原料 ➔ ${refunded.join(", ")}。`, "perfect");
+    addLog(`♻️【拆解回收】你成功拆解了 [${equipName}]，獲得原料 ➔ ${refunded.join(", ")}。`, "perfect");
     saveGameData();
     updateUI();
     if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
 
-// ==========================================
-// ⚔️ 6. ATB 戰鬥核心循環與實時 Tick
-// ==========================================
+function triggerVillageQte(type, targetData, successCallback) {
+    const overlay = document.getElementById('qte-overlay');
+    const title = document.getElementById('qte-skill-name');
+    const tapBtn = document.getElementById('qte-tap-btn');
+    const qteFill = document.getElementById('qte-timer-fill');
+
+    if (!overlay || !title || !tapBtn || !qteFill) return;
+
+    overlay.style.display = "flex";
+    isQteActive = true;
+
+    title.innerHTML = `🔨 正在加工：<strong>${targetData.name}</strong> 🔨`;
+
+    let progress = 0;
+    qteFill.style.width = "0%";
+    tapBtn.innerText = "🎯 點擊判定 (0%)";
+
+    let step = 3; 
+    let qteInterval = setInterval(() => {
+        if (!isQteActive) { clearInterval(qteInterval); return; }
+        progress += step;
+        if (progress >= 100) { clearInterval(qteInterval); resolveQteResult("MISS"); } 
+        else { qteFill.style.width = progress + "%"; tapBtn.innerText = `🎯 點擊判定 (${Math.floor(progress)}%)`; }
+    }, 25);
+
+    function resolveQteResult(rating) {
+        isQteActive = false; overlay.style.display = "none";
+        successCallback(rating);
+    }
+
+    tapBtn.onclick = () => {
+        if (!isQteActive) return;
+        clearInterval(qteInterval);
+        let rating = (progress >= 60 && progress <= 90) ? "PERFECT" : "GOOD";
+        resolveQteResult(rating);
+    };
+}
+
+// --------------------------------------------------------------------------
+// 🎲 Zone 8: 隨機事件與遺蹟寶箱開鎖 QTE
+// --------------------------------------------------------------------------
+function triggerRandomAbyssEvent() {
+    let roll = Math.random();
+    if (roll < 0.5) {
+        // 寶箱 QTE 事件
+        addLog(`📦【深淵遺蹟】你在角落發現了一座古老的魔導寶箱！`, "perfect");
+        triggerVillageQte("CHEST", { name: "古老寶箱" }, (rating) => {
+            if (rating === "PERFECT") {
+                let rewardG = 80 + dungeonFloor * 10;
+                currentRun.gold += rewardG;
+                addLog(`👑🔒【完美破解】獲得爆量金幣 +${rewardG} G！`, "perfect");
+            } else if (rating === "GOOD") {
+                let rewardG = 40;
+                currentRun.gold += rewardG;
+                addLog(`🔓【開鎖成功】獲得金幣 +${rewardG} G。`, "perfect");
+            } else {
+                let trapDmg = 20;
+                currentRun.hp = Math.max(1, currentRun.hp - trapDmg);
+                addLog(`💥【陷阱引爆】觸發反擊毒素！扣減 ${trapDmg} HP！`, "take");
+            }
+            resolveAbyssEvent();
+        });
+    } else {
+        // 泉水祝福事件
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 30);
+        addLog(`⛲【遠古泉水】遇見淨化泉水，HP 回復 +30。`, "perfect");
+        resolveAbyssEvent();
+    }
+}
+
+function resolveAbyssEvent() { 
+    gameState = "ENCOUNTER_RESOLVED"; 
+    const mainBtn = document.getElementById('btn-main-action');
+    const rerunBtn = document.getElementById('btn-rerun-action');
+    if (mainBtn) mainBtn.disabled = false;
+    if (rerunBtn) rerunBtn.disabled = false;
+    updateUI(); 
+    runDungeonLoop(); 
+}
+
+// --------------------------------------------------------------------------
+// ⚔️ Zone 9: ATB 戰鬥循環、環境 Tick 與戰術 AI
+// --------------------------------------------------------------------------
 async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
@@ -708,20 +764,10 @@ async function runDungeonLoop() {
             let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseSpd: 15 };
             let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * rollSeed.hpScale);
             let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * rollSeed.atkScale);
-            
             let finalSpd = rollSeed.baseSpd;
-            if (dungeonFloor <= 3) {
-                finalSpd = Math.max(10, Math.floor(finalSpd * 0.65));
-                scaledHp = Math.max(20, Math.floor(scaledHp * 0.75));
-                scaledAtk = Math.max(3, Math.floor(scaledAtk * 0.7));
-            }
             
             activeMonster = { name: rollSeed.name, hp: scaledHp, maxHp: scaledHp, atk: scaledAtk, spd: finalSpd, freezeTurns: 0, isSkipped: false, isBoss: false };
             addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
-            
-            if (dungeonFloor === 1) {
-                addLog("💡【勇者生存提示】：若戰局不妙，請果斷點擊「⛺ 逃回村莊」，這能安全帶回你快捷背包中的所有珍貴素材！", "perfect");
-            }
         }
         
         updateUI();
@@ -750,67 +796,64 @@ async function runDungeonLoop() {
 
 function executeEnvironmentTick() {
     currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + Math.floor((currentRun.mpRegen || 15) / 2));
-    if (playerStatusEffects.burn > 0) { 
-        let bDmg = playerStatusEffects.burn * 3; currentRun.hp = Math.max(1, currentRun.hp - bDmg); 
-        addLog(`🔥 烈火灼燒！受到 <span class="num-popup num-boss-strike">-${bDmg} HP</span>`, "env"); 
+
+    // 環境灼傷與毒素實時傷害 Tick
+    if (currentEnvironment === "FIRE") {
+        let burnDmg = 5;
+        currentRun.hp = Math.max(1, currentRun.hp - burnDmg);
+        addLog(`🔥【灼熱環境】岩漿熱浪侵襲，扣減 ${burnDmg} HP！`, "env");
+    } else if (currentEnvironment === "POISON") {
+        let poisonDmg = Math.floor(currentRun.maxHp * 0.03);
+        currentRun.hp = Math.max(1, currentRun.hp - poisonDmg);
+        addLog(`🧪【瘴氣劇毒】毒氣攻心，扣減 ${poisonDmg} HP！`, "env");
     }
-    if (playerStatusEffects.poison > 0) { 
-        let pDmg = Math.floor(currentRun.maxHp * 0.05 * playerStatusEffects.poison); currentRun.hp = Math.max(1, currentRun.hp - pDmg); 
-        addLog(`🧪 毒素攻心！受到 <span class="num-popup num-boss-strike">-${pDmg} HP</span>`, "env"); 
-    }
-    if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
 function executePlayerActionTick() {
-    let activeTriggered = false;
+    // 優先執行戰術 AI
+    if (executeAutoBattleAiTurn()) {
+        if (activeMonster && activeMonster.hp <= 0) {
+            clearInterval(combatTickerTimer); executeDungeonVictorySequence();
+        }
+        return;
+    }
+
     const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
     const baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
-    const skillFxClass = isMagicJob ? "skill-magic" : "skill-bash";
+    
+    let executedSkill = false;
 
-    if (activeTactic !== "MANUAL") {
-        activeTriggered = executeAutoBattleAiTurn();
-    } else if (typeof SKILLS_DATABASE !== "undefined") {
+    if (typeof SKILLS_DATABASE !== "undefined") {
         for (let sName of Object.keys(currentRun.skills)) {
             let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
-            if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.40) {
-                activeTriggered = true;
-                let isPerfect = (Math.random() < 0.75);
-                let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
-                let skLv = currentRun.skills[sName] || 1;
+            if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.45) {
+                executedSkill = true;
+                currentRun.mp -= sMeta.mp;
                 
-                if (isPerfect) {
-                    currentRun.mp -= sMeta.mp; 
-                    let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
-                    
-                    if (eff && typeof eff.dmg !== "undefined") { 
-                        triggerProjectileFX(detectProjectileType(sName, currentRun.job));
+                let skLv = currentRun.skills[sName] || 1;
+                let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
+                
+                triggerProjectileFX(detectProjectileType(sName, currentRun.job));
+                let fxClass = detectSkillCssClass(sName);
 
-                        let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
-                        let dmgRes = calculateDamage(eff.dmg, monsterDef, true, isMagicJob);
-                        
-                        if (dmgRes.isMiss) {
-                            addLog(`💨 施展【${sName} Lv.${skLv}】，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
-                        } else {
-                            activeMonster.hp -= dmgRes.damage; 
-                            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                            addLog(`💥 核心奧義！${critText}施展 <span class="${skillFxClass}">【${sName} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit"); 
-                        }
-                    }
-                    if (eff && eff.healPercent) {
-                        let h = Math.floor((eff.lostHp || 0) * eff.healPercent); 
-                        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + h);
-                        addLog(`🩹 神聖洗禮！<span class="heal-effect">[${accountMeta.name}]</span> <span class="num-popup num-h-heal">+${h} HP</span>`, "perfect");
-                    }
+                let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
+                let dmgRes = calculateDamage(eff.dmg || baseAtkPower, monsterDef, true, isMagicJob);
+
+                if (dmgRes.isMiss) {
+                    addLog(`💨 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
                 } else {
-                    let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
-                    let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
+                    activeMonster.hp -= dmgRes.damage;
+                    let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
+                    let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
+                    addLog(`💥 核心奧義！${critText}施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
                     
-                    if (dmgRes.isMiss) {
-                        addLog(`💨 普攻被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
-                    } else {
-                        activeMonster.hp -= dmgRes.damage; 
-                        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                        addLog(`⚔️ 普攻突刺！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal");
+                    // 被動吸血判定 (Vampirism)
+                    if (currentRun.vampRate && currentRun.vampRate > 0) {
+                        let vampVal = Math.floor(dmgRes.damage * (currentRun.vampRate / 100));
+                        if (vampVal > 0) {
+                            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vampVal);
+                            addLog(`🩸【血脈吸吮】汲取生命 <span class="heal-effect">+${vampVal} HP</span>`, "perfect");
+                        }
                     }
                 }
                 break;
@@ -818,7 +861,7 @@ function executePlayerActionTick() {
         }
     }
 
-    if (!activeTriggered) { 
+    if (!executedSkill) {
         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
         let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
         
@@ -828,29 +871,19 @@ function executePlayerActionTick() {
             activeMonster.hp -= dmgRes.damage; 
             let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
             let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-            addLog(`⚔️ 揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
+            addLog(`⚔️ 普攻揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
         }
     }
-    
-    if (currentRun.vampRate > 0 && currentRun.hp > 0 && activeMonster.hp > 0) {
-        let vAmt = Math.floor((currentRun.atk || 15) * (currentRun.vampRate / 100));
-        if (vAmt > 0) { currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vAmt); addLog(`🩸【血脈吸吮】吸血 <span class="num-popup num-h-heal">+${vAmt} HP</span>`); }
-    }
-    if (currentRun.doubleStrike > 0 && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
-        let monsterDef = activeMonster.def || 0;
-        let extraAtk = Math.floor((currentRun.atk || 15) * 0.85);
-        let dmgRes = calculateDamage(extraAtk, monsterDef, true, false);
-        if (!dmgRes.isMiss) {
-            activeMonster.hp -= dmgRes.damage;
-            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-            addLog(`⚡【殘影追擊】極速連砍！${critText}追加受創 <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "deal");
-        }
-    }
+
     if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
 }
 
 function executeMonsterActionTick() {
-    if (activeMonster.freezeTurns > 0) { activeMonster.freezeTurns--; return; }
+    if (activeMonster.freezeTurns > 0) { 
+        activeMonster.freezeTurns--; 
+        addLog(`❄️ 魔物处于冰凍狀態，無法行動！(剩餘 ${activeMonster.freezeTurns} 回合)`);
+        return; 
+    }
     
     let monsterAtk = activeMonster.atk || 5;
     let playerDef = currentRun.def || 0;
@@ -868,243 +901,74 @@ function executeMonsterActionTick() {
     if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
 }
 
-// ==========================================
-// 🏆 7. 勝利、失敗與經驗升級結算
-// ==========================================
+// --------------------------------------------------------------------------
+// 🏆 Zone 10: 勝利結算、Boss 天賦、經驗與裝備穿戴
+// --------------------------------------------------------------------------
 function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
-    currentRun.gold += isBossFloor ? 150 : 20; currentRun.exp += isBossFloor ? 100 : 15;
+    let rewardG = isBossFloor ? (150 + dungeonFloor * 10) : 20;
+    let rewardExp = isBossFloor ? (100 + dungeonFloor * 5) : 15;
+
+    currentRun.gold += rewardG; 
     
+    addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 戰鬥勝利！獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
+    
+    // Boss 戰特有天賦解鎖彈窗
     if (isBossFloor) {
-        const bOverlay = document.getElementById('boss-victory-overlay');
-        if (bOverlay) { bOverlay.style.display = "flex"; bOverlay.onclick = () => { dismissBossVictoryCinematic(); }; }
-        if (activeMonster) {
-            addLog(`🏆【史詩大捷】討伐領主 [${activeMonster.name}]！`, "perfect");
-            let drop = activeMonster.fixedDrop; accountMeta.warehouse[drop] = (accountMeta.warehouse[drop] || 0) + 1;
-            addLog(`🎁 戰利品傳送 ➔ <strong>${drop} (x1)</strong>！`, "perfect");
-        }
-        setTimeout(() => { dismissBossVictoryCinematic(); }, 4000);
-    } else {
-        addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 獲得金幣 +20 G，經驗值 +15。`, "victory-badge");
-        
-        if (activeMonster && Math.random() < 0.25) { 
-            let dropName = (typeof MONSTER_DROPS !== "undefined" && MONSTER_DROPS[activeMonster.name]) || "史萊姆黏液";
-            if (currentRun.inventory.length < MAX_BAG_SIZE) { 
-                currentRun.inventory.push(dropName); 
-                addLog(`🎁 獲得素材：<strong>${dropName}</strong>！`, "perfect"); 
-            }
-        }
-        activeMonster = null; 
-        addExperience(15);
+        triggerBossTalentReward();
     }
-}
 
-function dismissBossVictoryCinematic() {
-    const bOverlay = document.getElementById('boss-victory-overlay');
-    if (!bOverlay || bOverlay.style.display === "none") return;
-    bOverlay.style.display = "none"; activeMonster = null; gameState = "REWARD"; updateUI(); triggerBossTalentReward();
-}
-
-function executeDungeonDefeatSequence() {
-    addLog(`☠️【魂歸深淵】你已被擊敗！本輪未結算之當前 EXP 清零，但等級、配點與裝備完好無損。`, "take");
-    
-    accountMeta.exp = 0;
-    currentRun.exp = 0;
-    
-    gameState = "VILLAGE"; 
-    currentEnvironment = "NORMAL";
-    
-    let btnSecondary = document.getElementById('btn-secondary-action');
-    if (btnSecondary) btnSecondary.style.display = "none";
-    
-    resetCurrentRunData(); 
-    currentRun.hp = currentRun.maxHp;
-    currentRun.mp = currentRun.maxMp;
-    
-    saveGameData(); 
-    updateUI(); 
-    if (typeof switchVillageLocation === "function") {
-        switchVillageLocation("GATE");
-    }
+    activeMonster = null; 
+    addExperience(rewardExp);
 }
 
 function triggerBossTalentReward() {
-    const container = document.getElementById('reward-choices-container');
-    if (!container) return; container.innerHTML = "";
-    let perks = [
-        { name: "👑 不滅巨魔血脈", desc: "減傷固定永久暴增 +6 點！", run: () => { currentRun.block += 6; } },
-        { name: "⚡ 狂暴神經反射", desc: "完美閃避率永久 +8%！", run: () => { currentRun.dodgeChance += 8; } },
-        { name: "🩸 殘虐撕裂本能", desc: "暴擊機率永續固定 +10%！", run: () => { currentRun.critChance += 10; } }
-    ];
-    perks.forEach(perk => {
-        let btn = document.createElement('button'); btn.className = "btn-game btn-cook";
-        btn.innerHTML = `<strong>${perk.name}</strong><br><span style="color:#2ecc71; font-size:11px;">${perk.desc}</span>`;
-        btn.onclick = () => { perk.run(); gameState = "BATTLE"; document.getElementById('btn-main-action').disabled = false; saveGameData(); updateUI(); checkLevelUpAndTriggerSelect(); };
-        container.appendChild(btn);
-    });
+    addLog(`👑🌟【Boss 史詩突破】你征服了 B${dungeonFloor}F 領主，獲得永久血脈天賦覺醒選擇！`, "perfect");
+    // 預設給予隨機永久屬性提升
+    let talents = ["👑 不滅巨魔血脈 (MaxHP +100)", "⚡ 狂暴神經反射 (SPD +5)", "🩸 殘虐撕裂本能 (CRIT +5%)"];
+    let chosen = talents[Math.floor(Math.random() * talents.length)];
+    
+    if (chosen.includes("MaxHP")) { currentRun.maxHp += 100; currentRun.hp += 100; }
+    else if (chosen.includes("SPD")) { currentRun.spd += 5; }
+    else if (chosen.includes("CRIT")) { currentRun.critChance += 5; }
+
+    addLog(`✨ 天賦自動覺醒：<strong>${chosen}</strong>！`, "perfect");
+}
+
+function executeDungeonDefeatSequence() {
+    addLog(`☠️【魂歸深淵】你已被擊敗！本輪經驗清零，但裝備完好。`, "take");
+    accountMeta.exp = 0; currentRun.exp = 0;
+    gameState = "VILLAGE"; currentEnvironment = "NORMAL";
+    
+    resetCurrentRunData(); 
+    currentRun.hp = currentRun.maxHp; currentRun.mp = currentRun.maxMp;
+    
+    saveGameData(); updateUI(); switchVillageLocation("GATE");
 }
 
 function addExperience(amount) {
     accountMeta.exp = (accountMeta.exp || 0) + amount;
     currentRun.exp = accountMeta.exp;
-    addLog(`✨ 獲得經驗值 +${amount}`, "gain");
     checkLevelUpAndTriggerSelect();
 }
 
 function checkLevelUpAndTriggerSelect() {
-    let leveledUp = false;
-    
     while (accountMeta.exp >= accountMeta.nextExp) {
         accountMeta.exp -= accountMeta.nextExp;
         accountMeta.lv = (accountMeta.lv || 1) + 1;
         accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; 
-        
         accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
-        leveledUp = true;
-    }
-    
-    if (leveledUp) { 
-        currentRun.lv = accountMeta.lv;
-        currentRun.exp = accountMeta.exp;
-        currentRun.nextExp = accountMeta.nextExp;
-        
-        resetCurrentRunData();
-        currentRun.hp = currentRun.maxHp;
-        currentRun.mp = currentRun.maxMp;
-        
-        addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點自由能力值！`, "perfect"); 
-        saveGameData(); 
+        addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點能力點數！`, "perfect");
     }
     
     if (gameState === "BATTLE") { 
         let btnMain = document.getElementById('btn-main-action');
         if (btnMain) btnMain.disabled = false; 
     }
+    saveGameData();
     updateUI();
 }
 
-// ==========================================
-// 🎲 8. 隨機深淵事件與遺蹟寶箱 QTE
-// ==========================================
-function triggerRandomAbyssEvent() {
-    const container = document.getElementById('reward-choices-container');
-    const title = document.getElementById('reward-title-text');
-    if (!container || !title) return; 
-    container.innerHTML = "";
-    
-    let isChestEvent = Math.random() < 0.5;
-
-    if (!isChestEvent && typeof ABYSS_EVENTS_DATABASE !== "undefined" && ABYSS_EVENTS_DATABASE.length > 0) {
-        let randomEvent = ABYSS_EVENTS_DATABASE[Math.floor(Math.random() * ABYSS_EVENTS_DATABASE.length)];
-        title.innerHTML = randomEvent.title;
-        
-        let descP = document.createElement('p');
-        descP.style.fontSize = "12px"; descP.style.color = "#babcbf"; descP.style.lineHeight = "1.6"; descP.style.marginBottom = "15px";
-        descP.innerHTML = randomEvent.desc;
-        container.appendChild(descP);
-
-        randomEvent.choices.forEach(choice => {
-            let btn = document.createElement('button');
-            btn.className = "btn-game btn-cook"; btn.style.width = "100%"; btn.style.marginBottom = "8px"; btn.style.fontSize = "11px";
-            btn.innerHTML = choice.text;
-            btn.onclick = () => {
-                let resultLog = choice.run(currentRun, accountMeta);
-                addLog(resultLog, "perfect");
-                resolveAbyssEvent();
-            };
-            container.appendChild(btn);
-        });
-
-        let btnLeave = document.createElement('button');
-        btnLeave.className = "btn-game btn-rest"; btnLeave.style.width = "100%"; btnLeave.style.fontSize = "11px";
-        btnLeave.innerHTML = "🏃 靜靜離開，不做理會";
-        btnLeave.onclick = () => {
-            addLog("🏃 你決定不輕舉妄動，警惕地繞開此處繼續前進。");
-            resolveAbyssEvent();
-        };
-        container.appendChild(btnLeave);
-    } 
-    else if (typeof TREASURE_CHESTS_POOL !== "undefined" && TREASURE_CHESTS_POOL.length > 0) {
-        let rolledChest = TREASURE_CHESTS_POOL[Math.floor(Math.random() * TREASURE_CHESTS_POOL.length)];
-        title.innerHTML = `🎁 發現古老遺蹟：[${rolledChest.name}] 🎁`;
-
-        let descP = document.createElement('p');
-        descP.style.fontSize = "12px"; descP.style.color = "#babcbf"; descP.style.lineHeight = "1.6"; descP.style.marginBottom = "15px";
-        descP.innerHTML = `地面上靜靜躺著一個【${rolledChest.name}】。你可以專心嘗試開鎖解開密碼，或者直接繞過。`;
-        container.appendChild(descP);
-
-        let btnLockpick = document.createElement('button');
-        btnLockpick.className = "btn-game btn-explore"; btnLockpick.style.width = "100%"; btnLockpick.style.marginBottom = "8px";
-        btnLockpick.innerHTML = `🔓 專心開鎖 (啟動開鎖 QTE)`;
-        btnLockpick.onclick = () => {
-            triggerVillageQte("LOCKPICK", rolledChest, (rating) => {
-                let rolledGold = Math.floor(Math.random() * (rolledChest.maxGold - rolledChest.minGold + 1)) + rolledChest.minGold;
-
-                if (rating === "PERFECT") {
-                    rolledGold = Math.floor(rolledGold * 1.5);
-                    currentRun.gold += rolledGold;
-                    addLog(`🔑🌟【神業開鎖・大成功】完美拆解 [${rolledChest.name}]！獲加成金幣 +${rolledGold} G！`, "perfect");
-                    
-                    if (Math.random() < 0.5 && typeof MONSTER_DROPS !== "undefined") {
-                        let activeDrops = Object.values(MONSTER_DROPS);
-                        let randDrop = activeDrops[Math.floor(Math.random() * activeDrops.length)];
-                        accountMeta.warehouse[randDrop] = (accountMeta.warehouse[randDrop] || 0) + 1;
-                        addLog(`🎁 箱底掉落珍貴素材 ➔ <strong>${randDrop} (x1)</strong>！`, "perfect");
-                    }
-                } 
-                else if (rating === "GOOD") {
-                    currentRun.gold += rolledGold;
-                    addLog(`🔑【開鎖成功】成功打開 [${rolledChest.name}]，獲得金幣 +${rolledGold} G！`, "perfect");
-
-                    if (rolledChest.isTrap && rolledChest.dmg) {
-                        let dmg = Math.floor(rolledChest.dmg * 0.5);
-                        currentRun.hp = Math.max(1, currentRun.hp - dmg);
-                        addLog(`⚠️ 觸發殘餘陷阱，受到微量傷血扣減 ${dmg} HP。`, "take");
-                    }
-                } 
-                else {
-                    addLog(`💥【開鎖失手】工具卡死引爆箱內陷阱！`, "take");
-                    let trapDmg = rolledChest.dmg || 20;
-                    currentRun.hp = Math.max(1, currentRun.hp - trapDmg);
-                    addLog(`💥 陷阱爆炸！受創扣減 <span class="num-popup num-boss-strike">-${trapDmg} HP</span>！`, "take");
-
-                    let reducedGold = Math.floor(rolledGold * 0.3);
-                    currentRun.gold += reducedGold;
-                    addLog(`🪙 勉強撿回飛濺的碎片金幣 +${reducedGold} G。`);
-                }
-
-                saveGameData();
-                resolveAbyssEvent();
-            });
-        };
-        container.appendChild(btnLockpick);
-
-        let btnLeave = document.createElement('button');
-        btnLeave.className = "btn-game btn-rest"; btnLeave.style.width = "100%";
-        btnLeave.innerHTML = `🏃 繞過寶箱，繼續探險`;
-        btnLeave.onclick = () => {
-            addLog(`🏃 你謹慎地繞過了 [${rolledChest.name}]，繼續向深淵推進。`);
-            resolveAbyssEvent();
-        };
-        container.appendChild(btnLeave);
-    } else {
-        resolveAbyssEvent();
-    }
-    updateUI();
-}
-
-function resolveAbyssEvent() { 
-    gameState = "ENCOUNTER_RESOLVED"; 
-    const mainBtn = document.getElementById('btn-main-action');
-    const rerunBtn = document.getElementById('btn-rerun-action');
-    if (mainBtn) mainBtn.disabled = false;
-    if (rerunBtn) rerunBtn.disabled = false;
-    updateUI(); 
-    runDungeonLoop(); 
-}
-// ==========================================
-// 🛡️ 9. 裝備穿脫與戰術面板控制
-// ==========================================
 function executeEquipAction(equipName, actionType) {
     let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName); if (!blueprint) return;
     let slot = blueprint.type;
@@ -1115,52 +979,4 @@ function executeEquipAction(equipName, actionType) {
         accountMeta.equipment[slot] = null; accountMeta.warehouse[equipName] = (accountMeta.warehouse[equipName] || 0) + 1;
     }
     resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
-}
-
-function toggleTacticsDrawer() {
-    const drawer = document.getElementById('tactics-drawer-box');
-    const triggerBtn = document.getElementById('tactic-trigger-btn');
-    if (!drawer) return;
-
-    drawer.classList.toggle('expanded');
-    
-    const triggerTxt = triggerBtn.querySelector('.trigger-text');
-    if (drawer.classList.contains('expanded')) {
-        if (triggerTxt) triggerTxt.innerText = "關閉指令";
-    } else {
-        if (triggerTxt) triggerTxt.innerText = "戰術指令";
-    }
-}
-
-function selectTactic(tacticType) {
-    activeTactic = tacticType;
-    syncTacticButtonsUi();
-    
-    let tacticChinese = "";
-    let logStyle = "perfect";
-    if (tacticType === "MANUAL") {
-        tacticChinese = "【🎮 手動看戲】";
-        logStyle = "deal";
-    } else if (tacticType === "BALANCED") {
-        tacticChinese = "【⚖️ 均衡防守】";
-    } else if (tacticType === "OFFENSIVE") {
-        tacticChinese = "【⚔️ 狂暴強擊】";
-        logStyle = "take";
-    }
-    
-    addLog(`📢 <b>【戰術變陣】</b>勇者身形一閃，陣腳轉變為 ➔ <span style="color: var(--gold-glow); font-weight:bold;">${tacticChinese}</span>`, logStyle);
-}
-
-function syncTacticButtonsUi() {
-    const types = ["MANUAL", "BALANCED", "OFFENSIVE"];
-    types.forEach(type => {
-        const btn = document.getElementById(`tactic-btn-${type}`);
-        if (btn) {
-            if (type === activeTactic) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        }
-    });
 }
