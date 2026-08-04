@@ -56,7 +56,8 @@ let currentRun = {
     skills: {},
     inventory: [],
     qteBuffDuration: 0,
-    qteBuffTurns: 0
+    qteBuffTurns: 0,
+    tactic: "MANUAL"
 };
 
 let dungeonFloor = 0;
@@ -83,7 +84,7 @@ function checkPlayerNameLive() {
     if (localData) {
         try {
             const parsed = JSON.parse(localData);
-            legacyBox.innerHTML = `✨ 檢測到本地紀錄：<strong>${parsed.name}</strong> (Lv.${parsed.lv || 1})，請輸入 PIN 碼。`;
+            legacyBox.innerHTML = `✨ 檢測到本地紀錄：<strong>${parsed.name || targetName}</strong> (Lv.${parsed.lv || 1})，請輸入 PIN 碼。`;
             return;
         } catch(e) {}
     }
@@ -112,12 +113,16 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        await fetch(SERVER_URL, { method: 'GET', signal: controller.signal }).catch(() => {});
+        const res = await fetch(SERVER_URL, { method: 'GET', signal: controller.signal });
         clearTimeout(timeoutId);
 
-        if (loadingFlavorText) loadingFlavorText.innerText = "✨ Render 雲端伺服器同步成功！開啟深淵通道...";
+        if (res && res.ok) {
+            if (loadingFlavorText) loadingFlavorText.innerText = "✨ Render 雲端伺服器同步成功！開啟深淵通道...";
+        } else {
+            throw new Error("Server response not ok");
+        }
     } catch (err) {
         if (loadingFlavorText) loadingFlavorText.innerText = "⚡ 連線逾時，已進入單機本地存檔模式！";
     }
@@ -170,6 +175,11 @@ async function initOrLoadPlayer(inputName, inputPin) {
             accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), data.activeChar);
             accountMeta.name = targetName;
             accountMeta.pin = targetPin;
+            if (!accountMeta.stats) accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+            if (!accountMeta.equipment) accountMeta.equipment = { weapon: null, armor: null, accessory: null };
+            if (!accountMeta.equipmentStars) accountMeta.equipmentStars = { weapon: 0, armor: 0, accessory: 0 };
+            if (!accountMeta.warehouse) accountMeta.warehouse = {};
+            if (!accountMeta.skills) accountMeta.skills = {};
         }
 
     } catch (err) {
@@ -184,7 +194,13 @@ async function initOrLoadPlayer(inputName, inputPin) {
 
         if (localData) {
             try {
-                accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), JSON.parse(localData));
+                const parsed = JSON.parse(localData);
+                accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), parsed);
+                if (!accountMeta.stats) accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
+                if (!accountMeta.equipment) accountMeta.equipment = { weapon: null, armor: null, accessory: null };
+                if (!accountMeta.equipmentStars) accountMeta.equipmentStars = { weapon: 0, armor: 0, accessory: 0 };
+                if (!accountMeta.warehouse) accountMeta.warehouse = {};
+                if (!accountMeta.skills) accountMeta.skills = {};
             } catch(e) {
                 accountMeta = createDefaultAccountMeta(targetName, targetPin);
                 isNewUser = true;
@@ -210,8 +226,13 @@ async function initOrLoadPlayer(inputName, inputPin) {
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
-    if (typeof currentRun !== "undefined" && currentRun.gold !== undefined) {
-        accountMeta.gold = currentRun.gold;
+    if (typeof currentRun !== "undefined") {
+        if (currentRun.gold !== undefined) accountMeta.gold = currentRun.gold;
+        if (currentRun.lv !== undefined) accountMeta.lv = currentRun.lv;
+        if (currentRun.exp !== undefined) accountMeta.exp = currentRun.exp;
+        if (currentRun.nextExp !== undefined) accountMeta.nextExp = currentRun.nextExp;
+        if (currentRun.skills) accountMeta.skills = { ...currentRun.skills };
+        if (currentRun.job) accountMeta.job = currentRun.job;
     }
 
     const charKey = `ABYSS_DESTINY_SAVE_${accountMeta.name}`;
