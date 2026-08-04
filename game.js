@@ -1065,19 +1065,29 @@ function addExperience(amount) {
 }
 
 function checkLevelUpAndTriggerSelect() {
-    while (accountMeta.exp >= accountMeta.nextExp) {
+    let safetyCounter = 0; // 死循環防護鎖
+
+    // 當經驗足夠且未超過安全次數時才升級
+    while (accountMeta.exp >= accountMeta.nextExp && safetyCounter < 100) {
+        safetyCounter++;
+        
         accountMeta.exp -= accountMeta.nextExp;
         accountMeta.lv = (accountMeta.lv || 1) + 1;
-        currentRun.lv = accountMeta.lv; // 同步目前層級狀態中的 Lv
+        currentRun.lv = accountMeta.lv; 
         accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; 
+        
+        // 正確遞增下級所需經驗，並即時同步至 currentRun
         accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
+        currentRun.nextExp = accountMeta.nextExp;
+
         addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點能力點數！`, "perfect");
     }
-    
+
     if (gameState === "BATTLE") { 
         let btnMain = document.getElementById('btn-main-action');
         if (btnMain) btnMain.disabled = false; 
     }
+    
     saveGameData();
     updateUI();
 }
