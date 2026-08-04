@@ -333,20 +333,19 @@
     </div>
 </div>
 
-<!-- JS 載入順序：環境與職業資料庫最優先載入以完成正確 deepFreeze 綁定 -->
-<script src="environmentdata.js"></script>
+<!-- 1. 核心狀態與數值計算引擎 -->
+<script src="state.js"></script>
+<script src="statengine.js"></script>
+
+<!-- 2. 靜態資料庫 (職業、裝備食譜、怪物、環境與奇遇) -->
 <script src="jobdata.js"></script>
 <script src="itemdata.js"></script>
 <script src="monsterdata.js"></script>
+<script src="environmentdata.js"></script>
 <script src="eventdata.js"></script>
 
-<!-- 帳號與登入核心 -->
-<script src="state.js"></script>
-
-<!-- 屬性與戰鬥計算引擎 -->
-<script src="statengine.js"></script>
-
-<script src="ui.js"></script>
+<!-- 3. 主遊戲邏輯與 UI 渲染層 -->
 <script src="game.js"></script>
+<script src="ui.js"></script>
 </body>
 </html>
