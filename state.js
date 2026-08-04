@@ -228,7 +228,6 @@ async function initOrLoadPlayer(inputName, inputPin) {
     return { success: true, isNewUser: isNewUser };
 }
 
-// 修正：增加 async 宣告，避免內部 await 拋出 SyntaxError
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
@@ -236,7 +235,12 @@ async function saveGameData() {
         if (currentRun.gold !== undefined) accountMeta.gold = currentRun.gold;
         if (currentRun.lv !== undefined) accountMeta.lv = currentRun.lv;
         if (currentRun.exp !== undefined) accountMeta.exp = currentRun.exp;
-        if (currentRun.nextExp !== undefined) accountMeta.nextExp = currentRun.nextExp;
+        
+        // 🔒 關鍵修復：確保 nextExp 保持最高遞增值，絕對不被預設值 30 覆蓋
+        const validNextExp = Math.max(30, accountMeta.nextExp || 30, currentRun.nextExp || 30);
+        accountMeta.nextExp = validNextExp;
+        currentRun.nextExp = validNextExp;
+
         if (currentRun.skills) accountMeta.skills = { ...currentRun.skills };
         if (currentRun.job) accountMeta.job = currentRun.job;
     }
