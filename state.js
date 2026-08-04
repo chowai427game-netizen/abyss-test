@@ -20,7 +20,8 @@ function createDefaultAccountMeta(name, pin) {
         skills: {},
         warehouse: {},
         equipment: { weapon: null, armor: null, accessory: null },
-        equipmentStars: { weapon: 0, armor: 0, accessory: 0 }
+        equipmentStars: { weapon: 0, armor: 0, accessory: 0 },
+        itemRefines: {}
     };
 }
 
