@@ -211,18 +211,23 @@ async function initOrLoadPlayer(inputName, inputPin) {
         }
     }
 
+    // 數據同步至當前冒險狀態
     if (accountMeta.skills) currentRun.skills = { ...accountMeta.skills };
     if (accountMeta.job) currentRun.job = accountMeta.job;
     if (accountMeta.gold !== undefined) currentRun.gold = accountMeta.gold;
+    if (accountMeta.lv !== undefined) currentRun.lv = accountMeta.lv;
+    if (accountMeta.exp !== undefined) currentRun.exp = accountMeta.exp;
+    if (accountMeta.nextExp !== undefined) currentRun.nextExp = accountMeta.nextExp;
     
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
     localStorage.setItem(`ABYSS_DESTINY_PIN_${targetName}`, targetPin);
 
     if (typeof resetCurrentRunData === "function") resetCurrentRunData();
-    saveGameData();
+    await saveGameData();
     return { success: true, isNewUser: isNewUser };
 }
 
+// 修正：增加 async 宣告，避免內部 await 拋出 SyntaxError
 async function saveGameData() {
     if (!accountMeta || !accountMeta.name) return;
 
