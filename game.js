@@ -13,6 +13,19 @@ let battleTimeElapsed = 0;
 let isQteActive = false;
 let activeTactic = "BALANCED";
 
+// 📦 安全物品放入背包/倉庫流轉防護
+function safePushToInventory(run, account, itemName) {
+    if (!run.inventory) run.inventory = [];
+    if (run.inventory.length < MAX_BAG_SIZE) {
+        run.inventory.push(itemName);
+        return `🎒 獲得戰利品 ➔ <strong>[${itemName}]</strong> (已放入隨身背包)`;
+    } else {
+        if (!account.warehouse) account.warehouse = {};
+        account.warehouse[itemName] = (account.warehouse[itemName] || 0) + 1;
+        return `📦 背包空間已滿！戰利品 ➔ <strong>[${itemName}]</strong> 已自動傳送至地表倉庫！`;
+    }
+}
+
 function triggerProjectileFX(type = 'arcane') {
     const logContainer = document.getElementById('log-box');
     if (!logContainer) return;
@@ -306,25 +319,27 @@ function executeAutoBattleAiTurn() {
         for (let i = jobSkills.length - 1; i >= 0; i--) {
             let sMeta = jobSkills[i];
             if (currentRun.skills[sMeta.name] && currentRun.mp >= sMeta.mp) {
-                currentRun.mp -= sMeta.mp;
                 let skLv = currentRun.skills[sMeta.name];
                 let isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
                 let baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
                 let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                 
-                triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
-                let fxClass = detectSkillCssClass(sMeta.name);
+                if (eff.dmg) {
+                    currentRun.mp -= sMeta.mp;
+                    triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
+                    let fxClass = detectSkillCssClass(sMeta.name);
 
-                let monsterDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
-                let dmgRes = calculateDamage(eff.dmg || baseAtkPower, monsterDef, true, (isMagicJob || eff.isMagic));
+                    let monsterDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
+                    let dmgRes = calculateDamage(eff.dmg, monsterDef, true, (isMagicJob || eff.isMagic));
 
-                if (dmgRes.isMiss) {
-                    addLog(`💨 狂暴發動 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
-                } else {
-                    activeMonster.hp -= dmgRes.damage;
-                    addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "skill-hit");
+                    if (dmgRes.isMiss) {
+                        addLog(`💨 狂暴發動 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
+                    } else {
+                        activeMonster.hp -= dmgRes.damage;
+                        addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "skill-hit");
+                    }
+                    return true;
                 }
-                return true;
             }
         }
     }
@@ -370,7 +385,7 @@ function handleRerunAction() {
 }
 
 function handleSecondaryAction() {
-    clearInterval(combatTickerTimer);
+    if (combatTickerTimer) clearInterval(combatTickerTimer);
     gameState = "VILLAGE";
     currentEnvironment = "NORMAL";
     document.getElementById('btn-secondary-action').style.display = "none";
@@ -433,7 +448,7 @@ function executeUseDungeonItem(itemName, index) {
         currentRun.hp = Math.max(1, currentRun.hp - selfDmg);
         activeMonster.hp = 0;
         addLog(`🍷 獻祭血液扣減 ${selfDmg} HP，釋放禁忌詛咒秒殺魔物！`, "perfect");
-        clearInterval(combatTickerTimer);
+        if (combatTickerTimer) clearInterval(combatTickerTimer);
         executeDungeonVictorySequence();
     }
     else if (itemName.includes("未知物體")) {
@@ -617,18 +632,21 @@ function triggerVillageQte(type, targetData, successCallback) {
     let qteInterval = setInterval(() => {
         if (!isQteActive) { clearInterval(qteInterval); return; }
         progress += step;
-        if (progress >= 100) { clearInterval(qteInterval); resolveQteResult("MISS"); } 
+        if (progress >= 100) { resolveQteResult("MISS"); } 
         else { qteFill.style.width = progress + "%"; tapBtn.innerText = `🎯 點擊判定 (${Math.floor(progress)}%)`; }
     }, 25);
 
     function resolveQteResult(rating) {
-        isQteActive = false; overlay.style.display = "none";
+        if (!isQteActive) return;
+        isQteActive = false;
+        if (qteInterval) clearInterval(qteInterval);
+        tapBtn.onclick = null;
+        overlay.style.display = "none";
         successCallback(rating);
     }
 
     tapBtn.onclick = () => {
         if (!isQteActive) return;
-        clearInterval(qteInterval);
         let rating = (progress >= 60 && progress <= 90) ? "PERFECT" : "GOOD";
         resolveQteResult(rating);
     };
@@ -784,7 +802,8 @@ function executeEnvironmentTick() {
 function executePlayerActionTick() {
     if (executeAutoBattleAiTurn()) {
         if (activeMonster && activeMonster.hp <= 0) {
-            clearInterval(combatTickerTimer); executeDungeonVictorySequence();
+            if (combatTickerTimer) clearInterval(combatTickerTimer); 
+            executeDungeonVictorySequence();
         }
         return;
     }
@@ -813,12 +832,12 @@ function executePlayerActionTick() {
                     addLog(`✨ 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
                 }
                 // 2. MP 恢復類 (如禪心)
-                else if (eff.mpRestore) {
+                if (eff.mpRestore) {
                     currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore);
                     addLog(`🧘 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${eff.mpRestore} MP</span>！`, "perfect");
                 }
-                // 3. 戰鬥護盾與屬性 Buff 類 (如霸體、天使之賜福)
-                else if (eff.blockBuff || eff.permAtk || eff.permHp || eff.dodgeBuff) {
+                // 3. 戰鬥護盾與屬性 Buff 類
+                if (eff.blockBuff || eff.permAtk || eff.permHp || eff.dodgeBuff) {
                     if (eff.blockBuff) currentRun.def += eff.blockBuff;
                     if (eff.permAtk) currentRun.atk += eff.permAtk;
                     if (eff.permHp) { currentRun.maxHp += eff.permHp; currentRun.hp += eff.permHp; }
@@ -826,12 +845,12 @@ function executePlayerActionTick() {
                     addLog(`🛡️ 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span> 成功加載戰術防禦與屬性增益！`, "perfect");
                 }
                 // 4. 攻擊傷害類
-                else if (eff.dmg) {
+                if (eff.dmg) {
                     let monsterDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
                     let dmgRes = calculateDamage(eff.dmg, monsterDef, true, (isMagicJob || eff.isMagic));
 
                     if (dmgRes.isMiss) {
-                        addLog(`💨 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！<span class="num-popup num-miss">MISS</span>`, "miss");
+                        addLog(`💨 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
                     } else {
                         activeMonster.hp -= dmgRes.damage;
                         let numClass = (isMagicJob || eff.isMagic) ? "num-m-dmg" : "num-p-dmg";
@@ -883,7 +902,10 @@ function executePlayerActionTick() {
         }
     }
 
-    if (activeMonster.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonVictorySequence(); }
+    if (activeMonster.hp <= 0) { 
+        if (combatTickerTimer) clearInterval(combatTickerTimer); 
+        executeDungeonVictorySequence(); 
+    }
 }
 
 function executeMonsterActionTick() {
@@ -906,7 +928,10 @@ function executeMonsterActionTick() {
     let finalDmg = dmgRes.damage;
     currentRun.hp -= finalDmg; 
     addLog(`🔴 魔物暴虐反噬！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
-    if (currentRun.hp <= 0) { clearInterval(combatTickerTimer); executeDungeonDefeatSequence(); }
+    if (currentRun.hp <= 0) { 
+        if (combatTickerTimer) clearInterval(combatTickerTimer); 
+        executeDungeonDefeatSequence(); 
+    }
 }
 
 function executeDungeonVictorySequence() {
@@ -917,7 +942,7 @@ function executeDungeonVictorySequence() {
     currentRun.gold += rewardG; 
     addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 戰鬥勝利！獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
     
-    // 🎁 自動結算掉落物
+    // 🎁 自動結算掉落物 (呼叫 safePushToInventory 防護函式)
     let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" ? MONSTER_DROPS[activeMonster?.name] : null);
     if (dropItemName) {
         let msg = safePushToInventory(currentRun, accountMeta, dropItemName);
@@ -925,11 +950,27 @@ function executeDungeonVictorySequence() {
     }
 
     if (isBossFloor) {
+        triggerBossVictoryModal(activeMonster?.name);
         triggerBossTalentReward();
     }
 
     activeMonster = null; 
     addExperience(rewardExp);
+}
+
+function triggerBossVictoryModal(bossName) {
+    const overlay = document.getElementById('boss-victory-overlay');
+    const nameEl = document.getElementById('victory-boss-name');
+    if (!overlay) return;
+    if (nameEl) nameEl.innerText = bossName || "LEGENDARY BOSS DEFEATED";
+    overlay.style.display = 'flex';
+    
+    const closeHandler = () => {
+        overlay.style.display = 'none';
+        overlay.removeEventListener('click', closeHandler);
+    };
+    overlay.addEventListener('click', closeHandler);
+    setTimeout(closeHandler, 5000);
 }
 
 function triggerBossTalentReward() {
@@ -965,6 +1006,7 @@ function checkLevelUpAndTriggerSelect() {
     while (accountMeta.exp >= accountMeta.nextExp) {
         accountMeta.exp -= accountMeta.nextExp;
         accountMeta.lv = (accountMeta.lv || 1) + 1;
+        currentRun.lv = accountMeta.lv; // 同步目前層級狀態中的 Lv
         accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; 
         accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
         addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點能力點數！`, "perfect");
