@@ -3,6 +3,7 @@
 // ==========================================================================
 
 function resetCurrentRunData() {
+    if (!accountMeta) return;
     if (!accountMeta.stats) {
         accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
@@ -16,7 +17,8 @@ function resetCurrentRunData() {
         LUK: Number(accountMeta.stats.LUK) || 0
     };
 
-    const job = currentRun.job || "swordsman";
+    const job = accountMeta.job || currentRun.job || "swordsman";
+    currentRun.job = job;
 
     currentRun.lv = Number(accountMeta.lv) || 1; 
     currentRun.exp = Number(accountMeta.exp) || 0; 
@@ -45,6 +47,9 @@ function resetCurrentRunData() {
     currentRun.critChance = Math.min(80, Math.floor(s.LUK * 0.4 + s.DEX * 0.1));
     currentRun.perfectDodge = Math.min(30, Math.floor(s.LUK * 0.2));
 
+    currentRun.vampRate = 0;
+    currentRun.doubleStrike = 0;
+
     if (job === "archer") {
         currentRun.atk = 15 + dexBonusAtk + Math.floor(s.STR * 0.5);
     } else if (job === "magician" || job === "acolyte") {
@@ -62,7 +67,8 @@ function resetCurrentRunData() {
 }
 
 function applyEquipmentStats(slot) {
-    const equipName = accountMeta.equipment ? accountMeta.equipment[slot] : null;
+    if (!accountMeta || !accountMeta.equipment) return;
+    const equipName = accountMeta.equipment[slot];
     if (!equipName || typeof CRAFTING_BLUEPRINTS === "undefined") return;
 
     const blueprint = CRAFTING_BLUEPRINTS.find(x => x.name === equipName);
@@ -76,13 +82,21 @@ function applyEquipmentStats(slot) {
     if (st.matk) currentRun.matk += Math.floor(st.matk * multiplier);
     if (st.spd) currentRun.spd += Math.floor(st.spd * multiplier);
     if (st.mpRegen) currentRun.mpRegen += Math.floor(st.mpRegen * multiplier);
+    if (st.hpRegen) currentRun.hpRegen += Math.floor(st.hpRegen * multiplier);
     if (st.def) currentRun.def += Math.floor(st.def * multiplier);
-    if (st.block) { currentRun.block += Math.floor(st.block * multiplier); currentRun.def = currentRun.block; }
+    if (st.block) {
+        const bVal = Math.floor(st.block * multiplier);
+        currentRun.block += bVal;
+        currentRun.def += bVal;
+    }
     if (st.mdef) currentRun.mdef += Math.floor(st.mdef * multiplier);
-    if (st.maxHp) currentRun.maxHp += Math.floor(st.maxHp * multiplier); 
+    if (st.maxHp) currentRun.maxHp += Math.floor(st.maxHp * multiplier);
+    if (st.maxMp) currentRun.maxMp += Math.floor(st.maxMp * multiplier);
     if (st.critChance) currentRun.critChance = Math.min(80, currentRun.critChance + Math.floor(st.critChance * multiplier));
     if (st.hit) currentRun.hit += Math.floor(st.hit * multiplier);
     if (st.flee) currentRun.flee += Math.floor(st.flee * multiplier);
+    if (st.vampRate) currentRun.vampRate += Math.floor(st.vampRate * multiplier);
+    if (st.doubleStrike) currentRun.doubleStrike += Math.floor(st.doubleStrike * multiplier);
 }
 
 function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isMagic = false) {
@@ -95,7 +109,7 @@ function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isM
         }
 
         if (!isMagic) {
-            const monsterFlee = Number(activeMonster.flee) || (dungeonFloor * 3);
+            const monsterFlee = Number(activeMonster.flee) || (typeof dungeonFloor !== "undefined" ? dungeonFloor * 3 : 0);
             const playerHit = Number(currentRun.hit) || 80;
             const hitRate = Math.max(10, Math.min(95, playerHit - monsterFlee));
             if (Math.random() * 100 > hitRate) {
@@ -108,7 +122,7 @@ function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isM
         }
 
         if (!isMagic) {
-            const monsterHit = Number(activeMonster.hit) || (dungeonFloor * 4 + 75);
+            const monsterHit = Number(activeMonster.hit) || (typeof dungeonFloor !== "undefined" ? dungeonFloor * 4 + 75 : 80);
             const playerFlee = Number(currentRun.flee) || 10;
             const hitRate = Math.max(10, Math.min(95, monsterHit - playerFlee));
             if (Math.random() * 100 > hitRate) {
