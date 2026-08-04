@@ -1048,14 +1048,23 @@ function triggerBossTalentReward() {
 }
 
 function executeDungeonDefeatSequence() {
-    addLog(`☠️【魂歸深淵】你已被擊敗！本輪經驗清零，但裝備完好。`, "take");
-    accountMeta.exp = 0; currentRun.exp = 0;
-    gameState = "VILLAGE"; currentEnvironment = "NORMAL";
+    // 💀 計算扣除當前 30% 經驗值 (至少留 0)
+    let lostExp = Math.floor((accountMeta.exp || 0) * 0.3);
+    accountMeta.exp = Math.max(0, (accountMeta.exp || 0) - lostExp);
+    currentRun.exp = accountMeta.exp;
+
+    addLog(`☠️【魂歸深淵】你已被擊敗！損失了 30% 經驗值 (-${lostExp} EXP)，已緊急送回地表村莊。`, "take");
+    
+    gameState = "VILLAGE"; 
+    currentEnvironment = "NORMAL";
     
     resetCurrentRunData(); 
-    currentRun.hp = currentRun.maxHp; currentRun.mp = currentRun.maxMp;
+    currentRun.hp = currentRun.maxHp; 
+    currentRun.mp = currentRun.maxMp;
     
-    saveGameData(); updateUI(); switchVillageLocation("GATE");
+    saveGameData(); 
+    updateUI(); 
+    switchVillageLocation("GATE");
 }
 
 function addExperience(amount) {
@@ -1065,18 +1074,17 @@ function addExperience(amount) {
 }
 
 function checkLevelUpAndTriggerSelect() {
-    let safetyCounter = 0; // 死循環防護鎖
-
-    // 當經驗足夠且未超過安全次數時才升級
-    while (accountMeta.exp >= accountMeta.nextExp && safetyCounter < 100) {
-        safetyCounter++;
-        
-        accountMeta.exp -= accountMeta.nextExp;
+    // 判定是否達到升級門檻
+    if (accountMeta.exp >= accountMeta.nextExp) {
         accountMeta.lv = (accountMeta.lv || 1) + 1;
         currentRun.lv = accountMeta.lv; 
         accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; 
         
-        // 正確遞增下級所需經驗，並即時同步至 currentRun
+        // 🔒 升級後 EXP 直接歸零，從 0 開始重新累積
+        accountMeta.exp = 0;
+        currentRun.exp = 0;
+        
+        // 提升下一級所需經驗門檻，並同步至當前狀態
         accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
         currentRun.nextExp = accountMeta.nextExp;
 
