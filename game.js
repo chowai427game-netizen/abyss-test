@@ -586,36 +586,74 @@ function getStarUpCost(slot, currentStar) {
     }
 }
 
-function executeSlotStarUp(slot) {
-    let currentStar = accountMeta.equipmentStars[slot];
-    if (currentStar >= 5) return;
-    let cost = getStarUpCost(slot, currentStar);
-    
-    let missingList = [];
-    for (let ing in cost) {
-        let reqQty = cost[ing];
-        let currentQty = accountMeta.warehouse[ing] || 0;
-        if (currentQty < reqQty) {
-            missingList.push(`🔥 精煉素材 [${ing}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
-        }
-    }
+// ==========================================================================
+// ⚒️ 單一藍圖裝備獨立強化系統 (+1 ~ +11)
+// ==========================================================================
+function refineSpecificEquipment(equipName) {
+    if (!accountMeta.itemRefines) accountMeta.itemRefines = {};
 
-    if (missingList.length > 0) {
-        showMaterialAlert(missingList, `⚠️ 部位精煉升星素材不足`);
+    const curLvl = accountMeta.itemRefines[equipName] || 0;
+
+    if (curLvl >= 11) {
+        showMaterialAlert([`[${equipName}] 已達到最高強化等級 (+11)！`], "🌟 已達滿級");
         return;
     }
 
-    for (let ing in cost) {
-        accountMeta.warehouse[ing] -= cost[ing];
+    const nextLvl = curLvl + 1;
+
+    // ----------------------------------------------------------------------
+    // 強化成功率與降級懲罰規則
+    // ----------------------------------------------------------------------
+    let successRate = 1.0; 
+    let minDrop = 0;       
+    let maxDrop = 0;       
+
+    if (nextLvl <= 2) { 
+        successRate = 1.00; minDrop = 0; maxDrop = 0;
+    } else if (nextLvl <= 4) { 
+        successRate = nextLvl === 3 ? 0.75 : 0.60; minDrop = 0; maxDrop = 0;
+    } else if (nextLvl <= 6) { 
+        successRate = nextLvl === 5 ? 0.45 : 0.35; minDrop = 0; maxDrop = 1;
+    } else if (nextLvl <= 8) { 
+        successRate = nextLvl === 7 ? 0.25 : 0.15; minDrop = 1; maxDrop = 2;
+    } else { 
+        if (nextLvl === 9) successRate = 0.08;
+        else if (nextLvl === 10) successRate = 0.05;
+        else successRate = 0.03;
+        minDrop = 1; maxDrop = 2;
     }
-    
-    accountMeta.equipmentStars[slot]++;
-    addLog(`🌟【槽位精煉成功】你的 <strong>[${slot === 'weapon' ? '武器' : slot === 'armor' ? '防具' : '飾品'}]</strong> 部位升星至 ⭐ x${accountMeta.equipmentStars[slot]}！`, "perfect");
-    
-    resetCurrentRunData();
-    saveGameData();
-    updateUI();
-    if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+
+    // ----------------------------------------------------------------------
+    // 判定結果
+    // ----------------------------------------------------------------------
+    const roll = Math.random();
+
+    if (roll < successRate) {
+        accountMeta.itemRefines[equipName] = nextLvl;
+        addLog(`🎉【強化成功！】<strong>[${equipName}]</strong> 成功升級至 <span style="color:#ffd700; font-weight:bold;">+${nextLvl}</span>！`, "perfect");
+    } else {
+        let drop = 0;
+        if (maxDrop > 0) {
+            drop = Math.floor(Math.random() * (maxDrop - minDrop + 1)) + minDrop;
+        }
+
+        const newLvl = Math.max(0, curLvl - drop);
+        accountMeta.itemRefines[equipName] = newLvl;
+
+        if (drop > 0) {
+            addLog(`💥【強化失敗！】<strong>[${equipName}]</strong> 倒退 ${drop} 級，降至 <strong>+${newLvl}</strong>。`, "take");
+        } else {
+            addLog(`❌【強化失敗！】<strong>[${equipName}]</strong> 等級保持 <strong>+${curLvl}</strong> 不變。`, "miss");
+        }
+    }
+
+    // 更新數據與介面
+    if (typeof resetCurrentRunData === "function") resetCurrentRunData();
+    if (typeof saveGameData === "function") saveGameData();
+    if (typeof updateUI === "function") updateUI();
+    if (currentVillageLocation === "WORKSHOP" && typeof renderVillageWorkshop === "function") {
+        renderVillageWorkshop();
+    }
 }
 
 function executeDismantle(equipName) {
