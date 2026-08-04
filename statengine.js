@@ -99,6 +99,21 @@ function applyEquipmentStats(slot) {
     if (st.doubleStrike) currentRun.doubleStrike += Math.floor(st.doubleStrike * multiplier);
 }
 
+// 計算裝備屬性加成範例
+function calculateEquipmentBonus(equipName) {
+    const blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName);
+    if (!blueprint) return {};
+
+    const refineLvl = accountMeta.itemRefines?.[equipName] || 0;
+    const multiplier = 1 + (refineLvl * 0.15); // 每 +1 增加 15% 基礎屬性
+
+    let finalStats = {};
+    for (let key in blueprint.stats) {
+        finalStats[key] = Math.floor(blueprint.stats[key] * multiplier);
+    }
+    return finalStats;
+}
+
 function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isMagic = false) {
     const atk = Math.max(0, Number(attackerAtk) || 0);
     const def = Math.max(0, Number(defenderDef) || 0);
@@ -147,3 +162,4 @@ function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isM
     
     return { damage: finalDmg, isCrit: isCrit, isMiss: false };
 }
+
