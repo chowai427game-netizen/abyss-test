@@ -22,13 +22,19 @@ const DOM = {
             'workshop-warehouse-display', 'blueprints-container'
         ];
         keys.forEach(key => {
-            this.elements[key] = document.getElementById(key);
+            const el = document.getElementById(key);
+            if (el) this.elements[key] = el;
         });
         this.isInitialized = true;
     },
     get(key) {
         if (!this.isInitialized) this.init();
-        return this.elements[key] || document.getElementById(key);
+        if (!this.elements[key]) {
+            const el = document.getElementById(key);
+            if (el) this.elements[key] = el;
+            return el;
+        }
+        return this.elements[key];
     }
 };
 
