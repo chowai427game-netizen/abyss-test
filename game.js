@@ -434,11 +434,29 @@ function executeUseDungeonItem(itemName, index) {
     if (gameState !== "BATTLE" || !activeMonster) return;
     addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
     
-    if (itemName.includes("厚牛巨堡") || itemName.includes("料理")) {
+    // 1. 回復 HP 類
+    if (itemName.includes("厚牛巨堡") || itemName.includes("料理") || itemName.includes("牛扒") || itemName.includes("炸薯")) {
         let healVal = Math.floor(currentRun.maxHp * 0.5);
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
         addLog(`🌭 熱量充能！血量大幅度回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
-    } 
+    }
+    else if (itemName.includes("烤野豬肉") || itemName.includes("初級治癒")) {
+        let healVal = 60;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+        addLog(`🥩 生命回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+    }
+    else if (itemName.includes("強效魔藥") || itemName.includes("壁虎乾")) {
+        let healVal = 180;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+        addLog(`🧪 強效滋補！生命回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+    }
+    // 2. 回復 MP 類
+    else if (itemName.includes("回魔劑") || itemName.includes("瓊漿")) {
+        let mpVal = 80;
+        currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpVal);
+        addLog(`🍷 魔力泉湧！回復 <span class="heal-effect">+${mpVal} MP</span>！`, "perfect");
+    }
+    // 3. 特殊控場與即死類
     else if (itemName.includes("永凍刨冰")) {
         activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 2;
         addLog(`❄️ 冰爽極限！魔物被徹底凍結 <strong>2 回合</strong> 無法行動！`, "perfect");
@@ -447,14 +465,20 @@ function executeUseDungeonItem(itemName, index) {
         let selfDmg = Math.floor(currentRun.hp * 0.2);
         currentRun.hp = Math.max(1, currentRun.hp - selfDmg);
         activeMonster.hp = 0;
-        addLog(`🍷 獻祭血液扣減 ${selfDmg} HP，釋放禁忌詛咒秒殺魔物！`, "perfect");
+        addLog(`🍷 獻祭血液扣減 ${selfDmg} HP，釋放禁忌詛咒秒殺魔物！`, "take");
         if (combatTickerTimer) clearInterval(combatTickerTimer);
         executeDungeonVictorySequence();
+        return;
     }
     else if (itemName.includes("未知物體")) {
         let dmg = currentEnvironment === "POISON" ? 30 : 15;
         currentRun.hp = Math.max(1, currentRun.hp - dmg);
         addLog(`🪨 焦黑物體反噬扣血！扣減 ${dmg} HP！`, "take");
+    }
+    else {
+        let genericHeal = 40;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + genericHeal);
+        addLog(`🍙 食用物資，回復 <span class="heal-effect">+${genericHeal} HP</span>。`, "perfect");
     }
     
     currentRun.inventory.splice(index, 1);
