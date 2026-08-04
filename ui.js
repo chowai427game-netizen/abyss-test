@@ -537,26 +537,25 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-function renderStarUpRow(slot, displayName, currentStar) {
-    const starsStr = "⭐".repeat(currentStar) + "☆".repeat(5 - currentStar);
+function renderStarUpRow(slot, displayName, currentLvl) {
     let upgradeBtn = "";
     
-    if (currentStar >= 5) {
-        upgradeBtn = `<span style="color: #ffd700; font-size: 11px; font-weight: bold;">[已臻滿星]</span>`;
+    if (currentLvl >= 11) {
+        upgradeBtn = `<span style="color: #ffd700; font-size: 11px; font-weight: bold;">[已達最高 +11]</span>`;
     } else {
-        const cost = getStarUpCost(slot, currentStar);
-        const costText = Object.keys(cost).map(k => `${k} x${cost[k]}`).join(", ");
-        
         upgradeBtn = `
-            <button class="btn-game btn-rerun" style="padding: 4px 8px; font-size: 11px;" onclick="executeSlotStarUp('${slot}')">
-                🔥 升星 (需 ${costText})
+            <button class="btn-game btn-rerun" style="padding: 4px 10px; font-size: 11px;" onclick="refineEquipmentSlot('${slot}')">
+                🔥 強化升級 (+${currentLvl + 1})
             </button>
         `;
     }
     
     return `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px;">
-            <span style="font-size: 12px; font-weight: bold; color: #fff;">${displayName} [${starsStr}]</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;">
+            <span style="font-size: 12px; font-weight: bold; color: #fff;">
+                ${displayName} 
+                <span style="color: #ffd700; font-weight: bold; margin-left: 6px;">+${currentLvl || 0} / +11</span>
+            </span>
             ${upgradeBtn}
         </div>
     `;
@@ -572,22 +571,8 @@ function renderVillageWorkshop() {
     const bContainer = DOM.get('blueprints-container');
     if (!bContainer) return;
     bContainer.innerHTML = "";
-    
-    const starPanel = document.createElement('div');
-    starPanel.className = "dynamic-panel reward-style";
-    starPanel.style.cssText = "border: 1px solid rgba(212, 175, 55, 0.4); background: rgba(15, 13, 10, 0.5); margin-bottom: 15px; padding: 12px; width: 100%;";
-    
-    starPanel.innerHTML = `
-        <div class="panel-title" style="color: #ffd700; margin-bottom: 8px;">🌟 皇家部位星級精煉台 (永久繼承) 🌟</div>
-        <p style="font-size: 11px; color: #8e8e93; text-align: center; margin: 0 0 10px 0;">部位強化屬性永久提升：每⭐提升對應部位屬性額外加乘 +15%</p>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${renderStarUpRow("weapon", "🗡️ 武器槽位", accountMeta.equipmentStars.weapon)}
-            ${renderStarUpRow("armor", "👕 防具槽位", accountMeta.equipmentStars.armor)}
-            ${renderStarUpRow("accessory", "💍 飾品槽位", accountMeta.equipmentStars.accessory)}
-        </div>
-    `;
-    bContainer.appendChild(starPanel);
 
+    // 藍圖種類與等級選單
     const selectorWrapper = document.createElement('div');
     selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; width: 100%;";
     selectorWrapper.innerHTML = `
@@ -606,9 +591,6 @@ function renderVillageWorkshop() {
                 <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 階層 B1F ~ B10F</option>
                 <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 階層 B11F ~ B20F</option>
                 <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 階層 B21F ~ B30F</option>
-                <option value="31-40" ${activeCraftingLvlRange === "31-40" ? "selected" : ""}>📜 階層 B31F ~ B40F</option>
-                <option value="41-50" ${activeCraftingLvlRange === "41-50" ? "selected" : ""}>📜 階層 B41F ~ B50F</option>
-                <option value="51-60" ${activeCraftingLvlRange === "51-60" ? "selected" : ""}>📜 階層 B51F ~ B60F</option>
             </select>
         </div>
     `;
@@ -621,33 +603,37 @@ function renderVillageWorkshop() {
         return matchCat && matchLvl;
     });
 
-    if (filteredBlueprints.length === 0) {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.innerHTML = `<div style="color:#555; font-size:12px; padding:20px; width:100%; text-align:center;">🔨 該級別無此分類神裝，等待神匠開拓藍圖...</div>`;
-        bContainer.appendChild(emptyDiv);
-        return;
-    }
-
     filteredBlueprints.forEach(blueprint => {
         const btnWrapper = document.createElement('div');
         btnWrapper.style.cssText = "background: rgba(0,0,0,0.2); padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); margin-bottom: 10px; text-align: left; width: 100%;";
 
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
+        
+        // 取得該裝備當前的獨立強化等級
+        const itemRefineLvl = accountMeta.itemRefines?.[blueprint.name] || 0;
+        const refineBadge = itemRefineLvl > 0 ? `<span style="color:#ffd700; font-weight:bold;"> (+${itemRefineLvl})</span>` : "";
+
         const statText = Object.keys(blueprint.stats).map(k => {
             const nameMap = { atk: "攻擊", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", flee: "閃避" };
             const name = nameMap[k] || k;
-            return `${name} ${blueprint.stats[k] > 0 ? '+' : ''}${blueprint.stats[k]}`;
+            
+            // 計算加上獨立強化後的總數值（例如每級加成 15%）
+            const baseVal = blueprint.stats[k];
+            const finalVal = Math.floor(baseVal * (1 + itemRefineLvl * 0.15));
+            return `${name} +${finalVal}`;
         }).join(", ");
 
-        const titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}</strong> <span style="color:#ffd700; font-size:11px; font-weight:bold;">[${statText}]</span>`;
+        const titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}${refineBadge}</strong> <span style="color:#00ffcc; font-size:11px; font-weight:bold;">[${statText}]</span>`;
+        
         const infoP = document.createElement('p');
         infoP.style.cssText = "margin: 0 0 10px 0; font-size: 12px; color: #babcbf; line-height: 1.5;";
-        infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需素材：${reqText}</span>`;
+        infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需打造素材：${reqText}</span>`;
         btnWrapper.appendChild(infoP);
 
+        // 1. 打造按鈕
         const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
-        btnForge.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 8px;";
+        btnForge.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 6px;";
         btnForge.innerHTML = "🔨 消耗材料打造";
         btnForge.onclick = () => { executeForgeEquipment(blueprint); };
         btnWrapper.appendChild(btnForge);
@@ -655,27 +641,31 @@ function renderVillageWorkshop() {
         const isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
         const hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
 
+        // 2. 獨立強化按鈕（只要有擁有或穿戴即可強化）
+        if (isEquipped || hasInWarehouse) {
+            const btnRefine = document.createElement('button');
+            btnRefine.className = "btn-game btn-rerun";
+            btnRefine.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 6px;";
+            btnRefine.innerHTML = `🔥 精鍊升級 (+${itemRefineLvl + 1})`;
+            btnRefine.onclick = () => { refineSpecificEquipment(blueprint.name); };
+            btnWrapper.appendChild(btnRefine);
+        }
+
+        // 3. 穿戴 / 卸下 / 拆解按鈕
         if (isEquipped) {
             const btnUnequip = document.createElement('button');
             btnUnequip.className = "btn-game btn-rest"; 
             btnUnequip.style.cssText = "padding: 6px 12px; font-size: 11px;";
-            btnUnequip.innerHTML = "❌ 卸下神裝";
+            btnUnequip.innerHTML = "❌ 卸下";
             btnUnequip.onclick = () => { executeEquipAction(blueprint.name, "unequip"); };
             btnWrapper.appendChild(btnUnequip);
         } else if (hasInWarehouse) {
             const btnEquip = document.createElement('button');
             btnEquip.className = "btn-game btn-rerun"; 
-            btnEquip.style.cssText = "padding: 6px 12px; font-size: 11px;";
-            btnEquip.innerHTML = "⚡ 穿戴上身";
+            btnEquip.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 6px;";
+            btnEquip.innerHTML = "⚡ 穿戴";
             btnEquip.onclick = () => { executeEquipAction(blueprint.name, "equip"); };
             btnWrapper.appendChild(btnEquip);
-
-            const btnDismantle = document.createElement('button');
-            btnDismantle.className = "btn-game btn-rest"; 
-            btnDismantle.style.cssText = "padding: 6px 12px; font-size: 11px; margin-left: 6px; background: linear-gradient(135deg, #c0392b 0%, #962d00 100%) !important;";
-            btnDismantle.innerHTML = "♻️ 拆解回收";
-            btnDismantle.onclick = () => { executeDismantle(blueprint.name); };
-            btnWrapper.appendChild(btnDismantle);
         }
 
         bContainer.appendChild(btnWrapper);
