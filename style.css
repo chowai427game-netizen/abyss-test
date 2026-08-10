@@ -1016,3 +1016,339 @@ body {
     80% { opacity: 1; transform: translate(180px, -60px) scale(1) rotate(15deg); }
     100% { opacity: 0; transform: translate(220px, -80px) scale(1.8) rotate(25deg); filter: brightness(2); }
 }
+/* ==========================================================================
+   🎮 命運深淵：優化版全局與模組 UI 樣式庫
+   ========================================================================== */
+
+/* 通用隱藏與顯示控制 */
+.hidden-element {
+    display: none !important;
+}
+
+.full-width {
+    width: 100% !important;
+}
+
+.full-size {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.margin-top-sm {
+    margin-top: 6px !important;
+}
+
+.margin-top-md {
+    margin-top: 12px !important;
+}
+
+/* 彈窗與遮罩通用 */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.modal-card {
+    background: rgba(20, 20, 35, 0.95);
+    border: 1px solid rgba(0, 255, 204, 0.4);
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(0, 255, 204, 0.2);
+}
+
+.modal-title-cyan {
+    color: #00ffcc;
+    margin-top: 0;
+}
+
+.modal-subtitle {
+    color: #aaa;
+    font-size: 12px;
+    margin-bottom: 15px;
+}
+
+.job-selection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* 文字樣式與顏色庫 */
+.highlight-gold {
+    color: #ffd700;
+}
+
+.text-gold {
+    color: #ffd700;
+}
+
+.text-gold-bold {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.text-cyan {
+    color: #00ffcc;
+}
+
+.text-cyan-title {
+    color: #00ffcc;
+    margin-top: 0;
+}
+
+.text-cyan-lg {
+    color: #00ffcc;
+    font-size: 14px;
+}
+
+.text-purple-bold {
+    color: #9b59b6;
+    font-weight: bold;
+}
+
+.text-purple-title {
+    color: #9b59b6;
+}
+
+.text-white {
+    color: #ffffff;
+}
+
+.text-pink {
+    color: #ff6b81;
+}
+
+.text-yellow {
+    color: #f1c40f;
+}
+
+.text-muted-sm {
+    color: var(--text-muted, #8e8e93);
+    font-size: 10px;
+}
+
+.text-green-sm {
+    color: #2ecc71;
+    font-size: 11px;
+}
+
+.text-sm {
+    font-size: 11px;
+}
+
+.text-muted-desc {
+    color: #ccc;
+    font-size: 12px;
+}
+
+/* 表單與輸入框 */
+.login-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 80%;
+    margin: 12px auto;
+}
+
+.pin-format {
+    text-align: center;
+    letter-spacing: 4px;
+    font-weight: bold;
+}
+
+.btn-text-muted {
+    background: transparent;
+    border: none;
+    color: #8e8e93;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* 狀態面板細項 */
+.bar-height-thin {
+    height: 4px !important;
+}
+
+.status-bag-padding {
+    margin-top: 4px;
+    padding: 8px;
+}
+
+.bag-header-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #aaa;
+    margin-bottom: 6px;
+    width: 100%;
+}
+
+.bag-grid-3col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+/* 戰鬥數值迷你面板 */
+.combat-stats-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 6px;
+    margin-top: 4px;
+}
+
+.combat-stats-title {
+    font-size: 11px;
+    color: #ffd700;
+    font-weight: bold;
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+.stat-points-allocation-box {
+    background: rgba(20, 20, 35, 0.6);
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    border-radius: 8px;
+    padding: 8px;
+    margin-top: 4px;
+}
+
+.stat-points-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 4px;
+}
+
+.stat-alloc-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+.skill-list-wrapper {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 6px;
+    margin-top: 4px;
+}
+
+/* 全局動作按鈕 */
+.action-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.primary-actions-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.flex-grow-main {
+    flex: 14;
+}
+
+.flex-grow-sub {
+    flex: 11;
+}
+
+/* 地球村分流區 */
+.village-nav-bar {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.gate-theme-card {
+    background: rgba(20, 25, 40, 0.7);
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    text-align: center;
+    padding: 20px;
+}
+
+.guild-theme-bg {
+    border-color: rgba(155, 89, 182, 0.3) !important;
+    background: linear-gradient(180deg, rgba(155, 89, 182, 0.05) 0%, rgba(0, 0, 0, 0) 100%) !important;
+}
+
+.guild-section {
+    margin-bottom: 15px;
+}
+
+.guild-section-title {
+    font-size: 13px;
+    color: #ffd700;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.guild-reset-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 12px;
+    margin-top: 12px;
+}
+
+.guild-btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.reset-btn {
+    padding: 8px;
+    font-size: 11px;
+}
+
+.btn-subtext {
+    font-size: 9px;
+    color: #ffd700;
+}
+
+.workshop-theme-bg {
+    border-color: rgba(230, 126, 34, 0.2) !important;
+    background: linear-gradient(180deg, rgba(230, 126, 34, 0.02) 0%, rgba(0, 0, 0, 0) 100%) !important;
+}
+
+/* 魔物與戰鬥區 */
+.monster-bar-box {
+    background: rgba(40, 10, 10, 0.3) !important;
+    border-color: rgba(231, 76, 60, 0.1) !important;
+}
+
+.monster-hp-gradient {
+    background: linear-gradient(90deg, #cb2d3e 0%, #ef473a 100%) !important;
+    width: 0%;
+}
+
+.monster-grid-cell {
+    border-color: rgba(231, 76, 60, 0.15) !important;
+}
+
+/* QTE 與防誤觸 */
+.qte-interact-btn {
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
