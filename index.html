@@ -209,7 +209,6 @@
                     <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">💬 廣場</button>
                 </nav>
 
-                <!-- 門：傳送大殿 -->
                 <div id="v-loc-gate" class="v-sub-loc-panel">
                     <div class="placeholder-card gate-theme-card">
                         <h3 class="text-cyan-title">🌀 深淵傳送大門</h3>
@@ -217,17 +216,13 @@
                     </div>
                 </div>
 
-                <!-- 🏛️ 冒險者公會 (優化版：獨立滾動技能樹 + 二轉標籤) -->
                 <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style guild-theme-bg">
                         <div class="panel-title text-purple-title">🏛️ 皇家冒險者公會</div>
                         
                         <div class="guild-section">
-                            <div class="guild-section-header">
-                                <span class="guild-section-title">🎓 職業專屬技能傳承</span>
-                                <span id="guild-job-tier-badge" class="job-tier-badge">一轉血脈技能</span>
-                            </div>
-                            <div id="guild-skills-container" class="scrollable-panel-content guild-skills-scroll"></div>
+                            <div class="guild-section-title">🎓 職業專屬技能傳承</div>
+                            <div id="guild-skills-container" class="flex-layout"></div>
                         </div>
 
                         <div class="guild-reset-section">
@@ -244,17 +239,15 @@
                     </div>
                 </div>
 
-                <!-- 🍳 料理屋 (優化版：階層分頁 + 獨立滾動容器) -->
                 <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
                         <div class="panel-title">🍳 皇家後勤料理屋</div>
                         <div id="kitchen-lvl-row" class="tab-filter-row"></div>
                         <div class="notice-container" id="kitchen-warehouse-display">📦 雲端倉庫載入中...</div>
-                        <div id="recipes-container" class="scrollable-panel-content kitchen-scroll"></div>
+                        <div class="flex-layout" id="recipes-container"></div>
                     </div>
                 </div>
 
-                <!-- 💬 廣場 -->
                 <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
                     <div class="placeholder-card">
                         <h3>💬 中央交流廣場</h3>
@@ -263,14 +256,11 @@
                     </div>
                 </div>
 
-                <!-- 🛠️ 加工所 (優化版：分類與階層分頁 + 獨立滾動容器) -->
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style workshop-theme-bg">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
-                        <div id="workshop-cat-row" class="tab-filter-row"></div>
-                        <div id="workshop-lvl-row" class="tab-filter-row"></div>
                         <div class="notice-container" id="workshop-warehouse-display">📦 雲端永久庫存載入中...</div>
-                        <div id="blueprints-container" class="scrollable-panel-content workshop-scroll"></div>
+                        <div class="flex-layout" id="blueprints-container"></div>
                     </div>
                 </div>
             </div>
