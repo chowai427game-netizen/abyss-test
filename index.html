@@ -24,7 +24,7 @@
 </div>
 
 <!-- 🎭 全新勇者初始職業抉擇遮罩 -->
-<div id="initial-job-modal" class="modal-backdrop hidden-element" role="dialog" aria-modal="true" aria-labelledby="job-modal-title">
+<div id="initial-job-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="job-modal-title">
     <div class="modal-card">
         <h2 id="job-modal-title" class="modal-title-cyan">🎭 選擇你的初始冒險血脈</h2>
         <p class="modal-subtitle">踏入深淵前，請定下你的戰鬥道路！（未來可於公會付費重選）</p>
@@ -36,7 +36,7 @@
     <header class="game-header">
         <h2>Abyss of Destiny</h2>
         <div class="location-bar" id="location-text">🔮 命運的起點</div>
-        <div id="env-alert-bar" class="env-zone-normal hidden-element">✨ 當前環境力場：重力與空間表現穩定</div>
+        <div id="env-alert-bar" class="env-zone-normal" style="display: none;">✨ 當前環境力場：重力與空間表現穩定</div>
     </header>
 
     <!-- 📢 1. 封面主頁面 (TITLE) -->
@@ -93,7 +93,7 @@
         <aside class="left-layout-column">
             
             <!-- 📊 2. 勇者狀態數據面板 -->
-            <section class="status-panel hidden-element" id="status-panel-box">
+            <section class="status-panel" id="status-panel-box" style="display: none;">
                 <div class="status-header-row">
                     <span>👤 <strong id="p-name">--</strong></span>
                     <span class="text-cyan">🎭 <strong id="p-job">劍士</strong></span>
@@ -112,7 +112,7 @@
                     </div>
                 </div>
 
-                <div class="status-item full-row hidden-element" id="p-atb-row">
+                <div class="status-item full-row" id="p-atb-row" style="display: none;">
                     <div class="flex-space text-sm"><span>⚡ 行動 :</span> <strong><span id="p-atb-text">0</span>%</strong></div>
                     <div class="visual-bar-bg bar-height-thin"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color"></div></div>
                 </div>
@@ -184,13 +184,13 @@
             </section>
             
             <!-- 🕹️ 3. 全局動作按鈕區 -->
-            <section class="action-panel hidden-element" id="action-panel-box">
+            <section class="action-panel" id="action-panel-box" style="display: none;">
                 <div class="action-btn-group">
                     <div class="primary-actions-row">
                         <button id="btn-main-action" type="button" onclick="handleMainAction()" class="btn-game btn-explore flex-grow-main">⚔️ 前進探險</button>
-                        <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun hidden-element flex-grow-sub">🔄 重巡本層整備</button>
+                        <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun flex-grow-sub" style="display: none;">🔄 重巡本層整備</button>
                     </div>
-                    <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest hidden-element full-width">⛺ 逃回村莊</button>
+                    <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest full-width" style="display: none;">⛺ 逃回村莊</button>
                 </div>
             </section>
 
@@ -200,7 +200,7 @@
         <section class="right-layout-column">
             
             <!-- ⛺ 4. 地表村莊專用分流面板 -->
-            <div id="village-panel-box" class="hidden-element full-width">
+            <div id="village-panel-box" class="full-width" style="display: none;">
                 <nav class="village-nav-bar" aria-label="村莊區域導覽">
                     <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
                     <button id="btn-tab-guild" class="btn-nav-tab" onclick="switchVillageLocation('GUILD')">🏛️ 冒險者公會</button>
@@ -216,7 +216,7 @@
                     </div>
                 </div>
 
-                <div id="v-loc-guild" class="v-sub-loc-panel hidden-element">
+                <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style guild-theme-bg">
                         <div class="panel-title text-purple-title">🏛️ 皇家冒險者公會</div>
                         
@@ -239,7 +239,7 @@
                     </div>
                 </div>
 
-                <div id="v-loc-kitchen" class="v-sub-loc-panel hidden-element">
+                <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style">
                         <div class="panel-title">🍳 皇家後勤料理屋</div>
                         <div id="kitchen-lvl-row" class="tab-filter-row"></div>
@@ -248,7 +248,7 @@
                     </div>
                 </div>
 
-                <div id="v-loc-square" class="v-sub-loc-panel hidden-element">
+                <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
                     <div class="placeholder-card">
                         <h3>💬 中央交流廣場</h3>
                         <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
@@ -256,7 +256,7 @@
                     </div>
                 </div>
 
-                <div id="v-loc-workshop" class="v-sub-loc-panel hidden-element">
+                <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style workshop-theme-bg">
                         <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
                         <div class="notice-container" id="workshop-warehouse-display">📦 雲端永久庫存載入中...</div>
@@ -266,7 +266,7 @@
             </div>
 
             <!-- 👹 5. 魔物狀態面板 -->
-            <section class="status-panel hidden-element" id="monster-status-card">
+            <section class="status-panel" id="monster-status-card" style="display: none;">
                 <div class="monster-header-row">
                     <span>⚔️ 敵對魔物: <strong id="m-name" class="text-white">--</strong></span>
                 </div>
@@ -287,13 +287,13 @@
             </section>
 
             <!-- 🎁 6. 抉擇與獎勵面板 -->
-            <section class="dynamic-panel reward-style hidden-element full-width" id="reward-panel-box">
+            <section class="dynamic-panel reward-style full-width" id="reward-panel-box" style="display: none;">
                 <div class="panel-title text-gold" id="reward-title-text">✨ 抉擇靈魂賜福 ✨</div>
                 <div class="flex-layout" id="reward-choices-container"></div>
             </section>
 
             <!-- 📜 7. 戰鬥日誌打印台 + 🧭 側拉式戰術抽屜 -->
-            <section class="log-wrapper hidden-element" id="log-wrapper-box">
+            <section class="log-wrapper" id="log-wrapper-box" style="display: none;">
                 <div class="log-panel full-size" id="log-box" aria-live="polite" aria-atomic="false"></div>
                 
                 <div class="tactics-drawer" id="tactics-drawer-box">
@@ -326,7 +326,7 @@
 </div>
 
 <!-- ⚡ 全螢幕 QTE 視窗 -->
-<div id="qte-overlay" class="modal-backdrop hidden-element" role="dialog" aria-modal="true">
+<div id="qte-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
     <div class="qte-box">
         <p id="qte-skill-name">⚡ QTE ⚡</p>
         <button id="qte-tap-btn" class="qte-interact-btn">🟢 撳我！</button>
@@ -335,7 +335,7 @@
 </div>
 
 <!-- 🏆 全螢幕領主討伐過場 -->
-<div id="boss-victory-overlay" class="modal-backdrop hidden-element" role="dialog" aria-modal="true">
+<div id="boss-victory-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
     <div class="victory-cloud-shimmer"></div>
     <div class="victory-crystal-container">
         <div class="victory-laurel-crown">👑</div>
