@@ -95,6 +95,10 @@
     --clr-acolyte: #2ecc71;
 }
 
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: radial-gradient(circle at 50% 30%, #1a1a24 0%, var(--bg-main) 70%);
@@ -105,7 +109,6 @@ body {
     min-height: 100vh;
     margin: 0;
     padding: 20px 10px;
-    box-sizing: border-box;
 }
 
 .game-container {
@@ -119,7 +122,7 @@ body {
     border: 1px solid var(--panel-border);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
                 inset 0 1px 1px rgba(255, 255, 255, 0.1);
-    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .game-container > h2 {
@@ -149,7 +152,8 @@ body {
     padding: 18px;
     border-radius: 14px;
     margin-bottom: 25px;
-    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
 }
 
 .panel-title {
@@ -252,7 +256,7 @@ body {
 .name-input {
     width: 100%; padding: 14px; font-size: 16px; background: rgba(0, 0, 0, 0.5); color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; text-align: center;
-    margin-bottom: 20px; box-sizing: border-box; transition: all 0.3s;
+    margin-bottom: 20px; transition: all 0.3s;
 }
 .name-input:focus { outline: none; border-color: var(--gold-glow); box-shadow: 0 0 12px rgba(255, 215, 0, 0.2); background: rgba(0, 0, 0, 0.7); }
 
@@ -277,7 +281,7 @@ body {
 }
 .status-item { 
     font-size: 13px; color: #d1d1d6; display: flex !important; justify-content: space-between !important; 
-    align-items: center !important; width: 100% !important; box-sizing: border-box !important;
+    align-items: center !important; width: 100% !important;
     background: rgba(255, 255, 255, 0.02); padding: 6px 10px; border-radius: 6px;
 }
 .status-item span { color: var(--text-muted); }
@@ -346,17 +350,19 @@ body {
 .folder-label { color: var(--text-muted); }
 
 /* ==========================================================================
-   🗺️ ZONE 4: 村莊分區導覽系統
+   🗺️ ZONE 4: 村莊分區導覽系統與三大加工公會介面優化
    ========================================================================== */
 .village-nav-bar, .town-map-nav {
     display: flex; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 4px; border-radius: 10px; margin-bottom: 15px;
     border: 1px solid rgba(255, 255, 255, 0.03); overflow-x: auto; scrollbar-width: none;
+    width: 100%;
 }
 .village-nav-bar::-webkit-scrollbar, .town-map-nav::-webkit-scrollbar { display: none; }
 
 .btn-nav-tab, .btn-map-node {
-    flex: 1; min-width: 90px; background: rgba(0, 0, 0, 0.3) !important; border: 1px solid rgba(255, 255, 255, 0.03) !important; 
+    flex: 1; min-width: 80px; background: rgba(0, 0, 0, 0.3) !important; border: 1px solid rgba(255, 255, 255, 0.03) !important; 
     color: var(--text-muted) !important; padding: 10px 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 7px; white-space: nowrap; transition: all 0.2s;
+    text-align: center;
 }
 .btn-nav-tab:hover, .btn-map-node:hover { color: #fff !important; background: rgba(255, 255, 255, 0.05) !important; }
 
@@ -366,7 +372,11 @@ body {
     text-shadow: 0 0 6px rgba(255,215,0,0.5); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.v-sub-loc-panel { animation: subLocFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.v-sub-loc-panel { 
+    animation: subLocFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    width: 100%;
+    min-width: 0;
+}
 @keyframes subLocFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
 .placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 30px 20px; text-align: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
@@ -376,16 +386,63 @@ body {
 .cooking-style { border-color: rgba(155, 89, 182, 0.15); background: linear-gradient(180deg, rgba(155, 89, 182, 0.02) 0%, rgba(0,0,0,0) 100%); }
 .reward-style { border: 1px solid var(--gold-glow); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
 
+/* 🏛️ 冒險者公會抬頭與標籤優化 */
+.guild-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.job-tier-badge {
+    font-size: 10px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    background: rgba(155, 89, 182, 0.2);
+    color: #dcd0ff;
+    border: 1px solid rgba(155, 89, 182, 0.4);
+}
+
+/* 📜 三大介面獨立限制滾動內容區 */
+.scrollable-panel-content {
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 6px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    width: 100%;
+}
+
+.scrollable-panel-content::-webkit-scrollbar { width: 6px; }
+.scrollable-panel-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+
+.guild-skills-scroll::-webkit-scrollbar-thumb { background: rgba(155, 89, 182, 0.4); border-radius: 3px; }
+.guild-skills-scroll::-webkit-scrollbar-thumb:hover { background: rgba(155, 89, 182, 0.8); }
+
+.kitchen-scroll::-webkit-scrollbar-thumb { background: rgba(46, 204, 113, 0.4); border-radius: 3px; }
+.kitchen-scroll::-webkit-scrollbar-thumb:hover { background: rgba(46, 204, 113, 0.8); }
+
+.workshop-scroll::-webkit-scrollbar-thumb { background: rgba(230, 126, 34, 0.4); border-radius: 3px; }
+.workshop-scroll::-webkit-scrollbar-thumb:hover { background: rgba(230, 126, 34, 0.8); }
+
 /* ==========================================================================
    📜 ZONE 5: 日誌與電影級打擊感系統
    ========================================================================== */
 .log-panel {
     height: 250px; overflow-y: auto; overflow-x: hidden;
-    position: relative; /* 限制所有攻擊、投射物與技能特效作用範圍在戰鬥日記之內 */
+    position: relative;
     background: radial-gradient(circle at 50% 100%, rgba(15, 15, 22, 0.9) 0%, rgba(7, 7, 10, 0.98) 100%);
     padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
-    margin-bottom: 20px; font-size: 12px; line-height: 1.65; box-sizing: border-box; scroll-behavior: smooth;
+    margin-bottom: 20px; font-size: 12px; line-height: 1.65; scroll-behavior: smooth;
 }
 
 .log-row-box {
@@ -661,7 +718,7 @@ body {
    ========================================================================== */
 .paper-doll-container {
     width: 100%; background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 8px;
-    box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.03); margin-bottom: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.03); margin-bottom: 4px;
 }
 
 .doll-grid {
@@ -672,13 +729,13 @@ body {
 .doll-slot {
     background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px; height: 100%; display: flex; align-items: center; padding: 4px 6px;
-    box-sizing: border-box; transition: all 0.3s ease; min-width: 0;
+    transition: all 0.3s ease; min-width: 0;
 }
 
 .doll-slot:hover { background: rgba(255, 255, 255, 0.05); }
 
 .slot-inner { display: flex; align-items: center; gap: 5px; width: 100%; overflow: hidden; min-width: 0; }
-.slot-icon { font-size: 16px; background: rgba(0, 0, 0, 0.3); padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; box-sizing: border-box; }
+.slot-icon { font-size: 16px; background: rgba(0, 0, 0, 0.3); padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; }
 .slot-info { display: flex; flex-direction: column; overflow: hidden; text-align: left; flex: 1; min-width: 0; }
 .slot-label { font-size: 9px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
 .slot-name { font-size: 11px; color: #ffffff; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; width: 100%; }
@@ -936,13 +993,33 @@ body {
 #blueprints-container::-webkit-scrollbar-thumb:hover, #recipes-container::-webkit-scrollbar-thumb:hover { background: var(--gold-glow); }
 
 .game-layout-split { display: flex; flex-direction: column; gap: 20px; width: 100%; }
-.left-layout-column, .right-layout-column { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.left-layout-column, .right-layout-column { display: flex; flex-direction: column; gap: 16px; width: 100%; min-width: 0; }
 
 @media (min-width: 850px) {
     body { align-items: center; padding: 30px 10px; background: radial-gradient(circle at 50% 30%, #1c1c28 0%, #060608 100%); }
     .game-container { max-width: 980px; }
-    .game-layout-split { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
-    .right-layout-column { display: flex; flex-direction: column; gap: 16px; }
+    
+    /* 🔒 關鍵修復：給 Grid 項目設置 min-width: 0，防止 CSS Grid 被內部超寬元素撐大溢出 */
+    .game-layout-split { 
+        display: grid; 
+        grid-template-columns: 320px 1fr; 
+        gap: 24px; 
+        align-items: start;
+        width: 100%;
+    }
+    
+    .right-layout-column { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 16px; 
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .left-layout-column {
+        min-width: 0;
+    }
+
     #log-box { height: 380px; margin-bottom: 0; }
     #title-box { max-width: 460px; margin: 15px auto; }
     .grid-layout { gap: 8px; }
@@ -1016,6 +1093,7 @@ body {
     80% { opacity: 1; transform: translate(180px, -60px) scale(1) rotate(15deg); }
     100% { opacity: 0; transform: translate(220px, -80px) scale(1.8) rotate(25deg); filter: brightness(2); }
 }
+
 /* ==========================================================================
    🎮 命運深淵：優化版全局與模組 UI 樣式庫
    ========================================================================== */
@@ -1089,11 +1167,7 @@ body {
 }
 
 /* 文字樣式與顏色庫 */
-.highlight-gold {
-    color: #ffd700;
-}
-
-.text-gold {
+.highlight-gold, .text-gold {
     color: #ffd700;
 }
 
@@ -1103,13 +1177,8 @@ body {
     font-size: 11px;
 }
 
-.text-cyan {
+.text-cyan, .text-cyan-title {
     color: #00ffcc;
-}
-
-.text-cyan-title {
-    color: #00ffcc;
-    margin-top: 0;
 }
 
 .text-cyan-lg {
@@ -1117,13 +1186,9 @@ body {
     font-size: 14px;
 }
 
-.text-purple-bold {
+.text-purple-bold, .text-purple-title {
     color: #9b59b6;
     font-weight: bold;
-}
-
-.text-purple-title {
-    color: #9b59b6;
 }
 
 .text-white {
@@ -1179,6 +1244,24 @@ body {
     font-size: 11px;
     cursor: pointer;
     text-decoration: underline;
+}
+
+/* 分頁篩選列 */
+.tab-filter-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.tab-filter-row .btn-game {
+    padding: 6px 12px;
+    font-size: 11px;
+    flex: 1;
+    min-width: 70px;
+    text-align: center;
+    white-space: nowrap;
 }
 
 /* 狀態面板細項 */
@@ -1272,63 +1355,6 @@ body {
 
 .flex-grow-sub {
     flex: 11;
-}
-
-/* 地球村分流區 */
-.village-nav-bar {
-    display: flex;
-    gap: 4px;
-    overflow-x: auto;
-}
-
-.gate-theme-card {
-    background: rgba(20, 25, 40, 0.7);
-    border: 1px solid rgba(0, 255, 204, 0.2);
-    text-align: center;
-    padding: 20px;
-}
-
-.guild-theme-bg {
-    border-color: rgba(155, 89, 182, 0.3) !important;
-    background: linear-gradient(180deg, rgba(155, 89, 182, 0.05) 0%, rgba(0, 0, 0, 0) 100%) !important;
-}
-
-.guild-section {
-    margin-bottom: 15px;
-}
-
-.guild-section-title {
-    font-size: 13px;
-    color: #ffd700;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.guild-reset-section {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 12px;
-    margin-top: 12px;
-}
-
-.guild-btn-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-.reset-btn {
-    padding: 8px;
-    font-size: 11px;
-}
-
-.btn-subtext {
-    font-size: 9px;
-    color: #ffd700;
-}
-
-.workshop-theme-bg {
-    border-color: rgba(230, 126, 34, 0.2) !important;
-    background: linear-gradient(180deg, rgba(230, 126, 34, 0.02) 0%, rgba(0, 0, 0, 0) 100%) !important;
 }
 
 /* 魔物與戰鬥區 */
