@@ -1076,7 +1076,7 @@ function checkLevelUpAndTriggerSelect() {
     if (accountMeta.exp >= accountMeta.nextExp) {
         accountMeta.lv = (accountMeta.lv || 1) + 1;
         currentRun.lv = accountMeta.lv; 
-        accountMeta.statPoints = (accountMeta.statPoints || 0) + 1; 
+        accountMeta.statPoints = (accountMeta.statPoints || 0) + 3; 
         
         // 🔒 升級後 EXP 直接歸零，從 0 開始重新累積
         accountMeta.exp = 0;
