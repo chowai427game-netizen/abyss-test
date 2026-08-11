@@ -150,18 +150,36 @@ function getJobBonusStats(jobId, jobLevel = 1) {
     return calculated;
 }
 
-function canLearnSkill(playerData, skill, warehouse) {
-    if (playerData.level < skill.reqLv) {
-        return { canLearn: false, reason: `等級不足！需達到 Lv.${skill.reqLv}` };
+function canLearnSkill(playerData, skill, warehouse, currentLv = 0) {
+    if (currentLv >= 10) {
+        return { canLearn: false, reason: "👑 技能已達到最高等級上限 (Lv.10)！" };
     }
-    if (playerData.gold < skill.goldCost) {
-        return { canLearn: false, reason: `金幣不足！需要 ${skill.goldCost}G` };
+    
+    const playerLv = playerData.lv || playerData.level || 1;
+    if (playerLv < skill.reqLv) {
+        return { canLearn: false, reason: `📈 等級不足！需達到 Lv.${skill.reqLv}（當前 Lv.${playerLv}）` };
     }
+
+    const nextLv = currentLv + 1;
+    const goldCost = skill.goldCost * nextLv;
+    const playerGold = playerData.gold || 0;
+    
+    if (playerGold < goldCost) {
+        return { canLearn: false, reason: `🪙 金幣不足！需要 ${goldCost} G（當前 ${playerGold} G）` };
+    }
+
+    let missingMats = [];
     for (let mat in skill.reqMat) {
+        let reqQty = skill.reqMat[mat] * nextLv;
         let count = warehouse[mat] || 0;
-        if (count < skill.reqMat[mat]) {
-            return { canLearn: false, reason: `缺少素材：${mat} x${skill.reqMat[mat]}` };
+        if (count < reqQty) {
+            missingMats.push(`${mat} x${reqQty - count}`);
         }
     }
+
+    if (missingMats.length > 0) {
+        return { canLearn: false, reason: `📦 缺少素材：${missingMats.join(", ")}` };
+    }
+
     return { canLearn: true };
 }
