@@ -1109,3 +1109,98 @@ function executeEquipAction(equipName, actionType) {
     }
     resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
+// ==========================================================================
+// 🏇 皇家二轉突破儀式系統 logic
+// ==========================================================================
+
+function openJobAdvancementModal() {
+    let overlay = document.getElementById('job-advancement-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'job-advancement-overlay';
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 10000;
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    const currentBaseJob = currentRun.job;
+    const choices = ADVANCED_JOBS_DATABASE[currentBaseJob] || [];
+
+    if (choices.length === 0) {
+        showMaterialAlert(["當前職業無法進行二轉突破！"], "⚠️ 無法轉職");
+        return;
+    }
+
+    let cardsHtml = choices.map(j => `
+        <div style="
+            background: rgba(20, 20, 30, 0.9); border: 1px solid #ffd700; border-radius: 12px;
+            padding: 15px; margin-bottom: 12px; text-align: left; transition: all 0.2s;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 18px; font-weight: bold; color: #ffd700;">${j.icon} ${j.name}</span>
+                <span style="font-size: 11px; color: #00ffcc;">[需要 Lv.${j.reqLv}]</span>
+            </div>
+            <p style="font-size: 12px; color: #ccc; margin-bottom: 10px; line-height: 1.4;">${j.desc}</p>
+            <button class="btn-game btn-rerun" style="width: 100%; padding: 6px 0; font-size: 12px; font-weight: bold;" onclick="executeAdvanceJob('${j.id}')">
+                ✨ 選擇繼承血脈 ➔ ${j.name}
+            </button>
+        </div>
+    `).join("");
+
+    overlay.innerHTML = `
+        <div style="
+            background: #121216; border: 2px solid #ffd700; border-radius: 15px;
+            padding: 20px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        ">
+            <h3 style="color: #ffd700; margin-top: 0; font-size: 18px;">👑 皇家二轉突破選擇</h3>
+            <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">
+                請選擇你未來的專精道路。轉職後將保留原有等級與技能，並解鎖專屬二轉天賦與新技能庫！
+            </p>
+            <div>${cardsHtml}</div>
+            <button class="btn-game btn-rest" style="margin-top: 10px; width: 100%; padding: 6px 0;" onclick="closeJobAdvancementModal()">
+                取消並返回
+            </button>
+        </div>
+    `;
+
+    overlay.style.display = "flex";
+}
+
+function closeJobAdvancementModal() {
+    const overlay = document.getElementById('job-advancement-overlay');
+    if (overlay) overlay.style.display = "none";
+}
+
+function executeAdvanceJob(newJobId) {
+    const newJobObj = JOB_DATABASE[newJobId];
+    if (!newJobObj) return;
+
+    // 1. 更新玩家職業
+    accountMeta.job = newJobId;
+    currentRun.job = newJobId;
+
+    // 2. 自動獲得二轉第一個專屬技能 (Lv.1)
+    const newJobSkills = SKILLS_DATABASE[newJobId];
+    if (newJobSkills && newJobSkills.length > 0) {
+        const firstSkillName = newJobSkills[0].name;
+        if (!accountMeta.skills[firstSkillName]) {
+            accountMeta.skills[firstSkillName] = 1;
+            currentRun.skills[firstSkillName] = 1;
+            addLog(`🎓✨【轉職賜福】自動獲得二轉奧義：<strong>[${firstSkillName}] (Lv.1)</strong>！`, "perfect");
+        }
+    }
+
+    // 3. 重新計算人物屬性
+    resetCurrentRunData();
+    saveGameData();
+
+    // 4. 印出史詩轉職日誌
+    addLog(`👑🏇🌟【二轉血脈覺醒】恭喜突破轉職為 ➔ <strong style="color:#ffd700;">${newJobObj.icon} ${newJobObj.name}</strong>！解鎖全新進階技能樹！`, "victory-badge");
+
+    closeJobAdvancementModal();
+    updateUI();
+    if (typeof renderVillageGuild === "function") renderVillageGuild();
+}
