@@ -24,28 +24,38 @@ function resetCurrentRunData() {
     currentRun.exp = Number(accountMeta.exp) || 0; 
     currentRun.nextExp = Number(accountMeta.nextExp) || 30;
 
-    const strBonusAtk = s.STR * 3 + Math.pow(Math.floor(s.STR / 10), 2);
-    currentRun.maxWeight = 100 + s.STR * 20;
+    // ==========================================================================
+    // ⚙️ 核心套用：適合 3 點/級的平滑成長公式 (防暴脹)
+    // ==========================================================================
+    // 1. STR 力量
+    const strBonusAtk = Math.floor(s.STR * 1.5 + Math.pow(Math.floor(s.STR / 10), 1.3));
+    currentRun.maxWeight = 100 + s.STR * 10;
 
-    currentRun.spd = 20 + Math.floor(s.AGI * 1.5);
-    currentRun.flee = 10 + s.AGI * 1.2;
+    // 2. AGI 敏捷 (控制速度遞減，避免 ATB 壓制過度)
+    currentRun.spd = 20 + Math.floor(s.AGI * 0.5); 
+    currentRun.flee = 10 + Math.floor(s.AGI * 0.6); 
 
-    currentRun.maxHp = 100 + (s.VIT * 22) + (activeVillageBuffs.maxHpAdd || 0);
-    currentRun.def = Math.floor(s.VIT * 0.8);
+    // 3. VIT 體質 (控制血量過高)
+    currentRun.maxHp = 100 + (s.VIT * 10) + (activeVillageBuffs.maxHpAdd || 0);
+    currentRun.def = Math.floor(s.VIT * 0.3); 
     currentRun.block = currentRun.def; 
-    currentRun.hpRegen = 1 + Math.floor(s.VIT / 5);
+    currentRun.hpRegen = 1 + Math.floor(s.VIT / 10);
 
-    currentRun.matk = 15 + s.INT * 3.5 + Math.pow(Math.floor(s.INT / 10), 2);
-    currentRun.mdef = Math.floor(s.INT * 0.8);
-    currentRun.maxMp = 50 + (s.INT * 12) + (activeVillageBuffs.maxMpAdd || 0);
-    currentRun.mpRegen = 15 + Math.floor(s.INT * 1.2);
+    // 4. INT 智力
+    currentRun.matk = 15 + Math.floor(s.INT * 1.8 + Math.pow(Math.floor(s.INT / 10), 1.3));
+    currentRun.mdef = Math.floor(s.INT * 0.3);
+    currentRun.maxMp = 50 + (s.INT * 6) + (activeVillageBuffs.maxMpAdd || 0);
+    currentRun.mpRegen = 15 + Math.floor(s.INT * 0.5);
 
-    currentRun.hit = 80 + s.DEX * 1.5 + s.LUK * 0.3;
-    const dexBonusAtk = s.DEX * 3 + Math.pow(Math.floor(s.DEX / 10), 2);
-    currentRun.castReduction = Math.min(0.80, (s.DEX * 1.5 + s.INT * 0.5) / 100);
+    // 5. DEX 靈巧
+    currentRun.hit = 80 + Math.floor(s.DEX * 0.8 + s.LUK * 0.2);
+    const dexBonusAtk = Math.floor(s.DEX * 1.5 + Math.pow(Math.floor(s.DEX / 10), 1.3));
+    currentRun.castReduction = Math.min(0.80, (s.DEX * 0.5 + s.INT * 0.2) / 100);
 
-    currentRun.critChance = Math.min(80, Math.floor(s.LUK * 0.4 + s.DEX * 0.1));
-    currentRun.perfectDodge = Math.min(30, Math.floor(s.LUK * 0.2));
+    // 6. LUK 幸運
+    currentRun.critChance = Math.min(80, Math.floor(s.LUK * 0.2 + s.DEX * 0.05));
+    currentRun.perfectDodge = Math.min(30, Math.floor(s.LUK * 0.1));
+    // ==========================================================================
 
     currentRun.vampRate = 0;
     currentRun.doubleStrike = 0;
