@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城遊戲邏輯核心
+// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -26,6 +26,32 @@ function safePushToInventory(run, account, itemName) {
     }
 }
 
+// --------------------------------------------------------------------------
+// 🛡️ 護盾傷害吸收邏輯 (Shield Absorption Helper)
+// --------------------------------------------------------------------------
+function applyDamageWithShield(target, rawDamage) {
+    let absorbed = 0;
+    let actualHpDmg = rawDamage;
+
+    if (target.shield && target.shield > 0) {
+        if (target.shield >= rawDamage) {
+            target.shield -= rawDamage;
+            absorbed = rawDamage;
+            actualHpDmg = 0;
+        } else {
+            absorbed = target.shield;
+            actualHpDmg = rawDamage - target.shield;
+            target.shield = 0;
+        }
+    }
+
+    target.hp = Math.max(0, target.hp - actualHpDmg);
+    return { absorbed, actualHpDmg };
+}
+
+// --------------------------------------------------------------------------
+// 💥 戰鬥特效與投射物觸發機制
+// --------------------------------------------------------------------------
 function triggerProjectileFX(type = 'arcane') {
     const logContainer = document.getElementById('log-box');
     if (!logContainer) return;
@@ -42,22 +68,25 @@ function triggerProjectileFX(type = 'arcane') {
 }
 
 function detectProjectileType(skillName, job) {
-    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆")) return "fire";
-    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍")) return "ice";
+    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆") || skillName.includes("隕")) return "fire";
+    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍") || skillName.includes("雪")) return "ice";
     if (skillName.includes("雷") || skillName.includes("電") || skillName.includes("震")) return "lightning";
-    if (job === "archer") return "arrow";
+    if (job === "archer" || job === "hunter" || job === "bard_dancer") return "arrow";
     return "arcane";
 }
 
 function detectSkillCssClass(skillName) {
-    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆")) return "skill-fire";
-    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍")) return "skill-ice";
+    if (skillName.includes("火") || skillName.includes("炎") || skillName.includes("爆") || skillName.includes("隕")) return "skill-fire";
+    if (skillName.includes("冰") || skillName.includes("霜") || skillName.includes("凍") || skillName.includes("雪")) return "skill-ice";
     if (skillName.includes("雷") || skillName.includes("電") || skillName.includes("震")) return "skill-lightning";
-    if (skillName.includes("聖") || skillName.includes("治癒") || skillName.includes("光")) return "skill-holy";
+    if (skillName.includes("聖") || skillName.includes("治癒") || skillName.includes("光") || skillName.includes("頌歌")) return "skill-holy";
     if (skillName.includes("毒")) return "skill-poison";
     return "skill-bash";
 }
 
+// --------------------------------------------------------------------------
+// 🎮 遊戲啟動與角色登入 flow
+// --------------------------------------------------------------------------
 async function handleStartGame() {
     const inputName = document.getElementById('player-name-input')?.value;
     const inputPin = document.getElementById('player-pin-input')?.value;
@@ -163,7 +192,6 @@ function executeLearnSkill(skillMeta) {
 
     let currentLv = (accountMeta.skills[skillMeta.name] || currentRun.skills[skillMeta.name] || 0);
     
-    // 1. 使用 jobdata.js 統一的驗證函式
     let check = canLearnSkill(
         { lv: accountMeta.lv || currentRun.lv || 1, gold: currentRun.gold },
         skillMeta,
@@ -176,7 +204,6 @@ function executeLearnSkill(skillMeta) {
         return;
     }
 
-    // 2. 扣除資源
     let nextLv = currentLv + 1;
     let goldCost = skillMeta.goldCost * nextLv;
     
@@ -186,18 +213,15 @@ function executeLearnSkill(skillMeta) {
         accountMeta.warehouse[mat] -= reqQty;
     }
 
-    // 3. 寫入技能紀錄
     accountMeta.skills[skillMeta.name] = nextLv;
     currentRun.skills[skillMeta.name] = nextLv;
 
-    // 4. 印出傳承/升級日誌
     if (currentLv === 0) {
         addLog(`🎓🎓【公會技能傳承】成功領悟專屬奧義 ➔ <strong>[${skillMeta.name}] (Lv.1)</strong>！`, "perfect");
     } else {
         addLog(`🎓✨【公會技能突破】成功將奧義 ➔ <strong>[${skillMeta.name}]</strong> 提升至 <strong>Lv.${nextLv}</strong>！`, "perfect");
     }
 
-    // 5. 若為被動技能，立即重新計算人物基本屬性面板
     if (skillMeta.type === "passive") {
         resetCurrentRunData();
     }
@@ -318,7 +342,7 @@ function executeAutoBattleAiTurn() {
             let sMeta = jobSkills[i];
             if (currentRun.skills[sMeta.name] && currentRun.mp >= sMeta.mp) {
                 let skLv = currentRun.skills[sMeta.name];
-                let isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
+                let isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte" || currentRun.job === "wizard" || currentRun.job === "priest" || currentRun.job === "sage");
                 let baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
                 let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                 
@@ -333,8 +357,9 @@ function executeAutoBattleAiTurn() {
                     if (dmgRes.isMiss) {
                         addLog(`💨 狂暴發動 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
                     } else {
-                        activeMonster.hp -= dmgRes.damage;
-                        addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup num-p-dmg">-${dmgRes.damage} HP</span>`, "skill-hit");
+                        let res = applyDamageWithShield(activeMonster, dmgRes.damage);
+                        let shieldText = res.absorbed > 0 ? `🛡️ 護盾吸收 ${res.absorbed} | ` : "";
+                        addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> ${shieldText}<span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>`, "skill-hit");
                     }
                     return true;
                 }
@@ -407,6 +432,9 @@ function handleSecondaryAction() {
     resetCurrentRunData();
     currentRun.hp = currentRun.maxHp;
     currentRun.mp = currentRun.maxMp;
+    currentRun.shield = 0;
+    currentRun.poisonStacks = 0;
+    currentRun.burnStacks = 0;
 
     saveGameData(); 
 
@@ -599,9 +627,6 @@ function refineSpecificEquipment(equipName) {
 
     const nextLvl = curLvl + 1;
 
-    // ----------------------------------------------------------------------
-    // 強化成功率與降級懲罰規則
-    // ----------------------------------------------------------------------
     let successRate = 1.0; 
     let minDrop = 0;       
     let maxDrop = 0;       
@@ -621,9 +646,6 @@ function refineSpecificEquipment(equipName) {
         minDrop = 1; maxDrop = 2;
     }
 
-    // ----------------------------------------------------------------------
-    // 判定結果
-    // ----------------------------------------------------------------------
     const roll = Math.random();
 
     if (roll < successRate) {
@@ -645,7 +667,6 @@ function refineSpecificEquipment(equipName) {
         }
     }
 
-    // 更新數據與介面
     if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     if (typeof saveGameData === "function") saveGameData();
     if (typeof updateUI === "function") updateUI();
@@ -749,6 +770,9 @@ function resolveAbyssEvent() {
     runDungeonLoop(); 
 }
 
+// --------------------------------------------------------------------------
+// ⚔️ 地下城主戰鬥迴圈 (Dungeon Loop)
+// --------------------------------------------------------------------------
 async function runDungeonLoop() {
     try {
         document.getElementById('btn-main-action').disabled = true;
@@ -782,7 +806,11 @@ async function runDungeonLoop() {
                 def: bossMeta.baseDef || bossMeta.def || (dungeonFloor * 2),
                 mdef: bossMeta.baseMdef || bossMeta.mdef || (dungeonFloor * 2),
                 spd: bossMeta.baseSpd, 
+                shield: 0,
+                poisonStacks: 0,
+                burnStacks: 0,
                 freezeTurns: 0, 
+                stunTurns: 0,
                 isSkipped: false, 
                 isBoss: true, 
                 fixedDrop: bossMeta.dropItem 
@@ -808,7 +836,11 @@ async function runDungeonLoop() {
                 def: scaledDef,
                 mdef: scaledDef,
                 spd: finalSpd, 
+                shield: 0,
+                poisonStacks: 0,
+                burnStacks: 0,
                 freezeTurns: 0, 
+                stunTurns: 0,
                 isSkipped: false, 
                 isBoss: false 
             };
@@ -850,16 +882,41 @@ function executeEnvironmentTick() {
 
     if (currentEnvironment === "FIRE") {
         let burnDmg = 5;
-        currentRun.hp = Math.max(1, currentRun.hp - burnDmg);
-        addLog(`🔥【灼熱環境】岩漿熱浪侵襲，扣減 ${burnDmg} HP！`, "env");
+        let res = applyDamageWithShield(currentRun, burnDmg);
+        addLog(`🔥【灼熱環境】岩漿熱浪侵襲，扣減 ${res.actualHpDmg} HP！`, "env");
     } else if (currentEnvironment === "POISON") {
         let poisonDmg = Math.floor(currentRun.maxHp * 0.03);
-        currentRun.hp = Math.max(1, currentRun.hp - poisonDmg);
-        addLog(`🧪【瘴氣劇毒】毒氣攻心，扣減 ${poisonDmg} HP！`, "env");
+        let res = applyDamageWithShield(currentRun, poisonDmg);
+        addLog(`🧪【瘴氣劇毒】毒氣攻心，扣減 ${res.actualHpDmg} HP！`, "env");
     }
 }
 
+// --------------------------------------------------------------------------
+// 🗡️ 玩家行動 Tick (含技能特效、狀態異常加載與 DoT 扣血)
+// --------------------------------------------------------------------------
 function executePlayerActionTick() {
+    // 1. 處理魔物身上劇毒 (Poison DoT) 與燃燒 (Burn DoT) 扣血
+    if (activeMonster && activeMonster.hp > 0) {
+        if (activeMonster.poisonStacks > 0) {
+            let poisonDmg = Math.floor(activeMonster.poisonStacks * 15 + activeMonster.maxHp * 0.02);
+            let res = applyDamageWithShield(activeMonster, poisonDmg);
+            addLog(`🧪【劇毒蔓延】<span class="strike-slash">[${activeMonster.name}]</span> 受到 <span class="skill-poison">${activeMonster.poisonStacks} 層劇毒</span> 蝕骨打擊 <span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>`, "env");
+        }
+        if (activeMonster.burnStacks > 0) {
+            let burnDmg = Math.floor(activeMonster.burnStacks * 20);
+            let res = applyDamageWithShield(activeMonster, burnDmg);
+            activeMonster.burnStacks = Math.max(0, activeMonster.burnStacks - 1);
+            addLog(`🔥【烈焰灼燒】<span class="strike-slash">[${activeMonster.name}]</span> 被火焰灼燒 <span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>`, "env");
+        }
+    }
+
+    if (activeMonster && activeMonster.hp <= 0) {
+        if (combatTickerTimer) clearInterval(combatTickerTimer);
+        executeDungeonVictorySequence();
+        return;
+    }
+
+    // 2. 檢查玩家自動 AI 戰術
     if (executeAutoBattleAiTurn()) {
         if (activeMonster && activeMonster.hp <= 0) {
             if (combatTickerTimer) clearInterval(combatTickerTimer); 
@@ -868,66 +925,139 @@ function executePlayerActionTick() {
         return;
     }
 
-    const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte");
+    const isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte" || currentRun.job === "wizard" || currentRun.job === "priest" || currentRun.job === "sage");
     const baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
     let executedSkill = false;
 
+    // 3. 掃描主動技能施放
     if (typeof SKILLS_DATABASE !== "undefined") {
-        for (let sName of Object.keys(currentRun.skills)) {
-            let sMeta = SKILLS_DATABASE[currentRun.job]?.find(s => s.name === sName);
-            if (sMeta && sMeta.type === "active" && currentRun.mp >= sMeta.mp && Math.random() < 0.45) {
+        let availableSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentRun.job) : (SKILLS_DATABASE[currentRun.job] || []);
+
+        for (let sMeta of availableSkills) {
+            if (sMeta.type !== "active") continue;
+            let skLv = (currentRun.skills && currentRun.skills[sMeta.name]) || 0;
+
+            if (skLv > 0 && currentRun.mp >= sMeta.mp && Math.random() < 0.45) {
                 executedSkill = true;
                 currentRun.mp -= sMeta.mp;
                 
-                let skLv = currentRun.skills[sName] || 1;
                 let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
-                
-                triggerProjectileFX(detectProjectileType(sName, currentRun.job));
-                let fxClass = detectSkillCssClass(sName);
+                triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
+                let fxClass = detectSkillCssClass(sMeta.name);
 
-                // 1. 治癒與回復類
+                // ----------------------------------------------------------
+                // A. 護盾加載 (Shield Gain)
+                // ----------------------------------------------------------
+                if (eff.shieldGain) {
+                    currentRun.shield = (currentRun.shield || 0) + eff.shieldGain;
+                    addLog(`🛡️ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，成功加載晶體護盾 <span style="color:#00ffcc; font-weight:bold;">+${eff.shieldGain} Shield</span>！`, "perfect");
+                }
+
+                // ----------------------------------------------------------
+                // B. 治癒與 MP 回復
+                // ----------------------------------------------------------
                 if (eff.healPercent || eff.healAmount) {
                     let healVal = eff.healAmount || Math.floor((currentRun.maxHp || 100) * eff.healPercent);
                     currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
-                    addLog(`✨ 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+                    addLog(`✨ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
                 }
-                // 2. MP 恢復類 (如禪心)
                 if (eff.mpRestore) {
                     currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + eff.mpRestore);
-                    addLog(`🧘 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${eff.mpRestore} MP</span>！`, "perfect");
+                    addLog(`🧘 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，靈魂充能回復 <span class="heal-effect">+${eff.mpRestore} MP</span>！`, "perfect");
                 }
-                // 3. 戰鬥護盾與屬性 Buff 類
-                if (eff.blockBuff || eff.permAtk || eff.permHp || eff.dodgeBuff) {
+
+                // ----------------------------------------------------------
+                // C. 屬性 Buff 增益
+                // ----------------------------------------------------------
+                if (eff.blockBuff || eff.permAtk || eff.permHp || eff.dodgeBuff || eff.spdBuff) {
                     if (eff.blockBuff) currentRun.def += eff.blockBuff;
                     if (eff.permAtk) currentRun.atk += eff.permAtk;
                     if (eff.permHp) { currentRun.maxHp += eff.permHp; currentRun.hp += eff.permHp; }
                     if (eff.dodgeBuff) currentRun.flee += eff.dodgeBuff;
-                    addLog(`🛡️ 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span> 成功加載戰術防禦與屬性增益！`, "perfect");
+                    if (eff.spdBuff) currentRun.spd += eff.spdBuff;
+                    addLog(`🛡️ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 成功加載戰術狀態！`, "perfect");
                 }
-                // 4. 攻擊傷害類
-                if (eff.dmg) {
-                    let monsterDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
-                    let dmgRes = calculateDamage(eff.dmg, monsterDef, true, (isMagicJob || eff.isMagic));
+
+                // ----------------------------------------------------------
+                // D. 劇毒爆裂 (Explode Poison)
+                // ----------------------------------------------------------
+                if (eff.explodePoison && activeMonster.poisonStacks > 0) {
+                    let explodeDmg = eff.dmg + (activeMonster.poisonStacks * 70);
+                    let res = applyDamageWithShield(activeMonster, explodeDmg);
+                    addLog(`🧪💥 引爆全部 <span class="skill-poison">${activeMonster.poisonStacks} 層劇毒</span>！對 <span class="strike-slash">[${activeMonster.name}]</span> 造成核爆級真傷 <span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>！`, "skill-hit");
+                    activeMonster.poisonStacks = 0; // 清空毒素
+                }
+                // ----------------------------------------------------------
+                // E. 一般技能物理/魔法攻擊打擊
+                // ----------------------------------------------------------
+                else if (eff.dmg) {
+                    let rawAtk = eff.dmg;
+                    let targetDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
+
+                    // 穿甲破防計算
+                    if (eff.pierceArmor) targetDef = Math.floor(targetDef * (1 - eff.pierceArmor));
+                    if (eff.ignoreDef) targetDef = 0;
+
+                    // 冰箭/火箭冰凍連擊加成
+                    if (sMeta.name.includes("火箭") && activeMonster.freezeTurns > 0) {
+                        rawAtk = Math.floor(rawAtk * 2.5);
+                        addLog(`🔥❄️【冰火暴擊】魔物處於冰凍狀態！火箭術觸發 2.5 倍爆發傷害！`, "perfect");
+                    }
+
+                    let dmgRes = calculateDamage(rawAtk, targetDef, true, (isMagicJob || eff.isMagic));
+
+                    // 強制暴擊判定
+                    if (eff.forceCrit) {
+                        dmgRes.isCrit = true;
+                        dmgRes.damage = Math.floor(dmgRes.damage * 1.5);
+                    }
 
                     if (dmgRes.isMiss) {
-                        addLog(`💨 施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
+                        addLog(`💨 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
                     } else {
-                        activeMonster.hp -= dmgRes.damage;
-                        let numClass = (isMagicJob || eff.isMagic) ? "num-m-dmg" : "num-p-dmg";
-                        let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-                        addLog(`💥 核心奧義！${critText}施展 <span class="${fxClass}">【${sName} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "skill-hit");
-                        
-                        if (eff.freezeChance && Math.random() * 100 < eff.freezeChance) {
-                            activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 1;
-                            addLog(`❄️ 魔物被強行【凍結】1 回合！`, "perfect");
-                        }
-                        if (eff.stunChance && Math.random() * 100 < eff.stunChance) {
-                            activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 1;
-                            addLog(`💫 魔物被【眩暈】無法行動！`, "perfect");
+                        let hitCount = eff.isTripleHit ? 3 : (eff.isDoubleHit ? 2 : 1);
+                        let totalActualDmg = 0;
+
+                        for (let h = 0; h < hitCount; h++) {
+                            let res = applyDamageWithShield(activeMonster, Math.floor(dmgRes.damage / hitCount));
+                            totalActualDmg += res.actualHpDmg;
                         }
 
+                        let numClass = (isMagicJob || eff.isMagic) ? "num-m-dmg" : "num-p-dmg";
+                        let critTag = dmgRes.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
+                        let multiTag = hitCount > 1 ? `(${hitCount}連擊)` : "";
+
+                        addLog(`💥 奧義爆發！${critTag}施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】${multiTag}</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${totalActualDmg} HP</span>`, "skill-hit");
+                        
+                        // 附加劇毒與燃燒層數
+                        if (eff.poisonStacks) {
+                            activeMonster.poisonStacks = (activeMonster.poisonStacks || 0) + eff.poisonStacks;
+                            addLog(`🧪 成功注入 <span class="skill-poison">+${eff.poisonStacks} 層劇毒</span>！(當前共 ${activeMonster.poisonStacks} 層)`, "perfect");
+                        }
+                        if (eff.burnStacks) {
+                            activeMonster.burnStacks = (activeMonster.burnStacks || 0) + eff.burnStacks;
+                            addLog(`🔥 成功引燃 <span class="skill-fire">+${eff.burnStacks} 層燃燒</span>！`, "perfect");
+                        }
+
+                        // 控場：凍結與眩暈
+                        if (eff.freezeChance && Math.random() * 100 < eff.freezeChance) {
+                            activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 1;
+                            addLog(`❄️【極寒冷凍】魔物被強行 <span class="skill-ice">【凍結】1 回合</span>！`, "perfect");
+                        }
+                        if (eff.stunChance && Math.random() * 100 < eff.stunChance) {
+                            activeMonster.stunTurns = (activeMonster.stunTurns || 0) + 1;
+                            addLog(`💫【重擊眩暈】魔物被強行 <span class="skill-bash">【眩暈】1 回合</span>！`, "perfect");
+                        }
+
+                        // 戰術強奪 (Steal)
+                        if (eff.stealGold) {
+                            currentRun.gold += eff.stealGold;
+                            addLog(`🪙【戰術順手牽羊】強制竊取魔物金幣 <span class="gold-victory-text">+${eff.stealGold} G</span>！`, "perfect");
+                        }
+
+                        // 命脈吸血 (Vampire)
                         if (currentRun.vampRate && currentRun.vampRate > 0) {
-                            let vampVal = Math.floor(dmgRes.damage * (currentRun.vampRate / 100));
+                            let vampVal = Math.floor(totalActualDmg * (currentRun.vampRate / 100));
                             if (vampVal > 0) {
                                 currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + vampVal);
                                 addLog(`🩸【血脈吸吮】汲取生命 <span class="heal-effect">+${vampVal} HP</span>`, "perfect");
@@ -940,6 +1070,7 @@ function executePlayerActionTick() {
         }
     }
 
+    // 4. 普通攻擊 (普攻)
     if (!executedSkill) {
         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
         let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
@@ -947,16 +1078,18 @@ function executePlayerActionTick() {
         if (dmgRes.isMiss) {
             addLog(`💨 揮砍被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
         } else {
-            activeMonster.hp -= dmgRes.damage; 
+            let res = applyDamageWithShield(activeMonster, dmgRes.damage);
             let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
-            let critText = dmgRes.isCrit ? "⚡ 暴擊！" : "";
-            addLog(`⚔️ 普攻揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${dmgRes.damage} HP</span>`, "deal"); 
+            let critText = dmgRes.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
+            
+            addLog(`⚔️ 普攻揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${res.actualHpDmg} HP</span>`, "deal"); 
 
+            // 雙連擊判定
             if (currentRun.doubleStrike && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
                 let extraDmg = calculateDamage(Math.floor(baseAtkPower * 0.7), monsterDef, true, isMagicJob);
                 if (!extraDmg.isMiss) {
-                    activeMonster.hp -= extraDmg.damage;
-                    addLog(`⚡【殘影追擊】二次追擊重影！重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${extraDmg.damage} HP</span>`, "deal");
+                    let extraRes = applyDamageWithShield(activeMonster, extraDmg.damage);
+                    addLog(`⚡【殘影追擊】二次追擊重影！重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${extraRes.actualHpDmg} HP</span>`, "deal");
                 }
             }
         }
@@ -968,11 +1101,22 @@ function executePlayerActionTick() {
     }
 }
 
+// --------------------------------------------------------------------------
+// 👹 魔物行動 Tick (含冰凍/眩暈檢測與護盾抵扣)
+// --------------------------------------------------------------------------
 function executeMonsterActionTick() {
+    // 1. 控場檢測：冰凍
     if (activeMonster.freezeTurns > 0) { 
         activeMonster.freezeTurns--; 
-        addLog(`❄️ 魔物處於冰凍狀態，無法行動！(剩餘 ${activeMonster.freezeTurns} 回合)`);
+        addLog(`❄️ 魔物處於 <span class="skill-ice">【冰凍狀態】</span>，無法行動！(剩餘 ${activeMonster.freezeTurns} 回合)`, "perfect");
         return; 
+    }
+
+    // 2. 控場檢測：眩暈
+    if (activeMonster.stunTurns > 0) {
+        activeMonster.stunTurns--;
+        addLog(`💫 魔物處於 <span class="skill-bash">【眩暈狀態】</span>，陷入混亂無法行動！`, "perfect");
+        return;
     }
     
     let monsterAtk = activeMonster.atk || 5;
@@ -985,9 +1129,12 @@ function executeMonsterActionTick() {
         return;
     }
 
-    let finalDmg = dmgRes.damage;
-    currentRun.hp -= finalDmg; 
-    addLog(`🔴 魔物暴虐反噬！<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${finalDmg} HP</span>`, "take"); 
+    // 3. 護盾優先吸收傷害
+    let res = applyDamageWithShield(currentRun, dmgRes.damage);
+    let shieldMsg = res.absorbed > 0 ? `🛡️ 護盾吸收了 ${res.absorbed} 點傷害！` : "";
+
+    addLog(`🔴 魔物暴虐反噬！${shieldMsg}<span class="strike-monster">[${accountMeta.name}]</span> <span class="num-popup num-boss-strike">-${res.actualHpDmg} HP</span>`, "take"); 
+    
     if (currentRun.hp <= 0) { 
         if (combatTickerTimer) clearInterval(combatTickerTimer); 
         executeDungeonDefeatSequence(); 
@@ -1002,7 +1149,6 @@ function executeDungeonVictorySequence() {
     currentRun.gold += rewardG; 
     addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 戰鬥勝利！獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
     
-    // 🎁 自動結算掉落物 (呼叫 safePushToInventory 防護函式)
     let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" ? MONSTER_DROPS[activeMonster?.name] : null);
     if (dropItemName) {
         let msg = safePushToInventory(currentRun, accountMeta, dropItemName);
@@ -1046,7 +1192,6 @@ function triggerBossTalentReward() {
 }
 
 function executeDungeonDefeatSequence() {
-    // 💀 計算扣除當前 30% 經驗值 (至少留 0)
     let lostExp = Math.floor((accountMeta.exp || 0) * 0.3);
     accountMeta.exp = Math.max(0, (accountMeta.exp || 0) - lostExp);
     currentRun.exp = accountMeta.exp;
@@ -1059,6 +1204,7 @@ function executeDungeonDefeatSequence() {
     resetCurrentRunData(); 
     currentRun.hp = currentRun.maxHp; 
     currentRun.mp = currentRun.maxMp;
+    currentRun.shield = 0;
     
     saveGameData(); 
     updateUI(); 
@@ -1072,21 +1218,18 @@ function addExperience(amount) {
 }
 
 function checkLevelUpAndTriggerSelect() {
-    // 判定是否達到升級門檻
     if (accountMeta.exp >= accountMeta.nextExp) {
         accountMeta.lv = (accountMeta.lv || 1) + 1;
         currentRun.lv = accountMeta.lv; 
         accountMeta.statPoints = (accountMeta.statPoints || 0) + 3; 
         
-        // 🔒 升級後 EXP 直接歸零，從 0 開始重新累積
         accountMeta.exp = 0;
         currentRun.exp = 0;
         
-        // 提升下一級所需經驗門檻，並同步至當前狀態
         accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
         currentRun.nextExp = accountMeta.nextExp;
 
-        addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 1 點能力點數！`, "perfect");
+        addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 3 點能力點數！`, "perfect");
     }
 
     if (gameState === "BATTLE") { 
@@ -1109,6 +1252,7 @@ function executeEquipAction(equipName, actionType) {
     }
     resetCurrentRunData(); saveGameData(); updateUI(); if(currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
 }
+
 // ==========================================================================
 // 🏇 皇家二轉突破儀式系統 logic
 // ==========================================================================
@@ -1178,11 +1322,9 @@ function executeAdvanceJob(newJobId) {
     const newJobObj = JOB_DATABASE[newJobId];
     if (!newJobObj) return;
 
-    // 1. 更新玩家職業
     accountMeta.job = newJobId;
     currentRun.job = newJobId;
 
-    // 2. 自動獲得二轉第一個專屬技能 (Lv.1)
     const newJobSkills = SKILLS_DATABASE[newJobId];
     if (newJobSkills && newJobSkills.length > 0) {
         const firstSkillName = newJobSkills[0].name;
@@ -1193,11 +1335,9 @@ function executeAdvanceJob(newJobId) {
         }
     }
 
-    // 3. 重新計算人物屬性
     resetCurrentRunData();
     saveGameData();
 
-    // 4. 印出史詩轉職日誌
     addLog(`👑🏇🌟【二轉血脈覺醒】恭喜突破轉職為 ➔ <strong style="color:#ffd700;">${newJobObj.icon} ${newJobObj.name}</strong>！解鎖全新進階技能樹！`, "victory-badge");
 
     closeJobAdvancementModal();
