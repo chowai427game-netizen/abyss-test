@@ -398,8 +398,37 @@ function renderVillageGuild() {
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
     container.innerHTML = "";
 
-    const jobSkills = SKILLS_DATABASE[currentRun.job] || [];
     const playerLv = accountMeta.lv || currentRun.lv || 1;
+    const currentJob = currentRun.job;
+
+    // ----------------------------------------------------------------------
+    // 👑 1. 二轉突破儀式橫幅 (當 Level >= 20 且為一轉職業時觸發)
+    // ----------------------------------------------------------------------
+    if (typeof canAdvanceJob === "function" && canAdvanceJob(currentRun)) {
+        const advBanner = document.createElement('div');
+        advBanner.style.cssText = `
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.3));
+            border: 2px solid #ffd700; border-radius: 10px; padding: 12px; margin-bottom: 15px;
+            text-align: center; box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+        `;
+        advBanner.innerHTML = `
+            <div style="font-size: 15px; font-weight: bold; color: #ffd700; margin-bottom: 4px;">
+                🌟【血脈突破】你已具備資格進行皇家二轉突破儀式！
+            </div>
+            <p style="font-size: 11px; color: #e0e0e0; margin-bottom: 8px;">
+                角色已達到 Lv.20！前往踏入更高階的職業殿堂，解鎖終極戰術能力。
+            </p>
+            <button class="btn-game btn-rerun" style="padding: 6px 16px; font-size: 12px; font-weight: bold;" onclick="openJobAdvancementModal()">
+                🏇✨ 開啟二轉突破選擇
+            </button>
+        `;
+        container.appendChild(advBanner);
+    }
+
+    // ----------------------------------------------------------------------
+    // 📜 2. 渲染可學習技能清單 (自動涵蓋一轉 + 二轉技能)
+    // ----------------------------------------------------------------------
+    const jobSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentJob) : (SKILLS_DATABASE[currentJob] || []);
 
     jobSkills.forEach(s => {
         const card = document.createElement('div');
@@ -436,7 +465,7 @@ function renderVillageGuild() {
 
         if (!isMaxLevel) {
             if (!hasLevel) {
-                statusBadge += ` <span style="color: #e74c3c; font-size: 11px;">(需角色 Lv.${s.reqLv})</span>`;
+                statusBadge += ` <span style="color: #e74c3c; font-size: 11px;">(需 Lv.${s.reqLv})</span>`;
                 btnDisabled = true;
             } else if (!hasGold || !hasMats) {
                 statusBadge += ` <span style="color: #e67e22; font-size: 11px;">(資源不足)</span>`;
