@@ -122,7 +122,6 @@ function applyEquipmentStats(slot) {
         }
     }
 }
-}
 
 // 計算裝備屬性加成範例
 function calculateEquipmentBonus(equipName) {
