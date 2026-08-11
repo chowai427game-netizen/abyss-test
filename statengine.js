@@ -61,9 +61,37 @@ function resetCurrentRunData() {
     currentRun.hp = Math.min(currentRun.hp || currentRun.maxHp, currentRun.maxHp);
     currentRun.mp = Math.min(currentRun.mp || currentRun.maxMp, currentRun.maxMp);
 
+    // 1. 計算裝備加成
     applyEquipmentStats('weapon');
     applyEquipmentStats('armor');
     applyEquipmentStats('accessory');
+
+    // 2. 🔮 自動掃描已學習被動技能並套用屬性加成
+    if (currentRun.skills && typeof SKILLS_DATABASE !== "undefined") {
+        const jobSkills = SKILLS_DATABASE[job] || [];
+        for (let sName in currentRun.skills) {
+            const skLv = currentRun.skills[sName];
+            if (skLv <= 0) continue;
+
+            const sMeta = jobSkills.find(s => s.name === sName);
+            if (sMeta && sMeta.type === "passive" && sMeta.passiveStats) {
+                for (let pStat in sMeta.passiveStats) {
+                    const bonusPerLv = sMeta.passiveStats[pStat];
+                    const totalBonus = bonusPerLv * skLv;
+
+                    if (pStat === "critChance") {
+                        currentRun.critChance = Math.min(80, (currentRun.critChance || 0) + totalBonus);
+                    } else if (pStat === "spd") {
+                        currentRun.spd = (currentRun.spd || 0) + totalBonus;
+                    } else if (pStat === "flee") {
+                        currentRun.flee = (currentRun.flee || 0) + totalBonus;
+                    } else if (currentRun[pStat] !== undefined) {
+                        currentRun[pStat] += totalBonus;
+                    }
+                }
+            }
+        }
+    }
 }
 
 function applyEquipmentStats(slot) {
@@ -97,30 +125,6 @@ function applyEquipmentStats(slot) {
     if (st.flee) currentRun.flee += Math.floor(st.flee * multiplier);
     if (st.vampRate) currentRun.vampRate += Math.floor(st.vampRate * multiplier);
     if (st.doubleStrike) currentRun.doubleStrike += Math.floor(st.doubleStrike * multiplier);
-    if (currentRun.skills && typeof SKILLS_DATABASE !== "undefined") {
-    const jobSkills = SKILLS_DATABASE[job] || [];
-    for (let sName in currentRun.skills) {
-        const skLv = currentRun.skills[sName];
-        if (skLv <= 0) continue;
-
-        const sMeta = jobSkills.find(s => s.name === sName);
-        if (sMeta && sMeta.type === "passive" && sMeta.passiveStats) {
-            for (let pStat in sMeta.passiveStats) {
-                const bonusPerLv = sMeta.passiveStats[pStat];
-                const totalBonus = bonusPerLv * skLv;
-
-                if (pStat === "critChance") {
-                    currentRun.critChance = Math.min(80, (currentRun.critChance || 0) + totalBonus);
-                } else if (pStat === "spd") {
-                    currentRun.spd = (currentRun.spd || 0) + totalBonus;
-                } else if (pStat === "flee") {
-                    currentRun.flee = (currentRun.flee || 0) + totalBonus;
-                } else if (currentRun[pStat] !== undefined) {
-                    currentRun[pStat] += totalBonus;
-                }
-            }
-        }
-    }
 }
 
 // 計算裝備屬性加成範例
@@ -186,4 +190,3 @@ function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isM
     
     return { damage: finalDmg, isCrit: isCrit, isMiss: false };
 }
-
