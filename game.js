@@ -162,46 +162,44 @@ function executeLearnSkill(skillMeta) {
     if (!currentRun.skills) currentRun.skills = {};
 
     let currentLv = (accountMeta.skills[skillMeta.name] || currentRun.skills[skillMeta.name] || 0);
+    
+    // 1. 使用 jobdata.js 統一的驗證函式
+    let check = canLearnSkill(
+        { lv: accountMeta.lv || currentRun.lv || 1, gold: currentRun.gold },
+        skillMeta,
+        accountMeta.warehouse || {},
+        currentLv
+    );
 
-    if (currentLv >= 10) {
-        showMaterialAlert([`技能 [${skillMeta.name}] 已達到最高等級上限 (Lv.10)！`], "👑 已達滿級");
+    if (!check.canLearn) {
+        showMaterialAlert([check.reason], `⚠️ 技能 [${skillMeta.name}] 研習失敗`);
         return;
     }
 
+    // 2. 扣除資源
     let nextLv = currentLv + 1;
     let goldCost = skillMeta.goldCost * nextLv;
-    let missingList = [];
-
-    if (currentRun.gold < goldCost) {
-        missingList.push(`🪙 金幣不足：尚缺 ${goldCost - currentRun.gold} G (需 ${goldCost} G)`);
-    }
-
-    for (let mat in skillMeta.reqMat) {
-        let reqQty = skillMeta.reqMat[mat] * nextLv;
-        let currentQty = accountMeta.warehouse[mat] || 0;
-        if (currentQty < reqQty) {
-            missingList.push(`📦 素材 [${mat}] 不足：尚缺 ${reqQty - currentQty} 個 (需 ${reqQty} 個)`);
-        }
-    }
-
-    if (missingList.length > 0) {
-        showMaterialAlert(missingList, `⚠️ 技能 [${skillMeta.name}] 研習資源不足`);
-        return;
-    }
-
+    
     currentRun.gold -= goldCost;
     for (let mat in skillMeta.reqMat) {
         let reqQty = skillMeta.reqMat[mat] * nextLv;
         accountMeta.warehouse[mat] -= reqQty;
     }
 
+    // 3. 寫入技能紀錄
     accountMeta.skills[skillMeta.name] = nextLv;
     currentRun.skills[skillMeta.name] = nextLv;
 
+    // 4. 印出傳承/升級日誌
     if (currentLv === 0) {
         addLog(`🎓🎓【公會技能傳承】成功領悟專屬奧義 ➔ <strong>[${skillMeta.name}] (Lv.1)</strong>！`, "perfect");
     } else {
         addLog(`🎓✨【公會技能突破】成功將奧義 ➔ <strong>[${skillMeta.name}]</strong> 提升至 <strong>Lv.${nextLv}</strong>！`, "perfect");
+    }
+
+    // 5. 若為被動技能，立即重新計算人物基本屬性面板
+    if (skillMeta.type === "passive") {
+        resetCurrentRunData();
     }
 
     saveGameData();
