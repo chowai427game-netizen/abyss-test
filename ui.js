@@ -399,6 +399,7 @@ function renderVillageGuild() {
     container.innerHTML = "";
 
     const jobSkills = SKILLS_DATABASE[currentRun.job] || [];
+    const playerLv = accountMeta.lv || currentRun.lv || 1;
 
     jobSkills.forEach(s => {
         const card = document.createElement('div');
@@ -409,7 +410,7 @@ function renderVillageGuild() {
         const nextLv = currentLv + 1;
 
         const goldCost = s.goldCost * nextLv;
-        const hasLevel = (accountMeta.lv || currentRun.lv || 1) >= s.reqLv;
+        const hasLevel = playerLv >= s.reqLv;
         const hasGold = currentRun.gold >= goldCost;
         
         let reqMatTextArr = [];
@@ -435,7 +436,7 @@ function renderVillageGuild() {
 
         if (!isMaxLevel) {
             if (!hasLevel) {
-                statusBadge += ` <span style="color: #e74c3c; font-size: 11px;">(需 Lv.${s.reqLv})</span>`;
+                statusBadge += ` <span style="color: #e74c3c; font-size: 11px;">(需角色 Lv.${s.reqLv})</span>`;
                 btnDisabled = true;
             } else if (!hasGold || !hasMats) {
                 statusBadge += ` <span style="color: #e67e22; font-size: 11px;">(資源不足)</span>`;
@@ -443,9 +444,11 @@ function renderVillageGuild() {
             }
         }
 
+        const skillTypeTag = s.type === "passive" ? `<span style="color:#00ffcc; font-size:10px;">【被動】</span>` : `<span style="color:#ff9f43; font-size:10px;">【主動 MP:${s.mp}】</span>`;
+
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <strong style="color: #ffd700; font-size: 13px;">${s.name} ${statusBadge}</strong>
+                <strong style="color: #ffd700; font-size: 13px;">${skillTypeTag} ${s.name} ${statusBadge}</strong>
                 <span style="font-size: 11px; color: #00ffcc;">${isMaxLevel ? "已達上限" : `下級消耗: 🪙 ${goldCost} G`}</span>
             </div>
             <p style="font-size: 11px; color: #aaa; margin: 4px 0;">${s.desc}</p>
