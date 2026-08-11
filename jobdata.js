@@ -1,8 +1,11 @@
 // ==========================================================================
-// 🎭 jobdata.js：皇家五大職業核心數據、屬性成長、技能庫與轉職樹
+// 🎭 jobdata.js：皇家五大基礎職業、十大二轉進階職業、二轉樹與技能庫
 // ==========================================================================
 
 const JOB_DATABASE = {
+    // ----------------------------------------------------------------------
+    // ⚔️ 一轉基礎職業 (Base Jobs)
+    // ----------------------------------------------------------------------
     swordsman: {
         id: "swordsman",
         name: "劍士",
@@ -10,8 +13,8 @@ const JOB_DATABASE = {
         desc: "擁有高血量與優異防護力，前線抗傷與近戰物理輸出的核心主力。",
         primaryStat: "STR",
         secondaryStat: "VIT",
-        hpScaling: 12.0,   
-        mpScaling: 2.0,    
+        hpScaling: 12.0,
+        mpScaling: 2.0,
         baseDef: 5,
         baseMdef: 2,
         passiveTrait: { name: "鋼鐵意志", desc: "受到的物理傷害永久減少 10%，受擊時 15% 機率獲得 30 點護盾。" }
@@ -67,18 +70,187 @@ const JOB_DATABASE = {
         baseDef: 2,
         baseMdef: 3,
         passiveTrait: { name: "鷹眼狙擊", desc: "命中率 (HIT) 額外 +20，無視目標 25% 的物理防禦。" }
+    },
+
+    // ----------------------------------------------------------------------
+    // 🏇 二轉進階職業 (Advanced 2nd Jobs)
+    // ----------------------------------------------------------------------
+    // 劍士系二轉
+    knight: {
+        id: "knight",
+        baseJob: "swordsman",
+        name: "騎士",
+        icon: "🏇",
+        desc: "掌握槍術與衝鋒，擁有極致近戰突破力與多段貫穿衝擊力。",
+        primaryStat: "STR",
+        secondaryStat: "AGI",
+        hpScaling: 15.0,
+        mpScaling: 2.5,
+        baseDef: 10,
+        baseMdef: 4,
+        passiveTrait: { name: "騎乘術", desc: "行動速度 (SPD) +10，近戰物理傷害提升 20%。" }
+    },
+    crusader: {
+        id: "crusader",
+        baseJob: "swordsman",
+        name: "十字軍",
+        icon: "🛡️",
+        desc: "神聖盾牌與極致體質，以聖光反彈傷害並為自身加載不屈防禦。",
+        primaryStat: "VIT",
+        secondaryStat: "STR",
+        hpScaling: 18.0,
+        mpScaling: 3.5,
+        baseDef: 15,
+        baseMdef: 8,
+        passiveTrait: { name: "聖殿壁壘", desc: "最大 HP +20%，受擊時 30% 機率反彈 25% 傷害。" }
+    },
+
+    // 魔法師系二轉
+    wizard: {
+        id: "wizard",
+        baseJob: "magician",
+        name: "巫師",
+        icon: "🧙‍♂️",
+        desc: "大範圍毀滅魔法主宰，能召喚暴風雪與毀滅隕石碾碎敵陣。",
+        primaryStat: "INT",
+        secondaryStat: "DEX",
+        hpScaling: 7.5,
+        mpScaling: 12.0,
+        baseDef: 2,
+        baseMdef: 12,
+        passiveTrait: { name: "元素主宰", desc: "魔法攻擊 (MATK) 提升 25%，魔法造成暴擊。" }
+    },
+    sage: {
+        id: "sage",
+        baseJob: "magician",
+        name: "賢者",
+        icon: "📖",
+        desc: "戰鬥型魔法師，善於邊揮砍邊自動念咒，並能取消敵方增益。",
+        primaryStat: "INT",
+        secondaryStat: "AGI",
+        hpScaling: 8.5,
+        mpScaling: 10.0,
+        baseDef: 4,
+        baseMdef: 10,
+        passiveTrait: { name: "自由詠唱", desc: "自動戰鬥時 30% 機率連續施展雙重主動魔法。" }
+    },
+
+    // 服事系二轉
+    priest: {
+        id: "priest",
+        baseJob: "acolyte",
+        name: "祭司",
+        icon: "👼",
+        desc: "頂級神聖輔助，強效聖光大幅提高生存與全隊能力。",
+        primaryStat: "INT",
+        secondaryStat: "VIT",
+        hpScaling: 10.0,
+        mpScaling: 8.5,
+        baseDef: 5,
+        baseMdef: 10,
+        passiveTrait: { name: "神聖光環", desc: "治癒與護盾效果提升 50%，受到的所有傷害減少 15%。" }
+    },
+    monk: {
+        id: "monk",
+        baseJob: "acolyte",
+        name: "武僧",
+        icon: "👊",
+        desc: "近戰神聖爆發大師，連環拳與阿修羅霸凰拳帶來瞬間秒殺。",
+        primaryStat: "STR",
+        secondaryStat: "INT",
+        hpScaling: 11.0,
+        mpScaling: 5.0,
+        baseDef: 6,
+        baseMdef: 6,
+        passiveTrait: { name: "爆氣蓄勁", desc: "暴擊率 (CRIT) +15%，物理攻擊無視敵方 25% 防禦。" }
+    },
+
+    // 盜賊系二轉
+    assassin: {
+        id: "assassin",
+        baseJob: "thief",
+        name: "刺客",
+        icon: "🥷",
+        desc: "影之殺手，雙手持刃與高速連擊，配合劇毒帶來毀滅打擊。",
+        primaryStat: "AGI",
+        secondaryStat: "STR",
+        hpScaling: 9.0,
+        mpScaling: 4.0,
+        baseDef: 3,
+        baseMdef: 3,
+        passiveTrait: { name: "影之雙刃", desc: "閃避率 (FLEE) +25%，普攻 35% 機率觸發雙連擊。" }
+    },
+    rogue: {
+        id: "rogue",
+        baseJob: "thief",
+        name: "流氓",
+        icon: "🗡️",
+        desc: "戰術搶奪專家，擅長背刺爆頭與強制奪取敵方物資資源。",
+        primaryStat: "STR",
+        secondaryStat: "DEX",
+        hpScaling: 9.5,
+        mpScaling: 4.5,
+        baseDef: 4,
+        baseMdef: 3,
+        passiveTrait: { name: "盜賊美學", desc: "戰利品獲取翻倍，暴擊傷害提升 30%。" }
+    },
+
+    // 弓箭手系二轉
+    hunter: {
+        id: "hunter",
+        baseJob: "archer",
+        name: "獵人",
+        icon: "🦅",
+        desc: "獵鷹協同作戰專家與陷阱大師，具備極高的遠程貫穿力。",
+        primaryStat: "DEX",
+        secondaryStat: "AGI",
+        hpScaling: 8.5,
+        mpScaling: 5.0,
+        baseDef: 3,
+        baseMdef: 4,
+        passiveTrait: { name: "獵鷹協同", desc: "攻擊時 40% 機率觸發獵鷹俯衝，造成額外無視防禦物理傷害。" }
+    },
+    bard_dancer: {
+        id: "bard_dancer",
+        baseJob: "archer",
+        name: "詩人/舞孃",
+        icon: "🪕",
+        desc: "戰歌合奏大師，提供全方位戰鬥增益與節奏掌控。",
+        primaryStat: "DEX",
+        secondaryStat: "VIT",
+        hpScaling: 9.0,
+        mpScaling: 6.0,
+        baseDef: 4,
+        baseMdef: 5,
+        passiveTrait: { name: "戰歌合奏", desc: "戰鬥開局自動獲得全屬性 +15% 增益。" }
     }
 };
 
 const JOB_STAT_BONUS = {
+    // 一轉
     swordsman: { STR: 6, AGI: 2, VIT: 7, INT: 1, DEX: 3, LUK: 2 },
     magician:  { STR: 1, AGI: 2, VIT: 2, INT: 8, DEX: 6, LUK: 2 },
     acolyte:   { STR: 2, AGI: 2, VIT: 5, INT: 6, DEX: 4, LUK: 3 },
     thief:     { STR: 4, AGI: 8, VIT: 2, INT: 1, DEX: 4, LUK: 3 },
-    archer:    { STR: 2, AGI: 6, VIT: 2, INT: 2, DEX: 8, LUK: 2 }
+    archer:    { STR: 2, AGI: 6, VIT: 2, INT: 2, DEX: 8, LUK: 2 },
+
+    // 二轉
+    knight:     { STR: 12, AGI: 6, VIT: 12, INT: 2, DEX: 6, LUK: 4 },
+    crusader:   { STR: 8, AGI: 4, VIT: 16, INT: 6, DEX: 5, LUK: 5 },
+    wizard:     { STR: 2, AGI: 4, VIT: 4, INT: 18, DEX: 12, LUK: 4 },
+    sage:       { STR: 3, AGI: 8, VIT: 5, INT: 15, DEX: 8, LUK: 5 },
+    priest:     { STR: 4, AGI: 4, VIT: 10, INT: 14, DEX: 8, LUK: 6 },
+    monk:       { STR: 12, AGI: 6, VIT: 8, INT: 8, DEX: 6, LUK: 4 },
+    assassin:   { STR: 8, AGI: 18, VIT: 4, INT: 2, DEX: 8, LUK: 6 },
+    rogue:      { STR: 10, AGI: 12, VIT: 6, INT: 3, DEX: 10, LUK: 5 },
+    hunter:     { STR: 4, AGI: 12, VIT: 4, INT: 4, DEX: 18, LUK: 4 },
+    bard_dancer:{ STR: 4, AGI: 10, VIT: 8, INT: 8, DEX: 12, LUK: 4 }
 };
 
 const SKILLS_DATABASE = {
+    // ----------------------------------------------------------------------
+    // 一轉技能庫
+    // ----------------------------------------------------------------------
     swordsman: [
         { id: "s_1", name: "狂擊", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "物理重擊造成高額傷害，機率使怪眩暈。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.4 + lv * 0.4)), stunChance: 20 + lv * 10 }) },
         { id: "s_2", name: "怒爆", type: "active", mp: 25, reqLv: 3, goldCost: 250, reqMat: { "哥布林香料": 1 }, desc: "釋放鬥氣造成火真傷，附加普攻燃燒。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.2) + (20 + lv * 20), burnStacks: lv }) },
@@ -113,31 +285,107 @@ const SKILLS_DATABASE = {
         { id: "r_3", name: "心眼", type: "passive", reqLv: 5, goldCost: 450, reqMat: {}, passiveStats: { critChance: 10, spd: 5 }, desc: "【被動】精準狙擊，永久提升自身 10% 暴擊率與 5 點速度。" },
         { id: "r_4", name: "箭雨狂轟", type: "active", mp: 35, reqLv: 8, goldCost: 700, reqMat: { "巨石苔蘚": 3 }, desc: "漫天箭雨！造成高度貫穿打擊，無視敵方 50% 物理防護。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.6 + lv * 0.3)), pierceArmor: 0.5 }) },
         { id: "r_5", name: "鷹眼狙擊", type: "active", mp: 50, reqLv: 12, goldCost: 1200, reqMat: { "祭司血清": 3 }, desc: "極限瞄準爆頭！對大領主或魔物造成超高倍率致命打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (3.0 + lv * 0.8)) }) }
+    ],
+
+    // ----------------------------------------------------------------------
+    // 二轉專屬技能庫 (需要角色 Level >= 20)
+    // ----------------------------------------------------------------------
+    knight: [
+        { id: "k_1", name: "連刺攻擊", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "長槍快速三連突刺！造成 3 段高度物理傷害。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (0.8 + lv * 0.25) * 3), isTripleHit: true }) },
+        { id: "k_2", name: "怪物互擊", type: "active", mp: 45, reqLv: 24, goldCost: 2200, reqMat: { "巨石苔蘚": 5 }, desc: "揮動巨劍造成物理衝擊，並有 40% 機率使魔物眩暈。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.2 + lv * 0.5)), stunChance: 40 + lv * 5 }) },
+        { id: "k_3", name: "騎乘術", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "祭司血清": 3 }, passiveStats: { spd: 10, critChance: 8 }, desc: "【被動】騎乘作戰，永久提升 10 點速度與 8% 暴擊率。" }
+    ],
+    crusader: [
+        { id: "c_1", name: "聖十字審判", type: "active", mp: 50, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 5 }, desc: "召喚聖十字光輝打擊！混合物攻與魔攻雙重毀滅傷害。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.5 + lv * 0.6)), isMagic: true }) },
+        { id: "c_2", name: "犧牲庇護", type: "active", mp: 35, reqLv: 24, goldCost: 2200, reqMat: { "硬殼龜甲": 5 }, desc: "以全身重裝護甲化為晶體聖盾，立刻獲得極高護盾值。", run: (lv) => ({ shieldGain: 150 + lv * 80 }) },
+        { id: "c_3", name: "鋼鐵防禦", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "巨石苔蘚": 6 }, passiveStats: { def: 15, maxHp: 200 }, desc: "【被動】永久提升 15 點防禦力與 200 點最大生命值。" }
+    ],
+    wizard: [
+        { id: "w_1", name: "暴風雪", type: "active", mp: 70, reqLv: 20, goldCost: 1500, reqMat: { "史萊姆黏液": 6 }, desc: "冰爽暴風雪大轟炸！造成極高魔傷並 70% 冰凍魔物。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (2.4 + lv * 0.6)), freezeChance: 70, isMagic: true }) },
+        { id: "w_2", name: "隕石術", type: "active", mp: 90, reqLv: 25, goldCost: 2500, reqMat: { "哥布林香料": 6 }, desc: "召喚毀滅隕石群！造成超大範圍魔法毀滅打擊。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (3.2 + lv * 0.8)), isMagic: true }) },
+        { id: "w_3", name: "魔力增幅", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "怨靈淚晶": 5 }, passiveStats: { matk: 30, maxMp: 150 }, desc: "【被動】永久提升 30 點魔攻 (MATK) 與 150 點最大 MP。" }
+    ],
+    sage: [
+        { id: "sg_1", name: "魔法效果解除", type: "active", mp: 40, reqLv: 20, goldCost: 1500, reqMat: { "怨靈淚晶": 4 }, desc: "破除魔物護甲與增益，造成元素破防真傷。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (1.8 + lv * 0.4)), ignoreDef: true, isMagic: true }) },
+        { id: "sg_2", name: "自動念咒", type: "passive", reqLv: 25, goldCost: 2500, reqMat: { "史萊姆黏液": 5 }, passiveStats: { doubleStrike: 25, spd: 8 }, desc: "【被動】普通攻擊時有 25% 機率自動追擊二連發。" }
+    ],
+    priest: [
+        { id: "p_1", name: "聖母之頌歌", type: "active", mp: 10, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 5 }, desc: "聖母祝福！立刻巨量回復自身 120 點 MP。", run: (lv) => ({ mpRestore: 120 + lv * 40 }) },
+        { id: "p_2", name: "讚美光陣", type: "active", mp: 50, reqLv: 24, goldCost: 2200, reqMat: { "怨靈淚晶": 4 }, desc: "展開神聖防禦陣！大幅提升防禦力與魔防力，持續數回合。", run: (lv) => ({ blockBuff: 20 + lv * 10, turns: 4 + lv }) },
+        { id: "p_3", name: "驅魔聖典", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "祭司血清": 6 }, passiveStats: { mdef: 15, maxHp: 150 }, desc: "【被動】神聖光環守護，永久提升 15 點魔防與 150 點 HP。" }
+    ],
+    monk: [
+        { id: "mk_1", name: "猛龍誇強", type: "active", mp: 35, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "神聖連環拳！瞬間造成極高物理近戰打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.2 + lv * 0.5)) }) },
+        { id: "mk_2", name: "阿修羅霸凰拳", type: "active", mp: 80, reqLv: 26, goldCost: 3000, reqMat: { "怨靈淚晶": 6 }, desc: "耗盡所有鬥氣釋放極限一擊！造成毀滅性核爆極大傷害！", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (4.5 + lv * 1.2)), forceCrit: true }) }
+    ],
+    assassin: [
+        { id: "as_1", name: "音速投擲", type: "active", mp: 45, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "鬼魅 8 連發突刺！對魔物造成高額多段打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (0.4 + lv * 0.1) * 8) }) },
+        { id: "as_2", name: "塗毒大師", type: "passive", reqLv: 25, goldCost: 2500, reqMat: { "史萊姆黏液": 6 }, passiveStats: { critChance: 15, flee: 12 }, desc: "【被動】淬毒極致，永久提升 15% 暴擊率與 12 點閃避率。" }
+    ],
+    rogue: [
+        { id: "rg_1", name: "挾持襲擊", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "哥布林香料": 5 }, desc: "突襲挾持！強行偷取 50G 與素材，並使敵人眩暈 1 回合。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.5), stealGold: 50 + lv * 25, stunChance: 100 }) },
+        { id: "rg_2", name: "背刺", type: "active", mp: 40, reqLv: 24, goldCost: 2200, reqMat: { "獸人後腿肉": 6 }, desc: "繞後致命背刺！100% 觸發暴擊且無視敵方 40% 防禦。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.5 + lv * 0.6)), forceCrit: true, pierceArmor: 0.4 }) }
+    ],
+    hunter: [
+        { id: "ht_1", name: "獵鷹突擊", type: "active", mp: 40, reqLv: 20, goldCost: 1500, reqMat: { "硬殼龜甲": 5 }, desc: "指揮獵鷹俯衝打擊！造成高額無視防禦之貫穿傷害。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.0 + lv * 0.5)), ignoreDef: true }) },
+        { id: "ht_2", name: "爆炸陷阱", type: "active", mp: 35, reqLv: 24, goldCost: 2200, reqMat: { "哥布林香料": 6 }, desc: "引爆獵人陷阱！造成火物理傷害並高機率眩暈魔物。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.8), stunChance: 60 + lv * 10 }) }
+    ],
+    bard_dancer: [
+        { id: "bd_1", name: "布拉奇之歌", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 4 }, desc: "奏響戰歌！行動速度 (SPD) 暴增，持續多回合。", run: (lv) => ({ spdBuff: 20 + lv * 5, turns: 4 }) },
+        { id: "bd_2", name: "不和諧音程", type: "passive", reqLv: 25, goldCost: 2500, reqMat: { "怨靈淚晶": 5 }, passiveStats: { spd: 10, maxHp: 150 }, desc: "【被動】節律掌控，永久提升 10 點速度與 150 點最大 HP。" }
     ]
 };
 
 const ADVANCED_JOBS_DATABASE = {
     swordsman: [
-        { id: "knight", name: "騎士", icon: "🏇", reqLv: 20, desc: "掌握槍術與衝鋒，極致近戰輸出。" },
-        { id: "crusader", name: "十字軍", icon: "🛡️", reqLv: 20, desc: "神聖盾牌與極致體質，隊伍不倒要塞。" }
+        { id: "knight", name: "騎士", icon: "🏇", reqLv: 20, desc: "掌握槍術與衝鋒，擁有極致近戰突破力與多段貫穿衝擊力。" },
+        { id: "crusader", name: "十字軍", icon: "🛡️", reqLv: 20, desc: "神聖盾牌與極致體質，以聖光反彈傷害並為自身加載不屈防禦。" }
     ],
     magician: [
-        { id: "wizard", name: "巫師", icon: "🧙‍♂️", reqLv: 20, desc: "大範圍毀滅魔法，元素掌控者。" },
-        { id: "sage", name: "賢者", icon: "📖", reqLv: 20, desc: "自由詠唱與魔法打斷，戰鬥法師。" }
+        { id: "wizard", name: "巫師", icon: "🧙‍♂️", reqLv: 20, desc: "大範圍毀滅魔法主宰，能召喚暴風雪與毀滅隕石碾碎敵陣。" },
+        { id: "sage", name: "賢者", icon: "📖", reqLv: 20, desc: "戰鬥型魔法師，善於邊揮砍邊自動念咒，並能取消敵方增益。" }
     ],
     acolyte: [
-        { id: "priest", name: "祭司", icon: "👼", reqLv: 20, desc: "頂級輔助與強效驅魔聖光。" },
-        { id: "monk", name: "武僧", icon: "👊", reqLv: 20, desc: "阿修羅霸凰拳，近戰神聖爆發。" }
+        { id: "priest", name: "祭司", icon: "👼", reqLv: 20, desc: "頂級神聖輔助，強效聖光大幅提高生存與全隊能力。" },
+        { id: "monk", name: "武僧", icon: "👊", reqLv: 20, desc: "近戰神聖爆發大師，連環拳與阿修羅霸凰拳帶來瞬間秒殺。" }
     ],
     thief: [
-        { id: "assassin", name: "刺客", icon: "🥷", reqLv: 20, desc: "雙手持刃與致命劇毒，影之殺手。" },
-        { id: "rogue", name: "流氓", icon: "🗡️", reqLv: 20, desc: "強奪偷竊與弓刀雙修的戰術大師。" }
+        { id: "assassin", name: "刺客", icon: "🥷", reqLv: 20, desc: "影之殺手，雙手持刃與高速連擊，配合劇毒帶來毀滅打擊。" },
+        { id: "rogue", name: "流氓", icon: "🗡️", reqLv: 20, desc: "戰術搶奪專家，擅長背刺爆頭與強制奪取敵方物資資源。" }
     ],
     archer: [
-        { id: "hunter", name: "獵人", icon: "🦅", reqLv: 20, desc: "獵鷹協同作戰與陷阱大師。" },
-        { id: "bard_dancer", name: "詩人/舞孃", icon: "🪕", reqLv: 20, desc: "戰歌合奏與團隊全能力增益。" }
+        { id: "hunter", name: "獵人", icon: "🦅", reqLv: 20, desc: "獵鷹協同作戰專家與陷阱大師，具備極高的遠程貫穿力。" },
+        { id: "bard_dancer", name: "詩人/舞孃", icon: "🪕", reqLv: 20, desc: "戰歌合奏大師，提供全方位戰鬥增益與節律掌控。" }
     ]
 };
+
+// --------------------------------------------------------------------------
+// 🛠️ 邏輯與技能擷取輔助函式 (Helper Functions)
+// --------------------------------------------------------------------------
+
+// 取得玩家當前職業可學習的所有技能（包含一轉繼承與二轉技能）
+function getAllSkillsForJob(jobId) {
+    let jobObj = JOB_DATABASE[jobId];
+    if (!jobObj) return [];
+
+    let skillsList = [];
+    
+    // 如果是二轉職業，先繼承一轉母職業技能
+    if (jobObj.baseJob && SKILLS_DATABASE[jobObj.baseJob]) {
+        skillsList = skillsList.concat(SKILLS_DATABASE[jobObj.baseJob]);
+    }
+    
+    // 加上當前職業專屬技能
+    if (SKILLS_DATABASE[jobId]) {
+        skillsList = skillsList.concat(SKILLS_DATABASE[jobId]);
+    }
+
+    return skillsList;
+}
+
+function getJobChineseName(j) {
+    return JOB_DATABASE[j]?.name || "無名勇者";
+}
 
 function getJobBonusStats(jobId, jobLevel = 1) {
     const baseBonus = JOB_STAT_BONUS[jobId] || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
@@ -182,4 +430,13 @@ function canLearnSkill(playerData, skill, warehouse, currentLv = 0) {
     }
 
     return { canLearn: true };
+}
+
+// 判定玩家是否滿足二轉條件 (等級 >= 20 且當前為一轉職業)
+function canAdvanceJob(playerData) {
+    const currentJob = playerData.job;
+    const currentLv = playerData.lv || playerData.level || 1;
+    
+    const isBaseJob = ADVANCED_JOBS_DATABASE.hasOwnProperty(currentJob);
+    return (currentLv >= 20 && isBaseJob);
 }
