@@ -97,6 +97,58 @@ function allocateStatPoint(statKey) {
     updateUI();
 }
 
+// --------------------------------------------------------------------------
+// 🎒 倉庫與背包物品互轉邏輯 (Deposit & Withdraw)
+// --------------------------------------------------------------------------
+
+// 1. 從倉庫領取 1 個料理/物品至背包
+function executeWithdrawFoodFromWarehouse(itemName) {
+    if (!currentRun.inventory) currentRun.inventory = [];
+    const maxBag = typeof MAX_BAG_SIZE !== "undefined" ? MAX_BAG_SIZE : 6;
+
+    if (currentRun.inventory.length >= maxBag) {
+        showMaterialAlert([`🎒 背包容量已滿 (${currentRun.inventory.length}/${maxBag})，無法再取出更多物品！`], "⚠️ 背包已滿");
+        return;
+    }
+
+    const qtyInWarehouse = accountMeta.warehouse?.[itemName] || 0;
+    if (qtyInWarehouse <= 0) {
+        showMaterialAlert([`📦 倉庫內已無存貨 (${itemName})！`], "⚠️ 庫存不足");
+        return;
+    }
+
+    // 扣除倉庫，加入背包
+    accountMeta.warehouse[itemName]--;
+    if (accountMeta.warehouse[itemName] <= 0) {
+        delete accountMeta.warehouse[itemName];
+    }
+    currentRun.inventory.push(itemName);
+
+    if (typeof saveGameData === "function") saveGameData();
+    addLog(`🎒 從倉庫取出 <strong>${itemName}</strong> 放入攜帶背包。`, "perfect");
+    
+    updateUI();
+    renderVillageCookingWorkshop();
+}
+
+// 2. 在村莊時將背包物品退回存入倉庫
+function executeDepositBagItemToWarehouse(bagIndex) {
+    if (!currentRun.inventory || !currentRun.inventory[bagIndex]) return;
+
+    const itemName = currentRun.inventory[bagIndex];
+    currentRun.inventory.splice(bagIndex, 1);
+
+    if (!accountMeta.warehouse) accountMeta.warehouse = {};
+    accountMeta.warehouse[itemName] = (accountMeta.warehouse[itemName] || 0) + 1;
+
+    if (typeof saveGameData === "function") saveGameData();
+    addLog(`📦 已將背包中的 <strong>${itemName}</strong> 退回存放至倉庫。`, "perfect");
+
+    updateUI();
+    if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
+    if (currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
@@ -218,12 +270,13 @@ function syncCharacterDataUi() {
     setTxt('p-equip-armor', (accountMeta.equipment?.armor || "布衣") + aStar);
     setTxt('p-equip-accessory', (accountMeta.equipment?.accessory || "無") + cStar);
 
-    setTxt('bag-capacity-text', `🎒 ${currentRun.inventory?.length || 0} / ${MAX_BAG_SIZE}`);
+    const maxBag = typeof MAX_BAG_SIZE !== "undefined" ? MAX_BAG_SIZE : 6;
+    setTxt('bag-capacity-text', `🎒 ${currentRun.inventory?.length || 0} / ${maxBag}`);
 
     const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
         bagContainer.innerHTML = "";
-        for (let i = 0; i < MAX_BAG_SIZE; i++) {
+        for (let i = 0; i < maxBag; i++) {
             const item = currentRun.inventory[i];
             const slot = document.createElement('div');
             slot.style.cssText = `
@@ -238,12 +291,15 @@ function syncCharacterDataUi() {
 
             if (item) {
                 slot.innerText = item;
-                slot.title = `點擊使用 / 退回倉庫 (${item})`;
+                slot.title = gameState === "BATTLE" ? `點擊在戰鬥中使用 (${item})` : `點擊退回存入倉庫 (${item})`;
                 slot.onclick = () => {
                     if (gameState === "BATTLE") {
-                        executeUseDungeonItem(item, i);
+                        if (typeof executeUseDungeonItem === "function") {
+                            executeUseDungeonItem(item, i);
+                        }
                     } else {
-                        removeBagItem(i);
+                        // 🏰 在村莊時點擊：直接退回倉庫！
+                        executeDepositBagItemToWarehouse(i);
                     }
                 };
             } else {
@@ -443,7 +499,7 @@ function formatSkillEffectText(s, lv, playerRun) {
 }
 
 // --------------------------------------------------------------------------
-// 🏛️ 冒險者公會技能面板 (含動態數值與下一級突破預覽)
+// 🏛️ 冒險者公會技能面板
 // --------------------------------------------------------------------------
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
@@ -453,9 +509,6 @@ function renderVillageGuild() {
     const playerLv = accountMeta.lv || currentRun.lv || 1;
     const currentJob = currentRun.job;
 
-    // ----------------------------------------------------------------------
-    // 👑 1. 二轉突破儀式橫幅 (當 Level >= 20 且為一轉職業時觸發)
-    // ----------------------------------------------------------------------
     if (typeof canAdvanceJob === "function" && canAdvanceJob(currentRun)) {
         const advBanner = document.createElement('div');
         advBanner.style.cssText = `
@@ -477,9 +530,6 @@ function renderVillageGuild() {
         container.appendChild(advBanner);
     }
 
-    // ----------------------------------------------------------------------
-    // 📜 2. 渲染可學習技能清單 (自動涵蓋一轉 + 二轉技能)
-    // ----------------------------------------------------------------------
     const jobSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentJob) : (SKILLS_DATABASE[currentJob] || []);
 
     jobSkills.forEach(s => {
@@ -527,7 +577,6 @@ function renderVillageGuild() {
 
         const skillTypeTag = s.type === "passive" ? `<span style="color:#00ffcc; font-size:10px;">【被動】</span>` : `<span style="color:#ff9f43; font-size:10px;">【主動 MP:${s.mp}】</span>`;
 
-        // 💡 計算當前數值與下一級預覽
         const curDmgText = formatSkillEffectText(s, currentLv, currentRun);
         const nextDmgText = !isMaxLevel ? formatSkillEffectText(s, nextLv, currentRun) : "已達最高滿級";
 
@@ -539,7 +588,6 @@ function renderVillageGuild() {
             
             <p style="font-size: 11px; color: #aaa; margin: 4px 0;">${s.desc}</p>
             
-            <!-- 📊 動態數值與突破預覽區 -->
             <div style="background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; font-size: 11px; margin: 6px 0; border: 1px solid rgba(255,255,255,0.05);">
                 <div>🔹 當前威力：${curDmgText}</div>
                 ${!isMaxLevel ? `<div style="color: #00ffcc; margin-top: 2px;">⚡ 下級突破：${nextDmgText}</div>` : ''}
@@ -568,11 +616,74 @@ function renderVillageGuild() {
     });
 }
 
+// --------------------------------------------------------------------------
+// 🍳 皇家料理屋介面 (支援動態庫存與一鍵取出至背包)
+// --------------------------------------------------------------------------
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
-        const wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-        wBox.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${wItems || "暫無任何行軍素材"}`;
+        wBox.innerHTML = ""; // 清空舊內容，重新渲染
+
+        const warehouseData = accountMeta.warehouse || {};
+        
+        // 1. 拆分普通素材與完成的料理
+        let rawMaterials = [];
+        let cookedDishes = [];
+
+        // 食譜列表中的料理名稱集合
+        const recipeNames = typeof RECIPES_DATABASE !== "undefined" ? RECIPES_DATABASE.map(r => r.name) : [];
+
+        for (let itemKey in warehouseData) {
+            let count = warehouseData[itemKey];
+            if (count <= 0) continue;
+
+            if (recipeNames.includes(itemKey)) {
+                cookedDishes.push({ name: itemKey, qty: count });
+            } else {
+                rawMaterials.push(`${itemKey} (x${count})`);
+            }
+        }
+
+        // 2. 渲染頂部一般食材文字
+        const rawMatText = rawMaterials.join(" | ") || "暫無基礎食材";
+        const rawMatContainer = document.createElement('div');
+        rawMatContainer.style.cssText = "margin-bottom: 10px; color: #aaa; font-size: 11px; line-height: 1.5;";
+        rawMatContainer.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${rawMatText}`;
+        wBox.appendChild(rawMatContainer);
+
+        // 3. 渲染可提領料理卡片區
+        if (cookedDishes.length > 0) {
+            const cookedHeader = document.createElement('div');
+            cookedHeader.style.cssText = "color: #ffd700; font-weight: bold; font-size: 12px; margin: 10px 0 6px 0; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px;";
+            cookedHeader.innerText = "🍱 倉庫備用成品料理 (點擊取出至背包)：";
+            wBox.appendChild(cookedHeader);
+
+            const dishesGrid = document.createElement('div');
+            dishesGrid.style.cssText = "display: flex; flex-direction: column; gap: 6px;";
+
+            cookedDishes.forEach(d => {
+                const dishRow = document.createElement('div');
+                dishRow.style.cssText = `
+                    display: flex; justify-content: space-between; align-items: center;
+                    background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2);
+                    border-radius: 6px; padding: 6px 10px; font-size: 12px;
+                `;
+                dishRow.innerHTML = `
+                    <span>🍱 <strong>${d.name}</strong> <span style="color: #ffd700;">(x${d.qty})</span></span>
+                `;
+
+                const btnWithdraw = document.createElement('button');
+                btnWithdraw.className = "btn-game btn-explore";
+                btnWithdraw.style.cssText = "padding: 3px 8px; font-size: 11px; font-weight: bold;";
+                btnWithdraw.innerText = "🎒 取出 1 個";
+                btnWithdraw.onclick = () => { executeWithdrawFoodFromWarehouse(d.name); };
+
+                dishRow.appendChild(btnWithdraw);
+                dishesGrid.appendChild(dishRow);
+            });
+
+            wBox.appendChild(dishesGrid);
+        }
     }
     
     const rContainer = DOM.get('recipes-container');
@@ -624,7 +735,7 @@ function renderVillageCookingWorkshop() {
         const btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
         btnCook.style.cssText = "padding: 4px 10px; font-size: 11px;";
-        btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪納入快捷欄";
+        btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 當場進食獲得長效 Buff" : "🍳 烹飪產出存入倉庫";
         btnCook.onclick = () => { executeVillageCooking(recipe); };
         
         card.appendChild(btnCook);
