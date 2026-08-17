@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX 深度優化版)
 // ==========================================================================
 
 const DOM = {
@@ -98,7 +98,7 @@ function allocateStatPoint(statKey) {
 }
 
 // --------------------------------------------------------------------------
-// 🎒 倉庫與背包物品互轉邏輯 (Deposit & Withdraw)
+// 🎒 背包與倉庫高效率互轉機制 (Deposit & Withdraw & Batch Deposit)
 // --------------------------------------------------------------------------
 
 // 1. 從倉庫領取 1 個料理/物品至背包
@@ -117,7 +117,6 @@ function executeWithdrawFoodFromWarehouse(itemName) {
         return;
     }
 
-    // 扣除倉庫，加入背包
     accountMeta.warehouse[itemName]--;
     if (accountMeta.warehouse[itemName] <= 0) {
         delete accountMeta.warehouse[itemName];
@@ -128,10 +127,10 @@ function executeWithdrawFoodFromWarehouse(itemName) {
     addLog(`🎒 從倉庫取出 <strong>${itemName}</strong> 放入攜帶背包。`, "perfect");
     
     updateUI();
-    renderVillageCookingWorkshop();
+    if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
 }
 
-// 2. 在村莊時將背包物品退回存入倉庫
+// 2. 在村莊時將指定背包物品退回存入倉庫
 function executeDepositBagItemToWarehouse(bagIndex) {
     if (!currentRun.inventory || !currentRun.inventory[bagIndex]) return;
 
@@ -147,6 +146,73 @@ function executeDepositBagItemToWarehouse(bagIndex) {
     updateUI();
     if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
     if (currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
+// 3. ✨ [UI/UX 新功能] 一鍵將背包內所有物品全存入倉庫
+function executeDepositAllBagItems() {
+    if (!currentRun.inventory || currentRun.inventory.length === 0) {
+        showMaterialAlert(["背包內目前沒有任何物品！"], "💡 提示");
+        return;
+    }
+
+    const count = currentRun.inventory.length;
+    if (!accountMeta.warehouse) accountMeta.warehouse = {};
+
+    currentRun.inventory.forEach(itemName => {
+        accountMeta.warehouse[itemName] = (accountMeta.warehouse[itemName] || 0) + 1;
+    });
+
+    currentRun.inventory = [];
+
+    if (typeof saveGameData === "function") saveGameData();
+    addLog(`📦 已將背包內全部 <strong>${count}</strong> 件物品一次性轉存至倉庫！`, "perfect");
+
+    updateUI();
+    if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
+    if (currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
+// --------------------------------------------------------------------------
+// ⚔️ 裝備數值比對預覽計算 (Stat Comparison Helper)
+// --------------------------------------------------------------------------
+function getEquipmentStatDiff(blueprint) {
+    if (!blueprint || !blueprint.stats) return "";
+
+    const slotType = blueprint.type; // weapon, armor, accessory
+    const currentlyEquippedName = accountMeta.equipment?.[slotType];
+
+    let currentStats = {};
+    if (currentlyEquippedName && typeof CRAFTING_BLUEPRINTS !== "undefined") {
+        const equippedBp = CRAFTING_BLUEPRINTS.find(b => b.name === currentlyEquippedName);
+        if (equippedBp) {
+            const currentRefineLvl = accountMeta.itemRefines?.[currentlyEquippedName] || 0;
+            for (let k in equippedBp.stats) {
+                currentStats[k] = Math.floor(equippedBp.stats[k] * (1 + currentRefineLvl * 0.15));
+            }
+        }
+    }
+
+    const itemRefineLvl = accountMeta.itemRefines?.[blueprint.name] || 0;
+    const nameMap = { atk: "攻擊", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", flee: "閃避" };
+
+    let diffParts = [];
+    for (let statKey in blueprint.stats) {
+        const newBase = blueprint.stats[statKey];
+        const newFinal = Math.floor(newBase * (1 + itemRefineLvl * 0.15));
+        const oldFinal = currentStats[statKey] || 0;
+        const diff = newFinal - oldFinal;
+
+        const label = nameMap[statKey] || statKey;
+        if (diff > 0) {
+            diffParts.push(`${label} +${newFinal} <span style="color:#2ecc71; font-weight:bold;">(🟢 +${diff})</span>`);
+        } else if (diff < 0) {
+            diffParts.push(`${label} +${newFinal} <span style="color:#ff4757; font-weight:bold;">(🔴 ${diff})</span>`);
+        } else {
+            diffParts.push(`${label} +${newFinal} <span style="color:#8e8e93;">(=)</span>`);
+        }
+    }
+
+    return diffParts.join(" | ");
 }
 
 function syncCharacterDataUi() {
@@ -271,7 +337,17 @@ function syncCharacterDataUi() {
     setTxt('p-equip-accessory', (accountMeta.equipment?.accessory || "無") + cStar);
 
     const maxBag = typeof MAX_BAG_SIZE !== "undefined" ? MAX_BAG_SIZE : 6;
-    setTxt('bag-capacity-text', `🎒 ${currentRun.inventory?.length || 0} / ${maxBag}`);
+    const invLen = currentRun.inventory?.length || 0;
+    
+    // ✨ [UI/UX 優化] 動態背包抬頭與一鍵全存按鈕
+    const capTextEl = DOM.get('bag-capacity-text');
+    if (capTextEl) {
+        if (gameState === "VILLAGE" && invLen > 0) {
+            capTextEl.innerHTML = `🎒 ${invLen} / ${maxBag} <button class="btn-game btn-rest" style="padding: 2px 8px; font-size: 10px; margin-left: 6px;" onclick="executeDepositAllBagItems()">📦 一鍵全存</button>`;
+        } else {
+            capTextEl.innerText = `🎒 ${invLen} / ${maxBag}`;
+        }
+    }
 
     const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
@@ -287,18 +363,18 @@ function syncCharacterDataUi() {
                 font-size: 10px; cursor: ${item ? "pointer" : "default"}; position: relative;
                 overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px;
                 color: ${item ? "#ffd700" : "#666"};
+                transition: all 0.2s ease;
             `;
 
             if (item) {
                 slot.innerText = item;
-                slot.title = gameState === "BATTLE" ? `點擊在戰鬥中使用 (${item})` : `點擊退回存入倉庫 (${item})`;
+                slot.title = gameState === "BATTLE" ? `點擊在戰鬥中使用 (${item})` : `點擊存入倉庫 (${item})`;
                 slot.onclick = () => {
                     if (gameState === "BATTLE") {
                         if (typeof executeUseDungeonItem === "function") {
                             executeUseDungeonItem(item, i);
                         }
                     } else {
-                        // 🏰 在村莊時點擊：直接退回倉庫！
                         executeDepositBagItemToWarehouse(i);
                     }
                 };
@@ -457,7 +533,7 @@ function updateUI() {
 }
 
 // --------------------------------------------------------------------------
-// 🛠️ 輔助函式：格式化技能效果與威力 Preview 文字
+// 🛠️ 輔助函式：格式化技能效果 Preview 文字
 // --------------------------------------------------------------------------
 function formatSkillEffectText(s, lv, playerRun) {
     if (!lv || lv <= 0) return "未領悟";
@@ -524,7 +600,7 @@ function renderVillageGuild() {
                 角色已達到 Lv.20！前往踏入更高階的職業殿堂，解鎖終極戰術能力。
             </p>
             <button class="btn-game btn-rerun" style="padding: 6px 16px; font-size: 12px; font-weight: bold;" onclick="openJobAdvancementModal()">
-                🏇✨ 開啟二轉突破選擇
+                🏇✨ 開啟二转突破選擇
             </button>
         `;
         container.appendChild(advBanner);
@@ -617,20 +693,17 @@ function renderVillageGuild() {
 }
 
 // --------------------------------------------------------------------------
-// 🍳 皇家料理屋介面 (支援動態庫存與一鍵取出至背包)
+// 🍳 皇家料理屋介面
 // --------------------------------------------------------------------------
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
-        wBox.innerHTML = ""; // 清空舊內容，重新渲染
+        wBox.innerHTML = "";
 
         const warehouseData = accountMeta.warehouse || {};
-        
-        // 1. 拆分普通素材與完成的料理
         let rawMaterials = [];
         let cookedDishes = [];
 
-        // 食譜列表中的料理名稱集合
         const recipeNames = typeof RECIPES_DATABASE !== "undefined" ? RECIPES_DATABASE.map(r => r.name) : [];
 
         for (let itemKey in warehouseData) {
@@ -644,14 +717,12 @@ function renderVillageCookingWorkshop() {
             }
         }
 
-        // 2. 渲染頂部一般食材文字
         const rawMatText = rawMaterials.join(" | ") || "暫無基礎食材";
         const rawMatContainer = document.createElement('div');
         rawMatContainer.style.cssText = "margin-bottom: 10px; color: #aaa; font-size: 11px; line-height: 1.5;";
         rawMatContainer.innerHTML = `📦 <strong>當前倉庫現存食材：</strong><br>${rawMatText}`;
         wBox.appendChild(rawMatContainer);
 
-        // 3. 渲染可提領料理卡片區
         if (cookedDishes.length > 0) {
             const cookedHeader = document.createElement('div');
             cookedHeader.style.cssText = "color: #ffd700; font-weight: bold; font-size: 12px; margin: 10px 0 6px 0; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px;";
@@ -767,6 +838,9 @@ function renderStarUpRow(slot, displayName, currentLvl) {
     `;
 }
 
+// --------------------------------------------------------------------------
+// 🛠️ 加工所介面 (含裝備數值動態比對預覽)
+// --------------------------------------------------------------------------
 function renderVillageWorkshop() {
     const wBox = DOM.get('workshop-warehouse-display');
     if (wBox) {
@@ -817,20 +891,21 @@ function renderVillageWorkshop() {
         const itemRefineLvl = accountMeta.itemRefines?.[blueprint.name] || 0;
         const refineBadge = itemRefineLvl > 0 ? `<span style="color:#ffd700; font-weight:bold;"> (+${itemRefineLvl})</span>` : "";
 
-        const statText = Object.keys(blueprint.stats).map(k => {
-            const nameMap = { atk: "攻擊", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", flee: "閃避" };
-            const name = nameMap[k] || k;
-            
-            const baseVal = blueprint.stats[k];
-            const finalVal = Math.floor(baseVal * (1 + itemRefineLvl * 0.15));
-            return `${name} +${finalVal}`;
-        }).join(", ");
+        // ✨ [UI/UX 優化] 計算與身上當前裝備的數值差異比對
+        const statDiffHtml = getEquipmentStatDiff(blueprint);
 
-        const titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}${refineBadge}</strong> <span style="color:#00ffcc; font-size:11px; font-weight:bold;">[${statText}]</span>`;
+        const titleHtml = `<strong style="color:#fff; font-size:14px;">${blueprint.name}${refineBadge}</strong>`;
         
         const infoP = document.createElement('p');
         infoP.style.cssText = "margin: 0 0 10px 0; font-size: 12px; color: #babcbf; line-height: 1.5;";
-        infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需打造素材：${reqText}</span>`;
+        infoP.innerHTML = `
+            ${titleHtml}<br>
+            <div style="background: rgba(0,0,0,0.3); padding: 5px 8px; border-radius: 6px; margin: 4px 0; border: 1px solid rgba(255,255,255,0.05); font-size:11px;">
+                📊 <strong>穿戴屬性比對：</strong> ${statDiffHtml}
+            </div>
+            ${blueprint.desc}<br>
+            <span style="color:#8e8e93; font-size:11px;">🔨 所需打造素材：${reqText}</span>
+        `;
         btnWrapper.appendChild(infoP);
 
         const btnForge = document.createElement('button');
