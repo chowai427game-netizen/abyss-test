@@ -255,8 +255,15 @@ function syncCharacterDataUi() {
 }
 
 function getJobChineseName(j) {
-    const jobNames = { swordsman: "劍士", magician: "魔法師", acolyte: "服事", thief: "盜賊", archer: "弓箭手" };
-    return jobNames[j] || "劍士";
+    if (typeof JOB_DATABASE !== "undefined" && JOB_DATABASE[j]) {
+        return JOB_DATABASE[j].name;
+    }
+    const jobNames = { 
+        swordsman: "劍士", magician: "魔法師", acolyte: "服事", thief: "盜賊", archer: "弓箭手",
+        knight: "騎士", crusader: "十字軍", wizard: "巫師", sage: "賢者", 
+        priest: "祭司", monk: "武僧", assassin: "刺客", rogue: "流氓", hunter: "獵人", bard_dancer: "詩人/舞孃"
+    };
+    return jobNames[j] || "無名勇者";
 }
 
 function switchVillageLocation(targetLoc) {
@@ -393,6 +400,51 @@ function updateUI() {
     syncCharacterDataUi();
 }
 
+// --------------------------------------------------------------------------
+// 🛠️ 輔助函式：格式化技能效果與威力 Preview 文字
+// --------------------------------------------------------------------------
+function formatSkillEffectText(s, lv, playerRun) {
+    if (!lv || lv <= 0) return "未領悟";
+    if (s.type === "passive") {
+        if (s.passiveStats) {
+            let statsArr = [];
+            for (let k in s.passiveStats) {
+                statsArr.push(`${k}: +${s.passiveStats[k]}`);
+            }
+            return `【被動屬性】${statsArr.join(", ")}`;
+        }
+        return "【被動常駐效果】";
+    }
+
+    const isMagicJob = (playerRun.job === "magician" || playerRun.job === "acolyte" || playerRun.job === "wizard" || playerRun.job === "priest" || playerRun.job === "sage");
+    const baseAtk = isMagicJob ? (playerRun.matk || 10) : (playerRun.atk || 15);
+    const maxMp = playerRun.maxMp || 100;
+    const maxHp = playerRun.maxHp || 100;
+
+    let eff = s.run(lv, baseAtk, maxMp, maxHp, maxHp);
+    if (!eff) return "無特定數值";
+
+    let parts = [];
+    if (eff.dmg) {
+        let hits = eff.hitCount || (eff.isTripleHit ? 3 : (eff.isDoubleHit ? 2 : 1));
+        parts.push(`合共傷害: <strong>${eff.dmg}</strong> (${hits} 連發)`);
+    }
+    if (eff.healAmount) parts.push(`回復: <strong>+${eff.healAmount} HP</strong>`);
+    if (eff.healPercent) parts.push(`回復: <strong>+${Math.floor(maxHp * eff.healPercent)} HP (${Math.round(eff.healPercent * 100)}%)</strong>`);
+    if (eff.mpRestore) parts.push(`魔力回復: <strong>+${eff.mpRestore} MP</strong>`);
+    if (eff.shieldGain) parts.push(`護盾: <strong>+${eff.shieldGain} Shield</strong>`);
+    if (eff.blockBuff) parts.push(`減傷: <strong>+${eff.blockBuff} Block</strong>`);
+    if (eff.stunChance) parts.push(`眩暈: <strong>${eff.stunChance}%</strong>`);
+    if (eff.freezeChance) parts.push(`凍結: <strong>${eff.freezeChance}%</strong>`);
+    if (eff.burnStacks) parts.push(`燃燒: <strong>+${eff.burnStacks} 層</strong>`);
+    if (eff.poisonStacks) parts.push(`劇毒: <strong>+${eff.poisonStacks} 層</strong>`);
+
+    return parts.length > 0 ? parts.join(" | ") : "特殊效果觸發";
+}
+
+// --------------------------------------------------------------------------
+// 🏛️ 冒險者公會技能面板 (含動態數值與下一級突破預覽)
+// --------------------------------------------------------------------------
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
@@ -409,7 +461,7 @@ function renderVillageGuild() {
         advBanner.style.cssText = `
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.3));
             border: 2px solid #ffd700; border-radius: 10px; padding: 12px; margin-bottom: 15px;
-            text-align: center; box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+            text-align: center; box-shadow: 0 0 12px rgba(255, 215, 0, 0.3); width: 100%;
         `;
         advBanner.innerHTML = `
             <div style="font-size: 15px; font-weight: bold; color: #ffd700; margin-bottom: 4px;">
@@ -432,7 +484,7 @@ function renderVillageGuild() {
 
     jobSkills.forEach(s => {
         const card = document.createElement('div');
-        card.style.cssText = "background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; width: 100%;";
+        card.style.cssText = "background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; width: 100%; text-align: left;";
 
         const currentLv = (accountMeta.skills && accountMeta.skills[s.name]) || (currentRun.skills && currentRun.skills[s.name]) || 0;
         const isMaxLevel = currentLv >= 10;
@@ -475,19 +527,30 @@ function renderVillageGuild() {
 
         const skillTypeTag = s.type === "passive" ? `<span style="color:#00ffcc; font-size:10px;">【被動】</span>` : `<span style="color:#ff9f43; font-size:10px;">【主動 MP:${s.mp}】</span>`;
 
+        // 💡 計算當前數值與下一級預覽
+        const curDmgText = formatSkillEffectText(s, currentLv, currentRun);
+        const nextDmgText = !isMaxLevel ? formatSkillEffectText(s, nextLv, currentRun) : "已達最高滿級";
+
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <strong style="color: #ffd700; font-size: 13px;">${skillTypeTag} ${s.name} ${statusBadge}</strong>
                 <span style="font-size: 11px; color: #00ffcc;">${isMaxLevel ? "已達上限" : `下級消耗: 🪙 ${goldCost} G`}</span>
             </div>
+            
             <p style="font-size: 11px; color: #aaa; margin: 4px 0;">${s.desc}</p>
-            ${(!isMaxLevel && reqMatText) ? `<div style="font-size: 10px; color: #8e8e93;">📦 升級素材：${reqMatText}</div>` : ""}
-            <div style="margin-top: 6px;"></div>
+            
+            <!-- 📊 動態數值與突破預覽區 -->
+            <div style="background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; font-size: 11px; margin: 6px 0; border: 1px solid rgba(255,255,255,0.05);">
+                <div>🔹 當前威力：${curDmgText}</div>
+                ${!isMaxLevel ? `<div style="color: #00ffcc; margin-top: 2px;">⚡ 下級突破：${nextDmgText}</div>` : ''}
+            </div>
+
+            ${(!isMaxLevel && reqMatText) ? `<div style="font-size: 10px; color: #8e8e93; margin-bottom: 6px;">📦 升級素材：${reqMatText}</div>` : ""}
         `;
 
         const btnLearn = document.createElement('button');
         btnLearn.className = "btn-game btn-explore";
-        btnLearn.style.cssText = "padding: 4px 10px; font-size: 11px;";
+        btnLearn.style.cssText = "padding: 6px 12px; font-size: 11px; font-weight: bold; width: 100%; margin-top: 4px;";
         
         if (isMaxLevel) {
             btnLearn.innerText = "👑 已達滿級 (Lv.10)";
@@ -604,7 +667,6 @@ function renderVillageWorkshop() {
     if (!bContainer) return;
     bContainer.innerHTML = "";
 
-    // 藍圖種類與等級選單
     const selectorWrapper = document.createElement('div');
     selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; width: 100%;";
     selectorWrapper.innerHTML = `
@@ -641,7 +703,6 @@ function renderVillageWorkshop() {
 
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
         
-        // 取得該裝備當前的獨立強化等級
         const itemRefineLvl = accountMeta.itemRefines?.[blueprint.name] || 0;
         const refineBadge = itemRefineLvl > 0 ? `<span style="color:#ffd700; font-weight:bold;"> (+${itemRefineLvl})</span>` : "";
 
@@ -649,7 +710,6 @@ function renderVillageWorkshop() {
             const nameMap = { atk: "攻擊", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", flee: "閃避" };
             const name = nameMap[k] || k;
             
-            // 計算加上獨立強化後的總數值（例如每級加成 15%）
             const baseVal = blueprint.stats[k];
             const finalVal = Math.floor(baseVal * (1 + itemRefineLvl * 0.15));
             return `${name} +${finalVal}`;
@@ -662,7 +722,6 @@ function renderVillageWorkshop() {
         infoP.innerHTML = `${titleHtml}<br>${blueprint.desc}<br><span style="color:#8e8e93; font-size:11px;">🔨 所需打造素材：${reqText}</span>`;
         btnWrapper.appendChild(infoP);
 
-        // 1. 打造按鈕
         const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
         btnForge.style.cssText = "padding: 6px 12px; font-size: 11px; margin-right: 6px;";
@@ -673,7 +732,6 @@ function renderVillageWorkshop() {
         const isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
         const hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
 
-        // 2. 獨立強化按鈕（只要有擁有或穿戴即可強化）
         if (isEquipped || hasInWarehouse) {
             const btnRefine = document.createElement('button');
             btnRefine.className = "btn-game btn-rerun";
@@ -683,7 +741,6 @@ function renderVillageWorkshop() {
             btnWrapper.appendChild(btnRefine);
         }
 
-        // 3. 穿戴 / 卸下 / 拆解按鈕
         if (isEquipped) {
             const btnUnequip = document.createElement('button');
             btnUnequip.className = "btn-game btn-rest"; 
