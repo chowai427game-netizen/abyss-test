@@ -75,7 +75,6 @@ const JOB_DATABASE = {
     // ----------------------------------------------------------------------
     // 🏇 二轉進階職業 (Advanced 2nd Jobs)
     // ----------------------------------------------------------------------
-    // 劍士系二轉
     knight: {
         id: "knight",
         baseJob: "swordsman",
@@ -104,8 +103,6 @@ const JOB_DATABASE = {
         baseMdef: 8,
         passiveTrait: { name: "聖殿壁壘", desc: "最大 HP +20%，受擊時 30% 機率反彈 25% 傷害。" }
     },
-
-    // 魔法師系二轉
     wizard: {
         id: "wizard",
         baseJob: "magician",
@@ -134,8 +131,6 @@ const JOB_DATABASE = {
         baseMdef: 10,
         passiveTrait: { name: "自由詠唱", desc: "自動戰鬥時 30% 機率連續施展雙重主動魔法。" }
     },
-
-    // 服事系二轉
     priest: {
         id: "priest",
         baseJob: "acolyte",
@@ -164,8 +159,6 @@ const JOB_DATABASE = {
         baseMdef: 6,
         passiveTrait: { name: "爆氣蓄勁", desc: "暴擊率 (CRIT) +15%，物理攻擊無視敵方 25% 防禦。" }
     },
-
-    // 盜賊系二轉
     assassin: {
         id: "assassin",
         baseJob: "thief",
@@ -194,8 +187,6 @@ const JOB_DATABASE = {
         baseMdef: 3,
         passiveTrait: { name: "盜賊美學", desc: "戰利品獲取翻倍，暴擊傷害提升 30%。" }
     },
-
-    // 弓箭手系二轉
     hunter: {
         id: "hunter",
         baseJob: "archer",
@@ -252,83 +243,125 @@ const SKILLS_DATABASE = {
     // 一轉技能庫
     // ----------------------------------------------------------------------
     swordsman: [
-        { id: "s_1", name: "狂擊", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "物理重擊造成高額傷害，機率使怪眩暈。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.4 + lv * 0.4)), stunChance: 20 + lv * 10 }) },
-        { id: "s_2", name: "怒爆", type: "active", mp: 25, reqLv: 3, goldCost: 250, reqMat: { "哥布林香料": 1 }, desc: "釋放鬥氣造成火真傷，附加普攻燃燒。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.2) + (20 + lv * 20), burnStacks: lv }) },
+        { id: "s_1", name: "狂擊", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "物理重擊造成高額傷害，機率使怪眩暈。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.4 + lv * 0.4)), hitCount: 1, stunChance: 20 + lv * 10 }) },
+        { id: "s_2", name: "怒爆", type: "active", mp: 25, reqLv: 3, goldCost: 250, reqMat: { "哥布林香料": 1 }, desc: "釋放鬥氣造成火真傷，附加普攻燃燒。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.2) + (20 + lv * 20), hitCount: 1, burnStacks: lv }) },
         { id: "s_3", name: "霸體", type: "active", mp: 20, reqLv: 5, goldCost: 450, reqMat: { "巨石苔蘚": 2 }, desc: "不屈姿態！自身固定減傷面板暴增，持續多回合。", run: (lv) => ({ blockBuff: 8 + lv * 6, turns: 3 + lv }) },
-        { id: "s_4", name: "盾擊", type: "active", mp: 15, reqLv: 8, goldCost: 700, reqMat: { "硬殼龜甲": 3 }, desc: "重盾破防，強制扣除敵護盾並為自己加載晶體盾。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.1), shieldGain: 40 + lv * 40 }) },
-        { id: "s_5", name: "殘影斬", type: "active", mp: 35, reqLv: 12, goldCost: 1200, reqMat: { "獸人後腿肉": 3 }, desc: "發動雙段連續物理突刺，每段造成高度物理外傷。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (0.9 + lv * 0.3) * 2), isDoubleHit: true }) }
+        { id: "s_4", name: "盾擊", type: "active", mp: 15, reqLv: 8, goldCost: 700, reqMat: { "硬殼龜甲": 3 }, desc: "重盾破防，強制扣除敵護盾並為自己加載晶體盾。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.1), hitCount: 1, shieldGain: 40 + lv * 40 }) },
+        { id: "s_5", name: "殘影斬", type: "active", mp: 35, reqLv: 12, goldCost: 1200, reqMat: { "獸人後腿肉": 3 }, desc: "發動多段連續物理突刺！每提升 5 級增加 +1 次突刺打擊。", run: (lv, atkPower) => {
+            let hits = 2 + Math.floor(lv / 5);
+            return { dmg: Math.floor((atkPower * 0.85 + lv * 12) * hits), hitCount: hits, isDoubleHit: hits === 2 };
+        } }
     ],
+
     magician: [
-        { id: "m_1", name: "火箭術", type: "active", mp: 30, reqLv: 1, goldCost: 100, reqMat: {}, desc: "造成火傷並附燃燒。若怪處於凍結，此招傷害爆發 2.5 倍。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (1.5 + lv * 0.4)), isMagic: true }) },
-        { id: "m_2", name: "冰箭術", type: "active", mp: 30, reqLv: 3, goldCost: 250, reqMat: { "史萊姆黏液": 2 }, desc: "造成水傷。成功有高機率將魔物強行【凍結】1回合。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (1.3 + lv * 0.3)), freezeChance: 30 + lv * 15, isMagic: true }) },
+        { id: "m_1", name: "火箭術", type: "active", mp: 30, reqLv: 1, goldCost: 100, reqMat: {}, desc: "召喚火焰隕石。每升 1 級增加 +1 發火焰彈與合共傷害！處於冰凍狀態時傷害為 2.5 倍。", run: (lv, matkPower) => {
+            let hits = lv; // Lv.1 = 1發, Lv.5 = 5發, Lv.10 = 10發
+            let dmgPerHit = matkPower * 0.85 + lv * 10;
+            return { dmg: Math.floor(dmgPerHit * hits), hitCount: hits, isMagic: true, burnStacks: Math.floor(lv / 2) };
+        } },
+        { id: "m_2", name: "冰箭術", type: "active", mp: 30, reqLv: 3, goldCost: 250, reqMat: { "史萊姆黏液": 2 }, desc: "射出極寒冰錐。每升 1 級增加 +1 發冰錐！成功有高機率將魔物【凍結】1回合。", run: (lv, matkPower) => {
+            let hits = lv;
+            let dmgPerHit = matkPower * 0.75 + lv * 8;
+            return { dmg: Math.floor(dmgPerHit * hits), hitCount: hits, freezeChance: 30 + lv * 10, isMagic: true };
+        } },
         { id: "m_3", name: "禪心", type: "active", mp: 0, reqLv: 5, goldCost: 450, reqMat: {}, desc: "強行讓 MP 當場大回復。", run: (lv) => ({ mpRestore: 55 + lv * 25 }) },
-        { id: "m_4", name: "火牆術", type: "active", mp: 45, reqLv: 8, goldCost: 700, reqMat: { "哥布林香料": 3 }, desc: "立起火牆。敵反擊時每回合開頭反噬受創並燃燒。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * 1.1), thornsFire: 18 + lv * 12, duration: 1 + lv, isMagic: true }) },
-        { id: "m_5", name: "雷爆術", type: "active", mp: 60, reqLv: 12, goldCost: 1200, reqMat: { "怨靈淚晶": 2 }, desc: "雷暴大轟炸；魔物身上每有1層毒 or 火狀態，傷害加深。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (2.0 + lv * 0.5)), isMagic: true }) }
+        { id: "m_4", name: "火牆術", type: "active", mp: 45, reqLv: 8, goldCost: 700, reqMat: { "哥布林香料": 3 }, desc: "立起火牆。敵反擊時每回合開頭反噬受創並燃燒。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * 1.1), hitCount: 1, thornsFire: 18 + lv * 12, duration: 1 + lv, isMagic: true }) },
+        { id: "m_5", name: "雷爆術", type: "active", mp: 60, reqLv: 12, goldCost: 1200, reqMat: { "怨靈淚晶": 2 }, desc: "雷暴大轟炸！隨等級提高落雷發數 (1 + Lv/2)，魔物身上有毒或火時加深傷害。", run: (lv, matkPower) => {
+            let hits = 1 + Math.floor(lv / 2);
+            return { dmg: Math.floor((matkPower * 1.2 + lv * 20) * hits), hitCount: hits, isMagic: true };
+        } }
     ],
+
     acolyte: [
-        { id: "a_1", name: "治癒術", type: "active", mp: 20, reqLv: 1, goldCost: 100, reqMat: {}, desc: "聖光降臨，立刻百分比回復自身生命值。", run: (lv, dummy, maxMp, hp, maxHp) => ({ healPercent: 0.18 + lv * 0.08, lostHp: (maxHp || 100) - (hp || 0) }) },
+        { id: "a_1", name: "治癒術", type: "active", mp: 20, reqLv: 1, goldCost: 100, reqMat: {}, desc: "聖光降臨，立刻百分比回復自身生命值。", run: (lv, dummy, maxMp, hp, maxHp) => ({ healPercent: 0.18 + lv * 0.08, hitCount: 1, lostHp: (maxHp || 100) - (hp || 0) }) },
         { id: "a_2", name: "天使之賜福", type: "active", mp: 40, reqLv: 3, goldCost: 250, reqMat: { "祭司血清": 1 }, desc: "神聖洗禮！本局冒險基礎攻擊與最大生命上限永續加載。", run: (lv) => ({ permAtk: 5 + lv * 5, permHp: 30 + lv * 30 }) },
         { id: "a_3", name: "加速術", type: "active", mp: 15, reqLv: 5, goldCost: 450, reqMat: {}, desc: "極限閃避！完美閃避率提升。", run: (lv) => ({ permDodge: 8 + lv * 4, guaranteedCritNext: true }) },
         { id: "a_4", name: "光之壁", type: "active", mp: 25, reqLv: 8, goldCost: 700, reqMat: { "祭司血清": 3 }, desc: "當魔物施展大招時，強行將該傷害高額抹除。", run: (lv) => ({ bossDmgCut: 0.4 + lv * 0.15 }) },
-        { id: "a_5", name: "神聖之光", type: "active", mp: 15, reqLv: 12, goldCost: 1200, reqMat: { "怨靈淚晶": 3 }, desc: "射出破邪聖光。對特定不死系或深層魔物有特大傷。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (1.8 + lv * 0.5)), isMagic: true }) }
+        { id: "a_5", name: "神聖之光", type: "active", mp: 15, reqLv: 12, goldCost: 1200, reqMat: { "怨靈淚晶": 3 }, desc: "射出破邪聖光。每 2 級增加 +1 束聖光柱 (1 + Lv/2)，對深層魔物造成多段無視防禦打擊。", run: (lv, matkPower) => {
+            let hits = 1 + Math.floor(lv / 2);
+            return { dmg: Math.floor((matkPower * 1.1 + lv * 18) * hits), hitCount: hits, isMagic: true, ignoreDef: true };
+        } }
     ],
+
     thief: [
-        { id: "t_1", name: "毒刃", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "淬毒突刺！造成物理傷並為魔物注入 2 層【劇毒】。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.2 + lv * 0.2)), poisonStacks: 2 }) },
+        { id: "t_1", name: "毒刃", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "淬毒突刺！每 3 級增加 +1 發毒刃投擲，並注入【劇毒】。", run: (lv, atkPower) => {
+            let hits = 1 + Math.floor(lv / 3);
+            return { dmg: Math.floor((atkPower * 1.0 + lv * 12) * hits), hitCount: hits, poisonStacks: 2 + lv };
+        } },
         { id: "t_2", name: "殘影", type: "active", mp: 20, reqLv: 3, goldCost: 250, reqMat: { "史萊姆黏液": 2 }, desc: "極速閃避姿態！大幅提升閃避率與行動速度，持續 3 回合。", run: (lv) => ({ dodgeBuff: 15 + lv * 5, spdBuff: 10 + lv * 2 }) },
-        { id: "t_3", name: "伏擊暴擊", type: "active", mp: 25, reqLv: 5, goldCost: 450, reqMat: { "獸人後腿肉": 2 }, desc: "潛行致命一擊！本次攻擊 100% 觸發暴擊且暴傷翻倍。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.0 + lv * 0.5)), forceCrit: true }) },
-        { id: "t_4", name: "神偷手套", type: "active", mp: 10, reqLv: 8, goldCost: 700, reqMat: { "哥布林香料": 3 }, desc: "戰術順手牽羊！攻擊時強制竊取魔物金幣與隨機素材。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.0), stealGold: 30 + lv * 20, stealMat: true }) },
-        { id: "t_5", name: "劇毒爆裂", type: "active", mp: 40, reqLv: 12, goldCost: 1200, reqMat: { "怨靈淚晶": 2 }, desc: "引爆敵方身上所有劇毒，按毒素層數造成毀滅性真傷！", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.5) + (60 + lv * 35), explodePoison: true }) }
+        { id: "t_3", name: "伏擊暴擊", type: "active", mp: 25, reqLv: 5, goldCost: 450, reqMat: { "獸人後腿肉": 2 }, desc: "潛行致命一擊！本次攻擊 100% 觸發暴擊且暴傷翻倍。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.0 + lv * 0.5)), hitCount: 1, forceCrit: true }) },
+        { id: "t_4", name: "神偷手套", type: "active", mp: 10, reqLv: 8, goldCost: 700, reqMat: { "哥布林香料": 3 }, desc: "戰術順手牽羊！攻擊時強制竊取魔物金幣與隨機素材。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.0), hitCount: 1, stealGold: 30 + lv * 20, stealMat: true }) },
+        { id: "t_5", name: "劇毒爆裂", type: "active", mp: 40, reqLv: 12, goldCost: 1200, reqMat: { "怨靈淚晶": 2 }, desc: "引爆敵方身上所有劇毒，按毒素層數造成毀滅性真傷！", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.5) + (60 + lv * 35), hitCount: 1, explodePoison: true }) }
     ],
+
     archer: [
-        { id: "r_1", name: "二連矢", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "極速連射！對魔物連續射出兩箭造成高額打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (0.85 + lv * 0.25) * 2), isDoubleHit: true }) },
-        { id: "r_2", name: "衝鋒箭", type: "active", mp: 20, reqLv: 3, goldCost: 250, reqMat: { "硬殼龜甲": 1 }, desc: "強烈擊退箭矢！造成物理傷害並有高機率強行眩暈魔物。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.3 + lv * 0.3)), stunChance: 50 + lv * 10 }) },
+        { id: "r_1", name: "二連矢", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "極速連射！預設射出 2 箭，等級 5 以上解鎖 3 連發狂轟！", run: (lv, atkPower) => {
+            let hits = lv >= 5 ? 3 : 2;
+            return { dmg: Math.floor((atkPower * 0.8 + lv * 15) * hits), hitCount: hits, isDoubleHit: hits === 2, isTripleHit: hits === 3 };
+        } },
+        { id: "r_2", name: "衝鋒箭", type: "active", mp: 20, reqLv: 3, goldCost: 250, reqMat: { "硬殼龜甲": 1 }, desc: "強烈擊退箭矢！造成物理傷害並有高機率強行眩暈魔物。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.3 + lv * 0.3)), hitCount: 1, stunChance: 50 + lv * 10 }) },
         { id: "r_3", name: "心眼", type: "passive", reqLv: 5, goldCost: 450, reqMat: {}, passiveStats: { critChance: 10, spd: 5 }, desc: "【被動】精準狙擊，永久提升自身 10% 暴擊率與 5 點速度。" },
-        { id: "r_4", name: "箭雨狂轟", type: "active", mp: 35, reqLv: 8, goldCost: 700, reqMat: { "巨石苔蘚": 3 }, desc: "漫天箭雨！造成高度貫穿打擊，無視敵方 50% 物理防護。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.6 + lv * 0.3)), pierceArmor: 0.5 }) },
-        { id: "r_5", name: "鷹眼狙擊", type: "active", mp: 50, reqLv: 12, goldCost: 1200, reqMat: { "祭司血清": 3 }, desc: "極限瞄準爆頭！對大領主或魔物造成超高倍率致命打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (3.0 + lv * 0.8)) }) }
+        { id: "r_4", name: "箭雨狂轟", type: "active", mp: 35, reqLv: 8, goldCost: 700, reqMat: { "巨石苔蘚": 3 }, desc: "漫天箭雨！隨等級提升箭矢瀑布數量 (3 + Lv/2)，無視 50% 防禦。", run: (lv, atkPower) => {
+            let hits = 3 + Math.floor(lv / 2);
+            return { dmg: Math.floor((atkPower * 0.55 + lv * 8) * hits), hitCount: hits, pierceArmor: 0.5 };
+        } },
+        { id: "r_5", name: "鷹眼狙擊", type: "active", mp: 50, reqLv: 12, goldCost: 1200, reqMat: { "祭司血清": 3 }, desc: "極限瞄準爆頭！對大領主或魔物造成超高倍率致命打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (3.0 + lv * 0.8)), hitCount: 1 }) }
     ],
 
     // ----------------------------------------------------------------------
     // 二轉專屬技能庫 (需要角色 Level >= 20)
     // ----------------------------------------------------------------------
     knight: [
-        { id: "k_1", name: "連刺攻擊", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "長槍快速三連突刺！造成 3 段高度物理傷害。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (0.8 + lv * 0.25) * 3), isTripleHit: true }) },
-        { id: "k_2", name: "怪物互擊", type: "active", mp: 45, reqLv: 24, goldCost: 2200, reqMat: { "巨石苔蘚": 5 }, desc: "揮動巨劍造成物理衝擊，並有 40% 機率使魔物眩暈。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.2 + lv * 0.5)), stunChance: 40 + lv * 5 }) },
+        { id: "k_1", name: "連刺攻擊", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "長槍快速連續突刺！隨等級增加突刺次數 (3 + Lv/3)。", run: (lv, atkPower) => {
+            let hits = 3 + Math.floor(lv / 3);
+            return { dmg: Math.floor((atkPower * 0.7 + lv * 12) * hits), hitCount: hits, isTripleHit: hits === 3 };
+        } },
+        { id: "k_2", name: "怪物互擊", type: "active", mp: 45, reqLv: 24, goldCost: 2200, reqMat: { "巨石苔蘚": 5 }, desc: "揮動巨劍造成物理衝擊，並有 40% 機率使魔物眩暈。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.2 + lv * 0.5)), hitCount: 1, stunChance: 40 + lv * 5 }) },
         { id: "k_3", name: "騎乘術", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "祭司血清": 3 }, passiveStats: { spd: 10, critChance: 8 }, desc: "【被動】騎乘作戰，永久提升 10 點速度與 8% 暴擊率。" }
     ],
     crusader: [
-        { id: "c_1", name: "聖十字審判", type: "active", mp: 50, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 5 }, desc: "召喚聖十字光輝打擊！混合物攻與魔攻雙重毀滅傷害。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.5 + lv * 0.6)), isMagic: true }) },
+        { id: "c_1", name: "聖十字審判", type: "active", mp: 50, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 5 }, desc: "召喚聖十字光輝打擊！2 連爆發混合物攻與魔攻傷害。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.3 + lv * 0.3) * 2), hitCount: 2, isMagic: true }) },
         { id: "c_2", name: "犧牲庇護", type: "active", mp: 35, reqLv: 24, goldCost: 2200, reqMat: { "硬殼龜甲": 5 }, desc: "以全身重裝護甲化為晶體聖盾，立刻獲得極高護盾值。", run: (lv) => ({ shieldGain: 150 + lv * 80 }) },
         { id: "c_3", name: "鋼鐵防禦", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "巨石苔蘚": 6 }, passiveStats: { def: 15, maxHp: 200 }, desc: "【被動】永久提升 15 點防禦力與 200 點最大生命值。" }
     ],
     wizard: [
-        { id: "w_1", name: "暴風雪", type: "active", mp: 70, reqLv: 20, goldCost: 1500, reqMat: { "史萊姆黏液": 6 }, desc: "冰爽暴風雪大轟炸！造成極高魔傷並 70% 冰凍魔物。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (2.4 + lv * 0.6)), freezeChance: 70, isMagic: true }) },
-        { id: "w_2", name: "隕石術", type: "active", mp: 90, reqLv: 25, goldCost: 2500, reqMat: { "哥布林香料": 6 }, desc: "召喚毀滅隕石群！造成超大範圍魔法毀滅打擊。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (3.2 + lv * 0.8)), isMagic: true }) },
+        { id: "w_1", name: "暴風雪", type: "active", mp: 70, reqLv: 20, goldCost: 1500, reqMat: { "史萊姆黏液": 6 }, desc: "冰爽暴風雪大轟炸！射出 3 + Lv/2 發冰錐，極高機率凍結魔物。", run: (lv, matkPower) => {
+            let hits = 3 + Math.floor(lv / 2);
+            return { dmg: Math.floor((matkPower * 0.75 + lv * 15) * hits), hitCount: hits, freezeChance: 70, isMagic: true };
+        } },
+        { id: "w_2", name: "隕石術", type: "active", mp: 90, reqLv: 25, goldCost: 2500, reqMat: { "哥布林香料": 6 }, desc: "召喚毀滅隕石群！隨等級傾瀉 2 + Lv 顆大隕石毀滅敵陣。", run: (lv, matkPower) => {
+            let hits = 2 + lv;
+            return { dmg: Math.floor((matkPower * 0.85 + lv * 18) * hits), hitCount: hits, isMagic: true };
+        } },
         { id: "w_3", name: "魔力增幅", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "怨靈淚晶": 5 }, passiveStats: { matk: 30, maxMp: 150 }, desc: "【被動】永久提升 30 點魔攻 (MATK) 與 150 點最大 MP。" }
     ],
     sage: [
-        { id: "sg_1", name: "魔法效果解除", type: "active", mp: 40, reqLv: 20, goldCost: 1500, reqMat: { "怨靈淚晶": 4 }, desc: "破除魔物護甲與增益，造成元素破防真傷。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (1.8 + lv * 0.4)), ignoreDef: true, isMagic: true }) },
+        { id: "sg_1", name: "魔法效果解除", type: "active", mp: 40, reqLv: 20, goldCost: 1500, reqMat: { "怨靈淚晶": 4 }, desc: "破除魔物護甲與增益，造成元素破防真傷。", run: (lv, matkPower) => ({ dmg: Math.floor(matkPower * (1.8 + lv * 0.4)), hitCount: 1, ignoreDef: true, isMagic: true }) },
         { id: "sg_2", name: "自動念咒", type: "passive", reqLv: 25, goldCost: 2500, reqMat: { "史萊姆黏液": 5 }, passiveStats: { doubleStrike: 25, spd: 8 }, desc: "【被動】普通攻擊時有 25% 機率自動追擊二連發。" }
     ],
     priest: [
-        { id: "p_1", name: "聖母之頌歌", type: "active", mp: 10, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 5 }, desc: "聖母祝福！立刻巨量回復自身 120 點 MP。", run: (lv) => ({ mpRestore: 120 + lv * 40 }) },
+        { id: "p_1", name: "聖母之頌歌", type: "active", mp: 10, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 5 }, desc: "聖母祝福！立刻巨量回復自身 120 點 MP。", run: (lv) => ({ mpRestore: 120 + lv * 40, hitCount: 1 }) },
         { id: "p_2", name: "讚美光陣", type: "active", mp: 50, reqLv: 24, goldCost: 2200, reqMat: { "怨靈淚晶": 4 }, desc: "展開神聖防禦陣！大幅提升防禦力與魔防力，持續數回合。", run: (lv) => ({ blockBuff: 20 + lv * 10, turns: 4 + lv }) },
         { id: "p_3", name: "驅魔聖典", type: "passive", reqLv: 28, goldCost: 3000, reqMat: { "祭司血清": 6 }, passiveStats: { mdef: 15, maxHp: 150 }, desc: "【被動】神聖光環守護，永久提升 15 點魔防與 150 點 HP。" }
     ],
     monk: [
-        { id: "mk_1", name: "猛龍誇強", type: "active", mp: 35, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "神聖連環拳！瞬間造成極高物理近戰打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.2 + lv * 0.5)) }) },
-        { id: "mk_2", name: "阿修羅霸凰拳", type: "active", mp: 80, reqLv: 26, goldCost: 3000, reqMat: { "怨靈淚晶": 6 }, desc: "耗盡所有鬥氣釋放極限一擊！造成毀滅性核爆極大傷害！", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (4.5 + lv * 1.2)), forceCrit: true }) }
+        { id: "mk_1", name: "猛龍誇強", type: "active", mp: 35, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "神聖連環 4 連拳！瞬間造成極高物理近戰打擊。", run: (lv, atkPower) => ({ dmg: Math.floor((atkPower * 0.6 + lv * 10) * 4), hitCount: 4 }) },
+        { id: "mk_2", name: "阿修羅霸凰拳", type: "active", mp: 80, reqLv: 26, goldCost: 3000, reqMat: { "怨靈淚晶": 6 }, desc: "耗盡所有鬥氣釋放極限一擊！造成毀滅性核爆極大傷害！", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (4.5 + lv * 1.2)), hitCount: 1, forceCrit: true }) }
     ],
     assassin: [
-        { id: "as_1", name: "音速投擲", type: "active", mp: 45, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "鬼魅 8 連發突刺！對魔物造成高額多段打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (0.4 + lv * 0.1) * 8) }) },
+        { id: "as_1", name: "音速投擲", type: "active", mp: 45, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "鬼魅 8 連發突刺！對魔物造成高額多段殘影打擊。", run: (lv, atkPower) => ({ dmg: Math.floor((atkPower * 0.35 + lv * 8) * 8), hitCount: 8 }) },
         { id: "as_2", name: "塗毒大師", type: "passive", reqLv: 25, goldCost: 2500, reqMat: { "史萊姆黏液": 6 }, passiveStats: { critChance: 15, flee: 12 }, desc: "【被動】淬毒極致，永久提升 15% 暴擊率與 12 點閃避率。" }
     ],
     rogue: [
-        { id: "rg_1", name: "挾持襲擊", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "哥布林香料": 5 }, desc: "突襲挾持！強行偷取 50G 與素材，並使敵人眩暈 1 回合。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.5), stealGold: 50 + lv * 25, stunChance: 100 }) },
-        { id: "rg_2", name: "背刺", type: "active", mp: 40, reqLv: 24, goldCost: 2200, reqMat: { "獸人後腿肉": 6 }, desc: "繞後致命背刺！100% 觸發暴擊且無視敵方 40% 防禦。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.5 + lv * 0.6)), forceCrit: true, pierceArmor: 0.4 }) }
+        { id: "rg_1", name: "挾持襲擊", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "哥布林香料": 5 }, desc: "突襲挾持！強行偷取 50G 與素材，並使敵人眩暈 1 回合。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.5), hitCount: 1, stealGold: 50 + lv * 25, stunChance: 100 }) },
+        { id: "rg_2", name: "背刺", type: "active", mp: 40, reqLv: 24, goldCost: 2200, reqMat: { "獸人後腿肉": 6 }, desc: "繞後致命背刺！100% 觸發暴擊且無視敵方 40% 防禦。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.5 + lv * 0.6)), hitCount: 1, forceCrit: true, pierceArmor: 0.4 }) }
     ],
     hunter: [
-        { id: "ht_1", name: "獵鷹突擊", type: "active", mp: 40, reqLv: 20, goldCost: 1500, reqMat: { "硬殼龜甲": 5 }, desc: "指揮獵鷹俯衝打擊！造成高額無視防禦之貫穿傷害。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (2.0 + lv * 0.5)), ignoreDef: true }) },
-        { id: "ht_2", name: "爆炸陷阱", type: "active", mp: 35, reqLv: 24, goldCost: 2200, reqMat: { "哥布林香料": 6 }, desc: "引爆獵人陷阱！造成火物理傷害並高機率眩暈魔物。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.8), stunChance: 60 + lv * 10 }) }
+        { id: "ht_1", name: "獵鷹突擊", type: "active", mp: 40, reqLv: 20, goldCost: 1500, reqMat: { "硬殼龜甲": 5 }, desc: "指揮獵鷹俯衝打擊！隨等級發動 1 + Lv/3 次俯衝貫穿。", run: (lv, atkPower) => {
+            let hits = 1 + Math.floor(lv / 3);
+            return { dmg: Math.floor((atkPower * 1.5 + lv * 20) * hits), hitCount: hits, ignoreDef: true };
+        } },
+        { id: "ht_2", name: "爆炸陷阱", type: "active", mp: 35, reqLv: 24, goldCost: 2200, reqMat: { "哥布林香料": 6 }, desc: "引爆獵人陷阱！造成火物理傷害並高機率眩暈魔物。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.8), hitCount: 1, stunChance: 60 + lv * 10 }) }
     ],
     bard_dancer: [
         { id: "bd_1", name: "布拉奇之歌", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "祭司血清": 4 }, desc: "奏響戰歌！行動速度 (SPD) 暴增，持續多回合。", run: (lv) => ({ spdBuff: 20 + lv * 5, turns: 4 }) },
