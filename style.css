@@ -1581,3 +1581,25 @@ body {
     0% { transform: rotate(360deg); }
     100% { transform: rotate(0deg); }
 }
+
+/* ==========================================================================
+   ☀️ 服事神聖光束投射物 (.proj-holy)
+   ========================================================================== */
+.proj-holy .fx-core {
+    width: 8px;
+    height: 38px;
+    background: linear-gradient(180deg, #ffffff 0%, #ffd700 50%, #2ecc71 100%);
+    box-shadow: 0 0 15px #ffd700, 0 0 25px #ffffff;
+    border-radius: 4px;
+    transform: rotate(-15deg);
+}
+
+/* 聖光技能打擊文字樣式 */
+.skill-holy {
+    display: inline-block;
+    position: relative;
+    color: #ffd700 !important;
+    font-weight: 900 !important;
+    padding: 0 6px;
+    text-shadow: 0 0 10px #2ecc71, 0 0 20px #ffd700;
+}
