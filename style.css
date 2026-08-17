@@ -185,6 +185,7 @@ body {
 .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .flex-layout { display: flex; flex-direction: column; gap: 10px; }
 
+/* 🎛️ 通用魔導下拉選單 */
 .select-game {
     width: 100%;
     padding: 10px 14px;
@@ -365,7 +366,7 @@ body {
 .folder-label { color: var(--text-muted); }
 
 /* ==========================================================================
-   🗺️ ZONE 4: 村莊分區導覽系統與三大加工公會介面優化
+   🗺️ ZONE 4: 村莊分區導覽系統與三大加工公會介面
    ========================================================================== */
 .village-nav-bar, .town-map-nav {
     display: flex; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 4px; border-radius: 10px; margin-bottom: 15px;
@@ -389,12 +390,27 @@ body {
 
 .v-sub-loc-panel { 
     animation: subLocFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    width: 100%; min-width: 0;
+    width: 100%;
+    min-width: 0;
 }
 @keyframes subLocFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
 .placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 30px 20px; text-align: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
 .placeholder-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #fff; letter-spacing: 1px; }
+
+.job-select-style { border-color: rgba(0, 206, 166, 0.15); background: linear-gradient(180deg, rgba(0,206,166,0.02) 0%, rgba(0,0,0,0) 100%); }
+.cooking-style { border-color: rgba(155, 89, 182, 0.15); background: linear-gradient(180deg, rgba(155, 89, 182, 0.02) 0%, rgba(0,0,0,0) 100%); }
+.reward-style { border: 1px solid var(--gold-glow); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
+
+.guild-section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.job-tier-badge {
+    font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 12px;
+    background: rgba(155, 89, 182, 0.2); color: #dcd0ff; border: 1px solid rgba(155, 89, 182, 0.4);
+}
 
 .scrollable-panel-content {
     max-height: 380px; overflow-y: auto; padding-right: 6px; border-radius: 10px;
@@ -404,9 +420,15 @@ body {
 
 .scrollable-panel-content::-webkit-scrollbar { width: 6px; }
 .scrollable-panel-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+
 .guild-skills-scroll::-webkit-scrollbar-thumb { background: rgba(155, 89, 182, 0.4); border-radius: 3px; }
+.guild-skills-scroll::-webkit-scrollbar-thumb:hover { background: rgba(155, 89, 182, 0.8); }
+
 .kitchen-scroll::-webkit-scrollbar-thumb { background: rgba(46, 204, 113, 0.4); border-radius: 3px; }
+.kitchen-scroll::-webkit-scrollbar-thumb:hover { background: rgba(46, 204, 113, 0.8); }
+
 .workshop-scroll::-webkit-scrollbar-thumb { background: rgba(230, 126, 34, 0.4); border-radius: 3px; }
+.workshop-scroll::-webkit-scrollbar-thumb:hover { background: rgba(230, 126, 34, 0.8); }
 
 /* ==========================================================================
    📜 ZONE 5: 日誌與電影級打擊感系統
@@ -459,9 +481,7 @@ body {
 
 .log-miss {
     background: linear-gradient(90deg, rgba(142, 142, 147, 0.12) 0%, rgba(0,0,0,0) 100%) !important;
-    border-left: 3px solid #8e8e93 !important;
-    color: #b0b0b8 !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    border-left: 3px solid #8e8e93 !important; color: #b0b0b8 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     animation: logCinematicPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards, logMissGlitch 0.35s ease-out forwards;
 }
 
@@ -501,39 +521,42 @@ body {
 }
 
 /* ==========================================================================
-   💥 ZONE 6: 全職業魔法與技能動態特效 (無 ICON / 純光線與光粒繪製)
+   💥 ZONE 6: 全職業多元素純【光線】與【光粒】魔導動態特效系統 (無 Icon)
    ========================================================================== */
 
-/* 1. ⚔️ 近戰物理雙重斬擊線 (狂擊/二連突刺/殘影斬) */
-.strike-slash {
-    display: inline-block;
-    position: relative;
-    color: #ffffff !important;
-    font-weight: 900 !important;
-    padding: 0 8px;
-    letter-spacing: 1px;
+/* 🗡️ 1. 近戰與雙刀斬擊 (Hyper Light Blades) */
+.strike-slash, .strike-monster {
+    display: inline-block; position: relative; color: #ffffff !important;
+    font-weight: 900 !important; padding: 0 8px; letter-spacing: 1px;
     animation: textRedFlash 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
 
+.strike-monster { animation: textRedFlash 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards, monsterPunchShake 0.3s linear forwards; }
+
+@keyframes textRedFlash {
+    0% { color: #ffffff !important; text-shadow: none; }
+    25% { color: #ff3838 !important; text-shadow: 0 0 10px #ff2a3b, 0 0 20px #ff4757; }
+    100% { color: #ffffff !important; text-shadow: none; }
+}
+
+@keyframes monsterPunchShake {
+    0% { transform: translate(0, 0); } 20% { transform: translate(-3px, -1px); }
+    40% { transform: translate(3px, 1px); } 60% { transform: translate(-2px, 2px); } 100% { transform: translate(0, 0); }
+}
+
 .strike-slash::before {
-    content: "";
-    position: absolute;
-    top: 50%; left: -30%; width: 160%; height: 3px;
+    content: ""; position: absolute; top: 50%; left: -30%; width: 160%; height: 3px;
     background: linear-gradient(90deg, transparent 0%, #ffffff 30%, #ff3838 70%, transparent 100%);
     box-shadow: 0 0 12px #ff2a3b, 0 0 25px #ff4757;
-    transform: translateY(-50%) rotate(-25deg) scaleX(0);
-    opacity: 0; pointer-events: none; z-index: 5;
+    transform: translateY(-50%) rotate(-25deg) scaleX(0); opacity: 0; pointer-events: none; z-index: 5;
     animation: hyperBladeSlash1 0.28s cubic-bezier(0.05, 0.85, 0.15, 1) forwards;
 }
 
 .strike-slash::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: -30%; width: 160%; height: 2px;
+    content: ""; position: absolute; top: 50%; left: -30%; width: 160%; height: 2px;
     background: linear-gradient(90deg, transparent 0%, #ffffff 40%, #ffd700 80%, transparent 100%);
     box-shadow: 0 0 8px #ffd700, 0 0 18px #ff9f43;
-    transform: translateY(-50%) rotate(35deg) scaleX(0);
-    opacity: 0; pointer-events: none; z-index: 6;
+    transform: translateY(-50%) rotate(35deg) scaleX(0); opacity: 0; pointer-events: none; z-index: 6;
     animation: hyperBladeSlash2 0.32s cubic-bezier(0.05, 0.85, 0.15, 1) 0.05s forwards;
 }
 
@@ -546,297 +569,223 @@ body {
 @keyframes hyperBladeSlash2 {
     0% { transform: translateY(-50%) rotate(38deg) scaleX(0) translateX(30px); opacity: 0; }
     40% { transform: translateY(-50%) rotate(35deg) scaleX(1.2) translateX(0); opacity: 1; filter: brightness(2); }
-    100% { transform: translateY(-50%) rotate(30deg) scaleX(0.7) translateX(-40px); opacity: 0; }
 }
 
-/* 🔥 2. 火焰系魔法 (火箭術 / 怒爆 / 隕石術) */
+/* 🔥 2. 烈焰爆裂與火系魔法 (Fire Stream & Spark Dust) */
 .skill-fire {
-    display: inline-block;
-    position: relative;
-    color: #ffbe76 !important;
-    font-weight: 900 !important;
-    padding: 0 8px;
-    text-shadow: 0 0 8px #ff4757, 0 0 18px #ff7f50;
-    animation: firePulse 0.4s ease-out forwards;
+    display: inline-block; position: relative; color: #ff3838 !important; font-weight: 900 !important;
+    padding: 0 8px; text-shadow: 0 0 8px #ff4757, 0 0 18px #ffa502;
 }
 
-/* 底部地表熱能光影線 */
-.skill-fire::before {
-    content: "";
-    position: absolute;
-    bottom: -2px; left: -10%; width: 120%; height: 3px;
-    background: linear-gradient(90deg, transparent, #ff4757 30%, #ffd700 70%, transparent);
-    box-shadow: 0 0 12px #ff4757, 0 -4px 10px #ff7f50;
-    animation: fireLineGlow 0.4s infinite alternate;
-}
-
-/* 爆裂光粒子陣列 (Box-Shadow 散落星塵微粒) */
+/* 底部平行高能火線 */
 .skill-fire::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%; width: 3px; height: 3px;
-    border-radius: 50%; background: #ffffff;
-    pointer-events: none; z-index: 3;
-    transform: translate(-50%, -50%);
-    animation: fireParticlesBurst 0.48s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+    content: ""; position: absolute; bottom: -2px; left: -10%; width: 120%; height: 2px;
+    background: linear-gradient(90deg, transparent, #ff4757, #ffd700, #ff4757, transparent);
+    box-shadow: 0 0 10px #ff4757, 0 0 20px #ffd700; animation: fireLineGlow 0.35s infinite alternate;
+}
+
+/* 散開的極細爆裂火粒陣列 */
+.skill-fire::before {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 3px; height: 3px;
+    border-radius: 50%; background: #ffffff; pointer-events: none; z-index: 3;
+    transform: translate(-50%, -50%); animation: pureFireParticles 0.45s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
 }
 
 @keyframes fireLineGlow {
-    0% { opacity: 0.5; transform: scaleY(1); }
-    100% { opacity: 1; transform: scaleY(2.2); box-shadow: 0 -6px 15px #ff3838; }
+    0% { opacity: 0.6; transform: scaleY(1); }
+    100% { opacity: 1; transform: scaleY(3); box-shadow: 0 -4px 14px #ff3838; }
 }
 
-@keyframes fireParticlesBurst {
+@keyframes pureFireParticles {
     0% { opacity: 1; box-shadow: 0 0 0 #fff; }
-    100% {
-        opacity: 0;
-        box-shadow: 
-            -28px -22px 3px 2px #ff4757, 28px -20px 4px 2px #ff7f50, 
-            -25px 22px 3px 1px #ffa502, 26px 24px 3px 2px #ffbe76,
-            0px -32px 4px 2px #ffffff, -35px 0px 4px 1px #ff3838,
-            35px 0px 3px 2px #ffd700, 0px 32px 3px 1px #ff7f50;
+    100% { 
+        opacity: 0; 
+        box-shadow: -28px -22px 3px 2px #ff4757, 30px -18px 4px 2px #ff7f50, 
+                    -25px 24px 3px 1px #ffa502, 28px 25px 4px 2px #ffbe76,
+                    -40px 0px 2px 1px #ffffff, 40px -5px 3px 2px #ff3838;
     }
 }
 
-/* ❄️ 3. 冰霜系魔法 (冰箭術 / 暴風雪) */
+/* ❄️ 3. 極寒霜凍與冰系魔法 (Prismatic Crystal Rays & Frost Sparkles) */
 .skill-ice {
-    display: inline-block;
-    position: relative;
-    color: #a0e6ff !important;
-    font-weight: 900 !important;
-    padding: 2px 8px;
-    border: 1px solid rgba(0, 210, 211, 0.8);
-    box-shadow: inset 0 0 10px rgba(0, 210, 211, 0.5), 0 0 15px rgba(112, 161, 255, 0.4);
-    border-radius: 4px;
-    animation: iceBoxPulse 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    display: inline-block; position: relative; color: #00f2fe !important; font-weight: 900 !important;
+    padding: 2px 8px; border: 1px solid rgba(0, 242, 254, 0.6);
+    box-shadow: inset 0 0 8px rgba(0, 242, 254, 0.4), 0 0 12px rgba(0, 242, 254, 0.3);
+    border-radius: 4px; animation: iceBoxPulse 0.5s ease-out forwards;
 }
 
-/* 極寒晶體折射光線 (Prism 光芒) */
-.skill-ice::before {
-    content: "";
-    position: absolute;
-    top: -5px; right: -5px; width: 14px; height: 14px;
-    background: linear-gradient(135deg, #ffffff 0%, #70a1ff 100%);
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    box-shadow: 0 0 10px #00d2d3;
-    animation: icePrismRotate 0.5s ease-out forwards;
-}
-
-/* 冰霧微粒擴散 */
+/* 純幾何結晶光芒 (Polygon Line Crystal) */
 .skill-ice::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%; width: 2px; height: 2px;
-    border-radius: 50%; background: #ffffff;
+    content: ""; position: absolute; right: -14px; top: -8px; width: 14px; height: 14px;
+    background: radial-gradient(circle, #ffffff 20%, #00f2fe 100%);
+    clip-path: polygon(50% 0%, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0% 50%, 35% 35%);
+    box-shadow: 0 0 10px #00f2fe; opacity: 0; animation: pureIceCrystal 0.5s ease-out forwards;
+}
+
+/* 浮動冰霜閃爍微粒 */
+.skill-ice::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none;
-    animation: iceParticlesBurst 0.5s ease-out forwards;
+    box-shadow: -10px -10px 4px 1px rgba(255, 255, 255, 0.8), 20px -8px 5px 1px rgba(0, 242, 254, 0.9),
+                -15px 15px 3px 1px rgba(112, 161, 255, 0.7), 25px 12px 4px 1px rgba(255, 255, 255, 0.9);
+    opacity: 0; animation: iceParticleDust 0.45s ease-out forwards;
 }
 
 @keyframes iceBoxPulse {
-    0% { border-color: #ffffff; box-shadow: 0 0 25px #00d2d3; transform: scale(1.1); }
-    100% { border-color: rgba(0, 210, 211, 0.8); transform: scale(1); }
+    0% { border-color: #fff; box-shadow: 0 0 25px #00f2fe; transform: scale(1.1); }
+    100% { border-color: rgba(0, 242, 254, 0.6); transform: scale(1); }
 }
 
-@keyframes icePrismRotate {
-    0% { transform: scale(0.2) rotate(0deg); opacity: 0; }
-    50% { opacity: 1; transform: scale(1.4) rotate(90deg); }
-    100% { transform: scale(1) rotate(180deg); opacity: 0.8; }
+@keyframes pureIceCrystal {
+    0% { transform: scale(0.2) rotate(0deg); opacity: 1; }
+    100% { transform: scale(1.6) rotate(180deg); opacity: 0; filter: blur(1px); }
 }
 
-@keyframes iceParticlesBurst {
-    0% { opacity: 1; box-shadow: 0 0 0 #fff; }
-    100% {
-        opacity: 0;
-        box-shadow: 
-            -20px -20px 4px 1px #a0e6ff, 22px -18px 3px 1px #70a1ff, 
-            -18px 20px 4px 1px #00d2d3, 20px 22px 3px 1px #ffffff;
-    }
+@keyframes iceParticleDust {
+    0% { opacity: 0; transform: scale(0.6); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.3); }
 }
 
-/* ⚡ 4. 雷霆系魔法 (雷爆術 / 鋸齒電擊) */
+/* ⚡ 4. 雷霆電光與雷系魔法 (Jagged Lightning Arc & Plasma Spark Beads) */
 .skill-lightning {
-    display: inline-block;
-    position: relative;
-    color: #fff2a8 !important;
-    font-weight: 900 !important;
-    padding: 0 6px;
-    text-shadow: 0 0 10px #f1c40f, 0 0 20px #eccc68;
+    display: inline-block; position: relative; color: #fff2a8 !important; font-weight: 900 !important;
+    padding: 0 8px; text-shadow: 0 0 10px #f1c40f, 0 0 20px #eccc68;
     animation: lightningJitter 0.25s steps(2, start) infinite;
 }
 
-/* 鋸齒閃電束 (Clip-Path 多邊形幾何線) */
+/* 鋸齒高壓閃電光束 */
 .skill-lightning::before {
-    content: "";
-    position: absolute;
-    top: -14px; left: 15%; width: 16px; height: 34px;
-    background: linear-gradient(180deg, #ffffff 0%, #f1c40f 100%);
-    box-shadow: 0 0 12px #f1c40f, 0 0 22px #ffffff;
-    clip-path: polygon(55% 0%, 10% 50%, 45% 50%, 0% 100%, 90% 40%, 50% 40%, 100% 0%);
-    pointer-events: none; opacity: 0;
-    animation: boltStrike 0.32s steps(1) forwards;
+    content: ""; position: absolute; top: -16px; left: 15%; width: 16px; height: 36px;
+    background: #ffffff; box-shadow: 0 0 12px #f1c40f, 0 0 24px #ffffff;
+    clip-path: polygon(50% 0%, 0% 55%, 45% 55%, 10% 100%, 100% 35%, 55% 35%);
+    pointer-events: none; opacity: 0; animation: pureBoltStrike 0.3s steps(1) forwards;
+}
+
+/* 雷電圍繞電漿光粒 */
+.skill-lightning::after {
+    content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 2px;
+    background: linear-gradient(90deg, #f1c40f, #ffffff, #f1c40f);
+    box-shadow: 0 -12px 6px 1px #fff2a8, 0 12px 6px 1px #f1c40f; opacity: 0.8;
+    animation: plasmaPulse 0.2s infinite alternate;
 }
 
 @keyframes lightningJitter {
-    0% { transform: skewX(-12deg) scale(1.08); filter: brightness(1.5); }
-    50% { transform: skewX(12deg) scale(0.95); filter: brightness(0.9); }
-    100% { transform: skewX(0deg) scale(1); filter: brightness(1.2); }
+    0% { transform: skewX(-12deg) scale(1.08); }
+    50% { transform: skewX(12deg) scale(0.95); }
+    100% { transform: skewX(0deg) scale(1); }
 }
 
-@keyframes boltStrike {
-    0% { opacity: 0; transform: translateY(-12px) scale(0.6); }
-    20% { opacity: 1; transform: translateY(0) scale(1.3); }
+@keyframes pureBoltStrike {
+    0% { opacity: 0; transform: translateY(-12px) scale(0.5); }
+    20% { opacity: 1; transform: translateY(0) scale(1.4); }
     40% { opacity: 0; }
-    60% { opacity: 1; transform: translateX(6px) scale(1.1); }
+    60% { opacity: 1; transform: translateX(6px) scale(1); }
     80%, 100% { opacity: 0; }
 }
 
-/* 🔮 5. 奧術與混亂系 (奧術風暴 / 自由詠唱 / 魔法效果解除) */
+@keyframes plasmaPulse {
+    0% { opacity: 0.3; transform: scaleX(0.8); }
+    100% { opacity: 1; transform: scaleX(1.2); }
+}
+
+/* 🔮 5. 奧術星界與法術脈衝 (Arcane Rings & Cosmic Dust Stream) */
 .skill-arcane {
-    display: inline-block;
-    position: relative;
-    color: #e8dbff !important;
-    font-weight: 900 !important;
-    padding: 0 8px;
-    text-shadow: 0 0 10px #a55eea, 0 0 20px #8854d0;
+    display: inline-block; position: relative; color: #e8dbff !important; font-weight: 900 !important;
+    padding: 0 8px; text-shadow: 0 0 10px #a55eea, 0 0 22px #8854d0;
 }
 
-/* 同心雙層旋轉魔導光環 */
+/* 雙重奧術旋轉幾何光環 */
 .skill-arcane::before {
-    content: "";
-    position: absolute;
-    top: -8px; left: -8px; right: -8px; bottom: -8px;
-    border: 1px dashed #a55eea;
-    border-radius: 50%;
-    box-shadow: 0 0 10px #8854d0;
-    animation: spinArcaneRing 1.5s linear infinite;
+    content: ""; position: absolute; top: -4px; left: -6px; right: -6px; bottom: -4px;
+    border: 1.5px solid #a55eea; border-radius: 50%;
+    box-shadow: 0 0 12px #8854d0, inset 0 0 8px #a55eea;
+    animation: arcaneCircleSpin 0.6s linear forwards; pointer-events: none;
 }
 
+/* 星界射線微粒 */
 .skill-arcane::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%; width: 2px; height: 2px;
-    border-radius: 50%; background: #ffffff;
-    animation: arcaneParticles 0.45s ease-out forwards;
+    content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
+    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translate(-50%, -50%);
+    animation: cosmicRayDust 0.5s ease-out forwards;
 }
 
-@keyframes spinArcaneRing {
-    0% { transform: rotate(0deg) scale(0.8); opacity: 0.3; }
-    50% { opacity: 0.9; transform: rotate(180deg) scale(1.1); }
-    100% { transform: rotate(360deg) scale(0.8); opacity: 0.3; }
+@keyframes arcaneCircleSpin {
+    0% { transform: scale(0.3) rotate(0deg); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: scale(1.2) rotate(180deg); opacity: 0; }
 }
 
-@keyframes arcaneParticles {
+@keyframes cosmicRayDust {
     0% { opacity: 1; box-shadow: 0 0 0 #fff; }
-    100% {
-        opacity: 0;
-        box-shadow: 
-            -22px -15px 4px 1px #a55eea, 24px -18px 3px 1px #8854d0, 
-            -20px 22px 3px 1px #3498db, 22px 18px 4px 1px #ffffff;
+    100% { 
+        opacity: 0; 
+        box-shadow: -22px -20px 4px 2px #a55eea, 24px -16px 5px 2px #8854d0, 
+                    -20px 22px 3px 2px #4b7bec, 22px 20px 4px 2px #e8dbff;
     }
 }
 
-/* ✨ 6. 神聖系 (治癒術 / 神聖之光 / 聖十字審判 / 讚美光陣) */
+/* ✨ 6. 神聖光束與聖光粒子 (Holy Pillars & Sacred Dust Waves) */
 .skill-holy {
-    display: inline-block;
-    position: relative;
-    color: #ffd700 !important;
-    font-weight: 900 !important;
-    padding: 0 8px;
-    text-shadow: 0 0 10px #2ecc71, 0 0 20px #ffd700;
+    display: inline-block; position: relative; color: #ffd700 !important; font-weight: 900 !important;
+    padding: 0 8px; text-shadow: 0 0 10px #2ecc71, 0 0 22px #ffd700;
 }
 
-/* 垂直升騰聖光光束線 (Holy Ray) */
+/* 垂直天降神聖高能光柱 (Vertical Holy Beam) */
 .skill-holy::before {
-    content: "";
-    position: absolute;
-    top: -25px; left: 50%; width: 3px; height: 50px;
-    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #ffffff 50%, #ffd700 100%);
-    box-shadow: 0 0 12px #ffd700, 0 0 25px #ffffff;
-    transform: translateX(-50%) scaleY(0);
-    animation: holyRayAscend 0.5s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+    content: ""; position: absolute; top: -35px; left: 50%; width: 6px; height: 75px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 30%, #ffd700 70%, rgba(255, 215, 0, 0) 100%);
+    box-shadow: 0 0 15px #ffd700, 0 0 30px #ffffff, 0 0 8px #2ecc71;
+    transform: translateX(-50%) scaleY(0); opacity: 0; pointer-events: none; z-index: 4;
+    animation: holyBeamDrop 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
 
-/* 散落金光星塵微粒 (Gold Dust Particles) */
+/* 向上升騰的神聖金綠光粒 (Rising Holy Sparkles - 無 + 號圖標) */
 .skill-holy::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%; width: 3px; height: 3px;
-    border-radius: 50%; background: #ffd700;
-    pointer-events: none;
-    animation: holyGoldDust 0.55s ease-out forwards;
+    content: ""; position: absolute; bottom: 0; left: 50%; width: 3px; height: 3px;
+    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translateX(-50%);
+    animation: holyRisingParticles 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }
 
-@keyframes holyRayAscend {
+@keyframes holyBeamDrop {
     0% { transform: translateX(-50%) scaleY(0); opacity: 0; }
     40% { transform: translateX(-50%) scaleY(1.3); opacity: 1; filter: brightness(2); }
     100% { transform: translateX(-50%) scaleY(1); opacity: 0; filter: blur(4px); }
 }
 
-@keyframes holyGoldDust {
-    0% { opacity: 1; box-shadow: 0 0 0 #ffd700; }
-    100% {
-        opacity: 0;
-        box-shadow: 
-            -22px -25px 3px 1px #ffd700, 25px -20px 4px 1px #ffffff, 
-            -18px 22px 3px 1px #2ecc71, 20px 25px 4px 1px #f1c40f,
-            0px -30px 3px 1px #ffffff, 0px 30px 4px 1px #ffd700;
+@keyframes holyRisingParticles {
+    0% { opacity: 0; box-shadow: 0 0 0 #fff; }
+    30% { opacity: 1; }
+    100% { 
+        opacity: 0; 
+        box-shadow: -18px -25px 4px 2px #ffd700, 16px -30px 5px 2px #2ecc71, 
+                    -12px -42px 3px 1px #ffffff, 14px -50px 4px 2px #ffd700;
     }
 }
 
-/* 🏹 7. 遠程箭矢與貫穿光束 (二連矢 / 箭雨 / 獵鷹突擊) */
-.skill-arrow, .skill-falcon {
-    display: inline-block;
-    position: relative;
-    color: #2ecc71 !important;
-    font-weight: 900 !important;
-    padding: 0 6px;
-    text-shadow: 0 0 10px #27ae60, 0 0 18px #1abc9c;
-}
-
-/* 超音速軌跡線條 (Sonic Trajectory) */
-.skill-arrow::before, .skill-falcon::before {
-    content: "";
-    position: absolute;
-    top: 50%; left: -40%; width: 180%; height: 2px;
-    background: linear-gradient(90deg, transparent 0%, #2ecc71 50%, #ffffff 100%);
-    box-shadow: 0 0 10px #2ecc71;
-    transform: translateY(-50%) scaleX(0);
-    animation: arrowBeamSlash 0.32s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
-}
-
-@keyframes arrowBeamSlash {
-    0% { transform: translateY(-50%) scaleX(0) translateX(-30px); opacity: 0; }
-    50% { transform: translateY(-50%) scaleX(1.2) translateX(0); opacity: 1; filter: brightness(2); }
-    100% { transform: translateY(-50%) scaleX(0.8) translateX(40px); opacity: 0; }
-}
-
-/* 🧪 8. 劇毒與出血 (毒刃 / 劇毒爆裂 / 出血) */
+/* 🧪 7. 劇毒與出血 (Poison Corrosive Rays & Bleed Laser Lines) */
 .skill-poison {
-    position: relative;
-    color: #2ecc71 !important;
-    text-shadow: 0 0 8px #27ae60, 0 0 15px #11998e;
+    display: inline-block; position: relative; color: #2ecc71 !important; font-weight: 900 !important;
+    text-shadow: 0 0 8px #27ae60, 0 0 18px #11998e;
 }
 
 .skill-poison::after {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%; width: 3px; height: 3px; border-radius: 50%;
-    animation: poisonAcidSplash 0.5s ease-out forwards;
+    content: ""; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px;
+    background: linear-gradient(90deg, #27ae60, #58d68d, #11998e);
+    box-shadow: 0 0 8px #2ecc71; animation: poisonWaveLine 0.4s infinite alternate;
 }
 
-@keyframes poisonAcidSplash {
-    0% { opacity: 1; box-shadow: 0 0 0 #2ecc71; }
-    100% {
-        opacity: 0;
-        box-shadow: 
-            -18px -15px 3px 1px #2ecc71, 18px -12px 3px 1px #27ae60, 
-            -15px 18px 4px 1px #11998e, 16px 15px 3px 1px #58d68d;
-    }
+@keyframes poisonWaveLine {
+    0% { transform: scaleY(1) skewX(-10deg); opacity: 0.6; }
+    100% { transform: scaleY(2.5) skewX(10deg); opacity: 1; }
 }
 
-.skill-bleed { color: #e74c3c !important; text-shadow: 0 0 8px #c0392b, 0 0 15px #8e44ad; }
+.skill-bleed {
+    display: inline-block; position: relative; color: #e74c3c !important; font-weight: 900 !important;
+    text-shadow: 0 0 8px #c0392b, 0 0 18px #8e44ad;
+}
 
-/* 💥 9. 物理重擊 (Bash / 暴擊 Critical) */
+/* 💥 8. 物理重擊/狂擊與暴擊 (Bash Lines & Speedline Radial Bursts) */
 .skill-bash, .skill-crit {
     display: inline-block; position: relative; color: #fff2a8 !important; font-weight: 900 !important; padding: 0 6px;
     text-shadow: 0 0 8px #ff9f43, 0 0 18px #ff5252; animation: bashImpactText 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -848,7 +797,26 @@ body {
     100% { transform: scale(1); filter: brightness(1.2); }
 }
 
-/* 💨 10. MISS 閃避線條與殘影 */
+/* 暴擊與大領主重擊之日系速度線爆風 (Pure Line Burst) */
+.skill-crit + .num-popup::before,
+.num-boss-strike::before {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 75px; height: 75px;
+    background: repeating-conic-gradient(
+        from 0deg,
+        rgba(255, 215, 0, 0.7) 0deg 4deg,
+        transparent 4deg 15deg
+    );
+    border-radius: 50%; transform: translate(-50%, -50%) scale(0);
+    z-index: -1; pointer-events: none; animation: speedlineBurst 0.35s ease-out forwards;
+}
+
+@keyframes speedlineBurst {
+    0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+    60% { transform: translate(-50%, -50%) scale(1.4) rotate(45deg); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(2.2) rotate(90deg); opacity: 0; filter: blur(2px); }
+}
+
+/* 💨 9. MISS 殘影與閃避線 (Ghost Trail Lines) */
 .miss-effect {
     display: inline-block; position: relative; color: #d1d1d6 !important; font-weight: bold; font-style: italic; padding: 0 4px;
     text-shadow: 0 0 6px rgba(255, 255, 255, 0.6), 0 0 12px rgba(160, 160, 200, 0.4);
@@ -861,7 +829,11 @@ body {
     100% { transform: scale(1) translateX(0) skewX(0); filter: blur(0); }
 }
 
-.heal-effect { animation: textGreenFlash 0.6s ease-in-out forwards; }
+/* 💚 10. 全面升級治癒光陣 (Pure Healing Beams & Particle Dust - 無 + 號圖標) */
+.heal-effect {
+    display: inline-block; position: relative; color: #2ecc71 !important; font-weight: 900 !important; padding: 0 6px;
+    animation: textGreenFlash 0.6s ease-in-out forwards;
+}
 
 @keyframes textGreenFlash {
     0% { color: #ffffff !important; text-shadow: none; }
@@ -869,32 +841,40 @@ body {
     100% { color: #ffffff !important; text-shadow: none; }
 }
 
-/* 11. 數字彈出與日系 360 度速度線爆風 (Conic Speedlines) */
+/* 治癒環形光波與升騰綠光微粒 */
+.heal-effect::before {
+    content: ""; position: absolute; bottom: -2px; left: 50%; width: 100%; height: 3px;
+    background: linear-gradient(90deg, transparent, #2ecc71, #ffffff, #2ecc71, transparent);
+    box-shadow: 0 0 10px #2ecc71; transform: translateX(-50%); animation: healLightBeam 0.5s ease-out forwards;
+}
+
+.heal-effect::after {
+    content: ""; position: absolute; bottom: 0; left: 50%; width: 4px; height: 4px;
+    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translateX(-50%);
+    animation: healDustRise 0.6s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+}
+
+@keyframes healLightBeam {
+    0% { transform: translateX(-50%) scaleX(0.2); opacity: 0; }
+    50% { transform: translateX(-50%) scaleX(1.4); opacity: 1; box-shadow: 0 -6px 15px #2ecc71; }
+    100% { transform: translateX(-50%) scaleX(1); opacity: 0; }
+}
+
+@keyframes healDustRise {
+    0% { opacity: 0; box-shadow: 0 0 0 #fff; }
+    30% { opacity: 1; }
+    100% { 
+        opacity: 0; 
+        box-shadow: -20px -25px 4px 2px #2ecc71, 18px -30px 5px 2px #27ae60, 
+                    -12px -45px 3px 1px #ffffff, 15px -52px 4px 2px #2ecc71;
+    }
+}
+
+/* 🔢 傷害與數字彈窗 */
 .num-popup {
     display: inline-block; font-family: 'Impact', 'Arial Black', sans-serif; font-size: 18px;
-    font-style: italic; margin-left: 8px; position: relative; z-index: 2; transform-origin: center;
-    animation: animePopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards;
-}
-
-.skill-crit + .num-popup::before,
-.num-boss-strike::before {
-    content: "";
-    position: absolute;
-    top: 50%; left: 50%; width: 70px; height: 70px;
-    background: repeating-conic-gradient(
-        from 0deg,
-        rgba(255, 215, 0, 0.6) 0deg 4deg,
-        transparent 4deg 15deg
-    );
-    border-radius: 50%; transform: translate(-50%, -50%) scale(0);
-    z-index: -1; pointer-events: none;
-    animation: speedlineBurst 0.35s ease-out forwards;
-}
-
-@keyframes speedlineBurst {
-    0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
-    60% { transform: translate(-50%, -50%) scale(1.4) rotate(45deg); opacity: 0.8; }
-    100% { transform: translate(-50%, -50%) scale(2) rotate(90deg); opacity: 0; filter: blur(2px); }
+    font-style: italic; margin-left: 8px; position: relative; z-index: 2;
+    transform-origin: center; animation: animePopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards;
 }
 
 @keyframes animePopIn {
@@ -907,7 +887,7 @@ body {
 .num-m-dmg { color: #00e5ff !important; text-shadow: 0 2px 4px #000, 0 0 10px #9b59b6; }
 .num-h-heal { color: #2ecc71 !important; text-shadow: 0 2px 4px #000, 0 0 10px #2ecc71; }
 .num-miss { color: #a0a0a8 !important; text-shadow: 0 2px 4px #000, 0 0 8px #8e8e93; }
-.num-boss-strike { color: #ff7675 !important; text-shadow: 0 2px 6px #000, 0 0 12px #ff0000; font-size: 17px; }
+.num-boss-strike { color: #ff7675 !important; text-shadow: 0 2px 6px #000, 0 0 12px #ff0000; font-size: 19px; }
 
 /* ==========================================================================
    🕹️ ZONE 7: 通用按鈕與控制矩陣
@@ -945,7 +925,7 @@ body {
 .btn-rest:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
 
 /* ==========================================================================
-   🎭 ZONE 8: 戰偶紙娃娃系統 (Paper Doll Matrix)
+   🎭 ZONE 8: 戰偶紙娃娃系統
    ========================================================================== */
 .paper-doll-container {
     width: 100%; background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 8px;
@@ -972,22 +952,26 @@ body {
 .slot-name { font-size: 11px; color: #ffffff; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; width: 100%; }
 
 .weapon-slot { border-color: rgba(231, 76, 60, 0.15); box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.05); }
+.weapon-slot .slot-icon { border: 1px solid rgba(231, 76, 60, 0.2); }
+
 .armor-slot { border-color: rgba(52, 152, 219, 0.15); box-shadow: inset 0 0 8px rgba(52, 152, 219, 0.05); }
+.armor-slot .slot-icon { border: 1px solid rgba(52, 152, 219, 0.2); }
+
 .accessory-slot { grid-column: span 3; height: 38px; border-color: rgba(155, 89, 182, 0.15); box-shadow: inset 0 0 8px rgba(155, 89, 182, 0.05); }
+.accessory-slot .slot-icon { border: 1px solid rgba(155, 89, 182, 0.2); padding: 2px; font-size: 14px; }
+.accessory-slot .slot-inner { flex-direction: row; justify-content: flex-start; gap: 8px; }
 
 .doll-silhouette { position: relative; grid-row: span 1; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .silhouette-core { font-size: 26px; color: rgba(255, 255, 255, 0.12); z-index: 2; animation: hologramPulse 2s infinite ease-in-out; }
-.hologram-ring { position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 1px dashed rgba(0, 255, 204, 0.25); animation: rotateHologram 12s linear infinite; z-index: 1; }
+.hologram-ring { position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 1px dashed rgba(0, 255, 255, 0.15); animation: rotateHologram 12s linear infinite; z-index: 1; }
+
+@keyframes rotateHologram { 100% { transform: rotate(360deg); } }
 
 .doll-silhouette::after {
-    content: "";
-    position: absolute;
-    left: 0; top: 0; width: 100%; height: 2px;
+    content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 2px;
     background: linear-gradient(90deg, transparent 0%, #00ffcc 50%, transparent 100%);
-    box-shadow: 0 0 8px #00ffcc, 0 0 15px #00ffcc;
-    opacity: 0.7;
-    animation: laserScanMove 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
-    pointer-events: none;
+    box-shadow: 0 0 8px #00ffcc, 0 0 15px #00ffcc; opacity: 0.7;
+    animation: laserScanMove 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; pointer-events: none;
 }
 
 @keyframes laserScanMove {
@@ -995,8 +979,6 @@ body {
     50% { opacity: 1; }
     100% { top: 95%; opacity: 0.2; }
 }
-
-@keyframes rotateHologram { 100% { transform: rotate(360deg); } }
 
 /* ==========================================================================
    🧭 ZONE 9: 戰術抽屜與 ATB 平滑線性過渡
@@ -1025,11 +1007,7 @@ body {
 .drawer-trigger-tab:hover { background: rgba(212, 175, 55, 0.25); color: #fff; }
 .tactics-drawer.expanded .drawer-trigger-tab { background: rgba(231, 76, 60, 0.15); border-color: rgba(231, 76, 60, 0.3); color: #ff4757; }
 
-.trigger-icon {
-    position: relative; width: 12px; height: 12px;
-    border: 1.5px dashed var(--gold-glow); border-radius: 50%;
-    animation: rotateGear 6s linear infinite;
-}
+.trigger-icon { font-size: 13px; animation: rotateGear 6s linear infinite; }
 @keyframes rotateGear { 100% { transform: rotate(360deg); } }
 
 .trigger-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 9px; font-weight: bold; letter-spacing: 1px; }
@@ -1052,6 +1030,10 @@ body {
 .btn-tactic-option.active .tactic-title { color: #2ecc71 !important; text-shadow: 0 0 5px rgba(46, 204, 113, 0.2); }
 .btn-tactic-option.active .tactic-desc { color: #8be4af !important; }
 
+#tactic-btn-OFFENSIVE.active { background: rgba(231, 76, 60, 0.08) !important; border-color: rgba(231, 76, 60, 0.4) !important; }
+#tactic-btn-OFFENSIVE.active .tactic-title { color: #e74c3c !important; }
+#tactic-btn-OFFENSIVE.active .tactic-desc { color: #ff8f83 !important; }
+
 #p-atb-row strong, #m-atb-row strong { display: none !important; }
 #p-atb-row .flex-space, #m-atb-row .flex-space { margin-bottom: 2px; }
 #p-atb-row .flex-space span, #m-atb-row .flex-space span {
@@ -1062,7 +1044,7 @@ body {
     background: linear-gradient(90deg, #f1c40f 0%, #ff9f43 50%, #ff6b6b 100%) !important;
     background-size: 200% 100% !important;
     box-shadow: 0 0 12px rgba(255, 159, 67, 0.9) !important;
-    border-radius: 4px !important; transition: width 0.25s linear !important;
+    border-radius: 4px !important; transition: width 0.25s linear !important; 
     animation: atbFlowLine 1s linear infinite !important;
 }
 
@@ -1126,10 +1108,7 @@ body {
 }
 
 .victory-laurel-crown {
-    position: relative;
-    width: 50px; height: 50px; margin: 0 auto 10px auto;
-    border: 2px dashed #ffd700; border-radius: 50%;
-    box-shadow: 0 0 20px #ffd700;
+    font-size: 45px; margin-bottom: 10px; filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.6));
     animation: crownFloat 2s ease-in-out infinite;
 }
 
@@ -1149,6 +1128,16 @@ body {
 
 @keyframes lineStretch { 0% { width: 0%; opacity: 0; } 100% { width: 100%; opacity: 1; } }
 
+.victory-target-sub { font-size: 14px; color: #e3e3e6; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 15px 0; font-weight: 600; }
+.victory-scroll-fluff { font-size: 12px; color: #a2a2a7; line-height: 1.8; max-width: 320px; margin: 0 auto 25px auto; letter-spacing: 0.5px; }
+.victory-reward-badge-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 30px; }
+.v-badge { font-size: 11px; font-weight: bold; padding: 6px 14px; border-radius: 6px; letter-spacing: 0.5px; }
+.gold-glint { background: rgba(255, 215, 0, 0.1); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); }
+.warehouse-sync { background: rgba(46, 213, 115, 0.1); color: #2ecc71; border: 1px solid rgba(46, 213, 115, 0.3); }
+.victory-click-prompt { font-size: 11px; color: #636366; letter-spacing: 1px; animation: blinkPrompt 1.5s infinite alternate ease-in-out; }
+
+@keyframes blinkPrompt { 0% { opacity: 0.3; } 100% { opacity: 0.9; } }
+
 /* QTE 彈窗 */
 #qte-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -1165,6 +1154,37 @@ body {
 
 @keyframes qteZoomIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
+#qte-skill-name { font-size: 15px; color: #fff; margin: 0 0 25px 0; line-height: 1.6; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+
+#qte-tap-btn {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important; border: 1px solid #2ecc71 !important;
+    color: #fff !important; font-size: 18px !important; font-weight: 900 !important; padding: 16px !important;
+    border-radius: 50px !important; cursor: pointer; width: 100%; display: block; margin-bottom: 25px;
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); text-shadow: 0 1px 2px rgba(0,0,0,0.6); transition: all 0.15s ease;
+}
+
+#qte-tap-btn:hover { filter: brightness(1.15); transform: scale(1.02); box-shadow: 0 0 22px rgba(46, 204, 113, 0.6); }
+#qte-tap-btn:active { transform: scale(0.96); }
+
+.qte-timer-bg {
+    width: 100%; height: 16px; background: #121214; border-radius: 8px; overflow: hidden; position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.qte-timer-bg::after {
+    content: "PERFECT"; font-family: -apple-system, sans-serif; font-size: 7px; font-weight: 900;
+    color: rgba(255, 215, 0, 0.95); text-shadow: 0 1px 1px #000; display: flex; justify-content: center;
+    align-items: center; position: absolute; left: 65%; width: 20%; height: 100%;
+    background: rgba(212, 175, 55, 0.35); border-left: 1.5px dashed #ffd700; border-right: 1.5px dashed #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); top: 0; pointer-events: none; z-index: 2;
+}
+
+#qte-timer-fill {
+    height: 100%; width: 0%; background: linear-gradient(90deg, #3498db 0%, #f1c40f 64%, #2ecc71 75%, #e74c3c 100%);
+    box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); position: absolute; top: 0; left: 0; z-index: 1; transition: width 0.025s linear;
+}
+
+/* ⚠️ 素材與資源不足專屬 Modal 彈窗 */
 #mat-alert-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -1196,6 +1216,13 @@ body {
     background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.02);
 }
 
+#blueprints-container::-webkit-scrollbar, #recipes-container::-webkit-scrollbar { width: 6px; }
+#blueprints-container::-webkit-scrollbar-track, #recipes-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.01); }
+#blueprints-container::-webkit-scrollbar-thumb, #recipes-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.15); border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.2);
+}
+#blueprints-container::-webkit-scrollbar-thumb:hover, #recipes-container::-webkit-scrollbar-thumb:hover { background: var(--gold-glow); }
+
 .game-layout-split { display: flex; flex-direction: column; gap: 20px; width: 100%; }
 .left-layout-column, .right-layout-column { display: flex; flex-direction: column; gap: 16px; width: 100%; min-width: 0; }
 
@@ -1219,7 +1246,9 @@ body {
         overflow: hidden;
     }
     
-    .left-layout-column { min-width: 0; }
+    .left-layout-column {
+        min-width: 0;
+    }
 
     #log-box { height: 380px; margin-bottom: 0; }
     #title-box { max-width: 460px; margin: 15px auto; }
@@ -1231,64 +1260,76 @@ body {
     .game-layout-split { display: flex; flex-direction: column; }
     .left-layout-column { order: 2; }
     .right-layout-column { order: 1; }
+    .action-panel {
+        position: sticky; bottom: 10px; z-index: 999;
+        background: rgba(10, 10, 15, 0.95) !important; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1) !important; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.8) !important;
+        border-radius: 12px; padding: 10px !important;
+    }
 }
 
 /* ==========================================================================
-   🚀 ZONE 12: 戰鬥日記純 CSS 幾何光束投射物 (Log-Internal Projectiles)
+   🚀 ZONE 12: 戰鬥日記專屬純【光束】與【光錐】投射物 (Pure Laser Projectiles)
    ========================================================================== */
 .projectile-entity {
     position: absolute;
-    bottom: 20px; left: 10px;
-    width: 30px; height: 30px;
-    z-index: 99; pointer-events: none;
-    display: flex; align-items: center; justify-content: center;
+    bottom: 20px;
+    left: 10px;
+    width: 30px;
+    height: 30px;
+    z-index: 99;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     animation: flyToLogTarget 0.42s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
 }
 
-/* 🔥 火焰高能彈束 */
+/* 🔥 火箭彈 (純光球 + 火線拖尾) */
 .proj-fire .fx-core {
-    width: 16px; height: 16px;
+    width: 18px; height: 18px;
     background: radial-gradient(circle, #ffffff 10%, #ffbe76 40%, #ff4757 80%, rgba(255, 71, 87, 0) 100%);
-    border-radius: 50%; box-shadow: 0 0 12px #ff4757, 0 0 25px #ffa502;
+    border-radius: 50%; box-shadow: 0 0 12px #ff4757, 0 0 25px #ffa502, -15px 0 10px #ff3838;
 }
 
-/* ❄️ 冰錐折射槍 */
+/* ❄️ 冰箭錐 (純幾何光稜鏡) */
 .proj-ice .fx-core {
     width: 12px; height: 24px;
-    background: linear-gradient(135deg, #ffffff 0%, #70a1ff 50%, #1e90ff 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #70a1ff 50%, #00f2fe 100%);
     clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    box-shadow: 0 0 12px #70a1ff, 0 0 22px #00d2d3;
+    box-shadow: 0 0 14px #70a1ff, 0 0 22px #00d2d3;
 }
 
-/* ⚡ 雷霆幾何閃電條 */
+/* ⚡ 雷爆柱 (鋸齒雷電光流) */
 .proj-lightning .fx-core {
-    width: 28px; height: 10px; background: #ffffff;
+    width: 32px; height: 12px; background: #ffffff;
     box-shadow: 0 0 12px #eccc68, 0 0 24px #f1c40f;
     clip-path: polygon(0% 40%, 30% 0%, 40% 50%, 70% 10%, 100% 60%, 60% 100%, 50% 50%, 20% 90%);
 }
 
-/* 🔮 奧術紫星核心 */
+/* 🔮 奧術球 (幾何漩渦光體) */
 .proj-arcane .fx-core {
-    width: 16px; height: 16px;
+    width: 18px; height: 18px;
     background: radial-gradient(circle, #ffffff 20%, #a55eea 60%, #4b7bec 100%);
-    border-radius: 50%; box-shadow: 0 0 14px #a55eea, 0 0 25px #8854d0;
+    border-radius: 50%; box-shadow: 0 0 15px #a55eea, 0 0 25px #8854d0;
 }
 
-/* 🏹 綠光雷射箭矢 */
+/* 🏹 箭雨 / 飛箭 (極速穿雲光軌) */
 .proj-arrow .fx-core {
-    width: 32px; height: 3px;
+    width: 36px; height: 3px;
     background: linear-gradient(90deg, transparent 0%, #2ecc71 50%, #ffffff 100%);
-    box-shadow: 0 0 10px #2ecc71;
+    box-shadow: 0 0 10px #2ecc71, 0 0 18px #ffffff;
 }
 
-/* ✨ 神聖聖光幾何柱 */
+/* ☀️ 聖光柱 (垂直降臨神聖光芒) */
 .proj-holy .fx-core {
-    width: 8px; height: 38px;
+    width: 8px; height: 42px;
     background: linear-gradient(180deg, #ffffff 0%, #ffd700 50%, #2ecc71 100%);
-    box-shadow: 0 0 15px #ffd700, 0 0 25px #ffffff;
+    box-shadow: 0 0 18px #ffd700, 0 0 30px #ffffff;
     border-radius: 4px; transform: rotate(-15deg);
 }
 
+/* 戰鬥日記內部彈道弧線飛行動畫 */
 @keyframes flyToLogTarget {
     0% { transform: translate(0, 0) scale(0.4) rotate(-20deg); opacity: 0; }
     20% { opacity: 1; transform: translate(40px, -20px) scale(1.1) rotate(-10deg); }
@@ -1297,18 +1338,83 @@ body {
 }
 
 /* ==========================================================================
-   🎮 命運深淵：通用 UI 輔助樣式
+   🎮 命運深淵：全局與模組 UI 樣式庫
    ========================================================================== */
+
 .hidden-element { display: none !important; }
 .full-width { width: 100% !important; }
+.full-size { width: 100% !important; height: 100% !important; }
 .margin-top-sm { margin-top: 6px !important; }
 .margin-top-md { margin-top: 12px !important; }
 
+/* 彈窗與遮罩通用 */
+.modal-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.92); z-index: 9999;
+    display: flex; justify-content: center; align-items: center;
+    padding: 20px; box-sizing: border-box;
+}
+
+.modal-card {
+    background: rgba(20, 20, 35, 0.95); border: 1px solid rgba(0, 255, 204, 0.4);
+    border-radius: 12px; padding: 20px; max-width: 480px; width: 100%;
+    text-align: center; box-shadow: 0 0 25px rgba(0, 255, 204, 0.2);
+}
+
+.modal-title-cyan { color: #00ffcc; margin-top: 0; }
+.modal-subtitle { color: #aaa; font-size: 12px; margin-bottom: 15px; }
+
+.job-selection-list {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 60vh; overflow-y: auto;
+}
+
+/* 文字樣式與顏色庫 */
 .highlight-gold, .text-gold { color: #ffd700; }
 .text-gold-bold { color: #ffd700; font-weight: bold; font-size: 11px; }
-.text-cyan { color: #00ffcc; }
-.text-purple-bold { color: #9b59b6; font-weight: bold; }
+.text-cyan, .text-cyan-title { color: #00ffcc; }
+.text-cyan-lg { color: #00ffcc; font-size: 14px; }
+.text-purple-bold, .text-purple-title { color: #9b59b6; font-weight: bold; }
 .text-white { color: #ffffff; }
+.text-pink { color: #ff6b81; }
+.text-yellow { color: #f1c40f; }
+.text-muted-sm { color: var(--text-muted, #8e8e93); font-size: 10px; }
 .text-green-sm { color: #2ecc71; font-size: 11px; }
 .text-sm { font-size: 11px; }
 .text-muted-desc { color: #ccc; font-size: 12px; }
+
+/* 表單與輸入框 */
+.login-form-group { display: flex; flex-direction: column; gap: 10px; width: 80%; margin: 12px auto; }
+.pin-format { text-align: center; letter-spacing: 4px; font-weight: bold; }
+.btn-text-muted { background: transparent; border: none; color: #8e8e93; font-size: 11px; cursor: pointer; text-decoration: underline; }
+
+/* 分頁篩選列 */
+.tab-filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; }
+.tab-filter-row .btn-game { padding: 6px 12px; font-size: 11px; flex: 1; min-width: 70px; text-align: center; white-space: nowrap; }
+
+.bar-height-thin { height: 4px !important; }
+.status-bag-padding { margin-top: 4px; padding: 8px; }
+.bag-header-row { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 6px; width: 100%; }
+.bag-grid-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+
+/* 戰鬥數值面板 */
+.combat-stats-box { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 6px; margin-top: 4px; }
+.combat-stats-title { font-size: 11px; color: #ffd700; font-weight: bold; margin-bottom: 4px; text-align: center; }
+.stat-points-allocation-box { background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; padding: 8px; margin-top: 4px; }
+.stat-points-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 4px; }
+.stat-alloc-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.skill-list-wrapper { border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 6px; margin-top: 4px; }
+
+/* 全局動作按鈕 */
+.action-btn-group { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.primary-actions-row { display: flex; gap: 12px; width: 100%; }
+.flex-grow-main { flex: 14; }
+.flex-grow-sub { flex: 11; }
+
+/* 魔物與戰鬥區 */
+.monster-bar-box { background: rgba(40, 10, 10, 0.3) !important; border-color: rgba(231, 76, 60, 0.1) !important; }
+.monster-hp-gradient { background: linear-gradient(90deg, #cb2d3e 0%, #ef473a 100%) !important; width: 0%; }
+.monster-grid-cell { border-color: rgba(231, 76, 60, 0.15) !important; }
+
+/* QTE 防誤觸 */
+.qte-interact-btn { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
