@@ -106,13 +106,21 @@ async function handleStartGame() {
     enterGameMainShell();
 }
 
+// --------------------------------------------------------------------------
+// 🎭 重構：職業選擇與重選 Modal (無縫相容彈窗與取消按鈕)
+// --------------------------------------------------------------------------
 function renderInitialJobModal(isReselect = false) {
     const modal = document.getElementById('initial-job-modal');
     const list = document.getElementById('initial-job-list');
+    const titleEl = document.getElementById('job-modal-title');
     if (!modal || !list) return;
 
     list.innerHTML = "";
     modal.style.display = "flex";
+
+    if (titleEl) {
+        titleEl.innerText = isReselect ? "🔄 重選血脈職業 (耗費 1,000 G)" : "🎭 選擇你的初始冒險血脈";
+    }
 
     const jobs = [
         { id: "swordsman", name: "⚔️ 劍士", desc: "高 HP 與物理減傷 (STR/VIT)，近戰重擊。" },
@@ -125,10 +133,14 @@ function renderInitialJobModal(isReselect = false) {
     jobs.forEach(j => {
         let card = document.createElement('div');
         card.style.cssText = `
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(0, 255, 204, 0.2);
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 204, 0.3);
             border-radius: 8px; padding: 12px; text-align: left; cursor: pointer; transition: all 0.2s;
+            margin-bottom: 6px;
         `;
+        card.onmouseover = () => { card.style.borderColor = "#ffd700"; card.style.background = "rgba(255,215,0,0.15)"; };
+        card.onmouseout = () => { card.style.borderColor = "rgba(0, 255, 204, 0.3)"; card.style.background = "rgba(0, 0, 0, 0.5)"; };
+        
         card.innerHTML = `
             <div style="font-size: 14px; font-weight: bold; color: #00ffcc; margin-bottom: 4px;">${j.name}</div>
             <div style="font-size: 11px; color: #aaa;">${j.desc}</div>
@@ -143,6 +155,20 @@ function renderInitialJobModal(isReselect = false) {
         };
         list.appendChild(card);
     });
+
+    // 動態新增「取消/返回」按鈕
+    let closeBtn = document.getElementById('initial-job-close-btn');
+    if (!closeBtn) {
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'initial-job-close-btn';
+        closeBtn.className = 'btn-game btn-rest';
+        closeBtn.style.cssText = 'width: 100%; margin-top: 12px; padding: 8px 0; font-size: 12px; font-weight: bold;';
+        closeBtn.innerText = '❌ 取消關閉';
+        closeBtn.onclick = () => { modal.style.display = 'none'; };
+        const modalCard = modal.querySelector('.modal-card');
+        if (modalCard) modalCard.appendChild(closeBtn);
+    }
+    closeBtn.style.display = isReselect ? 'block' : 'none';
 }
 
 function selectInitialJob(jobId) {
@@ -180,9 +206,11 @@ function enterGameMainShell() {
     if (villagePanel) villagePanel.style.display = 'block';
     if (logWrapper) logWrapper.style.display = 'block';
 
+    let displayJobName = typeof getJobChineseName === "function" ? getJobChineseName(currentRun.job) : (typeof JOB_DATABASE !== "undefined" && JOB_DATABASE[currentRun.job] ? JOB_DATABASE[currentRun.job].name : currentRun.job);
+
     if (typeof updateUI === "function") updateUI();
     if (typeof addLog === "function") {
-        addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利踏入深淵邊境！當前血脈職業：<strong>${getJobChineseName(currentRun.job)}</strong>。`, "perfect");
+        addLog(`✨ 勇者 <strong>${accountMeta.name}</strong> 順利踏入深淵邊境！當前血脈職業：<strong>${displayJobName}</strong>。`, "perfect");
     }
 }
 
@@ -200,7 +228,11 @@ function executeLearnSkill(skillMeta) {
     );
 
     if (!check.canLearn) {
-        showMaterialAlert([check.reason], `⚠️ 技能 [${skillMeta.name}] 研習失敗`);
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert([check.reason], `⚠️ 技能 [${skillMeta.name}] 研習失敗`);
+        } else {
+            alert(check.reason);
+        }
         return;
     }
 
@@ -232,12 +264,16 @@ function executeLearnSkill(skillMeta) {
 }
 
 function executeResetStats() {
-    if (currentRun.gold < 300) {
-        showMaterialAlert([`🪙 金幣不足：洗點需要 300 G (當前僅有 ${currentRun.gold} G)`], "⚠️ 金幣不足");
+    let goldAvailable = (currentRun && currentRun.gold !== undefined) ? currentRun.gold : (accountMeta ? accountMeta.gold : 0);
+    if (goldAvailable < 300) {
+        let msg = `🪙 金幣不足：洗點需要 300 G (當前僅有 ${goldAvailable} G)`;
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert([msg], "⚠️ 金幣不足");
+        } else {
+            alert(msg);
+        }
         return;
     }
-
-    if (!confirm("確定要消耗 300 G 洗回所有已分配的屬性點嗎？")) return;
 
     currentRun.gold -= 300;
 
@@ -253,18 +289,37 @@ function executeResetStats() {
     updateUI();
 }
 
+// --------------------------------------------------------------------------
+// 🔄 修正：點擊重選職業按鈕觸發 UI (移除了原生 confirm 阻擋)
+// --------------------------------------------------------------------------
 function triggerReselectJobUI() {
-    if (currentRun.gold < 1000) {
-        showMaterialAlert([`🪙 金幣不足：轉職洗禮需要 1,000 G (當前僅有 ${currentRun.gold} G)`], "⚠️ 金幣不足");
+    let goldAvailable = (currentRun && currentRun.gold !== undefined) ? currentRun.gold : (accountMeta ? accountMeta.gold : 0);
+    
+    if (goldAvailable < 1000) {
+        let msg = `🪙 金幣不足：轉職洗禮需要 1,000 G (當前僅有 ${goldAvailable} G)`;
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert([msg], "⚠️ 金幣不足");
+        } else {
+            alert(msg);
+        }
         return;
     }
 
-    if (!confirm("⚠️ 警告：重選職業將使等級重置為 Lv.1！裝備與倉庫素材完好保留。確定進行？")) return;
-
+    // 直接彈出職業選擇視窗
     renderInitialJobModal(true);
 }
 
 function executeReselectJob(newJobId) {
+    if (currentRun.gold < 1000) {
+        let msg = `🪙 金幣不足：轉職洗禮需要 1,000 G`;
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert([msg], "⚠️ 金幣不足");
+        } else {
+            alert(msg);
+        }
+        return;
+    }
+
     currentRun.gold -= 1000;
 
     accountMeta.job = newJobId;
@@ -287,8 +342,14 @@ function executeReselectJob(newJobId) {
     resetCurrentRunData();
     saveGameData();
 
-    addLog(`🔄⚖️【轉職洗禮完成】已成功將血脈重置為 ➔ <strong>${getJobChineseName(newJobId)} (Lv.1)</strong>！`, "perfect");
-    updateUI();
+    let displayJobName = typeof getJobChineseName === "function" ? getJobChineseName(newJobId) : (typeof JOB_DATABASE !== "undefined" && JOB_DATABASE[newJobId] ? JOB_DATABASE[newJobId].name : newJobId);
+
+    if (typeof addLog === "function") {
+        addLog(`🔄⚖️【轉職洗禮完成】已成功將血脈重置為 ➔ <strong>${displayJobName} (Lv.1)</strong>！`, "perfect");
+    }
+    
+    if (typeof updateUI === "function") updateUI();
+    if (typeof renderVillageGuild === "function") renderVillageGuild();
 }
 
 function toggleTacticsDrawer() {
@@ -522,7 +583,9 @@ function executeVillageCooking(recipe) {
     }
 
     if (missingList.length > 0) {
-        showMaterialAlert(missingList, `⚠️ 料理 [${recipe.name}] 所需食材不足`);
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert(missingList, `⚠️ 料理 [${recipe.name}] 所需食材不足`);
+        }
         return;
     }
 
@@ -572,7 +635,9 @@ function executeForgeEquipment(blueprint) {
     }
 
     if (missingList.length > 0) {
-        showMaterialAlert(missingList, `⚠️ 裝備 [${blueprint.name}] 鍛造素材不足`);
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert(missingList, `⚠️ 裝備 [${blueprint.name}] 鍛造素材不足`);
+        }
         return;
     }
 
@@ -621,7 +686,9 @@ function refineSpecificEquipment(equipName) {
     const curLvl = accountMeta.itemRefines[equipName] || 0;
 
     if (curLvl >= 11) {
-        showMaterialAlert([`[${equipName}] 已達到最高強化等級 (+11)！`], "🌟 已達滿級");
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert([`[${equipName}] 已達到最高強化等級 (+11)！`], "🌟 已達滿級");
+        }
         return;
     }
 
@@ -892,10 +959,9 @@ function executeEnvironmentTick() {
 }
 
 // --------------------------------------------------------------------------
-// 🗡️ 玩家行動 Tick (含技能特效、狀態異常加載與 DoT 扣血)
+// 🗡️ 玩家行動 Tick
 // --------------------------------------------------------------------------
 function executePlayerActionTick() {
-    // 1. 處理魔物身上劇毒 (Poison DoT) 與燃燒 (Burn DoT) 扣血
     if (activeMonster && activeMonster.hp > 0) {
         if (activeMonster.poisonStacks > 0) {
             let poisonDmg = Math.floor(activeMonster.poisonStacks * 15 + activeMonster.maxHp * 0.02);
@@ -916,7 +982,6 @@ function executePlayerActionTick() {
         return;
     }
 
-    // 2. 檢查玩家自動 AI 戰術
     if (executeAutoBattleAiTurn()) {
         if (activeMonster && activeMonster.hp <= 0) {
             if (combatTickerTimer) clearInterval(combatTickerTimer); 
@@ -929,7 +994,6 @@ function executePlayerActionTick() {
     const baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
     let executedSkill = false;
 
-    // 3. 掃描主動技能施放
     if (typeof SKILLS_DATABASE !== "undefined") {
         let availableSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentRun.job) : (SKILLS_DATABASE[currentRun.job] || []);
 
@@ -945,17 +1009,11 @@ function executePlayerActionTick() {
                 triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
                 let fxClass = detectSkillCssClass(sMeta.name);
 
-                // ----------------------------------------------------------
-                // A. 護盾加載 (Shield Gain)
-                // ----------------------------------------------------------
                 if (eff.shieldGain) {
                     currentRun.shield = (currentRun.shield || 0) + eff.shieldGain;
                     addLog(`🛡️ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，成功加載晶體護盾 <span style="color:#00ffcc; font-weight:bold;">+${eff.shieldGain} Shield</span>！`, "perfect");
                 }
 
-                // ----------------------------------------------------------
-                // B. 治癒與 MP 回復
-                // ----------------------------------------------------------
                 if (eff.healPercent || eff.healAmount) {
                     let healVal = eff.healAmount || Math.floor((currentRun.maxHp || 100) * eff.healPercent);
                     currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
@@ -966,9 +1024,6 @@ function executePlayerActionTick() {
                     addLog(`🧘 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，靈魂充能回復 <span class="heal-effect">+${eff.mpRestore} MP</span>！`, "perfect");
                 }
 
-                // ----------------------------------------------------------
-                // C. 屬性 Buff 增益
-                // ----------------------------------------------------------
                 if (eff.blockBuff || eff.permAtk || eff.permHp || eff.dodgeBuff || eff.spdBuff) {
                     if (eff.blockBuff) currentRun.def += eff.blockBuff;
                     if (eff.permAtk) currentRun.atk += eff.permAtk;
@@ -978,27 +1033,19 @@ function executePlayerActionTick() {
                     addLog(`🛡️ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 成功加載戰術狀態！`, "perfect");
                 }
 
-                // ----------------------------------------------------------
-                // D. 劇毒爆裂 (Explode Poison)
-                // ----------------------------------------------------------
                 if (eff.explodePoison && activeMonster.poisonStacks > 0) {
                     let explodeDmg = eff.dmg + (activeMonster.poisonStacks * 70);
                     let res = applyDamageWithShield(activeMonster, explodeDmg);
                     addLog(`🧪💥 引爆全部 <span class="skill-poison">${activeMonster.poisonStacks} 層劇毒</span>！對 <span class="strike-slash">[${activeMonster.name}]</span> 造成核爆級真傷 <span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>！`, "skill-hit");
-                    activeMonster.poisonStacks = 0; // 清空毒素
+                    activeMonster.poisonStacks = 0; 
                 }
-                // ----------------------------------------------------------
-                // E. 一般技能物理/魔法攻擊打擊
-                // ----------------------------------------------------------
                 else if (eff.dmg) {
                     let rawAtk = eff.dmg;
                     let targetDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
 
-                    // 穿甲破防計算
                     if (eff.pierceArmor) targetDef = Math.floor(targetDef * (1 - eff.pierceArmor));
                     if (eff.ignoreDef) targetDef = 0;
 
-                    // 冰箭/火箭冰凍連擊加成
                     if (sMeta.name.includes("火箭") && activeMonster.freezeTurns > 0) {
                         rawAtk = Math.floor(rawAtk * 2.5);
                         addLog(`🔥❄️【冰火暴擊】魔物處於冰凍狀態！火箭術觸發 2.5 倍爆發傷害！`, "perfect");
@@ -1006,7 +1053,6 @@ function executePlayerActionTick() {
 
                     let dmgRes = calculateDamage(rawAtk, targetDef, true, (isMagicJob || eff.isMagic));
 
-                    // 強制暴擊判定
                     if (eff.forceCrit) {
                         dmgRes.isCrit = true;
                         dmgRes.damage = Math.floor(dmgRes.damage * 1.5);
@@ -1029,7 +1075,6 @@ function executePlayerActionTick() {
 
                         addLog(`💥 奧義爆發！${critTag}施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】${multiTag}</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${totalActualDmg} HP</span>`, "skill-hit");
                         
-                        // 附加劇毒與燃燒層數
                         if (eff.poisonStacks) {
                             activeMonster.poisonStacks = (activeMonster.poisonStacks || 0) + eff.poisonStacks;
                             addLog(`🧪 成功注入 <span class="skill-poison">+${eff.poisonStacks} 層劇毒</span>！(當前共 ${activeMonster.poisonStacks} 層)`, "perfect");
@@ -1039,7 +1084,6 @@ function executePlayerActionTick() {
                             addLog(`🔥 成功引燃 <span class="skill-fire">+${eff.burnStacks} 層燃燒</span>！`, "perfect");
                         }
 
-                        // 控場：凍結與眩暈
                         if (eff.freezeChance && Math.random() * 100 < eff.freezeChance) {
                             activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 1;
                             addLog(`❄️【極寒冷凍】魔物被強行 <span class="skill-ice">【凍結】1 回合</span>！`, "perfect");
@@ -1049,13 +1093,11 @@ function executePlayerActionTick() {
                             addLog(`💫【重擊眩暈】魔物被強行 <span class="skill-bash">【眩暈】1 回合</span>！`, "perfect");
                         }
 
-                        // 戰術強奪 (Steal)
                         if (eff.stealGold) {
                             currentRun.gold += eff.stealGold;
                             addLog(`🪙【戰術順手牽羊】強制竊取魔物金幣 <span class="gold-victory-text">+${eff.stealGold} G</span>！`, "perfect");
                         }
 
-                        // 命脈吸血 (Vampire)
                         if (currentRun.vampRate && currentRun.vampRate > 0) {
                             let vampVal = Math.floor(totalActualDmg * (currentRun.vampRate / 100));
                             if (vampVal > 0) {
@@ -1070,7 +1112,6 @@ function executePlayerActionTick() {
         }
     }
 
-    // 4. 普通攻擊 (普攻)
     if (!executedSkill) {
         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
         let dmgRes = calculateDamage(baseAtkPower, monsterDef, true, isMagicJob);
@@ -1084,7 +1125,6 @@ function executePlayerActionTick() {
             
             addLog(`⚔️ 普攻揮砍！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${res.actualHpDmg} HP</span>`, "deal"); 
 
-            // 雙連擊判定
             if (currentRun.doubleStrike && Math.random() * 100 < currentRun.doubleStrike && activeMonster.hp > 0) {
                 let extraDmg = calculateDamage(Math.floor(baseAtkPower * 0.7), monsterDef, true, isMagicJob);
                 if (!extraDmg.isMiss) {
@@ -1102,17 +1142,15 @@ function executePlayerActionTick() {
 }
 
 // --------------------------------------------------------------------------
-// 👹 魔物行動 Tick (含冰凍/眩暈檢測與護盾抵扣)
+// 👹 魔物行動 Tick
 // --------------------------------------------------------------------------
 function executeMonsterActionTick() {
-    // 1. 控場檢測：冰凍
     if (activeMonster.freezeTurns > 0) { 
         activeMonster.freezeTurns--; 
         addLog(`❄️ 魔物處於 <span class="skill-ice">【冰凍狀態】</span>，無法行動！(剩餘 ${activeMonster.freezeTurns} 回合)`, "perfect");
         return; 
     }
 
-    // 2. 控場檢測：眩暈
     if (activeMonster.stunTurns > 0) {
         activeMonster.stunTurns--;
         addLog(`💫 魔物處於 <span class="skill-bash">【眩暈狀態】</span>，陷入混亂無法行動！`, "perfect");
@@ -1129,7 +1167,6 @@ function executeMonsterActionTick() {
         return;
     }
 
-    // 3. 護盾優先吸收傷害
     let res = applyDamageWithShield(currentRun, dmgRes.damage);
     let shieldMsg = res.absorbed > 0 ? `🛡️ 護盾吸收了 ${res.absorbed} 點傷害！` : "";
 
@@ -1274,7 +1311,9 @@ function openJobAdvancementModal() {
     const choices = ADVANCED_JOBS_DATABASE[currentBaseJob] || [];
 
     if (choices.length === 0) {
-        showMaterialAlert(["當前職業無法進行二轉突破！"], "⚠️ 無法轉職");
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert(["當前職業無法進行二轉突破！"], "⚠️ 無法轉職");
+        }
         return;
     }
 
