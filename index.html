@@ -104,7 +104,10 @@
                 <div class="bars-container-row">
                     <div class="mini-bar-box">
                         <div class="flex-space text-sm"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
-                        <div class="visual-bar-bg"><div id="hp-bar-fill" class="visual-bar-fill hp-color"></div></div>
+                        <div class="visual-bar-bg">
+                            <div id="hp-bar-ghost" class="visual-bar-ghost"></div>
+                            <div id="hp-bar-fill" class="visual-bar-fill hp-color"></div>
+                        </div>
                     </div>
                     <div class="mini-bar-box">
                         <div class="flex-space text-sm"><span>🔵 MP</span> <strong><span id="p-mp">0</span>/<span id="p-maxmp">50</span></strong></div>
@@ -273,10 +276,13 @@
                 <div class="bars-container-row">
                     <div class="mini-bar-box monster-bar-box">
                         <div class="flex-space text-sm"><span>❤️ 魔物血量</span><strong><span id="m-hp-text">0 / 0</span></strong></div>
-                        <div class="visual-bar-bg"><div id="m-hp-bar" class="visual-bar-fill monster-hp-gradient"></div></div>
+                        <div class="visual-bar-bg">
+                            <div id="m-hp-bar-ghost" class="visual-bar-ghost"></div>
+                            <div id="m-hp-bar" class="visual-bar-fill monster-hp-gradient"></div>
+                        </div>
                     </div>
                     <div class="mini-bar-box monster-bar-box" id="m-atb-row">
-                        <div class="flex-space text-sm"><span>⚡ 行動準備</span><strong><span id="m-atb-text">0</span>%</strong></div>
+                        <div class="flex-space text-sm"><span>⚡ 行動</span><strong><span id="m-atb-text">0</span>%</strong></div>
                         <div class="visual-bar-bg"><div id="m-atb-bar-fill" class="visual-bar-fill atb-color"></div></div>
                     </div>
                 </div>
