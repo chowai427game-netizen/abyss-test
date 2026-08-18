@@ -1418,3 +1418,136 @@ body {
 
 /* QTE 防誤觸 */
 .qte-interact-btn { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+
+/* ==========================================================================
+   🍞 1. Toast 輕量動態通知系統
+   ========================================================================== */
+#toast-container {
+    position: fixed;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100010;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    width: 90%;
+    max-width: 320px;
+}
+
+.toast-item {
+    background: rgba(20, 20, 28, 0.92);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transform: translateY(-15px) scale(0.95);
+    animation: toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.toast-item.toast-success { border-color: rgba(46, 204, 113, 0.6); }
+.toast-item.toast-warn { border-color: rgba(231, 76, 60, 0.6); }
+
+.toast-item.toast-fade-out {
+    animation: toastOut 0.25s ease-in forwards;
+}
+
+@keyframes toastIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+    to { opacity: 0; transform: translateY(-10px) scale(0.9); }
+}
+
+/* ==========================================================================
+   👻 2. 血條傷害殘影白條特效
+   ========================================================================== */
+.visual-bar-bg {
+    position: relative; /* 確保雙層血條重疊 */
+}
+
+.visual-bar-ghost {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 100%;
+    background: #ffffff;
+    opacity: 0.75;
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 1;
+}
+
+/* 主血條層置頂 */
+.visual-bar-fill {
+    position: relative;
+    z-index: 2;
+}
+
+/* ==========================================================================
+   🎴 3. 物品/料理「長按/懸停詳細卡片」 (Floating Item Card)
+   ========================================================================== */
+#floating-item-card {
+    position: fixed;
+    z-index: 100020;
+    width: 220px;
+    background: rgba(14, 14, 20, 0.96);
+    border: 1px solid var(--gold-glow);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+    transform: translateY(5px);
+}
+
+#floating-item-card.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.item-card-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--gold-glow);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.item-card-type {
+    font-size: 10px;
+    color: #8e8e93;
+    font-weight: normal;
+}
+
+.item-card-body {
+    font-size: 11px;
+    color: #d1d1d6;
+    line-height: 1.5;
+}
+
+.item-card-stats {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    color: #00ffcc;
+    font-weight: bold;
+    font-size: 10px;
+}
