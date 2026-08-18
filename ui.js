@@ -985,3 +985,159 @@ function changeCraftingLvl(range) {
     activeCraftingLvlRange = range;
     renderVillageWorkshop();
 }
+
+// ==========================================================================
+// 🍞 1. Toast 輕量通知 API
+// ==========================================================================
+function showToast(msg, type = "info") {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-item ${type === 'success' ? 'toast-success' : type === 'warn' ? 'toast-warn' : ''}`;
+    toast.innerText = msg;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('toast-fade-out');
+        setTimeout(() => toast.remove(), 250);
+    }, 2000);
+}
+
+// 替代原本彈窗的提示：如提領料理或全存時改用輕量 Toast
+function executeDepositAllBagItems() {
+    if (!currentRun.inventory || currentRun.inventory.length === 0) {
+        showToast("🎒 背包內目前沒有物品！", "warn");
+        return;
+    }
+
+    const count = currentRun.inventory.length;
+    if (!accountMeta.warehouse) accountMeta.warehouse = {};
+
+    currentRun.inventory.forEach(itemName => {
+        accountMeta.warehouse[itemName] = (accountMeta.warehouse[itemName] || 0) + 1;
+    });
+
+    currentRun.inventory = [];
+    if (typeof saveGameData === "function") saveGameData();
+    
+    showToast(`📦 已將 ${count} 件物品全存入倉庫！`, "success");
+    updateUI();
+    if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
+    if (currentVillageLocation === "WORKSHOP") renderVillageWorkshop();
+}
+
+// ==========================================================================
+// 👻 2. 血條「殘影白條」平滑過渡控制
+// ==========================================================================
+let ghostHpTimer = null;
+let ghostMonsterHpTimer = null;
+
+function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
+    const fillEl = DOM.get(fillElId);
+    const ghostEl = DOM.get(ghostElId);
+    if (!fillEl || !ghostEl) return;
+
+    const targetPct = Math.max(0, Math.min(100, (current / max) * 100));
+    const currentGhostPct = parseFloat(ghostEl.style.width) || 100;
+
+    // 扣血時：主血條立刻縮短，白條延遲 0.2 秒後跟進
+    if (targetPct < currentGhostPct) {
+        fillEl.style.width = `${targetPct}%`;
+        clearTimeout(ghostHpTimer);
+        ghostHpTimer = setTimeout(() => {
+            ghostEl.style.width = `${targetPct}%`;
+        }, 200);
+    } else {
+        // 回血時：兩條同時增加
+        fillEl.style.width = `${targetPct}%`;
+        ghostEl.style.width = `${targetPct}%`;
+    }
+}
+
+// ==========================================================================
+// 🎴 3. 懸停與長按詳細卡片 (Floating Item Card)
+// ==========================================================================
+let touchCardTimer = null;
+
+function showFloatingCard(e, title, type, desc, stats = "") {
+    let card = document.getElementById('floating-item-card');
+    if (!card) {
+        card = document.createElement('div');
+        card.id = 'floating-item-card';
+        document.body.appendChild(card);
+    }
+
+    card.innerHTML = `
+        <div class="item-card-title">
+            <span>${title}</span>
+            <span class="item-card-type">${type}</span>
+        </div>
+        <div class="item-card-body">${desc}</div>
+        ${stats ? `<div class="item-card-stats">${stats}</div>` : ''}
+    `;
+
+    // 定位計算：根據手指/滑鼠座標調整，避免超出螢幕邊界
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    let posX = clientX + 15;
+    let posY = clientY - 40;
+
+    if (posX + 230 > window.innerWidth) posX = clientX - 235;
+    if (posY < 10) posY = 10;
+
+    card.style.left = `${posX}px`;
+    card.style.top = `${posY}px`;
+    card.classList.add('active');
+}
+
+function hideFloatingCard() {
+    clearTimeout(touchCardTimer);
+    const card = document.getElementById('floating-item-card');
+    if (card) card.classList.remove('active');
+}
+
+// 為背包格子綁定長按與懸停事件
+function attachItemCardEvents(element, itemName) {
+    if (!element || !itemName) return;
+
+    // 取得物品詳細資料（料理或裝備）
+    let desc = "攜帶型冒險道具。";
+    let type = "消耗品";
+    let stats = "";
+
+    if (typeof RECIPES_DATABASE !== "undefined") {
+        const recipe = RECIPES_DATABASE.find(r => r.name === itemName);
+        if (recipe) {
+            desc = recipe.desc;
+            type = recipe.type === "village_eat" ? "長效 Buff 料理" : "戰鬥回復料理";
+        }
+    }
+
+    if (typeof CRAFTING_BLUEPRINTS !== "undefined") {
+        const bp = CRAFTING_BLUEPRINTS.find(b => b.name === itemName);
+        if (bp) {
+            desc = bp.desc;
+            type = "裝備";
+            stats = Object.keys(bp.stats).map(k => `${k}: +${bp.stats[k]}`).join(" | ");
+        }
+    }
+
+    // 🖥️ 滑鼠懸停（電腦）
+    element.onmouseenter = (e) => showFloatingCard(e, itemName, type, desc, stats);
+    element.onmouseleave = () => hideFloatingCard();
+
+    // 📱 長按 0.3 秒觸發（手機）
+    element.ontouchstart = (e) => {
+        touchCardTimer = setTimeout(() => {
+            showFloatingCard(e, itemName, type, desc, stats);
+        }, 300);
+    };
+    element.ontouchend = () => hideFloatingCard();
+    element.ontouchcancel = () => hideFloatingCard();
+}
