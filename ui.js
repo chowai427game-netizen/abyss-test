@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX 浮動卡片與輕量反饋全整合版)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (5 大 UX 體驗升級版)
 // ==========================================================================
 
 const DOM = {
@@ -20,7 +20,8 @@ const DOM = {
             'village-panel-box', 'log-wrapper-box', 'tactics-drawer-box', 'char-folder-summary',
             'stat-alloc-grid', 'bag-capacity-text', 'bag-slots-container', 'location-text',
             'guild-skills-container', 'kitchen-warehouse-display', 'recipes-container',
-            'workshop-warehouse-display', 'blueprints-container'
+            'workshop-warehouse-display', 'blueprints-container',
+            'player-status-badges', 'monster-status-badges'
         ];
         keys.forEach(key => {
             const el = document.getElementById(key);
@@ -42,9 +43,10 @@ const DOM = {
 let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
+let activeWarehouseFilter = "all"; // 🏷️ 倉庫過濾狀態
 
 // --------------------------------------------------------------------------
-// 🍞 1. Toast 輕量動態通知與 Modal 警告系統
+// 🍞 1. Toast 輕量通知 API
 // --------------------------------------------------------------------------
 
 function showToast(msg, type = "info") {
@@ -102,7 +104,7 @@ function hideMaterialAlert() {
 }
 
 // --------------------------------------------------------------------------
-// 👻 2. 血條「傷害殘影白條」平滑過渡控制
+// 👻 2. 血條傷害殘影白條控制
 // --------------------------------------------------------------------------
 
 let ghostHpTimer = null;
@@ -138,7 +140,7 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
 }
 
 // --------------------------------------------------------------------------
-// 🎴 3. 通用 Floating Card 浮動卡片引擎 (PC 懸停 & 手機長按)
+// 🎴 3. 通用 Floating Card 浮動卡片引擎
 // --------------------------------------------------------------------------
 
 let touchCardTimer = null;
@@ -197,6 +199,76 @@ function bindFloatingCard(element, getCardDataFn) {
     };
     element.ontouchend = () => hideFloatingCard();
     element.ontouchcancel = () => hideFloatingCard();
+}
+
+// --------------------------------------------------------------------------
+// ✨ 4. Buff / Debuff 狀態徽章列渲染引擎
+// --------------------------------------------------------------------------
+
+function renderStatusBadges(containerEl, effectsMap) {
+    if (!containerEl) return;
+    containerEl.innerHTML = "";
+
+    if (!effectsMap || Object.keys(effectsMap).length === 0) return;
+
+    for (let key in effectsMap) {
+        const eff = effectsMap[key];
+        if (!eff || eff.duration <= 0) continue;
+
+        const badge = document.createElement('div');
+        const isBuff = eff.type === "buff";
+        badge.className = `status-badge ${isBuff ? 'buff' : 'debuff'}`;
+        badge.innerHTML = `<span>${eff.icon || '✨'}</span> <span>${eff.name}</span> <b>(${eff.duration})</b>`;
+
+        bindFloatingCard(badge, () => ({
+            title: eff.name,
+            type: isBuff ? "增益 Buff" : "減益 Debuff",
+            desc: eff.desc || "戰場狀態影響。",
+            stats: `剩餘回合: ${eff.duration}`
+        }));
+
+        containerEl.appendChild(badge);
+    }
+}
+
+// --------------------------------------------------------------------------
+// 📱 5. 手機端橫向滑動切換村莊分頁 (Swipe Navigation)
+// --------------------------------------------------------------------------
+
+function initSwipeNavigation() {
+    const villageBox = DOM.get('village-panel-box');
+    if (!villageBox) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const locations = ['GATE', 'GUILD', 'KITCHEN', 'WORKSHOP', 'SQUARE'];
+
+    villageBox.ontouchstart = (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    };
+
+    villageBox.ontouchend = (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+
+        // 確保為水平滑動（避免垂直滾動頁面時誤觸）
+        if (Math.abs(diffX) > 60 && Math.abs(diffY) < 40) {
+            const currentIndex = locations.indexOf(currentVillageLocation);
+            if (diffX < 0 && currentIndex < locations.length - 1) {
+                // 左滑 ➔ 下一個分頁
+                switchVillageLocation(locations[currentIndex + 1]);
+                showToast(`轉至 ${locations[currentIndex + 1]} 區域`, "info");
+            } else if (diffX > 0 && currentIndex > 0) {
+                // 右滑 ➔ 上一個分頁
+                switchVillageLocation(locations[currentIndex - 1]);
+                showToast(`轉至 ${locations[currentIndex - 1]} 區域`, "info");
+            }
+        }
+    };
 }
 
 // --------------------------------------------------------------------------
@@ -300,7 +372,7 @@ function executeDepositAllBagItems() {
 }
 
 // --------------------------------------------------------------------------
-// ⚔️ 裝備數值比對預覽計算 (Stat Comparison Helper)
+// ⚔️ 裝備數值比對預覽計算
 // --------------------------------------------------------------------------
 
 function getEquipmentStatDiff(blueprint) {
@@ -344,7 +416,7 @@ function getEquipmentStatDiff(blueprint) {
 }
 
 // --------------------------------------------------------------------------
-// 👤 角色數據 UI 同步 (含 Paper Doll & 屬性 Floating Card 綁定)
+// 👤 角色數據 UI 同步 (含背包滿載警示 + Status Badges)
 // --------------------------------------------------------------------------
 
 function syncCharacterDataUi() {
@@ -371,7 +443,7 @@ function syncCharacterDataUi() {
             : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
-    // 配點網格 + Floating Card 綁定
+    // 配點網格
     const gridEl = DOM.get('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
@@ -419,7 +491,7 @@ function syncCharacterDataUi() {
         });
     }
 
-    // 血條與殘影白條更新
+    // 血條更新
     const hpEl = DOM.get('p-hp');
     const maxHpEl = DOM.get('p-maxhp');
     const mpEl = DOM.get('p-mp');
@@ -435,27 +507,8 @@ function syncCharacterDataUi() {
     const mpBar = DOM.get('mp-bar-fill');
     if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
-    const pAtbRow = DOM.get('p-atb-row');
-    if (pAtbRow) {
-        if (gameState === "VILLAGE") {
-            pAtbRow.style.display = "none";
-        } else {
-            pAtbRow.style.display = "block";
-            const pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
-            const pAtbBar = DOM.get('p-atb-bar-fill');
-            
-            if (pAtbBar) {
-                const currentW = parseFloat(pAtbBar.style.width) || 0;
-                if (pAtbPercent < currentW) {
-                    pAtbBar.style.transition = "none";
-                    pAtbBar.style.width = "0%";
-                    pAtbBar.offsetHeight;
-                }
-                pAtbBar.style.transition = "width 0.25s linear";
-                pAtbBar.style.width = `${pAtbPercent}%`;
-            }
-        }
-    }
+    // 渲染玩家當前 Buff/Debuff 狀態徽章
+    renderStatusBadges(DOM.get('player-status-badges'), currentRun.activeEffects);
 
     const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
@@ -505,19 +558,26 @@ function syncCharacterDataUi() {
     const maxBag = typeof MAX_BAG_SIZE !== "undefined" ? MAX_BAG_SIZE : 6;
     const invLen = currentRun.inventory?.length || 0;
     
+    // 🚨 警示 1：背包容量動態文字樣式
     const capTextEl = DOM.get('bag-capacity-text');
     if (capTextEl) {
+        let capClass = "";
+        if (invLen >= maxBag) capClass = "text-full";
+        else if (invLen === maxBag - 1) capClass = "text-warn";
+
         if (gameState === "VILLAGE" && invLen > 0) {
-            capTextEl.innerHTML = `🎒 ${invLen} / ${maxBag} <button class="btn-game btn-rest" style="padding: 2px 8px; font-size: 10px; margin-left: 6px;" onclick="executeDepositAllBagItems()">📦 一鍵全存</button>`;
+            capTextEl.innerHTML = `<span class="${capClass}">🎒 ${invLen} / ${maxBag}</span> <button class="btn-game btn-rest" style="padding: 2px 8px; font-size: 10px; margin-left: 6px;" onclick="executeDepositAllBagItems()">📦 一鍵全存</button>`;
         } else {
-            capTextEl.innerText = `🎒 ${invLen} / ${maxBag}`;
+            capTextEl.innerHTML = `<span class="${capClass}">🎒 ${invLen} / ${maxBag}</span>`;
         }
     }
 
-    // 背包物品格子 + Floating Card 綁定
+    // 🚨 警示 2：背包滿載呼吸燈動畫
     const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
+        bagContainer.classList.toggle('bag-full', invLen >= maxBag);
         bagContainer.innerHTML = "";
+
         for (let i = 0; i < maxBag; i++) {
             const item = currentRun.inventory[i];
             const slot = document.createElement('div');
@@ -654,6 +714,7 @@ function updateUI() {
         const rerunBtn = DOM.get('btn-rerun-action');
         if (rerunBtn) rerunBtn.style.display = "none";
         
+        initSwipeNavigation(); // 📱 初始化滑動手勢
         syncCharacterDataUi();
         return; 
     }
@@ -699,17 +760,30 @@ function updateUI() {
         DOM.get('m-atk').innerText = activeMonster.atk;
         DOM.get('m-spd').innerText = activeMonster.spd;
 
+        // 👹 弱點與蓄力警告 (Monster Threat Cue)
+        const mAtbPercent = Math.min(100, Math.max(0, typeof monsterAtb !== "undefined" ? monsterAtb : 0));
+        
+        if (mAtbPercent >= 80) {
+            monBox.classList.add('monster-threat-high');
+        } else {
+            monBox.classList.remove('monster-threat-high');
+        }
+
+        const weakElement = activeMonster.weakness ? `弱點: ${activeMonster.weakness}` : "無特別弱點";
+
         bindFloatingCard(monBox, () => ({
             title: activeMonster.name,
             type: "敵對魔物",
-            desc: activeMonster.desc || "深淵威脅生物。",
+            desc: `${activeMonster.desc || "深淵威脅生物。"}<br><br>🎯 <b>弱點屬性:</b> <span style="color:#00ffcc;">${weakElement}</span>`,
             stats: `攻擊力: ${activeMonster.atk} | 速度: ${activeMonster.spd}`
         }));
+
+        // 渲染魔物 Buff/Debuff 狀態徽章
+        renderStatusBadges(DOM.get('monster-status-badges'), activeMonster.activeEffects);
 
         const mAtbRow = DOM.get('m-atb-row');
         if (mAtbRow) {
             mAtbRow.style.display = "block";
-            const mAtbPercent = Math.min(100, Math.max(0, typeof monsterAtb !== "undefined" ? monsterAtb : 0));
             const mAtbBar = DOM.get('m-atb-bar-fill');
             
             if (mAtbBar) {
@@ -725,6 +799,7 @@ function updateUI() {
         }
     } else if (monBox) {
         monBox.style.display = "none";
+        monBox.classList.remove('monster-threat-high');
         const mAtbRow = DOM.get('m-atb-row');
         if (mAtbRow) mAtbRow.style.display = "none";
     }
@@ -780,7 +855,7 @@ function formatSkillEffectText(s, lv, playerRun) {
 }
 
 // --------------------------------------------------------------------------
-// 🏛️ 冒險者公會技能面板 (單行精簡 UI + Floating Card 詳情)
+// 🏛️ 冒險者公會技能面板
 // --------------------------------------------------------------------------
 
 function renderVillageGuild() {
@@ -873,13 +948,46 @@ function renderVillageGuild() {
 }
 
 // --------------------------------------------------------------------------
-// 🍳 皇家料理屋介面 (精簡面板 + Floating Card 說明)
+// 🏷️ 倉庫過濾與渲染輔助 (Warehouse Filter Helper)
+// --------------------------------------------------------------------------
+
+function renderWarehouseFilterBar(containerEl, onFilterChange) {
+    if (!containerEl) return;
+    const filterRow = document.createElement('div');
+    filterRow.className = "warehouse-filter-row";
+
+    const tags = [
+        { key: "all", label: "🌐 全部" },
+        { key: "mat", label: "🌾 食材素材" },
+        { key: "dish", label: "🍱 料理成品" },
+        { key: "equip", label: "⚔️ 裝備神裝" }
+    ];
+
+    tags.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = `tag-btn ${activeWarehouseFilter === t.key ? 'active' : ''}`;
+        btn.innerText = t.label;
+        btn.onclick = () => {
+            activeWarehouseFilter = t.key;
+            onFilterChange();
+        };
+        filterRow.appendChild(btn);
+    });
+
+    containerEl.appendChild(filterRow);
+}
+
+// --------------------------------------------------------------------------
+// 🍳 皇家料理屋介面 (含倉庫 Tag 分類過濾)
 // --------------------------------------------------------------------------
 
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
         wBox.innerHTML = "";
+
+        // 🏷️ 渲染過濾標籤列
+        renderWarehouseFilterBar(wBox, renderVillageCookingWorkshop);
 
         const warehouseData = accountMeta.warehouse || {};
         let rawMaterials = [];
@@ -891,20 +999,27 @@ function renderVillageCookingWorkshop() {
             let count = warehouseData[itemKey];
             if (count <= 0) continue;
 
-            if (recipeNames.includes(itemKey)) {
+            const isDish = recipeNames.includes(itemKey);
+
+            if (activeWarehouseFilter === "mat" && isDish) continue;
+            if (activeWarehouseFilter === "dish" && !isDish) continue;
+
+            if (isDish) {
                 cookedDishes.push({ name: itemKey, qty: count });
             } else {
                 rawMaterials.push(`${itemKey} (x${count})`);
             }
         }
 
-        const rawMatText = rawMaterials.join(" | ") || "暫無基礎食材";
-        const rawMatContainer = document.createElement('div');
-        rawMatContainer.style.cssText = "margin-bottom: 8px; color: #aaa; font-size: 11px; line-height: 1.5;";
-        rawMatContainer.innerHTML = `📦 <strong>倉庫食材：</strong> ${rawMatText}`;
-        wBox.appendChild(rawMatContainer);
+        if (activeWarehouseFilter !== "dish") {
+            const rawMatText = rawMaterials.join(" | ") || "暫無符合條件的食材";
+            const rawMatContainer = document.createElement('div');
+            rawMatContainer.style.cssText = "margin-bottom: 8px; color: #aaa; font-size: 11px; line-height: 1.5;";
+            rawMatContainer.innerHTML = `📦 <strong>倉庫食材：</strong> ${rawMatText}`;
+            wBox.appendChild(rawMatContainer);
+        }
 
-        if (cookedDishes.length > 0) {
+        if (activeWarehouseFilter !== "mat" && cookedDishes.length > 0) {
             const dishesGrid = document.createElement('div');
             dishesGrid.style.cssText = "display: flex; flex-direction: column; gap: 4px; margin-top: 6px;";
 
@@ -971,11 +1086,7 @@ function renderVillageCookingWorkshop() {
 
         const ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
 
-        row.innerHTML = `
-            <div>
-                <strong style="color:#2ecc71; font-size:12px;">${recipe.name}</strong>
-            </div>
-        `;
+        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:12px;">${recipe.name}</strong></div>`;
 
         const btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
@@ -997,14 +1108,31 @@ function renderVillageCookingWorkshop() {
 }
 
 // --------------------------------------------------------------------------
-// 🛠️ 加工所介面 (精簡藍圖 + 屬性比對 Floating Card)
+// 🛠️ 加工所介面 (含倉庫 Tag 分類過濾)
 // --------------------------------------------------------------------------
 
 function renderVillageWorkshop() {
     const wBox = DOM.get('workshop-warehouse-display');
     if (wBox) {
-        const wItems = Object.keys(accountMeta.warehouse || {}).map(k => `${k} (x${accountMeta.warehouse[k]})`).join(" | ");
-        wBox.innerHTML = `📦 <strong>雲端庫存：</strong> ${wItems || "倉庫空空如也"}`;
+        wBox.innerHTML = "";
+
+        // 🏷️ 渲染過濾標籤列
+        renderWarehouseFilterBar(wBox, renderVillageWorkshop);
+
+        const warehouseData = accountMeta.warehouse || {};
+        let itemsList = [];
+
+        for (let k in warehouseData) {
+            if (warehouseData[k] <= 0) continue;
+            
+            // 根據類型過濾
+            if (activeWarehouseFilter === "mat" && typeof CRAFTING_BLUEPRINTS !== "undefined" && CRAFTING_BLUEPRINTS.some(b => b.name === k)) continue;
+            if (activeWarehouseFilter === "equip" && typeof CRAFTING_BLUEPRINTS !== "undefined" && !CRAFTING_BLUEPRINTS.some(b => b.name === k)) continue;
+
+            itemsList.push(`${k} (x${warehouseData[k]})`);
+        }
+
+        wBox.appendChild(document.createTextNode(`📦 雲端庫存： ${itemsList.join(" | ") || "無符合條件的物品"}`));
     }
     
     const bContainer = DOM.get('blueprints-container');
