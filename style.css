@@ -1551,3 +1551,93 @@ body {
     font-weight: bold;
     font-size: 10px;
 }
+
+/* ==========================================================================
+   🚨 1. 背包滿載視覺警示 (Bag Capacity State)
+   ========================================================================== */
+#bag-slots-container.bag-full {
+    border: 1px solid rgba(255, 71, 87, 0.8) !important;
+    box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
+    animation: fullBagPulse 1.2s infinite ease-in-out;
+}
+
+#bag-capacity-text.text-full {
+    color: #ff4757 !important;
+    font-weight: bold;
+}
+
+#bag-capacity-text.text-warn {
+    color: #ffa502 !important;
+}
+
+@keyframes fullBagPulse {
+    0%, 100% { border-color: rgba(255, 71, 87, 0.4); }
+    50% { border-color: rgba(255, 71, 87, 1); }
+}
+
+/* ==========================================================================
+   👹 2. 魔物蓄力警告 (Monster Threat Cue)
+   ========================================================================== */
+#monster-status-card.monster-threat-high {
+    border: 1px solid rgba(255, 71, 87, 0.9) !important;
+    box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
+    animation: threatPulse 0.8s infinite ease-in-out;
+}
+
+@keyframes threatPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 71, 87, 0.3); }
+    50% { box-shadow: 0 0 18px rgba(255, 71, 87, 0.8); }
+}
+
+/* ==========================================================================
+   ✨ 3. Buff / Debuff 狀態徽章列 (Status Badges)
+   ========================================================================== */
+.status-badge-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.status-badge {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+}
+
+.status-badge.buff { border-color: rgba(46, 204, 113, 0.5); color: #2ecc71; }
+.status-badge.debuff { border-color: rgba(231, 76, 60, 0.5); color: #e74c3c; }
+
+/* ==========================================================================
+   🏷️ 4. 倉庫過濾分頁標籤 (Warehouse Tag Filters)
+   ========================================================================== */
+.warehouse-filter-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    overflow-x: auto;
+}
+
+.tag-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tag-btn.active {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: #ffd700;
+    color: #ffd700;
+    font-weight: bold;
+}
