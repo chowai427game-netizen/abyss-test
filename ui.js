@@ -1267,3 +1267,221 @@ function changeCraftingLvl(range) {
     activeCraftingLvlRange = range;
     renderVillageWorkshop();
 }
+
+// ==========================================================================
+// 🔑 360° 轉盤開鎖 (Radial Lockpick QTE System)
+// ==========================================================================
+
+let lockpickState = {
+    targetAngle: 0,      // 最佳解鎖角度 (0 ~ 360)
+    tolerance: 15,       // 容許誤差角度 (±15度)
+    currentAngle: 0,     // 玩家目前指針角度
+    holdProgress: 0,     // 成功區域停留蓄力進度 (0 ~ 100)
+    isDragging: false,
+    holdTimer: null,
+    onSuccessCallback: null
+};
+
+// --------------------------------------------------------------------------
+// 📦 1. 寶箱察看前置面板 (防止過快自動觸發 QTE)
+// --------------------------------------------------------------------------
+
+function openChestInspectionModal(chestName = "遠古白銀寶箱", difficulty = "medium", onSuccess) {
+    const overlay = document.getElementById('chest-inspect-overlay');
+    const titleEl = document.getElementById('chest-inspect-title');
+    const descEl = document.getElementById('chest-inspect-desc');
+
+    if (titleEl) titleEl.innerText = `📦 發現 ${chestName}`;
+    if (descEl) descEl.innerText = `此寶箱掛有高階鎖芯，需要精細開鎖（難度：${difficulty.toUpperCase()}）。`;
+
+    lockpickState.onSuccessCallback = onSuccess;
+    lockpickState.difficulty = difficulty;
+
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function closeChestInspectModal() {
+    const overlay = document.getElementById('chest-inspect-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function confirmStartLockpick() {
+    closeChestInspectModal();
+    initLockpickQTE(lockpickState.difficulty);
+}
+
+function executeForceOpenChest() {
+    closeChestInspectModal();
+    if (Math.random() < 0.5) {
+        showToast("💥 撬鎖成功！但寶箱內部分物品受損。", "warn");
+        if (lockpickState.onSuccessCallback) lockpickState.onSuccessCallback(true);
+    } else {
+        showToast("⚠️ 撬鎖失敗！開鎖器折斷，引爆陷阱！", "warn");
+        addLog("⚠️ 強行撬鎖失敗，觸發防盜毒霧，受到微量傷害！", "take");
+    }
+}
+
+// --------------------------------------------------------------------------
+// ⚙️ 2. 初始化轉盤與 Pointer Events 跨平台監聽
+// --------------------------------------------------------------------------
+
+function initLockpickQTE(difficulty = "medium") {
+    const overlay = document.getElementById('lockpick-modal-overlay');
+    const dial = document.getElementById('lockpick-dial');
+    const sweetSpot = document.getElementById('lockpick-sweet-spot');
+
+    // 根據難度設定容許誤差
+    lockpickState.tolerance = difficulty === 'hard' ? 8 : (difficulty === 'easy' ? 22 : 14);
+    // 隨機產生最佳角度 (30° ~ 330° 避免正好落在原點)
+    lockpickState.targetAngle = Math.floor(Math.random() * 300) + 30;
+    lockpickState.currentAngle = 0;
+    lockpickState.holdProgress = 0;
+    lockpickState.isDragging = false;
+
+    // 視覺渲染最佳區域環形漸層
+    const tAngle = lockpickState.targetAngle;
+    const tol = lockpickState.tolerance;
+    const startAngle = (tAngle - tol + 360) % 360;
+    const endAngle = (tAngle + tol) % 360;
+
+    sweetSpot.style.background = `conic-gradient(
+        from 0deg,
+        transparent 0deg ${startAngle}deg,
+        rgba(0, 255, 204, 0.6) ${startAngle}deg ${endAngle}deg,
+        transparent ${endAngle}deg 360deg
+    )`;
+
+    updateLockpickNeedle(0);
+    updateProgressFill(0);
+
+    if (overlay) overlay.style.display = 'flex';
+
+    // 📱/💻 跨平台通用 Pointer Events 綁定
+    if (dial && !dial.dataset.bound) {
+        dial.dataset.bound = "true";
+
+        dial.addEventListener('pointerdown', (e) => {
+            dial.setPointerCapture(e.pointerId); // 鎖定指標，防止滑出界外失靈
+            lockpickState.isDragging = true;
+            calculateAngleFromPointer(e, dial);
+        });
+
+        dial.addEventListener('pointermove', (e) => {
+            if (!lockpickState.isDragging) return;
+            calculateAngleFromPointer(e, dial);
+        });
+
+        const stopDrag = (e) => {
+            if (lockpickState.isDragging) {
+                lockpickState.isDragging = false;
+                try { dial.releasePointerCapture(e.pointerId); } catch(err) {}
+            }
+        };
+
+        dial.addEventListener('pointerup', stopDrag);
+        dial.addEventListener('pointercancel', stopDrag);
+    }
+
+    startHoldProgressLoop();
+}
+
+// --------------------------------------------------------------------------
+// 📐 3. 角度計算 (atan2) 與視覺回饋
+// --------------------------------------------------------------------------
+
+function calculateAngleFromPointer(e, dial) {
+    const rect = dial.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
+
+    // 使用 Math.atan2 計算 0~360 度角 (以正下方為起點向順時針)
+    let rad = Math.atan2(dy, dx);
+    let deg = rad * (180 / Math.PI) - 90; // 調整角度偏移
+    if (deg < 0) deg += 360;
+
+    lockpickState.currentAngle = Math.round(deg);
+    updateLockpickNeedle(lockpickState.currentAngle);
+}
+
+function updateLockpickNeedle(deg) {
+    const needle = document.getElementById('lockpick-needle');
+    const dial = document.getElementById('lockpick-dial');
+    const hintText = document.getElementById('lockpick-hint-text');
+
+    if (needle) needle.style.transform = `translate(-50%, 0) rotate(${deg}deg)`;
+
+    // 檢查是否處於最佳區域 (Sweet Spot)
+    const diff = Math.abs(deg - lockpickState.targetAngle);
+    const inZone = diff <= lockpickState.tolerance || (360 - diff) <= lockpickState.tolerance;
+
+    if (dial) dial.classList.toggle('in-sweet-spot', inZone);
+
+    if (hintText) {
+        if (inZone) {
+            hintText.innerHTML = `<span style="color:#00ffcc; font-weight:bold;">✨ 感受到了微弱聲響！保持住角度...</span>`;
+            // 手機端微幅震動提示
+            if (navigator.vibrate && Math.random() < 0.3) navigator.vibrate(15);
+        } else {
+            hintText.innerText = "按住轉盤拖拽旋轉，尋找最佳解鎖感應區";
+        }
+    }
+}
+
+// --------------------------------------------------------------------------
+// ⏱️ 4. 在最佳角度停留自動積攢進度條
+// --------------------------------------------------------------------------
+
+function startHoldProgressLoop() {
+    if (lockpickState.holdTimer) clearInterval(lockpickState.holdTimer);
+
+    lockpickState.holdTimer = setInterval(() => {
+        const overlay = document.getElementById('lockpick-modal-overlay');
+        if (!overlay || overlay.style.display === 'none') {
+            clearInterval(lockpickState.holdTimer);
+            return;
+        }
+
+        const diff = Math.abs(lockpickState.currentAngle - lockpickState.targetAngle);
+        const inZone = diff <= lockpickState.tolerance || (360 - diff) <= lockpickState.tolerance;
+
+        if (inZone) {
+            lockpickState.holdProgress = Math.min(100, lockpickState.holdProgress + 4);
+            if (lockpickState.holdProgress >= 100) {
+                clearInterval(lockpickState.holdTimer);
+                finishLockpickQTE(true);
+            }
+        } else {
+            lockpickState.holdProgress = Math.max(0, lockpickState.holdProgress - 2);
+        }
+
+        updateProgressFill(lockpickState.holdProgress);
+    }, 50);
+}
+
+function updateProgressFill(pct) {
+    const fill = document.getElementById('lockpick-progress-fill');
+    if (fill) fill.style.width = `${pct}%`;
+}
+
+function checkLockpickSuccess() {
+    if (lockpickState.holdProgress >= 80) {
+        finishLockpickQTE(true);
+    } else {
+        showToast("⚠️ 尚未對準解鎖點，強行轉動失敗！", "warn");
+    }
+}
+
+function finishLockpickQTE(isSuccess) {
+    if (lockpickState.holdTimer) clearInterval(lockpickState.holdTimer);
+    const overlay = document.getElementById('lockpick-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+
+    if (isSuccess) {
+        showToast("🔓 咔噠！鎖芯轉動成功解鎖！", "success");
+        addLog("🔓 <strong>轉盤解鎖成功：</strong> 成功破譯遠古機械鎖！", "perfect");
+        if (lockpickState.onSuccessCallback) lockpickState.onSuccessCallback(false);
+    }
+}
