@@ -357,6 +357,45 @@
     </div>
 </div>
 
+<!-- 📦 1. 寶箱察看前置面板 (防止過快觸發 QTE) -->
+<div id="chest-inspect-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="modal-card">
+        <h3 id="chest-inspect-title" class="modal-title-cyan">📦 發現白銀寶箱</h3>
+        <p id="chest-inspect-desc" class="modal-subtitle">寶箱上掛著一把結構精密的遠古機械鎖。</p>
+        <div class="chest-action-grid">
+            <button class="btn-game btn-explore" onclick="confirmStartLockpick()">🔓 嘗試開鎖 (QTE)</button>
+            <button class="btn-game btn-rerun" onclick="executeForceOpenChest()">🔨 強行撬開 (50%破壞率)</button>
+            <button class="btn-game btn-rest" onclick="closeChestInspectModal()">🏃 暫時離開</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🔑 2. 360° 轉盤開鎖 QTE 面板 -->
+<div id="lockpick-modal-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="qte-box lockpick-modal-box">
+        <div class="lockpick-header">⚙️ 轉盤機械解鎖中...</div>
+        
+        <!-- 圓形轉盤主體 -->
+        <div id="lockpick-dial" class="lockpick-dial">
+            <!-- 最佳開鎖區域 (Sweet Spot) -->
+            <div id="lockpick-sweet-spot" class="lockpick-sweet-spot"></div>
+            <!-- 玩家控制的鎖針 -->
+            <div id="lockpick-needle" class="lockpick-needle"></div>
+            <!-- 中央鎖芯號誌 -->
+            <div id="lockpick-core" class="lockpick-core">🔒</div>
+        </div>
+
+        <!-- 蓄力/停留進度條 -->
+        <div class="lockpick-progress-bg">
+            <div id="lockpick-progress-fill" class="lockpick-progress-fill"></div>
+        </div>
+
+        <p id="lockpick-hint-text" class="lockpick-hint">按住轉盤拖拽旋轉，尋找最佳解鎖感應區</p>
+        <button id="lockpick-submit-btn" class="btn-game btn-explore full-width" onclick="checkLockpickSuccess()">🔑 旋轉鎖芯扭開</button>
+    </div>
+</div>
+
+
 <!-- 1. 核心狀態與數值計算引擎 -->
 <script src="state.js"></script>
 <script src="statengine.js"></script>
