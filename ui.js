@@ -1125,14 +1125,23 @@ function renderVillageWorkshop() {
         for (let k in warehouseData) {
             if (warehouseData[k] <= 0) continue;
             
-            // 根據類型過濾
-            if (activeWarehouseFilter === "mat" && typeof CRAFTING_BLUEPRINTS !== "undefined" && CRAFTING_BLUEPRINTS.some(b => b.name === k)) continue;
-            if (activeWarehouseFilter === "equip" && typeof CRAFTING_BLUEPRINTS !== "undefined" && !CRAFTING_BLUEPRINTS.some(b => b.name === k)) continue;
+            // 精確判斷物品分類
+            const isEquip = typeof CRAFTING_BLUEPRINTS !== "undefined" && CRAFTING_BLUEPRINTS.some(b => b.name === k);
+            const isDish = typeof RECIPES_DATABASE !== "undefined" && RECIPES_DATABASE.some(r => r.name === k);
+            const isMat = !isEquip && !isDish;
+
+            // 根據選取的 Tab 標籤進行嚴格過濾
+            if (activeWarehouseFilter === "mat" && !isMat) continue;
+            if (activeWarehouseFilter === "dish" && !isDish) continue;
+            if (activeWarehouseFilter === "equip" && !isEquip) continue;
 
             itemsList.push(`${k} (x${warehouseData[k]})`);
         }
 
-        wBox.appendChild(document.createTextNode(`📦 雲端庫存： ${itemsList.join(" | ") || "無符合條件的物品"}`));
+        const stockDiv = document.createElement('div');
+        stockDiv.style.cssText = "color: #aaa; font-size: 11px; line-height: 1.5;";
+        stockDiv.innerHTML = `📦 <strong>雲端庫存：</strong> ${itemsList.join(" | ") || "無符合條件的物品"}`;
+        wBox.appendChild(stockDiv);
     }
     
     const bContainer = DOM.get('blueprints-container');
@@ -1185,25 +1194,25 @@ function renderVillageWorkshop() {
         btnForge.className = "btn-game btn-explore";
         btnForge.style.cssText = "padding: 3px 6px; font-size: 10px;";
         btnForge.innerHTML = "🔨 打造";
-        btnForge.onclick = (e) => { e.stopPropagation(); executeForgeEquipment(blueprint); };
+        btnForge.onclick = (e) => { e.stopPropagation(); if (typeof executeForgeEquipment === "function") executeForgeEquipment(blueprint); };
         btnGroup.appendChild(btnForge);
 
-        const isEquipped = (accountMeta.equipment.weapon === blueprint.name || accountMeta.equipment.armor === blueprint.name || accountMeta.equipment.accessory === blueprint.name);
-        const hasInWarehouse = (accountMeta.warehouse[blueprint.name] || 0) > 0;
+        const isEquipped = (accountMeta.equipment?.weapon === blueprint.name || accountMeta.equipment?.armor === blueprint.name || accountMeta.equipment?.accessory === blueprint.name);
+        const hasInWarehouse = (accountMeta.warehouse?.[blueprint.name] || 0) > 0;
 
         if (isEquipped) {
             const btnUnequip = document.createElement('button');
             btnUnequip.className = "btn-game btn-rest"; 
             btnUnequip.style.cssText = "padding: 3px 6px; font-size: 10px;";
             btnUnequip.innerHTML = "❌ 卸下";
-            btnUnequip.onclick = (e) => { e.stopPropagation(); executeEquipAction(blueprint.name, "unequip"); };
+            btnUnequip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "unequip"); };
             btnGroup.appendChild(btnUnequip);
         } else if (hasInWarehouse) {
             const btnEquip = document.createElement('button');
             btnEquip.className = "btn-game btn-rerun"; 
             btnEquip.style.cssText = "padding: 3px 6px; font-size: 10px;";
             btnEquip.innerHTML = "⚡ 穿戴";
-            btnEquip.onclick = (e) => { e.stopPropagation(); executeEquipAction(blueprint.name, "equip"); };
+            btnEquip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "equip"); };
             btnGroup.appendChild(btnEquip);
         }
 
