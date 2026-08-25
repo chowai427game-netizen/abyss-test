@@ -810,21 +810,45 @@ function triggerVillageQte(type, targetData, successCallback) {
 function triggerRandomAbyssEvent() {
     let roll = Math.random();
     if (roll < 0.5) {
-        addLog(`📦【深淵遺蹟】你在角落發現了一座古老的魔導寶箱！`, "perfect");
-        triggerVillageQte("CHEST", { name: "古老寶箱" }, (rating) => {
-            if (rating === "PERFECT") {
-                let rewardG = 80 + dungeonFloor * 10;
+        // 1. 根據深淵層數動態決定寶箱名稱與 360° 轉盤難度
+        let chestName = "遠古白銀寶箱";
+        let difficulty = "easy";
+
+        if (dungeonFloor > 30) {
+            chestName = "深淵封印金庫";
+            difficulty = "hard"; // 容許角度僅 ±8°
+        } else if (dungeonFloor > 10) {
+            chestName = "精鋼秘銀寶箱";
+            difficulty = "medium"; // 容許角度 ±14°
+        }
+
+        addLog(`📦【深淵遺蹟】你在角落發現了一座 <strong>[${chestName}]</strong>！`, "perfect");
+
+        // 2. 呼叫 ui.js 新版的 360° 轉盤開鎖察看視窗
+        openChestInspectionModal(chestName, difficulty, (isForcedOpen) => {
+            if (!isForcedOpen) {
+                // 🔑 360° QTE 解鎖成功：給予豐富金幣 + 隨機深淵素材/裝備
+                let rewardG = 100 + dungeonFloor * 15;
                 currentRun.gold += rewardG;
-                addLog(`👑🔒【完美破解】獲得爆量金幣 +${rewardG} G！`, "perfect");
-            } else if (rating === "GOOD") {
-                let rewardG = 40;
-                currentRun.gold += rewardG;
-                addLog(`🔓【開鎖成功】獲得金幣 +${rewardG} G。`, "perfect");
+                addLog(`👑🔒【360°解鎖成功】完美開鎖！獲得爆量金幣 <span class="gold-victory-text">+${rewardG} G</span>！`, "perfect");
+                
+                // 隨機獲得一件掉落物品
+                if (typeof MONSTER_DROPS !== "undefined") {
+                    const dropKeys = Object.keys(MONSTER_DROPS);
+                    const randomDrop = dropKeys[Math.floor(Math.random() * dropKeys.length)];
+                    if (randomDrop) {
+                        let msg = safePushToInventory(currentRun, accountMeta, randomDrop);
+                        addLog(msg, "perfect");
+                    }
+                }
             } else {
-                let trapDmg = 20;
-                currentRun.hp = Math.max(1, currentRun.hp - trapDmg);
-                addLog(`💥【陷阱引爆】觸發反擊毒素！扣減 ${trapDmg} HP！`, "take");
+                // 🔨 強行撬鎖成功（物品受損）：獎勵折半
+                let rewardG = Math.floor((100 + dungeonFloor * 15) * 0.5);
+                currentRun.gold += rewardG;
+                addLog(`🔓【強行撬鎖】雖然打開了寶箱，但內部物品毀損，僅獲得折半金幣 +${rewardG} G。`, "perfect");
             }
+
+            saveGameData();
             resolveAbyssEvent();
         });
     } else {
