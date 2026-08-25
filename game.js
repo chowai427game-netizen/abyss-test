@@ -809,31 +809,34 @@ function triggerVillageQte(type, targetData, successCallback) {
 
 function triggerRandomAbyssEvent() {
     let roll = Math.random();
+    
+    // 🎲 50% 機率觸發寶箱，50% 機率觸發事件/泉水
     if (roll < 0.5) {
-        // 1. 根據深淵層數動態決定寶箱名稱與 360° 轉盤難度
-        let chestName = "遠古白銀寶箱";
-        let difficulty = "easy";
-
-        if (dungeonFloor > 30) {
-            chestName = "深淵封印金庫";
-            difficulty = "hard"; // 容許角度僅 ±8°
-        } else if (dungeonFloor > 10) {
-            chestName = "精鋼秘銀寶箱";
-            difficulty = "medium"; // 容許角度 ±14°
+        // 1. 從 eventdata.js 的 TREASURE_CHESTS_POOL 隨機抽取一個寶箱
+        if (typeof TREASURE_CHESTS_POOL === "undefined") {
+            addLog("🚨 警告：未找到寶箱數據庫！", "take");
+            resolveAbyssEvent();
+            return;
         }
 
-        addLog(`📦【深淵遺蹟】你在角落發現了一座 <strong>[${chestName}]</strong>！`, "perfect");
+        const chestIndex = Math.floor(Math.random() * TREASURE_CHESTS_POOL.length);
+        const chestMeta = TREASURE_CHESTS_POOL[chestIndex];
+        
+        // 根據 tier 決定 360° 轉盤的難度
+        const difficulty = chestMeta.tier === "GOLDEN" ? "hard" : "medium";
+
+        addLog(`📦【深淵遺蹟】你在角落發現了一座 <strong>[${chestMeta.name}]</strong>！`, "perfect");
 
         // 2. 呼叫 ui.js 新版的 360° 轉盤開鎖察看視窗
-        openChestInspectionModal(chestName, difficulty, (isForcedOpen) => {
+        openChestInspectionModal(chestMeta.name, difficulty, (isForcedOpen) => {
             if (!isForcedOpen) {
-                // 🔑 360° QTE 解鎖成功：給予豐富金幣 + 隨機深淵素材/裝備
-                let rewardG = 100 + dungeonFloor * 15;
+                // 🔑 360° QTE 解鎖成功 (完美避開陷阱)
+                let rewardG = Math.floor(Math.random() * (chestMeta.maxGold - chestMeta.minGold + 1)) + chestMeta.minGold;
                 currentRun.gold += rewardG;
-                addLog(`👑🔒【360°解鎖成功】完美開鎖！獲得爆量金幣 <span class="gold-victory-text">+${rewardG} G</span>！`, "perfect");
+                addLog(`👑🔒【360°解鎖成功】完美開鎖！${chestMeta.msg} 獲得金幣 <span class="gold-victory-text">+${rewardG} G</span>！`, "perfect");
                 
-                // 隨機獲得一件掉落物品
-                if (typeof MONSTER_DROPS !== "undefined") {
+                // 🌟 完美開鎖的額外紅利：50% 機率從 MONSTER_DROPS 抽一個素材
+                if (Math.random() < 0.5 && typeof MONSTER_DROPS !== "undefined") {
                     const dropKeys = Object.keys(MONSTER_DROPS);
                     const randomDrop = dropKeys[Math.floor(Math.random() * dropKeys.length)];
                     if (randomDrop) {
@@ -842,16 +845,25 @@ function triggerRandomAbyssEvent() {
                     }
                 }
             } else {
-                // 🔨 強行撬鎖成功（物品受損）：獎勵折半
-                let rewardG = Math.floor((100 + dungeonFloor * 15) * 0.5);
-                currentRun.gold += rewardG;
-                addLog(`🔓【強行撬鎖】雖然打開了寶箱，但內部物品毀損，僅獲得折半金幣 +${rewardG} G。`, "perfect");
+                // 🔨 強行撬鎖 (觸發陷阱結算)
+                let rewardG = Math.floor(Math.random() * (chestMeta.maxGold - chestMeta.minGold + 1)) + chestMeta.minGold;
+                
+                if (chestMeta.isTrap) {
+                    currentRun.hp = Math.max(1, currentRun.hp - chestMeta.dmg);
+                    currentRun.gold += Math.floor(rewardG * 0.8); // 觸發陷阱，金幣打 8 折
+                    addLog(`💥【強行撬鎖】觸發陷阱！${chestMeta.msg}`, "take");
+                } else {
+                    currentRun.gold += Math.floor(rewardG * 0.5); // 無陷阱但強行開，金幣打 5 折
+                    addLog(`🔓【強行撬鎖】雖然打開了寶箱，但內部物品毀損，僅獲得折半金幣 +${Math.floor(rewardG * 0.5)} G。`, "perfect");
+                }
             }
 
             saveGameData();
             resolveAbyssEvent();
         });
     } else {
+        // 🔮 另外 50% 機率，從 ABYSS_EVENTS_DATABASE 抽取奇遇 (如果你之後想做奇遇 UI，可以在這裡擴充)
+        // 目前先保留遠古泉水的邏輯，確保遊戲進度順暢
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 30);
         addLog(`⛲【遠古泉水】遇見淨化泉水，HP 回復 +30。`, "perfect");
         resolveAbyssEvent();
