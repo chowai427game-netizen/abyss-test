@@ -812,58 +812,41 @@ function triggerRandomAbyssEvent() {
     
     // 🎲 50% 機率觸發寶箱，50% 機率觸發事件/泉水
     if (roll < 0.5) {
-        // 1. 從 eventdata.js 的 TREASURE_CHESTS_POOL 隨機抽取一個寶箱
-        if (typeof TREASURE_CHESTS_POOL === "undefined") {
-            addLog("🚨 警告：未找到寶箱數據庫！", "take");
-            resolveAbyssEvent();
-            return;
-        }
+        // 1. 從 eventdata.js 根據 70% / 20% / 8.5% / 1.4% / 0.1% 配率抽出一個寶箱
+        const chest = drawRandomChest();
 
-        const chestIndex = Math.floor(Math.random() * TREASURE_CHESTS_POOL.length);
-        const chestMeta = TREASURE_CHESTS_POOL[chestIndex];
-        
-        // 根據 tier 決定 360° 轉盤的難度
-        const difficulty = chestMeta.tier === "GOLDEN" ? "hard" : "medium";
+        // 根據 Tier 決定 360° 轉盤開鎖的難度 (容許誤差角度)
+        let difficulty = "easy";
+        if (chest.tier === 1) difficulty = "hard";      // ±8° 極難
+        else if (chest.tier === 2) difficulty = "hard"; // ±8°
+        else if (chest.tier === 3) difficulty = "medium"; // ±14°
+        else if (chest.tier === 4) difficulty = "easy";  // ±22°
 
-        addLog(`📦【深淵遺蹟】你在角落發現了一座 <strong>[${chestMeta.name}]</strong>！`, "perfect");
+        addLog(`📦【深淵遺蹟】你在角落發現了一座 <strong style="color:${chest.color};">[${chest.name}] (${chest.tierName})</strong>！`, "perfect");
 
-        // 2. 呼叫 ui.js 新版的 360° 轉盤開鎖察看視窗
-        openChestInspectionModal(chestMeta.name, difficulty, (isForcedOpen) => {
+        // 2. 觸發 360° 轉盤開鎖面板
+        openChestInspectionModal(chest.name, difficulty, (isForcedOpen) => {
             if (!isForcedOpen) {
-                // 🔑 360° QTE 解鎖成功 (完美避開陷阱)
-                let rewardG = Math.floor(Math.random() * (chestMeta.maxGold - chestMeta.minGold + 1)) + chestMeta.minGold;
-                currentRun.gold += rewardG;
-                addLog(`👑🔒【360°解鎖成功】完美開鎖！${chestMeta.msg} 獲得金幣 <span class="gold-victory-text">+${rewardG} G</span>！`, "perfect");
+                // 🔑 360° QTE 解鎖成功：開獎發放戰利品
+                const lootRes = openChestAndGetLoot(chest, currentRun, accountMeta);
                 
-                // 🌟 完美開鎖的額外紅利：50% 機率從 MONSTER_DROPS 抽一個素材
-                if (Math.random() < 0.5 && typeof MONSTER_DROPS !== "undefined") {
-                    const dropKeys = Object.keys(MONSTER_DROPS);
-                    const randomDrop = dropKeys[Math.floor(Math.random() * dropKeys.length)];
-                    if (randomDrop) {
-                        let msg = safePushToInventory(currentRun, accountMeta, randomDrop);
-                        addLog(msg, "perfect");
-                    }
-                }
+                addLog(`👑🔒【360°解鎖成功】完美開鎖！獲得金幣 <span class="gold-victory-text">+${lootRes.gold} G</span>！`, "perfect");
+                addLog(lootRes.msg, "perfect");
             } else {
-                // 🔨 強行撬鎖 (觸發陷阱結算)
-                let rewardG = Math.floor(Math.random() * (chestMeta.maxGold - chestMeta.minGold + 1)) + chestMeta.minGold;
-                
-                if (chestMeta.isTrap) {
-                    currentRun.hp = Math.max(1, currentRun.hp - chestMeta.dmg);
-                    currentRun.gold += Math.floor(rewardG * 0.8); // 觸發陷阱，金幣打 8 折
-                    addLog(`💥【強行撬鎖】觸發陷阱！${chestMeta.msg}`, "take");
-                } else {
-                    currentRun.gold += Math.floor(rewardG * 0.5); // 無陷阱但強行開，金幣打 5 折
-                    addLog(`🔓【強行撬鎖】雖然打開了寶箱，但內部物品毀損，僅獲得折半金幣 +${Math.floor(rewardG * 0.5)} G。`, "perfect");
-                }
+                // 🔨 強行撬鎖：獎勵打 5 折
+                const lootRes = openChestAndGetLoot(chest, currentRun, accountMeta);
+                const halfGold = Math.floor(lootRes.gold * 0.5);
+                currentRun.gold = Math.max(0, currentRun.gold - (lootRes.gold - halfGold)); // 扣回一半金幣
+
+                addLog(`🔓【強行撬鎖】撬開了寶箱！獲得折半金幣 +${halfGold} G。`, "perfect");
+                addLog(lootRes.msg, "perfect");
             }
 
             saveGameData();
             resolveAbyssEvent();
         });
     } else {
-        // 🔮 另外 50% 機率，從 ABYSS_EVENTS_DATABASE 抽取奇遇 (如果你之後想做奇遇 UI，可以在這裡擴充)
-        // 目前先保留遠古泉水的邏輯，確保遊戲進度順暢
+        // 另外 50% 機率觸發遠古泉水回復
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 30);
         addLog(`⛲【遠古泉水】遇見淨化泉水，HP 回復 +30。`, "perfect");
         resolveAbyssEvent();
