@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🌀 eventdata.js：40種邪神/仙子奇遇 & 40種隨機寶箱數據庫 (對接 RO 六大屬性 & 背包安全防護)
+// 🌀 eventdata.js：40種邪神/仙子奇遇 & 5階級隨機寶箱數據庫 (含歐皇 0.1% 全服公告)
 // ==========================================================================
 
 // 輔助函式：安全加入戰術背包，若容量已滿則自動寄回倉庫
@@ -27,6 +27,132 @@ function safeRefreshStats() {
     }
 }
 
+// ==========================================================================
+// 📦 5 階級寶箱組態配置 (Tier 5 ~ Tier 1 嚴格配率與戰利品池)
+// ==========================================================================
+
+const CHEST_TIERS_CONFIG = {
+    // 🪵 Tier 5: 破損寶箱 (70.0% 垃圾箱)
+    TIER_5: {
+        tier: 5,
+        tierName: "破損寶箱",
+        color: "#8e8e93",
+        rate: 0.700, // 70.0%
+        minGold: 10,
+        maxGold: 50,
+        names: ["🪵 破爛朽木箱", "🧱 廢棄石縫瓦罐", "💀 生鏽哥布林皮包", "🧟 發霉舊木盒", "🪵 崩塌半獸人木桶"],
+        loots: ["史萊姆黏液", "哥布林香料", "獸人後腿肉", "巨石苔蘚", "怨靈淚晶", "🪨 焦黑的未知物體"]
+    },
+    // 📦 Tier 4: 普通寶箱 (20.0% 稍有價值物資)
+    TIER_4: {
+        tier: 4,
+        tierName: "普通寶箱",
+        color: "#2ecc71",
+        rate: 0.200, // 20.0%
+        minGold: 50,
+        maxGold: 150,
+        names: ["📦 冒險者遺留物資箱", "🕸️ 冰凍蛛絲鐵皮箱", "🛡️ 霜殼行軍皮革箱", "蜥蜴皮保險袋", "🧪 煉金術士棄置藥箱"],
+        loots: ["寒冰霜塵", "毒蜘蛛腺體", "腐屍毒素", "怨念皮翼", "硬殼龜甲", "🥩 烤野豬肉大串", "🧪 微光初級治癒藥水"]
+    },
+    // 💎 Tier 3: 稀有寶箱 (8.5% 交易/開啟價值)
+    TIER_3: {
+        tier: 3,
+        tierName: "稀有寶箱",
+        color: "#3498db",
+        rate: 0.085, // 8.5%
+        minGold: 150,
+        maxGold: 400,
+        names: ["💎 璀璨深淵銀邊寶箱", "🔥 熔岩鍍金精鋼箱", "🔮 魔導加工所遺物箱", "👑 哥布林暴君藏寶箱", "🌊 深海白金藏寶盒"],
+        loots: ["烈焰餘燼", "熔岩鱗片", "焦黑骨碎", "食人魔厚皮", "魔導碎頁", "🌭 大快活厚牛巨堡", "🍧 萬年永凍刨冰", "💍 銅製指環", "📿 石質護身符"]
+    },
+    // 👑 Tier 2: 史詩寶箱 (1.4% 非常難求)
+    TIER_2: {
+        tier: 2,
+        tierName: "史詩寶箱",
+        color: "#a55eea",
+        rate: 0.014, // 1.4%
+        minGold: 400,
+        maxGold: 1000,
+        names: ["👑 皇家耀金璀璨寶箱", "🌀 虛空裂縫重力神箱", "👿 煉獄魔神熾金庫", "🪐 宇宙星神隕鐵匣", "💀 亡靈死神幽冥骨匣"],
+        loots: ["虛空眼球", "時空皮革", "吸血毒牙", "惡魔之角", "星塵碎片", "🍷 逆轉禁忌血釀", "🗡️ 寒冰霜刃", "👕 守衛重甲", "💍 凍結晶環"]
+    },
+    // 🌟 Tier 1: 傳說寶箱 (0.1% 歐皇專屬)
+    TIER_1: {
+        tier: 1,
+        tierName: "傳說寶箱",
+        color: "#ffd700",
+        rate: 0.001, // 0.1%
+        minGold: 2000,
+        maxGold: 5000,
+        names: ["🌟 創世神聖天之寶盒", "👑 歐皇至高因果律金庫", "🌌 宇宙虛無至尊神匣"],
+        // 🔮 只會出現 51-60 級傳說飾品藍圖
+        loots: ["💍 星塵風暴流光戒", "📿 混沌黑洞項鍊", "💍 奇點時空重力環", "📿 死神寂滅吊墜", "💍 秩序審判天之戒"]
+    }
+};
+
+// ==========================================================================
+// 🎲 寶箱抽取與開啟核心邏輯
+// ==========================================================================
+
+// 1. 根據概率 (70%, 20%, 8.5%, 1.4%, 0.1%) 隨機抽取一個 Tier 寶箱
+function drawRandomChest() {
+    const roll = Math.random(); // 0.0 ~ 1.0
+
+    let config;
+    if (roll < 0.700) {
+        config = CHEST_TIERS_CONFIG.TIER_5; // 0 ~ 70%
+    } else if (roll < 0.900) {
+        config = CHEST_TIERS_CONFIG.TIER_4; // 70% ~ 90%
+    } else if (roll < 0.985) {
+        config = CHEST_TIERS_CONFIG.TIER_3; // 90% ~ 98.5%
+    } else if (roll < 0.999) {
+        config = CHEST_TIERS_CONFIG.TIER_2; // 98.5% ~ 99.9%
+    } else {
+        config = CHEST_TIERS_CONFIG.TIER_1; // 99.9% ~ 100% (0.1% 歐皇)
+    }
+
+    // 從該 Tier 隨機選一個名稱
+    const randomName = config.names[Math.floor(Math.random() * config.names.length)];
+
+    return {
+        tier: config.tier,
+        tierName: config.tierName,
+        name: randomName,
+        color: config.color,
+        minGold: config.minGold,
+        maxGold: config.maxGold,
+        loots: config.loots
+    };
+}
+
+// 2. 開啟寶箱並發放戰利品 (獲得隨機金幣 + 隨機 1 件專屬池戰利品)
+function openChestAndGetLoot(chestObj, run, meta) {
+    // 🪙 計算金幣
+    const goldEarned = Math.floor(Math.random() * (chestObj.maxGold - chestObj.minGold + 1)) + chestObj.minGold;
+    run.gold = (run.gold || 0) + goldEarned;
+
+    // 🎁 從對應 Tier 的戰利品池中隨機抽取 1 件物品
+    const randomItem = chestObj.loots[Math.floor(Math.random() * chestObj.loots.length)];
+    const inventoryMsg = safePushToInventory(run, meta, randomItem);
+
+    // 🌟 若抽到 0.1% Tier 1 傳說寶箱，觸發全服廣播特效
+    if (chestObj.tier === 1) {
+        if (typeof showToast === "function") {
+            showToast(`🌟【歐皇降臨】你解開了【${chestObj.name}】，獲得傳說神裝藍圖 [${randomItem}]！`, "success");
+        }
+        if (typeof addLog === "function") {
+            addLog(`📢⚡<b>【全服公告・歐皇降臨】</b> 勇者 <strong>${meta.name || "無名勇者"}</strong> 破譯了千分之一機率的 <span style="color:#ffd700; font-weight:bold;">[${chestObj.name}]</span>！獲得金幣 +${goldEarned} G 及傳說藍圖：<strong style="color:#ffd700;">[${randomItem}]</strong>！`, "victory-badge");
+        }
+    }
+
+    return {
+        gold: goldEarned,
+        item: randomItem,
+        msg: inventoryMsg
+    };
+}
+
+// 保留 40 種奇遇數據庫 (完全不變)
 const ABYSS_EVENTS_DATABASE = [
     {
         title: "🩸 命運邪神祭壇 • 血脈契約",
@@ -299,8 +425,8 @@ const ABYSS_EVENTS_DATABASE = [
         ] 
     },
     { 
-        title: "💀 亡靈骨海中的生銹金幣堆", 
-        desc: "骷髏坑底埋著一堆沾滿骨粉的生銹古董金幣。", 
+        title: "💀 亡靈骨海中的生鏽金幣堆", 
+        desc: "骷髏坑底埋著一堆沾滿骨粉的生鏽古董金幣。", 
         choices: [
             { text: "💰 跳下骨坑搜刮（獲得 250G 金幣，但 VIT -2）", run: (run, meta) => { if(!meta.stats) meta.stats = {STR:0,AGI:0,VIT:0,INT:0,DEX:0,LUK:0}; run.gold += 250; meta.stats.VIT = Math.max(0, meta.stats.VIT - 2); safeRefreshStats(); return "💀 拿到了巨款！但你吸入屍毒，體質受到些微腐蝕。"; } }
         ] 
@@ -326,50 +452,4 @@ const ABYSS_EVENTS_DATABASE = [
             { text: "🗡️ 淬鍊武器（武器槽位精鍊升星 1 星！）", run: (run, meta) => { if(!meta.equipmentStars) meta.equipmentStars = { weapon: 0, armor: 0, accessory: 0 }; if(meta.equipmentStars.weapon < 5) { meta.equipmentStars.weapon++; safeRefreshStats(); return "🌟 熔爐咆哮！你的武器部位得到完美的淬火強化，威力提升。"; } else { return "🌟 你的武器部位已是 5 星，神匠餽贈回復了你 50 MP。"; } } }
         ] 
     }
-];
-
-// 40 種寶箱池 (完整保留)
-const TREASURE_CHESTS_POOL = [
-    { tier: "WOODEN", name: "🪵 生鏽的舊木箱", minGold: 10, maxGold: 30, isTrap: false, msg: "安全開啟，獲得少量行軍碎銀。" },
-    { tier: "WOODEN", name: "🪵 哥布林隱密骨箱", minGold: 15, maxGold: 35, isTrap: false, msg: "裏面塞滿了哥布林搶來的碎銀子。" },
-    { tier: "WOODEN", name: "🧱 苔蘚碎石木匣", minGold: 20, maxGold: 40, isTrap: false, msg: "揭開木匣，獲得古代銅幣。" },
-    { tier: "WOODEN", name: "💀 怨靈腐蝕舊皮包", minGold: 5, maxGold: 25, isTrap: true, dmg: 10, msg: "噗嗤！皮包泄露腐蝕性酸氣扣 10 HP，但也掏出了金幣！" },
-    { tier: "WOODEN", name: "🪵 半獸人獠牙木匣", minGold: 25, maxGold: 50, isTrap: false, msg: "木匣以骨雕裝飾，藏著不少野獸錢幣。" },
-    { tier: "WOODEN", name: "🕸️ 冰凍蛛絲木箱", minGold: 15, maxGold: 40, isTrap: true, dmg: 12, msg: "嘶！蛛網內射出毒針扣 12 HP，但你強行搶到了碎銀！" },
-    { tier: "WOODEN", name: "🧟 臭氣熏天發霉木盒", minGold: 10, maxGold: 30, isTrap: true, dmg: 8, msg: "發霉木盒釋放黴菌毒氣扣 8 HP！" },
-    { tier: "WOODEN", name: "🪵 焦黑地底枯木匣", minGold: 30, maxGold: 60, isTrap: false, msg: "雖然外殼被燒焦，裏面的金幣完好無損。" },
-    { tier: "WOODEN", name: "蜥蜴皮袋", minGold: 35, maxGold: 70, isTrap: false, msg: "獸皮袋防熱性能極好，裝了不少焦黑古幣。" },
-    { tier: "WOODEN", name: "👁️ 虛空眼球怪皮囊", minGold: 40, maxGold: 80, isTrap: true, dmg: 15, msg: "皮囊突然睜開眼睛咬你一口扣 15 HP！你反手掏空了它的金幣！" },
-    { tier: "WOODEN", name: "🪵 崩塌半獸人木罐", minGold: 20, maxGold: 50, isTrap: false, msg: "砸碎瓦罐，露出了古代金屬幣。" },
-    { tier: "WOODEN", name: "🧱 苔蘚斑駁古陶罐", minGold: 25, maxGold: 55, isTrap: false, msg: "打破陶罐，獲得古代祭祀用銅錢。" },
-    { tier: "WOODEN", name: "💀 古墓殉葬黑骨盒", minGold: 10, maxGold: 45, isTrap: true, dmg: 14, msg: "骨盒釋放靈魂尖叫扣 14 HP，你強行搜刮了裏面的碎鑽。" },
-    { tier: "WOODEN", name: "🕸️ 地底毒蜘蛛絲繭", minGold: 15, maxGold: 50, isTrap: true, dmg: 18, msg: "毒液四濺！刺傷手臂扣 18 HP！但也搶出了金幣！" },
-    { tier: "WOODEN", name: "🧟 凍結僵硬行軍行囊", minGold: 30, maxGold: 70, isTrap: false, msg: "死去的先烈行囊，你接管了祂殘存的物資金幣。" },
-
-    { tier: "GOLDEN", name: "👑 皇家耀金璀璨寶箱", minGold: 80, maxGold: 200, isTrap: false, msg: "金光閃閃！皇室御廚特製保險庫，財富豐厚！" },
-    { tier: "GOLDEN", name: "👑 墮落神殿魔金寶箱", minGold: 100, maxGold: 220, isTrap: true, dmg: 25, msg: "【暗箭機關！】寶箱兩側射出鋼弩扣 25 HP，但你拿到了大把魔金！" },
-    { tier: "GOLDEN", name: "💎 璀璨深淵鑽石寶箱", minGold: 150, maxGold: 300, isTrap: false, msg: "絕美奢華！鑽石切面折射流光，沒有任何機關！" },
-    { tier: "GOLDEN", name: "🌀 虛空裂縫重力鐵箱", minGold: 120, maxGold: 280, isTrap: true, dmg: 30, msg: "重力塌陷反震扣 30 HP！但也拿到了超維度寶藏！" },
-    { tier: "GOLDEN", name: "🔥 煉獄熔岩熾金巨箱", minGold: 140, maxGold: 320, isTrap: true, dmg: 35, msg: "【極度滾燙！】熱浪撲面扣 35 HP！但你用大劍挑開了熾熱的黃金！" },
-    { tier: "GOLDEN", name: "👑 哥布林暴君私藏金箱", minGold: 90, maxGold: 180, isTrap: false, msg: "暴君掠奪來的保險箱，塞滿了皇室鑄幣！" },
-    { tier: "GOLDEN", name: "🧙 墮落大祭司儀式寶盒", minGold: 110, maxGold: 240, isTrap: true, dmg: 22, msg: "【暗黑詛咒！】靈魂受詛扣 22 HP！但大把秘銀幣盡入口袋！" },
-    { tier: "GOLDEN", name: "🌊 Scylla 海鱗白金寶箱", minGold: 130, maxGold: 290, isTrap: false, msg: "用深海白金鑄成，帶有海水氣息，財寶極多。" },
-    { tier: "GOLDEN", name: "👿 煉獄炎魔巨型金庫", minGold: 160, maxGold: 350, isTrap: true, dmg: 40, msg: "地核心火燃燒扣 40 HP！但也強行搶到了熔火黃金！" },
-    { tier: "GOLDEN", name: "🪐 宇宙星神隕鐵星匣", minGold: 200, maxGold: 450, isTrap: false, msg: "【天界神禮】用隕石鐵打造，自動滑開釋放重力，財寶溢出！" },
-    { tier: "GOLDEN", name: "💎 秘銀不滅重型鎧箱", minGold: 100, maxGold: 250, isTrap: false, msg: "箱蓋極厚，完美防塵防盜，藏有大批高級魔幣。" },
-    { tier: "GOLDEN", name: "🌀 裂縫潛行者暗影大箱", minGold: 120, maxGold: 270, isTrap: true, dmg: 20, msg: "黑影暗殺刺擊扣 20 HP！你強行反殺並撬開了寶箱！" },
-    { tier: "GOLDEN", name: "👑 秩序裁決黃金神匣", minGold: 180, maxGold: 400, isTrap: false, msg: "神聖羽毛封印自動解除，財寶在秩序之光中閃耀。" },
-    { tier: "GOLDEN", name: "🔮 魔導加工所遠古遺物箱", minGold: 130, maxGold: 310, isTrap: false, msg: "古代神匠儲存高級素材和秘銀的密封箱，安全開啟。" },
-    { tier: "GOLDEN", name: "🥀 泣血妖花妖嬈魔匣", minGold: 140, maxGold: 300, isTrap: true, dmg: 28, msg: "【妖花荊棘！】手掌被刺破扣 28 HP！但也摸到了大把古代血金！" },
-
-    { tier: "GOLDEN", name: "👹 牙齒利刃擬態寶箱 (Mimic)", minGold: 50, maxGold: 150, isTrap: true, dmg: 35, msg: "【擬態巨怪！】寶箱突然長出獠牙咬你手臂扣 35 HP！你反手震碎它掏出金幣！" },
-    { tier: "GOLDEN", name: "👹 泣血妖藤偽裝箱", minGold: 40, maxGold: 120, isTrap: true, dmg: 28, msg: "藤蔓絞殺扣 28 HP，但藤蔓退去後露出了亮晶晶的金幣！" },
-    { tier: "GOLDEN", name: "👹 奪心魔影寄生鐵箱", minGold: 60, maxGold: 160, isTrap: true, dmg: 40, msg: "【腦部衝擊！】靈魂遭寄生扣 40 HP！強忍頭疼摸到大批金幣！" },
-    { tier: "GOLDEN", name: "👹 萬年永凍尖冰機關匣", minGold: 30, maxGold: 110, isTrap: true, dmg: 25, msg: "冰箭破空扣 25 HP，但冰雕碎裂露出了帝王錢幣！" },
-    { tier: "GOLDEN", name: "👹 地獄死神幽冥骨匣", minGold: 70, maxGold: 180, isTrap: true, dmg: 45, msg: "【死神寂滅鐮芒！】死氣割裂胸骨扣 45 HP！但也拿到了冥界黃金！" },
-    { tier: "GOLDEN", name: "👹 毒蛇吐信機關銅匣", minGold: 35, maxGold: 95, isTrap: true, dmg: 24, msg: "毒蟒躍出咬中手臂扣 24 HP！你捏碎了蟒頭，在匣底掏出金幣！" },
-    { tier: "GOLDEN", name: "👹 焦熱爆碎自毀鋼匣", minGold: 45, maxGold: 130, isTrap: true, dmg: 32, msg: "【大爆炸！】寶箱轟然炸裂扣 32 HP！碎屑中落滿了飛濺的金幣！" },
-    { tier: "GOLDEN", name: "👹 時空眼球幻像寶盒", minGold: 55, maxGold: 140, isTrap: true, dmg: 26, msg: "眼球引導爆破扣 26 HP！你閉眼強行摸空了寶盒！" },
-    { tier: "GOLDEN", name: "👹 劇毒多頭蛇酸液毒匣", minGold: 65, maxGold: 170, isTrap: true, dmg: 38, msg: "【強酸腐蝕！】酸霧溶解護甲扣 38 HP！但酸液蒸發露出了赤金！" },
-    { tier: "GOLDEN", name: "👹 宇宙奇異點微型重力雷匣", minGold: 80, maxGold: 220, isTrap: true, dmg: 50, msg: "【重力極限撕裂！】空間塌陷扣 50 HP！但也拿到了高維宇宙金幣！" }
 ];
