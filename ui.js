@@ -1025,15 +1025,24 @@ function renderVillageCookingWorkshop() {
             if (isDish) {
                 cookedDishes.push({ name: itemKey, qty: count });
             } else {
-                rawMaterials.push(`${itemKey} (x${count})`);
+                rawMaterials.push({ name: itemKey, qty: count });
             }
         }
 
         if (activeWarehouseFilter !== "dish") {
-            const rawMatText = rawMaterials.join(" | ") || "暫無符合條件的食材";
             const rawMatContainer = document.createElement('div');
-            rawMatContainer.style.cssText = "margin-bottom: 8px; color: #aaa; font-size: 11px; line-height: 1.5;";
-            rawMatContainer.innerHTML = `📦 <strong>倉庫食材：</strong> ${rawMatText}`;
+            rawMatContainer.className = "warehouse-pill-box";
+
+            if (rawMaterials.length === 0) {
+                rawMatContainer.innerHTML = `<span style="color:#888; font-size:11px;">無符合條件的食材</span>`;
+            } else {
+                rawMaterials.forEach(m => {
+                    const pill = document.createElement('span');
+                    pill.className = "warehouse-pill";
+                    pill.innerHTML = `${m.name} <span class="count">x${m.qty}</span>`;
+                    rawMatContainer.appendChild(pill);
+                });
+            }
             wBox.appendChild(rawMatContainer);
         }
 
@@ -1143,23 +1152,31 @@ function renderVillageWorkshop() {
         for (let k in warehouseData) {
             if (warehouseData[k] <= 0) continue;
             
-            // 精確判斷物品分類
             const isEquip = typeof CRAFTING_BLUEPRINTS !== "undefined" && CRAFTING_BLUEPRINTS.some(b => b.name === k);
             const isDish = typeof RECIPES_DATABASE !== "undefined" && RECIPES_DATABASE.some(r => r.name === k);
             const isMat = !isEquip && !isDish;
 
-            // 根據選取的 Tab 標籤進行嚴格過濾
             if (activeWarehouseFilter === "mat" && !isMat) continue;
             if (activeWarehouseFilter === "dish" && !isDish) continue;
             if (activeWarehouseFilter === "equip" && !isEquip) continue;
 
-            itemsList.push(`${k} (x${warehouseData[k]})`);
+            itemsList.push({ name: k, qty: warehouseData[k] });
         }
 
-        const stockDiv = document.createElement('div');
-        stockDiv.style.cssText = "color: #aaa; font-size: 11px; line-height: 1.5;";
-        stockDiv.innerHTML = `📦 <strong>雲端庫存：</strong> ${itemsList.join(" | ") || "無符合條件的物品"}`;
-        wBox.appendChild(stockDiv);
+        const pillBox = document.createElement('div');
+        pillBox.className = "warehouse-pill-box";
+
+        if (itemsList.length === 0) {
+            pillBox.innerHTML = `<span style="color:#888; font-size:11px;">無符合條件的物品</span>`;
+        } else {
+            itemsList.forEach(item => {
+                const pill = document.createElement('span');
+                pill.className = "warehouse-pill";
+                pill.innerHTML = `${item.name} <span class="count">x${item.qty}</span>`;
+                pillBox.appendChild(pill);
+            });
+        }
+        wBox.appendChild(pillBox);
     }
     
     const bContainer = DOM.get('blueprints-container');
