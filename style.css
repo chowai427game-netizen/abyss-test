@@ -1759,3 +1759,89 @@ body {
     margin-bottom: 12px;
     min-height: 16px;
 }
+/* ==========================================================================
+   📱 手機端 RWD 雙欄緊湊卡片 (適用於加工所 / 料理屋)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* 1. 將打造列表容器改成雙欄 Grid Grid */
+    .craft-list-container, 
+    #craft-items-list, 
+    #recipe-items-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important; /* 強制分兩欄 */
+        gap: 8px !important;                             /* 卡片間距 */
+        max-height: 55vh !important;                     /* 限制最大高度半螢幕 */
+        overflow-y: auto !important;                     /* 列表內滾動，避免整頁拉落 */
+        padding: 4px !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 2. 緊湊型卡片樣式 */
+    .craft-card, .recipe-card {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        padding: 8px !important;
+        background: rgba(25, 25, 38, 0.95) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 8px !important;
+        min-height: 110px !important;
+    }
+
+    /* 3. 卡片內標題與文字微調 */
+    .craft-card h4, .recipe-card h4 {
+        font-size: 0.85rem !important;
+        margin-bottom: 4px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important; /* 太長自動省略號 */
+    }
+
+    .craft-card p, .recipe-card p {
+        font-size: 0.75rem !important;
+        line-height: 1.2 !important;
+        color: #aaa !important;
+    }
+
+    /* 4. 按鈕改為緊湊滿版按鈕 */
+    .craft-card .btn-craft, 
+    .recipe-card .btn-cook {
+        width: 100% !important;
+        padding: 4px 0 !important;
+        font-size: 0.8rem !important;
+        margin-top: 6px !important;
+    }
+}
+
+/* ==========================================================================
+   📦 雲端庫存膠囊網格 (Warehouse Pill Grid)
+   ========================================================================== */
+
+.warehouse-pill-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 85px;          /* 限制庫存最大高度 */
+    overflow-y: auto;          /* 超過出現滾動條 */
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.warehouse-pill {
+    background: #232334;
+    border: 1px solid #3d3d5c;
+    color: #e0e0e0;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.warehouse-pill .count {
+    color: #ffd700;
+    font-weight: bold;
+    margin-left: 3px;
+}
