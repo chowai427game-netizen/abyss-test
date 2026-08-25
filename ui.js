@@ -496,11 +496,29 @@ function syncCharacterDataUi() {
     const maxHpEl = DOM.get('p-maxhp');
     const mpEl = DOM.get('p-mp');
     const maxMpEl = DOM.get('p-maxmp');
+    const pAtbRow = DOM.get('p-atb-row');
+    const pAtbBar = DOM.get('p-atb-bar-fill');
+    const pAtbText = DOM.get('p-atb-text');
     
     if (hpEl) hpEl.innerText = currentRun.hp;
     if (maxHpEl) maxHpEl.innerText = currentRun.maxHp;
     if (mpEl) mpEl.innerText = currentRun.mp;
     if (maxMpEl) maxMpEl.innerText = currentRun.maxMp;
+    if (pAtbRow) {
+    if (gameState === "BATTLE") {
+        pAtbRow.style.display = "block"; // 戰鬥中顯示
+        const pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
+            
+        if (pAtbBar) {
+            pAtbBar.style.width = `${pAtbPercent}%`;
+        }
+        if (pAtbText) {
+            pAtbText.innerText = `${Math.floor(pAtbPercent)}%`;
+        }
+    } else {
+        pAtbRow.style.display = "none"; // 在村莊時隱藏行動條
+        }
+    }
 
     updateHpBarWithGhost(currentRun.hp, currentRun.maxHp, 'hp-bar-fill', 'hp-bar-ghost');
 
