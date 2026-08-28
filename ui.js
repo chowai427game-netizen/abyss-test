@@ -2,6 +2,32 @@
 // 📺 ui.js：介面控制、選單渲染與數據同步核心 (5 大 UX 體驗升級版)
 // ==========================================================================
 
+// 📡 Socket.io 即時連線初始化 (自動讀取 state.js 中的 SERVER_URL)
+const SOCKET_TARGET_URL = (typeof SERVER_URL !== "undefined") ? SERVER_URL : "https://rpg-backend-fjvg.onrender.com";
+const socket = (typeof io !== "undefined") ? io(SOCKET_TARGET_URL) : null;
+
+// 1. 剛連上伺服器時，自動載入最新 20 條歷史聊天
+if (socket) {
+    socket.on("init_chat_history", (historyList) => {
+        const chatBox = document.getElementById('square-chat-box');
+        if (!chatBox) return;
+        chatBox.innerHTML = `<div style="color: #7f8c8d; font-style: italic;">[系統] 已成功連線至中央廣場頻道。</div>`;
+        
+        if (Array.isArray(historyList)) {
+            historyList.forEach(item => {
+                receiveSquareChatMessage(item.name, item.msg);
+            });
+        }
+    });
+
+    // 2. 接收來自線上其他勇者發送的即時廣播
+    socket.on("receive_square_chat", (data) => {
+        if (data && data.name && data.msg) {
+            receiveSquareChatMessage(data.name, data.msg);
+        }
+    });
+}
+
 const DOM = {
     isInitialized: false,
     elements: {},
