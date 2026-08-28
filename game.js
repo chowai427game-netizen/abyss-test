@@ -685,62 +685,107 @@ function getStarUpCost(slot, currentStar) {
 }
 
 // ==========================================================================
-// ⚒️ 單一藍圖裝備獨立強化系統 (+1 ~ +11)
+// ⚒️ 單一藍圖裝備獨立強化系統 (+1 ~ +20 安定/降階/爆裝修羅道)
 // ==========================================================================
 function refineSpecificEquipment(equipName) {
     if (!accountMeta.itemRefines) accountMeta.itemRefines = {};
 
     const curLvl = accountMeta.itemRefines[equipName] || 0;
 
-    if (curLvl >= 11) {
+    // 1. 上限檢查
+    if (curLvl >= 20) {
         if (typeof showMaterialAlert === "function") {
-            showMaterialAlert([`[${equipName}] 已達到最高強化等級 (+11)！`], "🌟 已達滿級");
+            showMaterialAlert([`[${equipName}] 已達到最高強化極限 (+20)！`], "🌟 已達神裝頂峰");
         }
         return;
     }
 
     const nextLvl = curLvl + 1;
 
-    let successRate = 1.0; 
-    let minDrop = 0;       
-    let maxDrop = 0;       
-
-    if (nextLvl <= 2) { 
-        successRate = 1.00; minDrop = 0; maxDrop = 0;
-    } else if (nextLvl <= 4) { 
-        successRate = nextLvl === 3 ? 0.75 : 0.60; minDrop = 0; maxDrop = 0;
-    } else if (nextLvl <= 6) { 
-        successRate = nextLvl === 5 ? 0.45 : 0.35; minDrop = 0; maxDrop = 1;
-    } else if (nextLvl <= 8) { 
-        successRate = nextLvl === 7 ? 0.25 : 0.15; minDrop = 1; maxDrop = 2;
-    } else { 
-        if (nextLvl === 9) successRate = 0.08;
-        else if (nextLvl === 10) successRate = 0.05;
-        else successRate = 0.03;
-        minDrop = 1; maxDrop = 2;
+    // 2. 強化金幣需求 (等級越高越貴)
+    const goldCost = nextLvl * 100;
+    if ((currentRun.gold || 0) < goldCost) {
+        if (typeof showMaterialAlert === "function") {
+            showMaterialAlert([`強化至 +${nextLvl} 需要 🪙 ${goldCost} G (當前僅有 ${currentRun.gold || 0} G)`], "⚠️ 金幣不足");
+        }
+        return;
     }
 
+    // 扣除金幣
+    currentRun.gold -= goldCost;
+
+    // 3. 設定三階段機率與失敗懲罰類型
+    let successRate = 1.0;
+    let failureType = "NONE"; // "NONE" (無損), "DOWNGRADE" (降階), "BREAK" (爆裝)
+
+    if (nextLvl <= 5) {
+        // 🟢【新手安定期】(+1 ~ +5)：100% 成功，無任何損失
+        successRate = 1.00;
+        failureType = "NONE";
+    } 
+    else if (nextLvl <= 10) {
+        // 🟡【過渡陣痛期】(+6 ~ +10)：70% ~ 30%，失敗退回 1 階
+        const transitionRates = { 6: 0.70, 7: 0.60, 8: 0.50, 9: 0.40, 10: 0.30 };
+        successRate = transitionRates[nextLvl];
+        failureType = "DOWNGRADE";
+    } 
+    else {
+        // 🔴【神裝修羅道】(+11 ~ +20)：15% ~ 0.5%，失敗裝備直接永久破壞 (爆裝)
+        const shuraRates = {
+            11: 0.15, 12: 0.12, 13: 0.10, 14: 0.08, 15: 0.05,
+            16: 0.04, 17: 0.03, 18: 0.02, 19: 0.01, 20: 0.005
+        };
+        successRate = shuraRates[nextLvl] || 0.005;
+        failureType = "BREAK";
+    }
+
+    // 4. 進行機率判定
     const roll = Math.random();
 
     if (roll < successRate) {
+        // 🎉 強化成功
         accountMeta.itemRefines[equipName] = nextLvl;
-        addLog(`🎉【強化成功！】<strong>[${equipName}]</strong> 成功升級至 <span style="color:#ffd700; font-weight:bold;">+${nextLvl}</span>！`, "perfect");
+        addLog(`🎉【強化成功！】<strong>[${equipName}]</strong> 成功升級至 <span style="color:#ffd700; font-weight:bold;">+${nextLvl}</span>！(消耗 ${goldCost} G)`, "perfect");
+        if (typeof showToast === "function") showToast(`✨ [${equipName}] 成功強化至 +${nextLvl}！`, "success");
     } else {
-        let drop = 0;
-        if (maxDrop > 0) {
-            drop = Math.floor(Math.random() * (maxDrop - minDrop + 1)) + minDrop;
-        }
+        // ❌ 強化失敗處理
+        if (failureType === "DOWNGRADE") {
+            // 倒退 1 階
+            const newLvl = Math.max(0, curLvl - 1);
+            accountMeta.itemRefines[equipName] = newLvl;
+            addLog(`💥【強化失敗！】<strong>[${equipName}]</strong> 能量反噬倒退 1 級，降至 <strong>+${newLvl}</strong>！`, "take");
+            if (typeof showToast === "function") showToast(`💥 [${equipName}] 強化失敗，降至 +${newLvl}`, "warn");
+        } 
+        else if (failureType === "BREAK") {
+            // ☠️ 爆裝：永久銷毀裝備
+            let isEquipped = false;
+            for (let slot in accountMeta.equipment) {
+                if (accountMeta.equipment[slot] === equipName) {
+                    accountMeta.equipment[slot] = null; // 卸下
+                    isEquipped = true;
+                    break;
+                }
+            }
 
-        const newLvl = Math.max(0, curLvl - drop);
-        accountMeta.itemRefines[equipName] = newLvl;
+            // 若非穿戴中，則從倉庫扣除 1 個
+            if (!isEquipped && accountMeta.warehouse && accountMeta.warehouse[equipName] > 0) {
+                accountMeta.warehouse[equipName]--;
+            }
 
-        if (drop > 0) {
-            addLog(`💥【強化失敗！】<strong>[${equipName}]</strong> 倒退 ${drop} 級，降至 <strong>+${newLvl}</strong>。`, "take");
-        } else {
+            // 清空強化等級
+            accountMeta.itemRefines[equipName] = 0;
+
+            addLog(`☠️💥【神裝碎裂！爆裝！】<strong>[${equipName}] (+${curLvl})</strong> 在修羅道極限強化中承受不住魔力衝擊，<strong>完全碎裂永久破壞</strong>！`, "take");
+            if (typeof showMaterialAlert === "function") {
+                showMaterialAlert([`💥 裝備 [${equipName}] (+${curLvl}) 在衝擊 +${nextLvl} 時承受不住魔力，完全碎裂銷毀！`], "☠️ 裝備完全破壞");
+            }
+        } 
+        else {
             addLog(`❌【強化失敗！】<strong>[${equipName}]</strong> 等級保持 <strong>+${curLvl}</strong> 不變。`, "miss");
         }
     }
 
+    // 5. 數據與 UI 刷新
     if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     if (typeof saveGameData === "function") saveGameData();
     if (typeof updateUI === "function") updateUI();
