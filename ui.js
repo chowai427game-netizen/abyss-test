@@ -711,7 +711,7 @@ function switchVillageLocation(targetLoc) {
         GATE: { el: 'v-loc-gate', text: "⛺ 地表村莊 ➔ 傳送大殿" },
         GUILD: { el: 'v-loc-guild', text: "🏛️ 地表村莊 ➔ 冒險者公會", render: renderVillageGuild },
         KITCHEN: { el: 'v-loc-kitchen', text: "🍳 地表村莊 ➔ 皇家料理屋", render: renderVillageCookingWorkshop },
-        SQUARE: { el: 'v-loc-square', text: "💬 地表村莊 ➔ 中央廣場" },
+        SQUARE: { el: 'v-loc-square', text: "💬 地表村莊 ➔ 中央廣場", render: renderVillageSquare },
         WORKSHOP: { el: 'v-loc-workshop', text: "🛠️ 地表村莊 ➔ 魔導加工所", render: renderVillageWorkshop }
     };
 
