@@ -1576,34 +1576,54 @@ function executeSellAllJunkMaterials() {
 }
 
 // ==========================================================================
-// 💬 中央廣場介面（黑市商人回收 + 全局聊天快取）
+// 💬 中央廣場介面（精簡版 + 彈出式黑市買賣 + 線上人數）
 // ==========================================================================
+
+// 🛍️ 黑市商品清單 (可自行增減)
+const BLACK_MARKET_GOODS = [
+    { id: "bm_meat", name: "低階野獸肉", price: 12, desc: "用於料理防禦餐點的基本肉食。", type: "食材" },
+    { id: "bm_moss", name: "野生苔蘚", price: 8, desc: "發光苔蘚，微量魔力調味材料。", type: "食材" },
+    { id: "bm_slime", name: "帶刺黏液", price: 15, desc: "強效黏合劑，加工與料理用途。", type: "素材" },
+    { id: "bm_bento", name: "冒險者便當", price: 35, desc: "攜帶型戰鬥回復餐點 (回復 35% HP)。", type: "料理" },
+    { id: "bm_pick", name: "簡易開鎖器", price: 60, desc: "提升深淵寶箱開鎖成功率的備用工具。", type: "道具" }
+];
+
+let activeBlackMarketTab = "buy"; // "buy" 或 "sell"
 
 function renderVillageSquare() {
     const squareContainer = DOM.get('v-loc-square');
     if (!squareContainer) return;
 
     squareContainer.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
             
-            <div style="background: rgba(20, 15, 10, 0.85); border: 1px solid #d35400; border-radius: 10px; padding: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 13px; font-weight: bold; color: #e67e22;">⚖️ 黑市地下回收站</span>
-                    <button class="btn-game btn-rerun" style="padding: 2px 8px; font-size: 10px; background: #c0392b !important;" onclick="executeSellAllJunkMaterials()">
-                        🧹 一鍵清掃雜物素材
-                    </button>
+            <!-- ⚖️ 精簡版黑市進入橫幅 -->
+            <div style="
+                background: linear-gradient(135deg, rgba(30, 20, 10, 0.9), rgba(60, 30, 10, 0.9)); 
+                border: 1px solid #d35400; border-radius: 10px; padding: 12px; 
+                display: flex; justify-content: space-between; align-items: center;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            ">
+                <div>
+                    <div style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</div>
+                    <div style="font-size: 11px; color: #aaa; margin-top: 2px;">提供稀有素材採購與倉庫多餘物資變賣服務。</div>
                 </div>
-                <div id="black-market-items-list" style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
-                </div>
+                <button class="btn-game btn-rerun" style="padding: 6px 14px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="openBlackMarketModal('buy')">
+                    🛒 進入交易選單
+                </button>
             </div>
 
+            <!-- 💬 聊天室 (附帶線上人數顯示) -->
             <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid #2980b9; border-radius: 10px; padding: 10px;">
-                <div style="font-size: 13px; font-weight: bold; color: #3498db; margin-bottom: 6px;">
-                    💬 冒險者廣場頻道 <span style="font-size: 10px; color: #888;">(僅保留最新 20 條)</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 13px; font-weight: bold; color: #3498db;">💬 冒險者廣場頻道</span>
+                    <span style="font-size: 11px; color: #00ffcc; font-weight: bold; background: rgba(0,255,204,0.1); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(0,255,204,0.3);">
+                        🟢 線上勇者: <span id="square-online-count">${currentOnlineCount}</span> 人
+                    </span>
                 </div>
                 
                 <div id="square-chat-box" style="
-                    height: 110px; overflow-y: auto; background: rgba(0,0,0,0.4); 
+                    height: 120px; overflow-y: auto; background: rgba(0,0,0,0.4); 
                     border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; 
                     padding: 6px; font-size: 11px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;
                 ">
@@ -1623,49 +1643,186 @@ function renderVillageSquare() {
         </div>
     `;
 
-    renderBlackMarketItemList();
-    renderSquareChatBox(); // 👈 ✅ 渲染存放在內存中的歷史聊天紀錄
+    renderSquareChatBox();
 }
 
-function renderBlackMarketItemList() {
-    const listEl = document.getElementById('black-market-items-list');
-    if (!listEl) return;
-    listEl.innerHTML = "";
+// --------------------------------------------------------------------------
+// 🪟 彈出式黑市買賣視窗 (Modal System)
+// --------------------------------------------------------------------------
 
-    const warehouseData = accountMeta.warehouse || {};
-    let hasItems = false;
+function openBlackMarketModal(tab = "buy") {
+    activeBlackMarketTab = tab;
+    let overlay = document.getElementById('black-market-modal-overlay');
 
-    for (let itemName in warehouseData) {
-        const qty = warehouseData[itemName];
-        if (qty <= 0) continue;
-        hasItems = true;
-
-        let unitPrice = 5;
-        if (itemName.includes("焦黑") || itemName.includes("垃圾")) unitPrice = 1;
-        else if (itemName.includes("黏液") || itemName.includes("苔蘚") || itemName.includes("肉")) unitPrice = 3;
-        else if (itemName.includes("料理") || itemName.includes("堡")) unitPrice = 10;
-
-        const itemRow = document.createElement('div');
-        itemRow.style.cssText = `
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; font-size: 11px;
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'black-market-modal-overlay';
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999; padding: 15px; box-sizing: border-box;
         `;
+        document.body.appendChild(overlay);
+    }
 
-        itemRow.innerHTML = `
-            <span>${itemName} <b style="color:#ffd700;">x${qty}</b> <span style="color:#aaa; font-size:10px;">(單價 ${unitPrice}G)</span></span>
-            <div style="display: flex; gap: 4px;">
-                <button class="btn-game" style="padding: 2px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1)">賣 1 個</button>
-                <button class="btn-game btn-rest" style="padding: 2px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty})">全賣</button>
+    renderBlackMarketModalContent();
+    overlay.style.display = 'flex';
+}
+
+function closeBlackMarketModal() {
+    const overlay = document.getElementById('black-market-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function renderBlackMarketModalContent() {
+    const overlay = document.getElementById('black-market-modal-overlay');
+    if (!overlay) return;
+
+    const playerGold = currentRun ? currentRun.gold || 0 : 0;
+
+    overlay.innerHTML = `
+        <div style="
+            background: #181512; border: 2px solid #d35400; border-radius: 12px;
+            width: 100%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column;
+            box-shadow: 0 0 20px rgba(211, 84, 0, 0.4); overflow: hidden;
+        ">
+            <!-- 標頭與金幣顯示 -->
+            <div style="background: #251a14; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</span>
+                <span style="font-size: 12px; color: #ffd700; font-weight: bold;">🪙 現金: ${playerGold} G</span>
             </div>
-        `;
 
-        listEl.appendChild(itemRow);
-    }
+            <!-- 買賣頁籤按鈕 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <button style="
+                    padding: 8px; border: none; background: ${activeBlackMarketTab === 'buy' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
+                    color: ${activeBlackMarketTab === 'buy' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 12px; cursor: pointer;
+                    border-bottom: 2px solid ${activeBlackMarketTab === 'buy' ? '#e67e22' : 'transparent'};
+                " onclick="switchBlackMarketTab('buy')">🛒 採購黑市物資</button>
 
-    if (!hasItems) {
-        listEl.innerHTML = `<div style="color:#666; font-size:11px; text-align:center; padding: 10px;">📦 倉庫目前空空如也，沒有可回收的物資。</div>`;
+                <button style="
+                    padding: 8px; border: none; background: ${activeBlackMarketTab === 'sell' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
+                    color: ${activeBlackMarketTab === 'sell' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 12px; cursor: pointer;
+                    border-bottom: 2px solid ${activeBlackMarketTab === 'sell' ? '#e67e22' : 'transparent'};
+                " onclick="switchBlackMarketTab('sell')">💰 變賣倉庫物資</button>
+            </div>
+
+            <!-- 內容清單區塊 -->
+            <div id="black-market-modal-list" style="padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 200px;">
+            </div>
+
+            <!-- 底部動作鈕 -->
+            <div style="padding: 10px; background: #251a14; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                ${activeBlackMarketTab === 'sell' ? `
+                    <button class="btn-game btn-rerun" style="padding: 4px 10px; font-size: 11px; background: #c0392b !important;" onclick="executeSellAllJunkMaterials(); renderBlackMarketModalContent();">
+                        🧹 一鍵清掃雜物
+                    </button>
+                ` : `<span></span>`}
+                <button class="btn-game btn-rest" style="padding: 6px 16px; font-size: 11px;" onclick="closeBlackMarketModal()">關閉選單</button>
+            </div>
+        </div>
+    `;
+
+    const listEl = document.getElementById('black-market-modal-list');
+    if (!listEl) return;
+
+    if (activeBlackMarketTab === "buy") {
+        // 🛒 買入清單渲染
+        BLACK_MARKET_GOODS.forEach(item => {
+            const canAfford = playerGold >= item.price;
+            const row = document.createElement('div');
+            row.style.cssText = `
+                display: flex; justify-content: space-between; align-items: center;
+                background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;
+                border: 1px solid rgba(255,255,255,0.05);
+            `;
+            row.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <div>
+                        <strong style="color: #fff; font-size: 12px;">${item.name}</strong>
+                        <span style="font-size: 10px; color: #ff9f43; margin-left: 4px;">[${item.type}]</span>
+                    </div>
+                    <span style="font-size: 10px; color: #aaa;">${item.desc}</span>
+                </div>
+                <button class="btn-game btn-explore" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" ${canAfford ? "" : "disabled"} onclick="executeBuyBlackMarketItem('${item.id}')">
+                    🪙 ${item.price} G
+                </button>
+            `;
+            listEl.appendChild(row);
+        });
+    } else {
+        // 💰 賣出清單渲染 (讀取倉庫)
+        const warehouseData = accountMeta.warehouse || {};
+        let hasItems = false;
+
+        for (let itemName in warehouseData) {
+            const qty = warehouseData[itemName];
+            if (qty <= 0) continue;
+            hasItems = true;
+
+            let unitPrice = 5;
+            if (itemName.includes("焦黑") || itemName.includes("垃圾")) unitPrice = 1;
+            else if (itemName.includes("黏液") || itemName.includes("苔蘚") || itemName.includes("肉")) unitPrice = 3;
+            else if (itemName.includes("料理") || itemName.includes("堡")) unitPrice = 10;
+
+            const row = document.createElement('div');
+            row.style.cssText = `
+                display: flex; justify-content: space-between; align-items: center;
+                background: rgba(255,255,255,0.03); padding: 6px 8px; border-radius: 6px;
+                border: 1px solid rgba(255,255,255,0.05);
+            `;
+            row.innerHTML = `
+                <div>
+                    <span style="font-size: 12px; color: #fff;">${itemName}</span>
+                    <span style="font-size: 11px; color: #ffd700; font-weight: bold;"> x${qty}</span>
+                    <div style="font-size: 10px; color: #888;">收購單價: ${unitPrice} G</div>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-game" style="padding: 3px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1); renderBlackMarketModalContent();">賣 1 個</button>
+                    <button class="btn-game btn-rest" style="padding: 3px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty}); renderBlackMarketModalContent();">全賣</button>
+                </div>
+            `;
+            listEl.appendChild(row);
+        }
+
+        if (!hasItems) {
+            listEl.innerHTML = `<div style="color:#666; font-size:12px; text-align:center; padding: 20px;">📦 倉庫目前空空如也，沒有可賣出的物資。</div>`;
+        }
     }
 }
+
+function switchBlackMarketTab(tab) {
+    activeBlackMarketTab = tab;
+    renderBlackMarketModalContent();
+}
+
+function executeBuyBlackMarketItem(goodsId) {
+    const item = BLACK_MARKET_GOODS.find(g => g.id === goodsId);
+    if (!item) return;
+
+    if (!currentRun.gold || currentRun.gold < item.price) {
+        showToast("🪙 金幣不足，無法購買該商品！", "warn");
+        return;
+    }
+
+    currentRun.gold -= item.price;
+
+    // 將購買物品放入倉庫
+    if (!accountMeta.warehouse) accountMeta.warehouse = {};
+    accountMeta.warehouse[item.name] = (accountMeta.warehouse[item.name] || 0) + 1;
+
+    showToast(`🛒 成功購買 ${item.name}！已存入倉庫`, "success");
+    addLog(`🛒【黑市採購】花費 <span class="gold-text">${item.price} G</span> 購買了 <strong>${item.name}</strong> 並存入倉庫。`, "perfect");
+
+    saveGameData();
+    updateUI();
+    renderBlackMarketModalContent();
+}
+
+// --------------------------------------------------------------------------
+// 聊天室輔助函式
+// --------------------------------------------------------------------------
 
 function sendSquareChatMessage() {
     const inputEl = document.getElementById('square-chat-input');
