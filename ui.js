@@ -6,17 +6,16 @@
 const SOCKET_TARGET_URL = (typeof SERVER_URL !== "undefined") ? SERVER_URL : "https://rpg-backend-fjvg.onrender.com";
 const socket = (typeof io !== "undefined") ? io(SOCKET_TARGET_URL) : null;
 
-// 1. 剛連上伺服器時，自動載入最新 20 條歷史聊天
+// 💬 聊天快取記憶體 (防止切換分頁或不在廣場時訊息遺失)
+const MAX_CHAT_LOGS = 20;
+let localChatHistory = [];
+
+// 1. 剛連上伺服器時，自動載入歷史聊天紀錄
 if (socket) {
     socket.on("init_chat_history", (historyList) => {
-        const chatBox = document.getElementById('square-chat-box');
-        if (!chatBox) return;
-        chatBox.innerHTML = `<div style="color: #7f8c8d; font-style: italic;">[系統] 已成功連線至中央廣場頻道。</div>`;
-        
         if (Array.isArray(historyList)) {
-            historyList.forEach(item => {
-                receiveSquareChatMessage(item.name, item.msg);
-            });
+            localChatHistory = historyList.slice(-MAX_CHAT_LOGS);
+            renderSquareChatBox();
         }
     });
 
@@ -47,7 +46,8 @@ const DOM = {
             'stat-alloc-grid', 'bag-capacity-text', 'bag-slots-container', 'location-text',
             'guild-skills-container', 'kitchen-warehouse-display', 'recipes-container',
             'workshop-warehouse-display', 'blueprints-container',
-            'player-status-badges', 'monster-status-badges'
+            'player-status-badges', 'monster-status-badges',
+            'v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'
         ];
         keys.forEach(key => {
             const el = document.getElementById(key);
@@ -281,15 +281,12 @@ function initSwipeNavigation() {
         const diffX = touchEndX - touchStartX;
         const diffY = touchEndY - touchStartY;
 
-        // 確保為水平滑動（避免垂直滾動頁面時誤觸）
         if (Math.abs(diffX) > 60 && Math.abs(diffY) < 40) {
             const currentIndex = locations.indexOf(currentVillageLocation);
             if (diffX < 0 && currentIndex < locations.length - 1) {
-                // 左滑 ➔ 下一個分頁
                 switchVillageLocation(locations[currentIndex + 1]);
                 showToast(`轉至 ${locations[currentIndex + 1]} 區域`, "info");
             } else if (diffX > 0 && currentIndex > 0) {
-                // 右滑 ➔ 上一個分頁
                 switchVillageLocation(locations[currentIndex - 1]);
                 showToast(`轉至 ${locations[currentIndex - 1]} 區域`, "info");
             }
@@ -442,7 +439,7 @@ function getEquipmentStatDiff(blueprint) {
 }
 
 // --------------------------------------------------------------------------
-// 👤 角色數據 UI 同步 (含背包滿載警示 + Status Badges)
+// 👤 角色數據 UI 同步
 // --------------------------------------------------------------------------
 
 function syncCharacterDataUi() {
@@ -469,7 +466,6 @@ function syncCharacterDataUi() {
             : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
-    // 配點網格
     const gridEl = DOM.get('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
@@ -517,7 +513,6 @@ function syncCharacterDataUi() {
         });
     }
 
-    // 血條更新
     const hpEl = DOM.get('p-hp');
     const maxHpEl = DOM.get('p-maxhp');
     const mpEl = DOM.get('p-mp');
@@ -531,18 +526,14 @@ function syncCharacterDataUi() {
     if (mpEl) mpEl.innerText = currentRun.mp;
     if (maxMpEl) maxMpEl.innerText = currentRun.maxMp;
     if (pAtbRow) {
-    if (gameState === "BATTLE") {
-        pAtbRow.style.display = "block"; // 戰鬥中顯示
-        const pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
-            
-        if (pAtbBar) {
-            pAtbBar.style.width = `${pAtbPercent}%`;
-        }
-        if (pAtbText) {
-            pAtbText.innerText = `${Math.floor(pAtbPercent)}%`;
-        }
-    } else {
-        pAtbRow.style.display = "none"; // 在村莊時隱藏行動條
+        if (gameState === "BATTLE") {
+            pAtbRow.style.display = "block";
+            const pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
+                
+            if (pAtbBar) pAtbBar.style.width = `${pAtbPercent}%`;
+            if (pAtbText) pAtbText.innerText = `${Math.floor(pAtbPercent)}%`;
+        } else {
+            pAtbRow.style.display = "none";
         }
     }
 
@@ -551,7 +542,6 @@ function syncCharacterDataUi() {
     const mpBar = DOM.get('mp-bar-fill');
     if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
-    // 渲染玩家當前 Buff/Debuff 狀態徽章
     renderStatusBadges(DOM.get('player-status-badges'), currentRun.activeEffects);
 
     const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
@@ -567,7 +557,6 @@ function syncCharacterDataUi() {
     const skillListEl = DOM.get('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
 
-    // 裝備卡片名稱與 Paper Doll 綁定
     const wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
     const aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
     const cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
@@ -602,7 +591,6 @@ function syncCharacterDataUi() {
     const maxBag = typeof MAX_BAG_SIZE !== "undefined" ? MAX_BAG_SIZE : 6;
     const invLen = currentRun.inventory?.length || 0;
     
-    // 🚨 警示 1：背包容量動態文字樣式
     const capTextEl = DOM.get('bag-capacity-text');
     if (capTextEl) {
         let capClass = "";
@@ -616,7 +604,6 @@ function syncCharacterDataUi() {
         }
     }
 
-    // 🚨 警示 2：背包滿載呼吸燈動畫
     const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
         bagContainer.classList.toggle('bag-full', invLen >= maxBag);
@@ -758,7 +745,7 @@ function updateUI() {
         const rerunBtn = DOM.get('btn-rerun-action');
         if (rerunBtn) rerunBtn.style.display = "none";
         
-        initSwipeNavigation(); // 📱 初始化滑動手勢
+        initSwipeNavigation();
         syncCharacterDataUi();
         return; 
     }
@@ -804,7 +791,6 @@ function updateUI() {
         DOM.get('m-atk').innerText = activeMonster.atk;
         DOM.get('m-spd').innerText = activeMonster.spd;
 
-        // 👹 弱點與蓄力警告 (Monster Threat Cue)
         const mAtbPercent = Math.min(100, Math.max(0, typeof monsterAtb !== "undefined" ? monsterAtb : 0));
         
         if (mAtbPercent >= 80) {
@@ -822,7 +808,6 @@ function updateUI() {
             stats: `攻擊力: ${activeMonster.atk} | 速度: ${activeMonster.spd}`
         }));
 
-        // 渲染魔物 Buff/Debuff 狀態徽章
         renderStatusBadges(DOM.get('monster-status-badges'), activeMonster.activeEffects);
 
         const mAtbRow = DOM.get('m-atb-row');
@@ -854,10 +839,6 @@ function updateUI() {
     
     syncCharacterDataUi();
 }
-
-// --------------------------------------------------------------------------
-// 🛠️ 輔助函式：格式化技能效果 Preview 文字
-// --------------------------------------------------------------------------
 
 function formatSkillEffectText(s, lv, playerRun) {
     if (!lv || lv <= 0) return "未領悟";
@@ -897,10 +878,6 @@ function formatSkillEffectText(s, lv, playerRun) {
 
     return parts.length > 0 ? parts.join(" | ") : "特殊效果觸發";
 }
-
-// --------------------------------------------------------------------------
-// 🏛️ 冒險者公會技能面板
-// --------------------------------------------------------------------------
 
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
@@ -991,10 +968,6 @@ function renderVillageGuild() {
     });
 }
 
-// --------------------------------------------------------------------------
-// 🏷️ 倉庫過濾與渲染輔助 (Warehouse Filter Helper)
-// --------------------------------------------------------------------------
-
 function renderWarehouseFilterBar(containerEl, onFilterChange) {
     if (!containerEl) return;
     const filterRow = document.createElement('div');
@@ -1021,16 +994,10 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     containerEl.appendChild(filterRow);
 }
 
-// --------------------------------------------------------------------------
-// 🍳 皇家料理屋介面 (含倉庫 Tag 分類過濾)
-// --------------------------------------------------------------------------
-
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
         wBox.innerHTML = "";
-
-        // 🏷️ 渲染過濾標籤列
         renderWarehouseFilterBar(wBox, renderVillageCookingWorkshop);
 
         const warehouseData = accountMeta.warehouse || {};
@@ -1160,16 +1127,10 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// --------------------------------------------------------------------------
-// 🛠️ 加工所介面 (含倉庫 Tag 分類過濾)
-// --------------------------------------------------------------------------
-
 function renderVillageWorkshop() {
     const wBox = DOM.get('workshop-warehouse-display');
     if (wBox) {
         wBox.innerHTML = "";
-
-        // 🏷️ 渲染過濾標籤列
         renderWarehouseFilterBar(wBox, renderVillageWorkshop);
 
         const warehouseData = accountMeta.warehouse || {};
@@ -1251,7 +1212,6 @@ function renderVillageWorkshop() {
         const btnGroup = document.createElement('div');
         btnGroup.style.cssText = "display: flex; gap: 4px;";
 
-        // 1. 打造按鈕
         const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
         btnForge.style.cssText = "padding: 3px 6px; font-size: 10px;";
@@ -1263,7 +1223,6 @@ function renderVillageWorkshop() {
         const hasInWarehouse = (accountMeta.warehouse?.[blueprint.name] || 0) > 0;
         const curRefine = accountMeta.itemRefines?.[blueprint.name] || 0;
 
-        // 2. ✨ 強化按鈕 (只要玩家擁有該裝備，無論穿著或在倉庫，都會出現強化按鈕)
         if (isEquipped || hasInWarehouse) {
             const btnRefine = document.createElement('button');
             btnRefine.className = "btn-game btn-rerun";
@@ -1278,7 +1237,6 @@ function renderVillageWorkshop() {
             btnGroup.appendChild(btnRefine);
         }
 
-        // 3. 穿戴 / 卸下按鈕
         if (isEquipped) {
             const btnUnequip = document.createElement('button');
             btnUnequip.className = "btn-game btn-rest"; 
@@ -1352,18 +1310,14 @@ function changeCraftingLvl(range) {
 // ==========================================================================
 
 let lockpickState = {
-    targetAngle: 0,      // 最佳解鎖角度 (0 ~ 360)
-    tolerance: 15,       // 容許誤差角度 (±15度)
-    currentAngle: 0,     // 玩家目前指針角度
-    holdProgress: 0,     // 成功區域停留蓄力進度 (0 ~ 100)
+    targetAngle: 0,
+    tolerance: 15,
+    currentAngle: 0,
+    holdProgress: 0,
     isDragging: false,
     holdTimer: null,
     onSuccessCallback: null
 };
-
-// --------------------------------------------------------------------------
-// 📦 1. 寶箱察看前置面板 (防止過快自動觸發 QTE)
-// --------------------------------------------------------------------------
 
 function openChestInspectionModal(chestName = "遠古白銀寶箱", difficulty = "medium", onSuccess) {
     const overlay = document.getElementById('chest-inspect-overlay');
@@ -1400,24 +1354,17 @@ function executeForceOpenChest() {
     }
 }
 
-// --------------------------------------------------------------------------
-// ⚙️ 2. 初始化轉盤與 Pointer Events 跨平台監聽
-// --------------------------------------------------------------------------
-
 function initLockpickQTE(difficulty = "medium") {
     const overlay = document.getElementById('lockpick-modal-overlay');
     const dial = document.getElementById('lockpick-dial');
     const sweetSpot = document.getElementById('lockpick-sweet-spot');
 
-    // 根據難度設定容許誤差
     lockpickState.tolerance = difficulty === 'hard' ? 8 : (difficulty === 'easy' ? 22 : 14);
-    // 隨機產生最佳角度 (30° ~ 330° 避免正好落在原點)
     lockpickState.targetAngle = Math.floor(Math.random() * 300) + 30;
     lockpickState.currentAngle = 0;
     lockpickState.holdProgress = 0;
     lockpickState.isDragging = false;
 
-    // 視覺渲染最佳區域環形漸層
     const tAngle = lockpickState.targetAngle;
     const tol = lockpickState.tolerance;
     const startAngle = (tAngle - tol + 360) % 360;
@@ -1435,12 +1382,11 @@ function initLockpickQTE(difficulty = "medium") {
 
     if (overlay) overlay.style.display = 'flex';
 
-    // 📱/💻 跨平台通用 Pointer Events 綁定
     if (dial && !dial.dataset.bound) {
         dial.dataset.bound = "true";
 
         dial.addEventListener('pointerdown', (e) => {
-            dial.setPointerCapture(e.pointerId); // 鎖定指標，防止滑出界外失靈
+            dial.setPointerCapture(e.pointerId);
             lockpickState.isDragging = true;
             calculateAngleFromPointer(e, dial);
         });
@@ -1464,10 +1410,6 @@ function initLockpickQTE(difficulty = "medium") {
     startHoldProgressLoop();
 }
 
-// --------------------------------------------------------------------------
-// 📐 3. 角度計算 (atan2) 與視覺回饋
-// --------------------------------------------------------------------------
-
 function calculateAngleFromPointer(e, dial) {
     const rect = dial.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -1476,9 +1418,8 @@ function calculateAngleFromPointer(e, dial) {
     const dx = e.clientX - centerX;
     const dy = e.clientY - centerY;
 
-    // 使用 Math.atan2 計算 0~360 度角 (以正下方為起點向順時針)
     let rad = Math.atan2(dy, dx);
-    let deg = rad * (180 / Math.PI) - 90; // 調整角度偏移
+    let deg = rad * (180 / Math.PI) - 90;
     if (deg < 0) deg += 360;
 
     lockpickState.currentAngle = Math.round(deg);
@@ -1492,7 +1433,6 @@ function updateLockpickNeedle(deg) {
 
     if (needle) needle.style.transform = `translate(-50%, 0) rotate(${deg}deg)`;
 
-    // 檢查是否處於最佳區域 (Sweet Spot)
     const diff = Math.abs(deg - lockpickState.targetAngle);
     const inZone = diff <= lockpickState.tolerance || (360 - diff) <= lockpickState.tolerance;
 
@@ -1501,17 +1441,12 @@ function updateLockpickNeedle(deg) {
     if (hintText) {
         if (inZone) {
             hintText.innerHTML = `<span style="color:#00ffcc; font-weight:bold;">✨ 感受到了微弱聲響！保持住角度...</span>`;
-            // 手機端微幅震動提示
             if (navigator.vibrate && Math.random() < 0.3) navigator.vibrate(15);
         } else {
             hintText.innerText = "按住轉盤拖拽旋轉，尋找最佳解鎖感應區";
         }
     }
 }
-
-// --------------------------------------------------------------------------
-// ⏱️ 4. 在最佳角度停留自動積攢進度條
-// --------------------------------------------------------------------------
 
 function startHoldProgressLoop() {
     if (lockpickState.holdTimer) clearInterval(lockpickState.holdTimer);
@@ -1565,12 +1500,10 @@ function finishLockpickQTE(isSuccess) {
     }
 }
 
-
 // ==========================================================================
 // ⚖️ 黑市商人：物品與素材回收變賣系統
 // ==========================================================================
 
-// 1. 單項物品變賣出售
 function executeSellWarehouseItem(itemName, qty = 1) {
     if (!accountMeta.warehouse || !accountMeta.warehouse[itemName]) {
         if (typeof showToast === "function") showToast("📦 倉庫中無此物品", "warn");
@@ -1580,7 +1513,6 @@ function executeSellWarehouseItem(itemName, qty = 1) {
     const currentQty = accountMeta.warehouse[itemName];
     const sellQty = Math.min(qty, currentQty);
 
-    // 💰 簡單計算賣價 (焦黑物體 1G，普通素材 3G，料理 10G，其餘 5G)
     let unitPrice = 5;
     if (itemName.includes("焦黑") || itemName.includes("垃圾")) unitPrice = 1;
     else if (itemName.includes("黏液") || itemName.includes("苔蘚") || itemName.includes("肉")) unitPrice = 3;
@@ -1588,13 +1520,11 @@ function executeSellWarehouseItem(itemName, qty = 1) {
 
     const totalEarn = unitPrice * sellQty;
 
-    // 扣除倉庫存量
     accountMeta.warehouse[itemName] -= sellQty;
     if (accountMeta.warehouse[itemName] <= 0) {
         delete accountMeta.warehouse[itemName];
     }
 
-    // 增加金幣
     currentRun.gold = (currentRun.gold || 0) + totalEarn;
 
     if (typeof addLog === "function") {
@@ -1609,7 +1539,6 @@ function executeSellWarehouseItem(itemName, qty = 1) {
     if (typeof renderVillageSquare === "function") renderVillageSquare();
 }
 
-// 2. 一鍵清理變賣雜物與垃圾素材
 function executeSellAllJunkMaterials() {
     if (!accountMeta.warehouse) return;
 
@@ -1617,7 +1546,6 @@ function executeSellAllJunkMaterials() {
     let soldItemsCount = 0;
 
     for (let itemName in accountMeta.warehouse) {
-        // 定義哪些屬於可一鍵清理的基礎低階素材或垃圾
         if (itemName.includes("焦黑") || itemName.includes("黏液") || itemName.includes("苔蘚")) {
             const qty = accountMeta.warehouse[itemName];
             let unitPrice = itemName.includes("焦黑") ? 1 : 3;
@@ -1648,10 +1576,8 @@ function executeSellAllJunkMaterials() {
 }
 
 // ==========================================================================
-// 💬 中央廣場介面（黑市商人回收 + 省流量上限聊天室）
+// 💬 中央廣場介面（黑市商人回收 + 全局聊天快取）
 // ==========================================================================
-
-const MAX_CHAT_LOGS = 20; // 🛑 前端最多留 20 條聊天紀錄，節省記憶體與 DOM 節點
 
 function renderVillageSquare() {
     const squareContainer = DOM.get('v-loc-square');
@@ -1668,7 +1594,7 @@ function renderVillageSquare() {
                     </button>
                 </div>
                 <div id="black-market-items-list" style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
-                    </div>
+                </div>
             </div>
 
             <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid #2980b9; border-radius: 10px; padding: 10px;">
@@ -1681,7 +1607,6 @@ function renderVillageSquare() {
                     border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; 
                     padding: 6px; font-size: 11px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;
                 ">
-                    <div style="color: #7f8c8d; font-style: italic;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>
                 </div>
 
                 <div style="display: flex; gap: 6px;">
@@ -1698,13 +1623,10 @@ function renderVillageSquare() {
         </div>
     `;
 
-    // 渲染黑市商人可賣物品列表
     renderBlackMarketItemList();
+    renderSquareChatBox(); // 👈 ✅ 渲染存放在內存中的歷史聊天紀錄
 }
 
-// --------------------------------------------------------------------------
-// ⚖️ 渲染黑市可變賣清單
-// --------------------------------------------------------------------------
 function renderBlackMarketItemList() {
     const listEl = document.getElementById('black-market-items-list');
     if (!listEl) return;
@@ -1745,9 +1667,6 @@ function renderBlackMarketItemList() {
     }
 }
 
-// --------------------------------------------------------------------------
-// 💬 發送廣播訊息與數量上限控管 (前端 Logic)
-// --------------------------------------------------------------------------
 function sendSquareChatMessage() {
     const inputEl = document.getElementById('square-chat-input');
     if (!inputEl) return;
@@ -1757,11 +1676,9 @@ function sendSquareChatMessage() {
 
     const senderName = accountMeta.name || "無名勇者";
     
-    // 透過 Socket.io 或 REST API 發送 (若有後端連線)
-    if (typeof socket !== "undefined" && socket.connected) {
+    if (socket && socket.connected) {
         socket.emit("send_square_chat", { name: senderName, msg: msg });
     } else {
-        // 單機本地模擬測試訊息顯示
         receiveSquareChatMessage(senderName, msg);
     }
 
@@ -1769,21 +1686,22 @@ function sendSquareChatMessage() {
 }
 
 function receiveSquareChatMessage(senderName, msg) {
+    localChatHistory.push({ name: senderName, msg: msg });
+    if (localChatHistory.length > MAX_CHAT_LOGS) {
+        localChatHistory.shift();
+    }
+    renderSquareChatBox();
+}
+
+function renderSquareChatBox() {
     const chatBox = document.getElementById('square-chat-box');
     if (!chatBox) return;
 
-    const msgDiv = document.createElement('div');
-    msgDiv.style.cssText = "line-height: 1.3;";
-    msgDiv.innerHTML = `<strong style="color:#00ffcc;">[${senderName}]</strong>: <span style="color:#eee;">${msg}</span>`;
+    let html = `<div style="color: #7f8c8d; font-style: italic;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
+    localChatHistory.forEach(item => {
+        html += `<div style="line-height: 1.3;"><strong style="color:#00ffcc;">[${item.name}]</strong>: <span style="color:#eee;">${item.msg}</span></div>`;
+    });
 
-    chatBox.appendChild(msgDiv);
-
-    // 🛑【流量/記憶體優化】超過 MAX_CHAT_LOGS 條自動刪除最舊的訊息
-    while (chatBox.children.length > MAX_CHAT_LOGS) {
-        chatBox.removeChild(chatBox.firstChild);
-    }
-
-    // 自動捲動至最底部
+    chatBox.innerHTML = html;
     chatBox.scrollTop = chatBox.scrollHeight;
 }
-
