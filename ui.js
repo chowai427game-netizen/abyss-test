@@ -1538,3 +1538,226 @@ function finishLockpickQTE(isSuccess) {
         if (lockpickState.onSuccessCallback) lockpickState.onSuccessCallback(false);
     }
 }
+
+
+// ==========================================================================
+// ⚖️ 黑市商人：物品與素材回收變賣系統
+// ==========================================================================
+
+// 1. 單項物品變賣出售
+function executeSellWarehouseItem(itemName, qty = 1) {
+    if (!accountMeta.warehouse || !accountMeta.warehouse[itemName]) {
+        if (typeof showToast === "function") showToast("📦 倉庫中無此物品", "warn");
+        return;
+    }
+
+    const currentQty = accountMeta.warehouse[itemName];
+    const sellQty = Math.min(qty, currentQty);
+
+    // 💰 簡單計算賣價 (焦黑物體 1G，普通素材 3G，料理 10G，其餘 5G)
+    let unitPrice = 5;
+    if (itemName.includes("焦黑") || itemName.includes("垃圾")) unitPrice = 1;
+    else if (itemName.includes("黏液") || itemName.includes("苔蘚") || itemName.includes("肉")) unitPrice = 3;
+    else if (itemName.includes("料理") || itemName.includes("堡")) unitPrice = 10;
+
+    const totalEarn = unitPrice * sellQty;
+
+    // 扣除倉庫存量
+    accountMeta.warehouse[itemName] -= sellQty;
+    if (accountMeta.warehouse[itemName] <= 0) {
+        delete accountMeta.warehouse[itemName];
+    }
+
+    // 增加金幣
+    currentRun.gold = (currentRun.gold || 0) + totalEarn;
+
+    if (typeof addLog === "function") {
+        addLog(`💰【黑市交易】成功變賣 <strong>${itemName} x${sellQty}</strong>，換得 <span class="gold-victory-text">+${totalEarn} G</span>！`, "perfect");
+    }
+    if (typeof showToast === "function") {
+        showToast(`💰 變賣成功 +${totalEarn} G`, "success");
+    }
+
+    if (typeof saveGameData === "function") saveGameData();
+    if (typeof updateUI === "function") updateUI();
+    if (typeof renderVillageSquare === "function") renderVillageSquare();
+}
+
+// 2. 一鍵清理變賣雜物與垃圾素材
+function executeSellAllJunkMaterials() {
+    if (!accountMeta.warehouse) return;
+
+    let totalEarn = 0;
+    let soldItemsCount = 0;
+
+    for (let itemName in accountMeta.warehouse) {
+        // 定義哪些屬於可一鍵清理的基礎低階素材或垃圾
+        if (itemName.includes("焦黑") || itemName.includes("黏液") || itemName.includes("苔蘚")) {
+            const qty = accountMeta.warehouse[itemName];
+            let unitPrice = itemName.includes("焦黑") ? 1 : 3;
+            
+            totalEarn += unitPrice * qty;
+            soldItemsCount += qty;
+            delete accountMeta.warehouse[itemName];
+        }
+    }
+
+    if (soldItemsCount === 0) {
+        if (typeof showToast === "function") showToast("🧹 倉庫內沒有可清理的基礎雜物！", "info");
+        return;
+    }
+
+    currentRun.gold = (currentRun.gold || 0) + totalEarn;
+
+    if (typeof addLog === "function") {
+        addLog(`🧹💰【黑市一鍵大清掃】成功回收 <strong>${soldItemsCount} 件低階雜物</strong>，合共換得 <span class="gold-victory-text">+${totalEarn} G</span>！`, "perfect");
+    }
+    if (typeof showToast === "function") {
+        showToast(`🧹 清理完成，獲得 +${totalEarn} G！`, "success");
+    }
+
+    if (typeof saveGameData === "function") saveGameData();
+    if (typeof updateUI === "function") updateUI();
+    if (typeof renderVillageSquare === "function") renderVillageSquare();
+}
+
+// ==========================================================================
+// 💬 中央廣場介面（黑市商人回收 + 省流量上限聊天室）
+// ==========================================================================
+
+const MAX_CHAT_LOGS = 20; // 🛑 前端最多留 20 條聊天紀錄，節省記憶體與 DOM 節點
+
+function renderVillageSquare() {
+    const squareContainer = DOM.get('v-loc-square');
+    if (!squareContainer) return;
+
+    squareContainer.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+            
+            <div style="background: rgba(20, 15, 10, 0.85); border: 1px solid #d35400; border-radius: 10px; padding: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 13px; font-weight: bold; color: #e67e22;">⚖️ 黑市地下回收站</span>
+                    <button class="btn-game btn-rerun" style="padding: 2px 8px; font-size: 10px; background: #c0392b !important;" onclick="executeSellAllJunkMaterials()">
+                        🧹 一鍵清掃雜物素材
+                    </button>
+                </div>
+                <div id="black-market-items-list" style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                    </div>
+            </div>
+
+            <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid #2980b9; border-radius: 10px; padding: 10px;">
+                <div style="font-size: 13px; font-weight: bold; color: #3498db; margin-bottom: 6px;">
+                    💬 冒險者廣場頻道 <span style="font-size: 10px; color: #888;">(僅保留最新 20 條)</span>
+                </div>
+                
+                <div id="square-chat-box" style="
+                    height: 110px; overflow-y: auto; background: rgba(0,0,0,0.4); 
+                    border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; 
+                    padding: 6px; font-size: 11px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;
+                ">
+                    <div style="color: #7f8c8d; font-style: italic;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>
+                </div>
+
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="square-chat-input" placeholder="輸入發言內容..." maxlength="40" style="
+                        flex: 1; background: rgba(0,0,0,0.5); border: 1px solid #3498db; 
+                        border-radius: 4px; color: #fff; padding: 4px 8px; font-size: 11px; outline: none;
+                    " onkeypress="if(event.key === 'Enter') sendSquareChatMessage()">
+                    <button class="btn-game btn-explore" style="padding: 4px 10px; font-size: 11px;" onclick="sendSquareChatMessage()">
+                        發送
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    `;
+
+    // 渲染黑市商人可賣物品列表
+    renderBlackMarketItemList();
+}
+
+// --------------------------------------------------------------------------
+// ⚖️ 渲染黑市可變賣清單
+// --------------------------------------------------------------------------
+function renderBlackMarketItemList() {
+    const listEl = document.getElementById('black-market-items-list');
+    if (!listEl) return;
+    listEl.innerHTML = "";
+
+    const warehouseData = accountMeta.warehouse || {};
+    let hasItems = false;
+
+    for (let itemName in warehouseData) {
+        const qty = warehouseData[itemName];
+        if (qty <= 0) continue;
+        hasItems = true;
+
+        let unitPrice = 5;
+        if (itemName.includes("焦黑") || itemName.includes("垃圾")) unitPrice = 1;
+        else if (itemName.includes("黏液") || itemName.includes("苔蘚") || itemName.includes("肉")) unitPrice = 3;
+        else if (itemName.includes("料理") || itemName.includes("堡")) unitPrice = 10;
+
+        const itemRow = document.createElement('div');
+        itemRow.style.cssText = `
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px; font-size: 11px;
+        `;
+
+        itemRow.innerHTML = `
+            <span>${itemName} <b style="color:#ffd700;">x${qty}</b> <span style="color:#aaa; font-size:10px;">(單價 ${unitPrice}G)</span></span>
+            <div style="display: flex; gap: 4px;">
+                <button class="btn-game" style="padding: 2px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1)">賣 1 個</button>
+                <button class="btn-game btn-rest" style="padding: 2px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty})">全賣</button>
+            </div>
+        `;
+
+        listEl.appendChild(itemRow);
+    }
+
+    if (!hasItems) {
+        listEl.innerHTML = `<div style="color:#666; font-size:11px; text-align:center; padding: 10px;">📦 倉庫目前空空如也，沒有可回收的物資。</div>`;
+    }
+}
+
+// --------------------------------------------------------------------------
+// 💬 發送廣播訊息與數量上限控管 (前端 Logic)
+// --------------------------------------------------------------------------
+function sendSquareChatMessage() {
+    const inputEl = document.getElementById('square-chat-input');
+    if (!inputEl) return;
+
+    const msg = inputEl.value.trim();
+    if (!msg) return;
+
+    const senderName = accountMeta.name || "無名勇者";
+    
+    // 透過 Socket.io 或 REST API 發送 (若有後端連線)
+    if (typeof socket !== "undefined" && socket.connected) {
+        socket.emit("send_square_chat", { name: senderName, msg: msg });
+    } else {
+        // 單機本地模擬測試訊息顯示
+        receiveSquareChatMessage(senderName, msg);
+    }
+
+    inputEl.value = "";
+}
+
+function receiveSquareChatMessage(senderName, msg) {
+    const chatBox = document.getElementById('square-chat-box');
+    if (!chatBox) return;
+
+    const msgDiv = document.createElement('div');
+    msgDiv.style.cssText = "line-height: 1.3;";
+    msgDiv.innerHTML = `<strong style="color:#00ffcc;">[${senderName}]</strong>: <span style="color:#eee;">${msg}</span>`;
+
+    chatBox.appendChild(msgDiv);
+
+    // 🛑【流量/記憶體優化】超過 MAX_CHAT_LOGS 條自動刪除最舊的訊息
+    while (chatBox.children.length > MAX_CHAT_LOGS) {
+        chatBox.removeChild(chatBox.firstChild);
+    }
+
+    // 自動捲動至最底部
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
