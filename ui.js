@@ -6,6 +6,7 @@
 let currentOnlineCount = 1; 
 const MAX_CHAT_LOGS = 20;
 let localChatHistory = [];
+const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時 (14400000 ms)
 
 // 📡 Socket.io 即時連線初始化 (自動讀取 state.js 中的 SERVER_URL)
 const SOCKET_TARGET_URL = (typeof SERVER_URL !== "undefined") ? SERVER_URL : "https://rpg-backend-fjvg.onrender.com";
@@ -75,7 +76,7 @@ const DOM = {
 let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
-let activeWarehouseFilter = "all"; // 🏷️ 倉庫過濾狀態
+let activeWarehouseFilter = "all";
 
 // --------------------------------------------------------------------------
 // 🍞 1. Toast 輕量通知 API
@@ -1180,31 +1181,60 @@ function renderVillageWorkshop() {
     selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; width: 100%;";
     selectorWrapper.innerHTML = `
         <select class="select-game" onchange="changeCraftingCat(this.value)">
-            <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部神裝藍圖</option>
-            <option value="weapon" ${activeCraftingCategory === "weapon" ? "selected" : ""}>🗡️ 武器藍圖</option>
-            <option value="armor" ${activeCraftingCategory === "armor" ? "selected" : ""}>👕 防具藍圖</option>
-            <option value="accessory" ${activeCraftingCategory === "accessory" ? "selected" : ""}>💍 飾品藍圖</option>
+            <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部神裝類別</option>
+            <option value="weapon" ${activeCraftingCategory === "weapon" ? "selected" : ""}>🗡️ 武器裝備</option>
+            <option value="armor" ${activeCraftingCategory === "armor" ? "selected" : ""}>👕 防具裝備</option>
+            <option value="accessory" ${activeCraftingCategory === "accessory" ? "selected" : ""}>💍 飾品裝備</option>
         </select>
         <select class="select-game" onchange="changeCraftingLvl(this.value)">
             <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 階層 B1F ~ B10F</option>
             <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 階層 B11F ~ B20F</option>
             <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 階層 B21F ~ B30F</option>
+            <option value="31-40" ${activeCraftingLvlRange === "31-40" ? "selected" : ""}>📜 階層 B31F ~ B40F</option>
+            <option value="41-50" ${activeCraftingLvlRange === "41-50" ? "selected" : ""}>📜 階層 B41F ~ B50F</option>
+            <option value="51-60" ${activeCraftingLvlRange === "51-60" ? "selected" : ""}>📜 階層 B51F ~ B60F</option>
+            <option value="legendary" ${activeCraftingLvlRange === "legendary" ? "selected" : ""}>🌟 傳說神裝藍圖</option>
         </select>
     `;
     bContainer.appendChild(selectorWrapper);
 
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
+
+    // 🔒 讀取玩家已解鎖的傳說藍圖清單
+    const unlockedBlueprints = accountMeta.unlockedBlueprints || [];
+
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
+        
+        // 🛑 核心邏輯：若是傳說藍圖，未成功在黑市買到者，絕對不顯示！
+        if (b.isLegendary) {
+            if (!unlockedBlueprints.includes(b.name)) {
+                return false; // 未解鎖，直接隱藏
+            }
+            return matchCat && (activeCraftingLvlRange === "legendary" || b.range === activeCraftingLvlRange || activeCraftingLvlRange === "51-60");
+        }
+
         const matchLvl = (b.range === activeCraftingLvlRange);
         return matchCat && matchLvl;
     });
 
+    if (filteredBlueprints.length === 0) {
+        const emptyTip = document.createElement('div');
+        emptyTip.style.cssText = "color: #777; font-size: 11px; text-align: center; padding: 15px;";
+        emptyTip.innerText = activeCraftingLvlRange === "legendary" 
+            ? "🔒 尚未解鎖任何傳說藍圖。請前往地下黑市進行尋寶採購！" 
+            : "📜 該分頁目前暫無可打造裝備。";
+        bContainer.appendChild(emptyTip);
+        return;
+    }
+
     filteredBlueprints.forEach(blueprint => {
         const row = document.createElement('div');
         row.style.cssText = `
-            background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.04); margin-bottom: 6px; text-align: left;
+            background: ${blueprint.isLegendary ? 'rgba(230, 126, 34, 0.15)' : 'rgba(0,0,0,0.2)'}; 
+            padding: 8px 10px; border-radius: 8px;
+            border: 1px solid ${blueprint.isLegendary ? '#e67e22' : 'rgba(255,255,255,0.04)'}; 
+            margin-bottom: 6px; text-align: left;
             width: 100%; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         `;
 
@@ -1213,7 +1243,9 @@ function renderVillageWorkshop() {
         const statDiffHtml = getEquipmentStatDiff(blueprint);
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
 
-        row.innerHTML = `<div><strong style="color:#fff; font-size:12px;">${blueprint.name}${refineBadge}</strong></div>`;
+        const skillTag = blueprint.skill ? `<div style="font-size:10px; color:#00ffcc;">✨ 附帶技能: [${blueprint.skill.name}]</div>` : "";
+
+        row.innerHTML = `<div><strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:12px;">${blueprint.name}${refineBadge}</strong>${skillTag}</div>`;
 
         const btnGroup = document.createElement('div');
         btnGroup.style.cssText = "display: flex; gap: 4px;";
@@ -1263,7 +1295,7 @@ function renderVillageWorkshop() {
 
         bindFloatingCard(row, () => ({
             title: blueprint.name,
-            type: `裝備藍圖 (${blueprint.type.toUpperCase()})`,
+            type: blueprint.isLegendary ? "🌟 傳說神裝藍圖" : `裝備藍圖 (${blueprint.type.toUpperCase()})`,
             desc: `${blueprint.desc}<br><br>📊 <strong>穿戴屬性比對:</strong> ${statDiffHtml}`,
             stats: `🔨 所需打造材料: ${reqText}`
         }));
@@ -1582,19 +1614,66 @@ function executeSellAllJunkMaterials() {
 }
 
 // ==========================================================================
-// 💬 中央廣場介面（精簡版 + 彈出式黑市買賣 + 線上人數）
+// 💬 中央廣場介面與 4 小時動態黑市系統
 // ==========================================================================
 
-// 🛍️ 黑市商品清單 (可自行增減)
-const BLACK_MARKET_GOODS = [
-    { id: "bm_meat", name: "低階野獸肉", price: 12, desc: "用於料理防禦餐點的基本肉食。", type: "食材" },
-    { id: "bm_moss", name: "野生苔蘚", price: 8, desc: "發光苔蘚，微量魔力調味材料。", type: "食材" },
-    { id: "bm_slime", name: "帶刺黏液", price: 15, desc: "強效黏合劑，加工與料理用途。", type: "素材" },
-    { id: "bm_bento", name: "冒險者便當", price: 35, desc: "攜帶型戰鬥回復餐點 (回復 35% HP)。", type: "料理" },
-    { id: "bm_pick", name: "簡易開鎖器", price: 60, desc: "提升深淵寶箱開鎖成功率的備用工具。", type: "道具" }
-];
+let activeBlackMarketTab = "buy";
+let blackMarketTimerInterval = null;
 
-let activeBlackMarketTab = "buy"; // "buy" 或 "sell"
+// 🔄 4 小時隨機刷新黑市貨架 (含 5% 傳說藍圖率)
+function getOrRefreshBlackMarketStock() {
+    const now = Date.now();
+    if (!accountMeta.blackMarketStock || !accountMeta.blackMarketNextRefresh || now >= accountMeta.blackMarketNextRefresh) {
+        accountMeta.blackMarketStock = generateBlackMarketStock();
+        accountMeta.blackMarketNextRefresh = now + BLACK_MARKET_REFRESH_MS;
+        if (typeof saveGameData === "function") saveGameData();
+    }
+    return accountMeta.blackMarketStock;
+}
+
+function generateBlackMarketStock() {
+    const stock = [];
+    if (typeof MARKET_ITEMS_POOL === "undefined") return stock;
+
+    const consumables = MARKET_ITEMS_POOL.consumables || [];
+    const materials = MARKET_ITEMS_POOL.materials || [];
+    const legendaries = MARKET_ITEMS_POOL.getLegendaryBlueprints ? MARKET_ITEMS_POOL.getLegendaryBlueprints() : [];
+
+    for (let i = 0; i < 3; i++) {
+        // 5% 概率觸發傳說裝備藍圖
+        const isLegendaryRoll = Math.random() < 0.05 && legendaries.length > 0;
+        let item = null;
+
+        if (isLegendaryRoll) {
+            const randIdx = Math.floor(Math.random() * legendaries.length);
+            item = { ...legendaries[randIdx] };
+        } else {
+            // 50% 機率為消耗品，50% 為高級素材
+            const isMaterial = Math.random() < 0.5 && materials.length > 0;
+            if (isMaterial) {
+                const randIdx = Math.floor(Math.random() * materials.length);
+                item = { ...materials[randIdx] };
+            } else if (consumables.length > 0) {
+                const randIdx = Math.floor(Math.random() * consumables.length);
+                item = { ...consumables[randIdx] };
+            }
+        }
+
+        if (item) {
+            stock.push({
+                idx: i,
+                name: item.name,
+                blueprintName: item.blueprintName || null,
+                price: item.price,
+                desc: item.desc,
+                type: item.type,
+                isLegendary: !!item.isLegendary,
+                bought: false
+            });
+        }
+    }
+    return stock;
+}
 
 function renderVillageSquare() {
     const squareContainer = DOM.get('v-loc-square');
@@ -1612,7 +1691,7 @@ function renderVillageSquare() {
             ">
                 <div>
                     <div style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</div>
-                    <div style="font-size: 11px; color: #aaa; margin-top: 2px;">提供稀有素材採購與倉庫多餘物資變賣服務。</div>
+                    <div style="font-size: 11px; color: #aaa; margin-top: 2px;">提供稀有素材採購、傳說藍圖與倉庫變賣服務。</div>
                 </div>
                 <button class="btn-game btn-rerun" style="padding: 6px 14px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="openBlackMarketModal('buy')">
                     🛒 進入交易選單
@@ -1674,11 +1753,40 @@ function openBlackMarketModal(tab = "buy") {
 
     renderBlackMarketModalContent();
     overlay.style.display = 'flex';
+    startBlackMarketCountdown();
 }
 
 function closeBlackMarketModal() {
     const overlay = document.getElementById('black-market-modal-overlay');
     if (overlay) overlay.style.display = 'none';
+    if (blackMarketTimerInterval) clearInterval(blackMarketTimerInterval);
+}
+
+function startBlackMarketCountdown() {
+    if (blackMarketTimerInterval) clearInterval(blackMarketTimerInterval);
+
+    blackMarketTimerInterval = setInterval(() => {
+        const timerEl = document.getElementById('bm-refresh-timer');
+        if (!timerEl) {
+            clearInterval(blackMarketTimerInterval);
+            return;
+        }
+
+        const now = Date.now();
+        const diff = (accountMeta.blackMarketNextRefresh || now) - now;
+
+        if (diff <= 0) {
+            getOrRefreshBlackMarketStock();
+            renderBlackMarketModalContent();
+            return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+        timerEl.innerText = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
 }
 
 function renderBlackMarketModalContent() {
@@ -1686,6 +1794,7 @@ function renderBlackMarketModalContent() {
     if (!overlay) return;
 
     const playerGold = currentRun ? currentRun.gold || 0 : 0;
+    const stockList = getOrRefreshBlackMarketStock();
 
     overlay.innerHTML = `
         <div style="
@@ -1695,7 +1804,10 @@ function renderBlackMarketModalContent() {
         ">
             <!-- 標頭與金幣顯示 -->
             <div style="background: #251a14; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</span>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</span>
+                    <span style="font-size: 10px; color: #888;">⏳ 距離下次補貨: <span id="bm-refresh-timer" style="color:#00ffcc; font-weight:bold;">00:00:00</span></span>
+                </div>
                 <span style="font-size: 12px; color: #ffd700; font-weight: bold;">🪙 現金: ${playerGold} G</span>
             </div>
 
@@ -1705,7 +1817,7 @@ function renderBlackMarketModalContent() {
                     padding: 8px; border: none; background: ${activeBlackMarketTab === 'buy' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
                     color: ${activeBlackMarketTab === 'buy' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 12px; cursor: pointer;
                     border-bottom: 2px solid ${activeBlackMarketTab === 'buy' ? '#e67e22' : 'transparent'};
-                " onclick="switchBlackMarketTab('buy')">🛒 採購黑市物資</button>
+                " onclick="switchBlackMarketTab('buy')">🛒 採購黑市物資 (限額 3 件)</button>
 
                 <button style="
                     padding: 8px; border: none; background: ${activeBlackMarketTab === 'sell' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
@@ -1735,24 +1847,31 @@ function renderBlackMarketModalContent() {
 
     if (activeBlackMarketTab === "buy") {
         // 🛒 買入清單渲染
-        BLACK_MARKET_GOODS.forEach(item => {
-            const canAfford = playerGold >= item.price;
+        stockList.forEach((item) => {
+            const canAfford = playerGold >= item.price && !item.bought;
             const row = document.createElement('div');
             row.style.cssText = `
                 display: flex; justify-content: space-between; align-items: center;
-                background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;
-                border: 1px solid rgba(255,255,255,0.05);
+                background: ${item.isLegendary ? 'rgba(230, 126, 34, 0.15)' : 'rgba(255,255,255,0.03)'}; 
+                padding: 8px; border-radius: 6px;
+                border: 1px solid ${item.isLegendary ? '#e67e22' : 'rgba(255,255,255,0.05)'};
             `;
+
+            const nameColor = item.isLegendary ? "#f39c12" : "#fff";
+
             row.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <div>
-                        <strong style="color: #fff; font-size: 12px;">${item.name}</strong>
+                        <strong style="color: ${nameColor}; font-size: 12px;">${item.name}</strong>
                         <span style="font-size: 10px; color: #ff9f43; margin-left: 4px;">[${item.type}]</span>
                     </div>
                     <span style="font-size: 10px; color: #aaa;">${item.desc}</span>
                 </div>
-                <button class="btn-game btn-explore" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" ${canAfford ? "" : "disabled"} onclick="executeBuyBlackMarketItem('${item.id}')">
-                    🪙 ${item.price} G
+                <button class="btn-game ${item.bought ? 'btn-rest' : 'btn-explore'}" 
+                    style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" 
+                    ${canAfford ? "" : "disabled"} 
+                    onclick="executeBuyBlackMarketItem(${item.idx})">
+                    ${item.bought ? "❌ 已售罄" : `🪙 ${item.price} G`}
                 </button>
             `;
             listEl.appendChild(row);
@@ -1803,9 +1922,14 @@ function switchBlackMarketTab(tab) {
     renderBlackMarketModalContent();
 }
 
-function executeBuyBlackMarketItem(goodsId) {
-    const item = BLACK_MARKET_GOODS.find(g => g.id === goodsId);
-    if (!item) return;
+function executeBuyBlackMarketItem(stockIndex) {
+    const stockList = getOrRefreshBlackMarketStock();
+    const item = stockList[stockIndex];
+
+    if (!item || item.bought) {
+        showToast("⚠️ 該商品已被購買或不存在！", "warn");
+        return;
+    }
 
     if (!currentRun.gold || currentRun.gold < item.price) {
         showToast("🪙 金幣不足，無法購買該商品！", "warn");
@@ -1813,16 +1937,26 @@ function executeBuyBlackMarketItem(goodsId) {
     }
 
     currentRun.gold -= item.price;
+    item.bought = true; // 標記為已售罄
 
-    // 將購買物品放入倉庫
-    if (!accountMeta.warehouse) accountMeta.warehouse = {};
-    accountMeta.warehouse[item.name] = (accountMeta.warehouse[item.name] || 0) + 1;
+    if (item.isLegendary && item.blueprintName) {
+        // 🌟 傳說神裝藍圖：寫入已解鎖清單
+        if (!accountMeta.unlockedBlueprints) accountMeta.unlockedBlueprints = [];
+        if (!accountMeta.unlockedBlueprints.includes(item.blueprintName)) {
+            accountMeta.unlockedBlueprints.push(item.blueprintName);
+        }
+        showToast(`📜 成功購買 ${item.name}！已解鎖加工所打造資格`, "success");
+        addLog(`🛒【黑市交易】花費 <span class="gold-text">${item.price} G</span> 購買了 <strong>${item.name}</strong>！解鎖了加工所打造資格。`, "perfect");
+    } else {
+        // 🌾 一般素材/消耗品：存入倉庫
+        if (!accountMeta.warehouse) accountMeta.warehouse = {};
+        accountMeta.warehouse[item.name] = (accountMeta.warehouse[item.name] || 0) + 1;
+        showToast(`🛒 成功購買 ${item.name}！已存入倉庫`, "success");
+        addLog(`🛒【黑市採購】花費 <span class="gold-text">${item.price} G</span> 購買了 <strong>${item.name}</strong> 並存入倉庫。`, "perfect");
+    }
 
-    showToast(`🛒 成功購買 ${item.name}！已存入倉庫`, "success");
-    addLog(`🛒【黑市採購】花費 <span class="gold-text">${item.price} G</span> 購買了 <strong>${item.name}</strong> 並存入倉庫。`, "perfect");
-
-    saveGameData();
-    updateUI();
+    if (typeof saveGameData === "function") saveGameData();
+    if (typeof updateUI === "function") updateUI();
     renderBlackMarketModalContent();
 }
 
