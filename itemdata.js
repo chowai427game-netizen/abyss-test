@@ -101,7 +101,7 @@ const CRAFTING_BLUEPRINTS = [
     // Level 51-60
     { name: "🗡️ 終焉寂滅星雲刃", type: "weapon", range: "51-60", stats: { atk: 260, hit: 30, spd: 15 }, ingredients: { "星塵碎片": 5, "死神鐮刃": 3, "時空皮革": 12 }, desc: "【紀元至高神兵】斬斷因果，蘊藏了星雲爆炸的極致破壞力。" },
     { name: "🪓 混沌吞噬寂滅巨斧", type: "weapon", range: "51-60", stats: { atk: 320, hit: 15, spd: -8 }, ingredients: { "混沌核心": 4, "惡魔之角": 6, "獸人後腿肉": 25 }, desc: "斧柄由黑魔長角拼裝，斧刃乃混沌風暴本身，碎甲第一。" },
-    { name: "🗡️ 重力塌陷碎星錘", type: "weapon", range: "51-60", stats: { atk: 280, block: 20, def: 20, mdef: 20 }, ingredients: { "重力奇點": 4, "符文石板": 10, "巨石苔蘚": 20 }, desc: "揮舞時能產生重力偏折，大幅度增加自身防禦面板與重量感。" },
+    { name: "🗡️ 重力塌陷碎星锤", type: "weapon", range: "51-60", stats: { atk: 280, block: 20, def: 20, mdef: 20 }, ingredients: { "重力奇點": 4, "符文石板": 10, "巨石苔蘚": 20 }, desc: "揮舞時能產生重力偏折，大幅度增加自身防禦面板與重量感。" },
     { name: "🏹 裁決神聖之翼戰弓", type: "weapon", range: "51-60", stats: { atk: 210, hit: 45, spd: 10 }, ingredients: { "裁決羽毛": 5, "暗刃鋼片": 8, "哥布林香料": 20 }, desc: "用神使鋼羽編織的機關戰弓，命中率超凡。" },
     { name: "🪄 星塵秩序法陣魔杖", type: "weapon", range: "51-60", stats: { matk: 220, mpRegen: 35, mdef: 30 }, ingredients: { "星塵碎片": 4, "奪心碎晶": 8, "魔導碎頁": 15 }, desc: "【不滅法杖】頂端匯聚星塵風暴，奧術回魔與傷害史詩共振。" },
     
@@ -115,7 +115,21 @@ const CRAFTING_BLUEPRINTS = [
     { name: "📿 混沌黑洞項鍊", type: "accessory", range: "51-60", stats: { atk: 25, matk: 25, maxHp: 200 }, ingredients: { "混沌核心": 4, "吸血毒牙": 15, "腐屍毒素": 20 }, desc: "【雙修神飾】核心如同一顆永動黑洞，大幅提升攻魔能力。" },
     { name: "💍 奇點時空重力環", type: "accessory", range: "51-60", stats: { block: 20, def: 20, spd: 15, flee: 15 }, ingredients: { "重力奇點": 4, "毒蜘蛛腺體": 15, "寒冰霜塵": 20 }, desc: "極大改寫身體重力密度的臂環，同時增加爆發速度與減傷。" },
     { name: "📿 死神寂滅吊墜", type: "accessory", range: "51-60", stats: { critChance: 20, hit: 20 }, ingredients: { "死神鐮刃": 3, "九頭蛇血": 12, "怨靈淚晶": 20 }, desc: "吊墜由骷髏死牙製成，佩戴者攻擊會觸發極度精準與收割效果。" },
-    { name: "💍 秩序審判天之戒", type: "accessory", range: "51-60", stats: { maxHp: 400, mdef: 25, mpRegen: 15 }, ingredients: { "裁決羽毛": 4, "九頭蛇血": 12, "史萊姆黏液": 25 }, desc: "神羽天光庇護，大幅增加魔防、MP 回復及生命上限。" }
+    { name: "💍 秩序審判天之戒", type: "accessory", range: "51-60", stats: { maxHp: 400, mdef: 25, mpRegen: 15 }, ingredients: { "裁決羽毛": 4, "九頭蛇血": 12, "史萊姆黏液": 25 }, desc: "神羽天光庇護，大幅增加魔防、MP 回復及生命上限。" },
+
+    // 🌟 ✨ 新增：10 種傳說裝備藍圖 (全部自帶 Lv.1 專屬裝備技能) ✨
+    { name: "🗡️ 傳說·光輝聖劍", type: "weapon", range: "legendary", isLegendary: true, skill: { name: "聖光突刺", lv: 1, desc: "造成 200% 物理傷害並補滿 50 HP" }, stats: { atk: 350, hit: 40, spd: 20 }, ingredients: { "裁決羽毛": 10, "星塵碎片": 10, "混沌核心": 5 }, desc: "【傳說武器】封印著天堂聖光的至高神劍。" },
+    { name: "🪓 傳說·毀滅帝王斧", type: "weapon", range: "legendary", isLegendary: true, skill: { name: "地裂崩山", lv: 1, desc: "造成 300% 物理傷害並使敵方眩暈 1 回合" }, stats: { atk: 450, hit: 20, spd: -10 }, ingredients: { "混沌核心": 10, "死神鐮刃": 10, "惡魔之角": 15 }, desc: "【傳說武器】一斧劈開大地，蘊藏毀滅萬物之力。" },
+    { name: "🏹 傳說·幻影神箭弓", type: "weapon", range: "legendary", isLegendary: true, skill: { name: "萬箭齊發", lv: 1, desc: "進行 4 次連續射擊，每次造成 60% 傷害" }, stats: { atk: 300, hit: 60, spd: 25 }, ingredients: { "裁決羽毛": 12, "時空皮革": 15, "星塵碎片": 8 }, desc: "【傳說武器】無形無相，發射出撕裂空間的幻影箭雨。" },
+    { name: "🪄 傳說·滅世魔導之杖", type: "weapon", range: "legendary", isLegendary: true, skill: { name: "末日審判", lv: 1, desc: "造成 350% 魔法傷害並觸發 2 層燃燒" }, stats: { matk: 380, mpRegen: 50, mdef: 40 }, ingredients: { "星塵碎片": 15, "奪心碎晶": 15, "魔導碎頁": 20 }, desc: "【傳說武器】凝聚了星辰滅絕奧秘的魔導法杖。" },
+    
+    { name: "👕 傳說·神聖天臨鎧甲", type: "armor", range: "legendary", isLegendary: true, skill: { name: "神聖結界", lv: 1, desc: "戰鬥開始時自動獲得 500 點護盾" }, stats: { block: 80, def: 80, mdef: 60, maxHp: 1200 }, ingredients: { "重力奇點": 10, "硬殼龜甲": 30, "裁決羽毛": 10 }, desc: "【傳說防具】天神親自賜福的至尊重鎧。" },
+    { name: "👕 傳說·虛無暗影風衣", type: "armor", range: "legendary", isLegendary: true, skill: { name: "殘影步", lv: 1, desc: "提升 30% 迴避率，持續 3 回合" }, stats: { maxHp: 800, spd: 60, flee: 50 }, ingredients: { "死神鐮刃": 8, "時空皮革": 20, "暗刃鋼片": 15 }, desc: "【傳說防具】穿戴者會完全融入虛空無形。" },
+    { name: "🛡️ 傳說·不朽永恆巨盾", type: "armor", range: "legendary", isLegendary: true, skill: { name: "絕對防守", lv: 1, desc: "免疫下一擊的所有傷害" }, stats: { block: 100, def: 100, mdef: 80, maxHp: 1000 }, ingredients: { "重力奇點": 12, "混沌核心": 8, "符文石板": 20 }, desc: "【傳說防具】傳說中連神明擊打都無法產生裂痕的防盾。" },
+    
+    { name: "💍 傳說·龍魂不滅指環", type: "accessory", range: "legendary", isLegendary: true, skill: { name: "龍威吼咆", lv: 1, desc: "削弱敵方 20% 攻擊力，持續 2 回合" }, stats: { atk: 50, matk: 50, maxHp: 500 }, ingredients: { "地龍魔爪": 10, "九頭蛇血": 20, "混沌核心": 5 }, desc: "【傳說飾品】封印著太古巨龍靈魂的強大戒指。" },
+    { name: "📿 傳說·時空樞紐護符", type: "accessory", range: "legendary", isLegendary: true, skill: { name: "時空倒流", lv: 1, desc: "立刻將自己的行動條拉滿 100%" }, stats: { spd: 30, flee: 30, mpRegen: 25 }, ingredients: { "時空皮革": 15, "重力奇點": 8, "星塵碎片": 10 }, desc: "【傳說飾品】能微幅扭曲時間線的神秘護符。" },
+    { name: "💍 傳說·星神暴擊魔戒", type: "accessory", range: "legendary", isLegendary: true, skill: { name: "星光爆裂", lv: 1, desc: "下次攻擊 100% 觸發致命暴擊" }, stats: { critChance: 40, hit: 35 }, ingredients: { "星塵碎片": 12, "烈焰餘燼": 25, "吸血毒牙": 20 }, desc: "【傳說飾品】將星辰匯聚為致命暴擊輸出的神環。" }
 ];
 
 const RECIPES_DATABASE = [
@@ -150,13 +164,40 @@ const RECIPES_DATABASE = [
     { name: "🍟 地龍魔爪厚炸薯", range: "41-50", ingredients: { "地龍魔爪": 2, "獸人後腿肉": 12 }, type: "dungeon_use", desc: "局內攜帶：當場補滿 250 點 HP，並移除自身的灼燒狀態。" }
 ];
 
-const MARKET_ITEMS_POOL = [
-    { name: "🌭 大快活厚牛巨堡", price: 45, desc: "立刻補滿 100 HP，並生成 80 點物理防盾。" },
-    { name: "🍧 萬年永凍刨冰", price: 55, desc: "強行凍結魔物 2 回合，封鎖再生與反擊。" },
-    { name: "🍷 逆轉禁忌血釀", price: 130, desc: "空間扭曲！強行蒸發並無傷跳過當前樓層怪。" },
-    { name: "🧪 微光初級治癒藥水", price: 20, desc: "立刻回復 50 點 HP。" },
-    { name: "🧪 皇家大瓶強效魔藥", price: 40, desc: "立刻回復 150 點 HP。" },
-    { name: "🧪 秘銀奧術回魔劑", price: 30, desc: "立刻回復 40 點 MP 殘餘值。" },
-    { name: "🧪 聖使神聖活力合劑", price: 80, desc: "立刻補滿 100% 的 HP 與 MP。" },
-    { name: "🥩 烤野豬肉大串乾", price: 25, desc: "美味的口糧，當場回復 60 點生命值。" }
-];
+// ==========================================================================
+// 🛒 黑市動態商品池分類 (提供給隨機刷新邏輯抽選)
+// ==========================================================================
+
+const MARKET_ITEMS_POOL = {
+    // 1. 常規消耗品：回復藥 / 低層成品料理
+    consumables: [
+        { name: "🧪 微光初級治癒藥水", price: 20, type: "potion", desc: "立刻回復 50 點 HP。" },
+        { name: "🧪 皇家大瓶強效魔藥", price: 80, type: "potion", desc: "立刻回復 150 點 HP。" },
+        { name: "🧪 秘銀奧術回魔劑", price: 60, type: "potion", desc: "立刻回復 40 點 MP。" },
+        { name: "🧪 聖使神聖活力合劑", price: 250, type: "potion", desc: "立刻補滿 100% 的 HP 與 MP。" },
+        { name: "🌭 大快活厚牛巨堡", price: 45, type: "dish", desc: "立刻補滿 100 HP，並生成 80 點物理防盾。" },
+        { name: "🥩 烤野豬肉大串", price: 30, type: "dish", desc: "咬一口當場回復 60 點 HP，並加載 20 點物理盾。" },
+        { name: "🍲 哥布林雜碎湯", price: 35, type: "dish", desc: "進入地下城前 15 層最大生命值固定 +60 點。" }
+    ],
+
+    // 2. 高級素材 (單價 > 5k = 5000 G)
+    materials: [
+        { name: "星塵碎片", price: 5500, type: "material", desc: "【高級素材】蘊含星辰微光的珍稀結晶。" },
+        { name: "混沌核心", price: 6800, type: "material", desc: "【高級素材】爆發著混沌能量的核心。" },
+        { name: "重力奇點", price: 7200, type: "material", desc: "【高級素材】扭曲周圍重力場的神秘奇點。" },
+        { name: "裁決羽毛", price: 6000, type: "material", desc: "【高級素材】散發光芒的神聖鋼羽。" },
+        { name: "死神鐮刃", price: 8500, type: "material", desc: "【高級素材】死神武器碎裂後的極致刃片。" }
+    ],
+
+    // 3. 傳說裝備藍圖 (單價 > 10k = 10000 G, 從 CRAFTING_BLUEPRINTS 自動過濾)
+    getLegendaryBlueprints: function() {
+        return CRAFTING_BLUEPRINTS.filter(b => b.isLegendary).map(b => ({
+            name: `📜 藍圖：${b.name}`,
+            blueprintName: b.name,
+            price: 15000,
+            type: "blueprint",
+            isLegendary: true,
+            desc: `【5% 特殊商品】解鎖 ${b.name} 打造資格，附帶 Lv.1 技能 [${b.skill.name}]。`
+        }));
+    }
+};
