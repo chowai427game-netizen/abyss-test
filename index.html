@@ -25,7 +25,7 @@
     </div>
 </div>
 
-<!-- 🎭 全新勇者初始職業抉擇遮罩 (修正包含明確閉合結構與取消備援) -->
+<!-- 🎭 全新勇者初始職業抉擇遮罩 -->
 <div id="initial-job-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="job-modal-title">
     <div class="modal-card">
         <h2 id="job-modal-title" class="modal-title-cyan">🎭 選擇你的初始冒險血脈</h2>
@@ -253,12 +253,9 @@
                     </div>
                 </div>
 
+                <!-- 💬 中央廣場 (已更新為最新動態載入區塊) -->
                 <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
-                    <div class="placeholder-card">
-                        <h3>💬 中央交流廣場</h3>
-                        <p class="placeholder-status">🚧 區域籌備中 (COMING SOON)</p>
-                        <div class="placeholder-desc">未來這裡將接入 Render 後端聯網引擎，提供全服勇者留言板與即時聊天室！</div>
-                    </div>
+                    <div class="notice-container">💬 正在連接中央交流廣場與黑市地下回收站...</div>
                 </div>
 
                 <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
@@ -396,7 +393,6 @@
         <button id="lockpick-submit-btn" class="btn-game btn-explore full-width" onclick="checkLockpickSuccess()">🔑 旋轉鎖芯扭開</button>
     </div>
 </div>
-
 
 <!-- 1. 核心狀態與數值計算引擎 -->
 <script src="state.js"></script>
