@@ -1225,6 +1225,7 @@ function renderVillageWorkshop() {
         const btnGroup = document.createElement('div');
         btnGroup.style.cssText = "display: flex; gap: 4px;";
 
+        // 1. 打造按鈕
         const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
         btnForge.style.cssText = "padding: 3px 6px; font-size: 10px;";
@@ -1234,7 +1235,24 @@ function renderVillageWorkshop() {
 
         const isEquipped = (accountMeta.equipment?.weapon === blueprint.name || accountMeta.equipment?.armor === blueprint.name || accountMeta.equipment?.accessory === blueprint.name);
         const hasInWarehouse = (accountMeta.warehouse?.[blueprint.name] || 0) > 0;
+        const curRefine = accountMeta.itemRefines?.[blueprint.name] || 0;
 
+        // 2. ✨ 強化按鈕 (只要玩家擁有該裝備，無論穿著或在倉庫，都會出現強化按鈕)
+        if (isEquipped || hasInWarehouse) {
+            const btnRefine = document.createElement('button');
+            btnRefine.className = "btn-game btn-rerun";
+            btnRefine.style.cssText = "padding: 3px 6px; font-size: 10px; background: linear-gradient(135deg, #f39c12 0%, #d35400 100%) !important;";
+            btnRefine.innerHTML = `✨ 強化 (+${curRefine})`;
+            btnRefine.onclick = (e) => { 
+                e.stopPropagation(); 
+                if (typeof refineSpecificEquipment === "function") {
+                    refineSpecificEquipment(blueprint.name);
+                } 
+            };
+            btnGroup.appendChild(btnRefine);
+        }
+
+        // 3. 穿戴 / 卸下按鈕
         if (isEquipped) {
             const btnUnequip = document.createElement('button');
             btnUnequip.className = "btn-game btn-rest"; 
