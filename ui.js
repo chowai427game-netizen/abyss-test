@@ -1,17 +1,24 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (5 大 UX 體驗升級版)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心
 // ==========================================================================
+
+// 🌐 1. 全域狀態變數宣告（必須放在最頂端，防止 ReferenceError）
+let currentOnlineCount = 1; 
+const MAX_CHAT_LOGS = 20;
+let localChatHistory = [];
 
 // 📡 Socket.io 即時連線初始化 (自動讀取 state.js 中的 SERVER_URL)
 const SOCKET_TARGET_URL = (typeof SERVER_URL !== "undefined") ? SERVER_URL : "https://rpg-backend-fjvg.onrender.com";
 const socket = (typeof io !== "undefined") ? io(SOCKET_TARGET_URL) : null;
 
-// 💬 聊天快取記憶體 (防止切換分頁或不在廣場時訊息遺失)
-const MAX_CHAT_LOGS = 20;
-let localChatHistory = [];
-
-// 1. 剛連上伺服器時，自動載入歷史聊天紀錄
+// 📡 2. Socket 事件監聽器
 if (socket) {
+    socket.on("update_online_count", (count) => {
+        currentOnlineCount = count;
+        const countEl = document.getElementById('square-online-count');
+        if (countEl) countEl.innerText = count;
+    });
+
     socket.on("init_chat_history", (historyList) => {
         if (Array.isArray(historyList)) {
             localChatHistory = historyList.slice(-MAX_CHAT_LOGS);
@@ -19,7 +26,6 @@ if (socket) {
         }
     });
 
-    // 2. 接收來自線上其他勇者發送的即時廣播
     socket.on("receive_square_chat", (data) => {
         if (data && data.name && data.msg) {
             receiveSquareChatMessage(data.name, data.msg);
