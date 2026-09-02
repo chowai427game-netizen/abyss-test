@@ -1840,3 +1840,133 @@ body {
     font-weight: bold;
     margin-left: 4px;
 }
+
+/* ==========================================================================
+   ✨ 深淵命運 - 戰鬥日誌極致華麗特效擴充 (請貼在您 CSS 的最底部)
+========================================================================== */
+
+/* --- 1. 日誌基礎框強化 (毛玻璃與邊界光暈) --- */
+.log-row-box {
+    padding: 8px 12px !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    font-size: 14px !important;
+    letter-spacing: 0.5px;
+}
+
+/* --- 2. ⚔️ 普通攻擊 (金屬冷光風格) --- */
+.log-deal {
+    border-left: 4px solid #a8b2c1 !important;
+    background: linear-gradient(90deg, rgba(40, 50, 70, 0.8) 0%, rgba(10, 15, 25, 0.3) 100%) !important;
+    color: #e2e8f0 !important;
+    box-shadow: inset 3px 0 15px rgba(168, 178, 193, 0.15);
+}
+
+/* --- 3. 💥 技能爆發 (流光溢彩與脈衝動畫) --- */
+.log-skill-hit {
+    border-left: 4px solid var(--neon-gold) !important;
+    background: linear-gradient(90deg, rgba(80, 60, 0, 0.85) 0%, rgba(30, 15, 0, 0.4) 100%) !important;
+    color: #fff !important;
+    box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 10px rgba(255, 215, 0, 0.2);
+    animation: slideInLeft 0.3s ease-out forwards, logPulseGold 2s infinite alternate !important;
+}
+
+@keyframes logPulseGold {
+    from { box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 5px rgba(255, 215, 0, 0.1); }
+    to { box-shadow: inset 4px 0 35px rgba(255, 215, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.4); border-left-color: #fff; }
+}
+
+/* --- 4. ⚡ 暴擊特效 (強烈震動與黃金漸層文字) --- */
+.skill-crit {
+    background: linear-gradient(135deg, #fff 0%, #ffd700 40%, #ff8c00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 140, 0, 0.6) !important;
+    font-size: 1.2em !important;
+    font-weight: 900 !important;
+    font-style: italic;
+    display: inline-block;
+    animation: critShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes critShake {
+    0%, 100% { transform: translateX(0) scale(1); }
+    20%, 60% { transform: translateX(-4px) scale(1.1) rotate(-3deg); }
+    40%, 80% { transform: translateX(4px) scale(1.1) rotate(3deg); }
+}
+
+/* --- 5. 🪄 屬性技能名稱 (漸層文字 + 專屬發光) --- */
+.skill-fire {
+    background: linear-gradient(90deg, #ff4e00, #ff9a00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(255, 78, 0, 0.6) !important; font-weight: 900 !important; display: inline-block;
+}
+.skill-ice {
+    background: linear-gradient(90deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(0, 242, 254, 0.6) !important; font-weight: 900 !important; display: inline-block;
+}
+.skill-lightning {
+    background: linear-gradient(90deg, #fdfc47, #24fe41); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(253, 252, 71, 0.6) !important; font-weight: 900 !important; display: inline-block;
+}
+.skill-holy {
+    background: linear-gradient(90deg, #fffacd, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8) !important; font-weight: 900 !important; display: inline-block;
+}
+.skill-poison {
+    background: linear-gradient(90deg, #a18cd1, #fbc2eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(161, 140, 209, 0.6) !important; font-weight: 900 !important; display: inline-block;
+}
+
+/* --- 6. 🩸 傷害數字強化 (放大彈跳與拖影) --- */
+.num-popup {
+    display: inline-block;
+    font-weight: 900 !important;
+    animation: popAndFadeUltra 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+@keyframes popAndFadeUltra {
+    0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+    20% { opacity: 1; transform: scale(1.6) translateY(-10px); }
+    40% { transform: scale(1.1) translateY(0); }
+    80% { opacity: 1; transform: scale(1.1) translateY(0); }
+    100% { opacity: 0; transform: scale(0.9) translateY(-15px); filter: blur(2px); }
+}
+
+.num-p-dmg { 
+    color: #fff !important; 
+    text-shadow: 2px 2px 0px #000, 0 0 15px #ff2a2a, 0 0 30px #ff0000 !important; 
+    font-size: 1.25em !important;
+}
+.num-m-dmg { 
+    color: #fff !important; 
+    text-shadow: 2px 2px 0px #000, 0 0 15px #cc00ff, 0 0 30px #8800ff !important; 
+    font-size: 1.25em !important;
+}
+
+/* --- 7. 🗡️ 魔物被擊中特效 (字體顫抖與刀光劃過效果) --- */
+.strike-slash {
+    color: #ffaaaa !important;
+    text-decoration: none !important;
+    position: relative;
+    display: inline-block;
+    font-weight: bold;
+}
+.strike-slash::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: -5%; width: 110%; height: 2px;
+    background: #ff3333;
+    box-shadow: 0 0 8px #ff0000;
+    transform: rotate(-15deg);
+    animation: slashCut 0.3s ease-out forwards;
+}
+@keyframes slashCut {
+    0% { width: 0%; opacity: 1; }
+    50% { width: 110%; opacity: 1; }
+    100% { width: 110%; opacity: 0.2; }
+}
+
+
+
