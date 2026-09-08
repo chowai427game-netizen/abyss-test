@@ -63,3 +63,12 @@ const MONSTER_DROPS = {
     "👿 深淵貪婪狂魔": "惡魔之角", "🗡️ 墮落暗殺刺刃者": "暗刃鋼片", "🧠 奪心碎裂魔靈": "奪心碎晶", "🐲 岩漿黑羽幼龍": "地龍魔爪", "🥀 嗜血泣淚妖花": "泣血花瓣",
     "✨ 織星流星漫遊者": "星塵碎片", "🌌 混沌世界吞噬蟲": "混沌核心", "🪐 重力異變奇點": "重力奇點", "💀 終焉寂滅死神": "死神鐮刃", "👑 宇宙虛無秩序使者": "裁決羽毛"
 };
+
+// ⚡ 效能優化：快查 Helper
+function getMonsterDrop(monsterName) {
+    return MONSTER_DROPS[monsterName] || null;
+}
+
+function getBossByFloor(floor) {
+    return BOSS_DATABASE[floor] || null;
+}
