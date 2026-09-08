@@ -3,9 +3,7 @@
 // ==========================================================================
 
 const JOB_DATABASE = {
-    // ----------------------------------------------------------------------
     // ⚔️ 一轉基礎職業 (Base Jobs)
-    // ----------------------------------------------------------------------
     swordsman: {
         id: "swordsman",
         name: "劍士",
@@ -72,9 +70,7 @@ const JOB_DATABASE = {
         passiveTrait: { name: "鷹眼狙擊", desc: "命中率 (HIT) 額外 +20，無視目標 25% 的物理防禦。" }
     },
 
-    // ----------------------------------------------------------------------
     // 🏇 二轉進階職業 (Advanced 2nd Jobs)
-    // ----------------------------------------------------------------------
     knight: {
         id: "knight",
         baseJob: "swordsman",
@@ -239,9 +235,7 @@ const JOB_STAT_BONUS = {
 };
 
 const SKILLS_DATABASE = {
-    // ----------------------------------------------------------------------
     // 一轉技能庫
-    // ----------------------------------------------------------------------
     swordsman: [
         { id: "s_1", name: "狂擊", type: "active", mp: 15, reqLv: 1, goldCost: 100, reqMat: {}, desc: "物理重擊造成高額傷害，機率使怪眩暈。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (1.4 + lv * 0.4)), hitCount: 1, stunChance: 20 + lv * 10 }) },
         { id: "s_2", name: "怒爆", type: "active", mp: 25, reqLv: 3, goldCost: 250, reqMat: { "哥布林香料": 1 }, desc: "釋放鬥氣造成火真傷，附加普攻燃燒。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * 1.2) + (20 + lv * 20), hitCount: 1, burnStacks: lv }) },
@@ -255,7 +249,7 @@ const SKILLS_DATABASE = {
 
     magician: [
         { id: "m_1", name: "火箭術", type: "active", mp: 30, reqLv: 1, goldCost: 100, reqMat: {}, desc: "召喚火焰隕石。每升 1 級增加 +1 發火焰彈與合共傷害！處於冰凍狀態時傷害為 2.5 倍。", run: (lv, matkPower) => {
-            let hits = lv; // Lv.1 = 1發, Lv.5 = 5發, Lv.10 = 10發
+            let hits = lv;
             let dmgPerHit = matkPower * 0.85 + lv * 10;
             return { dmg: Math.floor(dmgPerHit * hits), hitCount: hits, isMagic: true, burnStacks: Math.floor(lv / 2) };
         } },
@@ -308,9 +302,7 @@ const SKILLS_DATABASE = {
         { id: "r_5", name: "鷹眼狙擊", type: "active", mp: 50, reqLv: 12, goldCost: 1200, reqMat: { "祭司血清": 3 }, desc: "極限瞄準爆頭！對大領主或魔物造成超高倍率致命打擊。", run: (lv, atkPower) => ({ dmg: Math.floor(atkPower * (3.0 + lv * 0.8)), hitCount: 1 }) }
     ],
 
-    // ----------------------------------------------------------------------
     // 二轉專屬技能庫 (需要角色 Level >= 20)
-    // ----------------------------------------------------------------------
     knight: [
         { id: "k_1", name: "連刺攻擊", type: "active", mp: 30, reqLv: 20, goldCost: 1500, reqMat: { "獸人後腿肉": 5 }, desc: "長槍快速連續突刺！隨等級增加突刺次數 (3 + Lv/3)。", run: (lv, atkPower) => {
             let hits = 3 + Math.floor(lv / 3);
@@ -392,23 +384,17 @@ const ADVANCED_JOBS_DATABASE = {
     ]
 };
 
-// --------------------------------------------------------------------------
-// 🛠️ 邏輯與技能擷取輔助函式 (Helper Functions)
-// --------------------------------------------------------------------------
-
-// 取得玩家當前職業可學習的所有技能（包含一轉繼承與二轉技能）
+// 🛠️ 邏輯與技能擷取輔助函式
 function getAllSkillsForJob(jobId) {
     let jobObj = JOB_DATABASE[jobId];
     if (!jobObj) return [];
 
     let skillsList = [];
     
-    // 如果是二轉職業，先繼承一轉母職業技能
     if (jobObj.baseJob && SKILLS_DATABASE[jobObj.baseJob]) {
         skillsList = skillsList.concat(SKILLS_DATABASE[jobObj.baseJob]);
     }
     
-    // 加上當前職業專屬技能
     if (SKILLS_DATABASE[jobId]) {
         skillsList = skillsList.concat(SKILLS_DATABASE[jobId]);
     }
@@ -465,7 +451,6 @@ function canLearnSkill(playerData, skill, warehouse, currentLv = 0) {
     return { canLearn: true };
 }
 
-// 判定玩家是否滿足二轉條件 (等級 >= 20 且當前為一轉職業)
 function canAdvanceJob(playerData) {
     const currentJob = playerData.job;
     const currentLv = playerData.lv || playerData.level || 1;
