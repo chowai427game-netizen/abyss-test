@@ -1519,3 +1519,102 @@ body {
     background: rgba(255, 255, 255, 0.1) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
+/* ==========================================================================
+   🎒 背包緊湊化與手機版高度瘦身修復 (Fix Bag Grid & Mobile Long Screen Bug)
+   ========================================================================== */
+
+/* 1. 重構背包容器：強制 3 欄緊湊網格，徹底解決長條擠壓問題 */
+#bag-slots-container,
+.bag-grid-3col {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px !important;
+    margin-top: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* 2. 背包單一格子樣式：固定高度，精簡 Padding */
+.bag-slot {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.15) !important;
+    border-radius: 6px !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 2px 4px !important;
+    font-size: 11px !important;
+    color: #888888 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    transition: all 0.2s ease !important;
+}
+
+/* 背包有道具時的高亮效果 */
+.bag-slot.has-item,
+.bag-slot:not(:empty):not(:contains("空位")) {
+    background: rgba(255, 215, 0, 0.12) !important;
+    border: 1px solid rgba(255, 215, 0, 0.5) !important;
+    color: #ffd700 !important;
+    font-weight: bold !important;
+    box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.15) !important;
+    cursor: pointer !important;
+}
+
+/* 3. 動作面板瘦身：減少邊距，防止畫面過長 */
+.action-panel,
+#action-panel-box {
+    padding: 8px 10px !important;
+    margin-top: 8px !important;
+}
+
+.action-btn-group {
+    gap: 6px !important;
+}
+
+.action-btn-group .btn-game {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    min-height: 36px !important;
+    line-height: 1.2 !important;
+}
+
+/* 4. 📱 手機端 (Mobile) 專用極致響應式壓縮 */
+@media (max-width: 768px) {
+    /* 縮減全局面板內邊距 */
+    .status-panel, 
+    .action-panel, 
+    .dynamic-panel {
+        padding: 8px 10px !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* 玩家狀態頭部資訊縮小 */
+    .status-header-row {
+        font-size: 12px !important;
+        gap: 6px !important;
+    }
+
+    /* 背包改為更加精緊的 3 欄 */
+    #bag-slots-container {
+        gap: 4px !important;
+    }
+
+    .bag-slot {
+        height: 30px !important;
+        min-height: 30px !important;
+        font-size: 10px !important;
+    }
+
+    /* 按鈕壓縮高度 */
+    .btn-game {
+        padding: 6px 8px !important;
+        font-size: 12px !important;
+        min-height: 34px !important;
+    }
+}
