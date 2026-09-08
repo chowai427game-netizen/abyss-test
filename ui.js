@@ -8,6 +8,17 @@ const MAX_CHAT_LOGS = 25;
 let localChatHistory = [];
 const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時 (14400000 ms)
 
+// 🛡️ 安全 HTML 轉義函式 (防止 XSS 攻擊)
+function escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // 📡 Socket.io 即時連線初始化 (自動讀取 state.js 中的 SERVER_URL)
 const SOCKET_TARGET_URL = (typeof SERVER_URL !== "undefined") ? SERVER_URL : "https://rpg-backend-fjvg.onrender.com";
 const socket = (typeof io !== "undefined") ? io(SOCKET_TARGET_URL) : null;
@@ -128,9 +139,9 @@ function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣
     if (titleEl) titleEl.innerText = title;
     if (bodyEl) {
         if (Array.isArray(missingDetails)) {
-            bodyEl.innerHTML = missingDetails.map(item => `<div style="margin-bottom: 4px;">• ${item}</div>`).join('');
+            bodyEl.innerHTML = missingDetails.map(item => `<div style="margin-bottom: 4px;">• ${escapeHtml(item)}</div>`).join('');
         } else {
-            bodyEl.innerHTML = missingDetails;
+            bodyEl.innerHTML = escapeHtml(missingDetails);
         }
     }
 
@@ -143,7 +154,7 @@ function hideMaterialAlert() {
 }
 
 // --------------------------------------------------------------------------
-// 👻 2. 血條傷害殘影白條控制
+// 👻 2. 血條傷害殘影白條控制 (防呆除零優化)
 // --------------------------------------------------------------------------
 
 let ghostHpTimer = null;
@@ -154,7 +165,9 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
     const ghostEl = DOM.get(ghostElId);
     if (!fillEl) return;
 
-    const targetPct = Math.max(0, Math.min(100, (current / max) * 100));
+    const safeMax = (typeof max === 'number' && max > 0) ? max : 1;
+    const safeCurrent = (typeof current === 'number') ? current : 0;
+    const targetPct = Math.max(0, Math.min(100, (safeCurrent / safeMax) * 100));
 
     if (!ghostEl) {
         fillEl.style.width = `${targetPct}%`;
@@ -194,8 +207,8 @@ function showFloatingCard(e, title, type, desc, stats = "") {
 
     card.innerHTML = `
         <div style="font-weight: bold; font-size: 13px; color: var(--gold-glow); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-            <span>${title}</span>
-            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #aaa;">${type}</span>
+            <span>${escapeHtml(title)}</span>
+            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #aaa;">${escapeHtml(type)}</span>
         </div>
         <div style="font-size: 11px; color: #d1d1d6; line-height: 1.5; margin-bottom: 6px;">${desc}</div>
         ${stats ? `<div style="font-size: 10px; color: #00ffcc; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 5px; margin-top: 5px;">${stats}</div>` : ''}
@@ -237,7 +250,7 @@ function bindFloatingCard(element, getCardDataFn) {
             if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats);
         }, 220);
     };
-    element.ontouchmove = () => hideFloatingCard(); // 📱 滑動時自動取消
+    element.ontouchmove = () => hideFloatingCard();
     element.ontouchend = () => hideFloatingCard();
     element.ontouchcancel = () => hideFloatingCard();
 }
@@ -266,7 +279,7 @@ function renderStatusBadges(containerEl, effectsMap) {
             border: 1px solid ${isBuff ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)'};
             color: ${isBuff ? '#2ecc71' : '#ff4757'}; cursor: pointer;
         `;
-        badge.innerHTML = `<span>${eff.icon || '✨'}</span> <span>${eff.name}</span> <b>(${eff.duration})</b>`;
+        badge.innerHTML = `<span>${eff.icon || '✨'}</span> <span>${escapeHtml(eff.name)}</span> <b>(${eff.duration})</b>`;
 
         bindFloatingCard(badge, () => ({
             title: eff.name,
@@ -368,7 +381,7 @@ function executeWithdrawFoodFromWarehouse(itemName) {
 
     if (typeof saveGameData === "function") saveGameData();
     showToast(`🎒 取出 ${itemName} 放入背包`, "success");
-    addLog(`🎒 從倉庫取出 <strong>${itemName}</strong> 放入攜帶背包。`, "perfect");
+    addLog(`🎒 從倉庫取出 <strong>${escapeHtml(itemName)}</strong> 放入攜帶背包。`, "perfect");
     
     updateUI();
     if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
@@ -385,7 +398,7 @@ function executeDepositBagItemToWarehouse(bagIndex) {
 
     if (typeof saveGameData === "function") saveGameData();
     showToast(`📦 ${itemName} 已存入倉庫`, "info");
-    addLog(`📦 已將背包中的 <strong>${itemName}</strong> 退回存放至倉庫。`, "perfect");
+    addLog(`📦 已將背包中的 <strong>${escapeHtml(itemName)}</strong> 退回存放至倉庫。`, "perfect");
 
     updateUI();
     if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
@@ -461,7 +474,7 @@ function getEquipmentStatDiff(blueprint) {
 }
 
 // --------------------------------------------------------------------------
-// 👤 角色數據 UI 同步
+// 👤 角色數據 UI 同步 (重構背包套用 CSS Class)
 // --------------------------------------------------------------------------
 
 function syncCharacterDataUi() {
@@ -562,7 +575,10 @@ function syncCharacterDataUi() {
     updateHpBarWithGhost(currentRun.hp, currentRun.maxHp, 'hp-bar-fill', 'hp-bar-ghost');
 
     const mpBar = DOM.get('mp-bar-fill');
-    if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
+    if (mpBar) {
+        const safeMaxMp = currentRun.maxMp > 0 ? currentRun.maxMp : 1;
+        mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / safeMaxMp) * 100))}%`;
+    }
 
     renderStatusBadges(DOM.get('player-status-badges'), currentRun.activeEffects);
 
@@ -628,23 +644,15 @@ function syncCharacterDataUi() {
 
     const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
+        // 掛載 CSS 控制的緊湊網格類別
+        bagContainer.className = "bag-grid-3col";
         bagContainer.classList.toggle('bag-full', invLen >= maxBag);
         bagContainer.innerHTML = "";
 
         for (let i = 0; i < maxBag; i++) {
             const item = currentRun.inventory[i];
             const slot = document.createElement('div');
-            slot.style.cssText = `
-                height: 34px;
-                border: 1px ${item ? "solid rgba(255,215,0,0.5)" : "dashed rgba(255,255,255,0.15)"};
-                background: ${item ? "rgba(255,215,0,0.08)" : "rgba(0,0,0,0.2)"};
-                border-radius: 6px; display: flex; align-items: center; justify-content: center;
-                font-size: 11px; cursor: ${item ? "pointer" : "default"}; position: relative;
-                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px;
-                color: ${item ? "#ffd700" : "#666"};
-                box-shadow: ${item ? "0 2px 6px rgba(0,0,0,0.3)" : "none"};
-                transition: all 0.2s ease;
-            `;
+            slot.className = `bag-slot ${item ? 'has-item' : ''}`;
 
             if (item) {
                 slot.innerText = item;
@@ -963,7 +971,7 @@ function renderVillageGuild() {
 
         row.innerHTML = `
             <div>
-                <strong style="color: #ffd700; font-size: 12px;">${skillTypeTag} ${s.name}</strong>
+                <strong style="color: #ffd700; font-size: 12px;">${skillTypeTag} ${escapeHtml(s.name)}</strong>
                 <span style="color: #8e8e93; font-size: 11px; margin-left: 6px;">Lv.${currentLv} / 10</span>
             </div>
         `;
@@ -1057,7 +1065,7 @@ function renderVillageCookingWorkshop() {
                 rawMaterials.forEach(m => {
                     const pill = document.createElement('span');
                     pill.className = "warehouse-pill";
-                    pill.innerHTML = `${m.name} <span class="count">x${m.qty}</span>`;
+                    pill.innerHTML = `${escapeHtml(m.name)} <span class="count">x${m.qty}</span>`;
                     rawMatContainer.appendChild(pill);
                 });
             }
@@ -1075,7 +1083,7 @@ function renderVillageCookingWorkshop() {
                     background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2);
                     border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;
                 `;
-                dishRow.innerHTML = `<span>🍱 <strong>${d.name}</strong> (x${d.qty})</span>`;
+                dishRow.innerHTML = `<span>🍱 <strong>${escapeHtml(d.name)}</strong> (x${d.qty})</span>`;
 
                 const btnWithdraw = document.createElement('button');
                 btnWithdraw.className = "btn-game btn-explore";
@@ -1131,7 +1139,7 @@ function renderVillageCookingWorkshop() {
 
         const ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
 
-        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:12px;">${recipe.name}</strong></div>`;
+        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:12px;">${escapeHtml(recipe.name)}</strong></div>`;
 
         const btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
@@ -1184,7 +1192,7 @@ function renderVillageWorkshop() {
             itemsList.forEach(item => {
                 const pill = document.createElement('span');
                 pill.className = "warehouse-pill";
-                pill.innerHTML = `${item.name} <span class="count">x${item.qty}</span>`;
+                pill.innerHTML = `${escapeHtml(item.name)} <span class="count">x${item.qty}</span>`;
                 pillBox.appendChild(pill);
             });
         }
@@ -1259,9 +1267,9 @@ function renderVillageWorkshop() {
         const statDiffHtml = getEquipmentStatDiff(blueprint);
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
 
-        const skillTag = blueprint.skill ? `<div style="font-size:10px; color:#00ffcc;">✨ 附帶技能: [${blueprint.skill.name}]</div>` : "";
+        const skillTag = blueprint.skill ? `<div style="font-size:10px; color:#00ffcc;">✨ 附帶技能: [${escapeHtml(blueprint.skill.name)}]</div>` : "";
 
-        row.innerHTML = `<div><strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:12px;">${blueprint.name}${refineBadge}</strong>${skillTag}</div>`;
+        row.innerHTML = `<div><strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:12px;">${escapeHtml(blueprint.name)}${refineBadge}</strong>${skillTag}</div>`;
 
         const btnGroup = document.createElement('div');
         btnGroup.style.cssText = "display: flex; gap: 4px;";
@@ -1380,7 +1388,6 @@ let lockpickState = {
 function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty = "medium", onSuccess) {
     let overlay = document.getElementById('chest-inspect-overlay');
     
-    // 防呆：若 DOM 不存在則動態創建
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'chest-inspect-overlay';
@@ -1389,13 +1396,12 @@ function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty =
         document.body.appendChild(overlay);
     }
 
-    // 淨化圖示，防止異常 UTF-8 符號
     const cleanChestName = chestName.replace(/[🎴]/g, '🏺');
 
     overlay.innerHTML = `
         <div class="modal-card">
             <h3 id="chest-inspect-title" class="modal-title-cyan" style="font-size: 16px; color: #00ffcc; margin-bottom: 8px;">
-                📦 發現 ${cleanChestName}
+                📦 發現 ${escapeHtml(cleanChestName)}
             </h3>
             <p id="chest-inspect-desc" class="modal-subtitle" style="font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4;">
                 此寶箱掛有高階鎖芯，需要精細開鎖（難度：<strong style="color:#ffd700;">${difficulty.toUpperCase()}</strong>）。
@@ -1457,12 +1463,14 @@ function initLockpickQTE(difficulty = "medium") {
     const startAngle = (tAngle - tol + 360) % 360;
     const endAngle = (tAngle + tol) % 360;
 
-    sweetSpot.style.background = `conic-gradient(
-        from 0deg,
-        transparent 0deg ${startAngle}deg,
-        rgba(0, 255, 204, 0.6) ${startAngle}deg ${endAngle}deg,
-        transparent ${endAngle}deg 360deg
-    )`;
+    if (sweetSpot) {
+        sweetSpot.style.background = `conic-gradient(
+            from 0deg,
+            transparent 0deg ${startAngle}deg,
+            rgba(0, 255, 204, 0.6) ${startAngle}deg ${endAngle}deg,
+            transparent ${endAngle}deg 360deg
+        )`;
+    }
 
     updateLockpickNeedle(0);
     updateProgressFill(0);
@@ -1615,7 +1623,7 @@ function executeSellWarehouseItem(itemName, qty = 1) {
     currentRun.gold = (currentRun.gold || 0) + totalEarn;
 
     if (typeof addLog === "function") {
-        addLog(`💰【黑市交易】成功變賣 <strong>${itemName} x${sellQty}</strong>，換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
+        addLog(`💰【黑市交易】成功變賣 <strong>${escapeHtml(itemName)} x${sellQty}</strong>，換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
     }
     if (typeof showToast === "function") {
         showToast(`💰 變賣成功 +${totalEarn} G`, "success");
@@ -1901,10 +1909,10 @@ function renderBlackMarketModalContent() {
             row.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <div>
-                        <strong style="color: ${nameColor}; font-size: 12px;">${item.name}</strong>
-                        <span style="font-size: 10px; color: #ff9f43; margin-left: 4px;">[${item.type}]</span>
+                        <strong style="color: ${nameColor}; font-size: 12px;">${escapeHtml(item.name)}</strong>
+                        <span style="font-size: 10px; color: #ff9f43; margin-left: 4px;">[${escapeHtml(item.type)}]</span>
                     </div>
-                    <span style="font-size: 10px; color: #aaa;">${item.desc}</span>
+                    <span style="font-size: 10px; color: #aaa;">${escapeHtml(item.desc)}</span>
                 </div>
                 <button class="btn-game ${item.bought ? 'btn-rest' : 'btn-explore'}" 
                     style="padding: 5px 10px; font-size: 11px; white-space: nowrap;" 
@@ -1937,13 +1945,13 @@ function renderBlackMarketModalContent() {
             `;
             row.innerHTML = `
                 <div>
-                    <span style="font-size: 12px; color: #fff;">${itemName}</span>
+                    <span style="font-size: 12px; color: #fff;">${escapeHtml(itemName)}</span>
                     <span style="font-size: 11px; color: #ffd700; font-weight: bold;"> x${qty}</span>
                     <div style="font-size: 10px; color: #888;">收購單價: ${unitPrice} G</div>
                 </div>
                 <div style="display: flex; gap: 4px;">
-                    <button class="btn-game" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1); renderBlackMarketModalContent();">賣 1 個</button>
-                    <button class="btn-game btn-rest" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty}); renderBlackMarketModalContent();">全賣</button>
+                    <button class="btn-game" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${escapeHtml(itemName)}', 1); renderBlackMarketModalContent();">賣 1 個</button>
+                    <button class="btn-game btn-rest" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${escapeHtml(itemName)}', ${qty}); renderBlackMarketModalContent();">全賣</button>
                 </div>
             `;
             listEl.appendChild(row);
@@ -1983,12 +1991,12 @@ function executeBuyBlackMarketItem(stockIndex) {
             accountMeta.unlockedBlueprints.push(item.blueprintName);
         }
         showToast(`📜 成功購買 ${item.name}！已解鎖加工所打造資格`, "success");
-        addLog(`🛒【黑市交易】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${item.name}</strong>！解鎖了加工所打造資格。`, "perfect");
+        addLog(`🛒【黑市交易】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${escapeHtml(item.name)}</strong>！解鎖了加工所打造資格。`, "perfect");
     } else {
         if (!accountMeta.warehouse) accountMeta.warehouse = {};
         accountMeta.warehouse[item.name] = (accountMeta.warehouse[item.name] || 0) + 1;
         showToast(`🛒 成功購買 ${item.name}！已存入倉庫`, "success");
-        addLog(`🛒【黑市採購】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${item.name}</strong> 並存入倉庫。`, "perfect");
+        addLog(`🛒【黑市採購】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${escapeHtml(item.name)}</strong> 並存入倉庫。`, "perfect");
     }
 
     if (typeof saveGameData === "function") saveGameData();
@@ -1997,7 +2005,7 @@ function executeBuyBlackMarketItem(stockIndex) {
 }
 
 // --------------------------------------------------------------------------
-// 💬 聊天室輔助函式
+// 💬 聊天室輔助函式 (XSS 安全過濾版)
 // --------------------------------------------------------------------------
 
 function sendSquareChatMessage() {
@@ -2032,7 +2040,7 @@ function renderSquareChatBox() {
 
     let html = `<div style="color: #7f8c8d; font-style: italic; margin-bottom: 4px;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
     localChatHistory.forEach(item => {
-        html += `<div style="line-height: 1.4; margin-bottom: 2px;"><strong style="color:#00ffcc;">[${item.name}]</strong>: <span style="color:#eee;">${item.msg}</span></div>`;
+        html += `<div style="line-height: 1.4; margin-bottom: 2px;"><strong style="color:#00ffcc;">[${escapeHtml(item.name)}]</strong>: <span style="color:#eee;">${escapeHtml(item.msg)}</span></div>`;
     });
 
     chatBox.innerHTML = html;
