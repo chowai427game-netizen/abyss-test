@@ -1373,18 +1373,51 @@ let lockpickState = {
     onSuccessCallback: null
 };
 
-function openChestInspectionModal(chestName = "遠古白銀寶箱", difficulty = "medium", onSuccess) {
-    const overlay = document.getElementById('chest-inspect-overlay');
-    const titleEl = document.getElementById('chest-inspect-title');
-    const descEl = document.getElementById('chest-inspect-desc');
+// ==========================================================================
+// 📦 寶箱察看與 QTE 開鎖前置彈窗修復版
+// ==========================================================================
 
-    if (titleEl) titleEl.innerText = `📦 發現 ${chestName}`;
-    if (descEl) descEl.innerText = `此寶箱掛有高階鎖芯，需要精細開鎖（難度：${difficulty.toUpperCase()}）。`;
+function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty = "medium", onSuccess) {
+    let overlay = document.getElementById('chest-inspect-overlay');
+    
+    // 防呆：若 DOM 不存在則動態創建
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'chest-inspect-overlay';
+        overlay.className = 'modal-backdrop';
+        overlay.style.display = 'none';
+        document.body.appendChild(overlay);
+    }
+
+    // 淨化圖示，防止異常 UTF-8 符號
+    const cleanChestName = chestName.replace(/[🎴]/g, '🏺');
+
+    overlay.innerHTML = `
+        <div class="modal-card">
+            <h3 id="chest-inspect-title" class="modal-title-cyan" style="font-size: 16px; color: #00ffcc; margin-bottom: 8px;">
+                📦 發現 ${cleanChestName}
+            </h3>
+            <p id="chest-inspect-desc" class="modal-subtitle" style="font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4;">
+                此寶箱掛有高階鎖芯，需要精細開鎖（難度：<strong style="color:#ffd700;">${difficulty.toUpperCase()}</strong>）。
+            </p>
+            <div class="chest-action-grid">
+                <button class="btn-game btn-explore" style="padding: 10px; font-size: 12px; font-weight: bold;" onclick="confirmStartLockpick()">
+                    🔓 嘗試精細開鎖 (QTE)
+                </button>
+                <button class="btn-game btn-rerun" style="padding: 10px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="executeForceOpenChest()">
+                    🔨 強行撬開 (50% 毀損率)
+                </button>
+                <button class="btn-game btn-rest" style="padding: 8px; font-size: 11px;" onclick="closeChestInspectModal()">
+                    🏃 暫時離開
+                </button>
+            </div>
+        </div>
+    `;
 
     lockpickState.onSuccessCallback = onSuccess;
     lockpickState.difficulty = difficulty;
 
-    if (overlay) overlay.style.display = 'flex';
+    overlay.style.display = 'flex';
 }
 
 function closeChestInspectModal() {
