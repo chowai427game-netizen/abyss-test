@@ -1384,3 +1384,56 @@ body {
 .margin-top-md { margin-top: 12px !important; }
 .text-gold { color: #ffd700; }
 .text-cyan { color: #00ffcc; }
+
+/* ==========================================================================
+   🖼️ 全局 Modal 彈窗置中與玻璃擬態修復 (Fix Modal Alignment Bug)
+   ========================================================================== */
+
+/* 1. 全螢幕遮罩 background：強制脫離文檔流並全螢幕居中 */
+.modal-backdrop {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(5, 7, 12, 0.82) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 99999 !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
+/* 2. 彈窗主體卡片：保證在任何螢幕尺寸下均完美居中且不超邊 */
+.modal-card, .qte-box {
+    background: rgba(18, 22, 32, 0.96) !important;
+    border: 1px solid rgba(0, 255, 204, 0.4) !important;
+    border-radius: 16px !important;
+    padding: 20px 18px !important;
+    width: 100% !important;
+    max-width: 400px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 255, 204, 0.15) !important;
+    margin: auto !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    animation: modalPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 3. 寶箱動作按鈕直排網格 */
+.chest-action-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-top: 15px !important;
+    width: 100% !important;
+}
+
+/* 4. 彈窗動畫 */
+@keyframes modalPopIn {
+    0% { opacity: 0; transform: scale(0.88) translateY(10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
