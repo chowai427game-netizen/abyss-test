@@ -2,8 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>命運深淵：血脈傳承</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0d14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>命運深淵：血脈傳承 - Abyss of Destiny</title>
+
     <!-- 引入 Socket.io 瀏覽器前端套件 -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -118,9 +122,12 @@
                 </div>
 
                 <div class="status-item full-row" id="p-atb-row" style="display: none;">
-                    <div class="flex-space text-sm"><span>⚡ 行動 :</span></div>
+                    <div class="flex-space text-sm"><span>⚡ 行動 :</span> <strong id="p-atb-text">0%</strong></div>
                     <div class="visual-bar-bg bar-height-thin"><div id="p-atb-bar-fill" class="visual-bar-fill atb-color"></div></div>
                 </div>
+
+                <!-- ✨ 玩家 Buff/Debuff 狀態徽章列 -->
+                <div id="player-status-badges" class="status-badges-row"></div>
 
                 <div class="status-item full-row status-bag-padding">
                     <div class="bag-header-row">
@@ -195,7 +202,8 @@
                         <button id="btn-main-action" type="button" onclick="handleMainAction()" class="btn-game btn-explore flex-grow-main">⚔️ 前進探險</button>
                         <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun flex-grow-sub" style="display: none;">🔄 重巡本層整備</button>
                     </div>
-                    <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest full-width" style="display: none;">⛺ 逃回村莊</button>
+                    <button id="btn-auto-battle" type="button" class="btn-game btn-rerun full-width margin-top-xs" style="display: none;" onclick="toggleTacticsDrawer()">⚡ 自動戰術策略</button>
+                    <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest full-width margin-top-xs" style="display: none;">⛺ 逃回村莊</button>
                 </div>
             </section>
 
@@ -253,7 +261,7 @@
                     </div>
                 </div>
 
-                <!-- 💬 中央廣場 (已更新為最新動態載入區塊) -->
+                <!-- 💬 中央廣場 (動態載入聊天室與黑市) -->
                 <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
                     <div class="notice-container">💬 正在連接中央交流廣場與黑市地下回收站...</div>
                 </div>
@@ -281,10 +289,14 @@
                         </div>
                     </div>
                     <div class="mini-bar-box monster-bar-box" id="m-atb-row">
-                        <div class="flex-space text-sm"><span>⚡ 行動: </span><strong><span id="m-atb-text"></span></strong></div>
+                        <div class="flex-space text-sm"><span>⚡ 行動: </span><strong><span id="m-atb-text">0%</span></strong></div>
                         <div class="visual-bar-bg"><div id="m-atb-bar-fill" class="visual-bar-fill atb-color"></div></div>
                     </div>
                 </div>
+
+                <!-- ✨ 魔物 Buff/Debuff 狀態徽章列 -->
+                <div id="monster-status-badges" class="status-badges-row"></div>
+
                 <div class="monster-stats-grid">
                     <div class="grid-cell monster-grid-cell">⚔️ 攻擊力: <strong id="m-atk" class="text-pink">0</strong></div>
                     <div class="grid-cell monster-grid-cell">⚡ 速度: <strong id="m-spd" class="text-yellow">0</strong></div>
@@ -356,7 +368,7 @@
     </div>
 </div>
 
-<!-- 📦 1. 寶箱察看前置面板 (防止過快觸發 QTE) -->
+<!-- 📦 1. 寶箱察看前置面板 -->
 <div id="chest-inspect-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
     <div class="modal-card">
         <h3 id="chest-inspect-title" class="modal-title-cyan">📦 發現白銀寶箱</h3>
@@ -376,11 +388,8 @@
         
         <!-- 圓形轉盤主體 -->
         <div id="lockpick-dial" class="lockpick-dial">
-            <!-- 最佳開鎖區域 (Sweet Spot) -->
             <div id="lockpick-sweet-spot" class="lockpick-sweet-spot"></div>
-            <!-- 玩家控制的鎖針 -->
             <div id="lockpick-needle" class="lockpick-needle"></div>
-            <!-- 中央鎖芯號誌 -->
             <div id="lockpick-core" class="lockpick-core">🔒</div>
         </div>
 
