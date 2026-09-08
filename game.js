@@ -31,6 +31,11 @@ function safePushToInventory(run, account, itemName) {
     }
 }
 
+// 🛡️ 顯式掛載全域，防止 eventdata.js 呼叫不到
+if (typeof window !== "undefined") {
+    window.safePushToInventory = safePushToInventory;
+}
+
 // --------------------------------------------------------------------------
 // 🛡️ 護盾傷害吸收邏輯 (Shield Absorption Helper)
 // --------------------------------------------------------------------------
@@ -390,6 +395,9 @@ function syncTacticButtonsUi() {
     });
 }
 
+// --------------------------------------------------------------------------
+// ⚡ 自動戰鬥 AI 邏輯 (完全修復 1 轉 + 2 轉跨階技能鏈對接)
+// --------------------------------------------------------------------------
 function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
 
@@ -414,10 +422,14 @@ function executeAutoBattleAiTurn() {
         return true;
     }
 
-    if (activeTactic === "OFFENSIVE" && typeof SKILLS_DATABASE !== "undefined") {
-        const jobSkills = SKILLS_DATABASE[currentRun.job] || [];
+    if (activeTactic === "OFFENSIVE") {
+        // 🔧 P0 修復：改用 getAllSkillsForJob 包含一轉與二轉的全套技能池
+        const jobSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentRun.job) : (SKILLS_DATABASE[currentRun.job] || []);
+        
         for (let i = jobSkills.length - 1; i >= 0; i--) {
             let sMeta = jobSkills[i];
+            if (sMeta.type !== "active") continue;
+
             if (currentRun.skills && currentRun.skills[sMeta.name] && currentRun.mp >= sMeta.mp) {
                 let skLv = currentRun.skills[sMeta.name];
                 let isMagicJob = (currentRun.job === "magician" || currentRun.job === "acolyte" || currentRun.job === "wizard" || currentRun.job === "priest" || currentRun.job === "sage");
@@ -811,9 +823,10 @@ function refineSpecificEquipment(equipName) {
     }
 }
 
+// 🔧 P1 優化：使用 getItemBlueprintByName 快查 Map
 function executeDismantle(equipName) {
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
-    let b = CRAFTING_BLUEPRINTS.find(x => x.name === equipName); 
+    let b = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(equipName) : CRAFTING_BLUEPRINTS.find(x => x.name === equipName); 
     if (!b) return;
 
     if (accountMeta.warehouse[equipName]) accountMeta.warehouse[equipName]--;
@@ -1351,9 +1364,10 @@ function checkLevelUpAndTriggerSelect() {
     if (typeof updateUI === "function") updateUI();
 }
 
+// 🔧 P1 優化：使用 getItemBlueprintByName 快查 Map
 function executeEquipAction(equipName, actionType) {
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
-    let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === equipName); 
+    let blueprint = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(equipName) : CRAFTING_BLUEPRINTS.find(b => b.name === equipName); 
     if (!blueprint) return;
     
     let slot = blueprint.type;
@@ -1377,65 +1391,43 @@ function executeEquipAction(equipName, actionType) {
 }
 
 // ==========================================================================
-// 🏇 皇家二轉突破儀式系統
+// 🏇 皇家二轉突破儀式系統 (對接語義化 Modal)
 // ==========================================================================
 
 function openJobAdvancementModal() {
-    let overlay = document.getElementById('job-advancement-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'job-advancement-overlay';
-        overlay.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 15px; box-sizing: border-box;
-        `;
-        document.body.appendChild(overlay);
-    }
-
+    const overlay = document.getElementById('job-advancement-overlay');
+    const listContainer = document.getElementById('job-advancement-list');
+    
     const currentBaseJob = currentRun.job;
     const choices = (typeof ADVANCED_JOBS_DATABASE !== "undefined") ? (ADVANCED_JOBS_DATABASE[currentBaseJob] || []) : [];
 
     if (choices.length === 0) {
         if (typeof showMaterialAlert === "function") {
-            showMaterialAlert(["當前職業無法進行二轉突破！"], "⚠️ 無法轉職");
+            showMaterialAlert(["當前職業無法進行二轉突破或已達極限！"], "⚠️ 無法轉職");
+        } else {
+            alert("當前職業無法進行二轉突破！");
         }
         return;
     }
 
-    const cardsHtml = choices.map(j => `
-        <div style="
-            background: rgba(20, 20, 30, 0.9); border: 1px solid #ffd700; border-radius: 12px;
-            padding: 14px; margin-bottom: 10px; text-align: left; transition: all 0.2s;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 16px; font-weight: bold; color: #ffd700;">${j.icon} ${j.name}</span>
-                <span style="font-size: 11px; color: #00ffcc;">[需要 Lv.${j.reqLv}]</span>
+    if (listContainer) {
+        listContainer.innerHTML = choices.map(j => `
+            <div class="job-card" style="background: rgba(20, 20, 30, 0.9); border: 1px solid #ffd700; border-radius: 12px; padding: 14px; margin-bottom: 10px; text-align: left;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 16px; font-weight: bold; color: #ffd700;">${j.icon} ${j.name}</span>
+                    <span style="font-size: 11px; color: #00ffcc;">[需要 Lv.${j.reqLv}]</span>
+                </div>
+                <p style="font-size: 11px; color: #ccc; margin-bottom: 10px; line-height: 1.4;">${j.desc}</p>
+                <button type="button" class="btn-game btn-rerun full-width" onclick="executeAdvanceJob('${j.id}')">
+                    ✨ 選擇繼承血脈 ➔ ${j.name}
+                </button>
             </div>
-            <p style="font-size: 11px; color: #ccc; margin-bottom: 10px; line-height: 1.4;">${j.desc}</p>
-            <button class="btn-game btn-rerun" style="width: 100%; padding: 6px 0; font-size: 12px; font-weight: bold;" onclick="executeAdvanceJob('${j.id}')">
-                ✨ 選擇繼承血脈 ➔ ${j.name}
-            </button>
-        </div>
-    `).join("");
+        `).join("");
+    }
 
-    overlay.innerHTML = `
-        <div style="
-            background: #121216; border: 2px solid #ffd700; border-radius: 15px;
-            padding: 20px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
-        ">
-            <h3 style="color: #ffd700; margin-top: 0; font-size: 18px;">👑 皇家二轉突破選擇</h3>
-            <p style="font-size: 11px; color: #aaa; margin-bottom: 15px;">
-                請選擇你未來的專精道路。轉職後將保留原有等級與技能，並解鎖專屬二轉天賦與新技能庫！
-            </p>
-            <div>${cardsHtml}</div>
-            <button class="btn-game btn-rest" style="margin-top: 10px; width: 100%; padding: 6px 0; font-size: 12px;" onclick="closeJobAdvancementModal()">
-                取消並返回
-            </button>
-        </div>
-    `;
-
-    overlay.style.display = "flex";
+    if (overlay) {
+        overlay.style.display = "flex";
+    }
 }
 
 function closeJobAdvancementModal() {
