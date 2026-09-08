@@ -1,10 +1,10 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告（必須放在最頂端，防止 ReferenceError）
 let currentOnlineCount = 1; 
-const MAX_CHAT_LOGS = 20;
+const MAX_CHAT_LOGS = 25;
 let localChatHistory = [];
 const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時 (14400000 ms)
 
@@ -34,6 +34,7 @@ if (socket) {
     });
 }
 
+// 🗄️ 3. DOM 快取管理器 (高效動態檢索)
 const DOM = {
     isInitialized: false,
     elements: {},
@@ -79,7 +80,7 @@ let activeCraftingLvlRange = "1-10";
 let activeWarehouseFilter = "all";
 
 // --------------------------------------------------------------------------
-// 🍞 1. Toast 輕量通知 API
+// 🍞 1. Toast 輕量通知 API (優化微卡片微調)
 // --------------------------------------------------------------------------
 
 function showToast(msg, type = "info") {
@@ -95,10 +96,15 @@ function showToast(msg, type = "info") {
     toast.innerText = msg;
     container.appendChild(toast);
 
+    if (navigator.vibrate) {
+        if (type === 'warn') navigator.vibrate([15, 30, 15]);
+        else if (type === 'success') navigator.vibrate(10);
+    }
+
     setTimeout(() => {
         toast.classList.add('toast-fade-out');
         setTimeout(() => toast.remove(), 250);
-    }, 2000);
+    }, 2200);
 }
 
 function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣不足！") {
@@ -122,7 +128,7 @@ function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣
     if (titleEl) titleEl.innerText = title;
     if (bodyEl) {
         if (Array.isArray(missingDetails)) {
-            bodyEl.innerHTML = missingDetails.map(item => `• ${item}`).join('<br>');
+            bodyEl.innerHTML = missingDetails.map(item => `<div style="margin-bottom: 4px;">• ${item}</div>`).join('');
         } else {
             bodyEl.innerHTML = missingDetails;
         }
@@ -173,7 +179,7 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
 }
 
 // --------------------------------------------------------------------------
-// 🎴 3. 通用 Floating Card 浮動卡片引擎
+// 🎴 3. 通用 Floating Card 浮動卡片引擎 (含手機滑動誤觸防止)
 // --------------------------------------------------------------------------
 
 let touchCardTimer = null;
@@ -187,12 +193,12 @@ function showFloatingCard(e, title, type, desc, stats = "") {
     }
 
     card.innerHTML = `
-        <div class="item-card-title">
+        <div style="font-weight: bold; font-size: 13px; color: var(--gold-glow); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
             <span>${title}</span>
-            <span class="item-card-type">${type}</span>
+            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #aaa;">${type}</span>
         </div>
-        <div class="item-card-body">${desc}</div>
-        ${stats ? `<div class="item-card-stats">${stats}</div>` : ''}
+        <div style="font-size: 11px; color: #d1d1d6; line-height: 1.5; margin-bottom: 6px;">${desc}</div>
+        ${stats ? `<div style="font-size: 10px; color: #00ffcc; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 5px; margin-top: 5px;">${stats}</div>` : ''}
     `;
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -201,8 +207,9 @@ function showFloatingCard(e, title, type, desc, stats = "") {
     let posX = clientX + 15;
     let posY = clientY - 40;
 
-    if (posX + 230 > window.innerWidth) posX = clientX - 235;
+    if (posX + 230 > window.innerWidth) posX = Math.max(10, clientX - 235);
     if (posY < 10) posY = 10;
+    if (posY + 180 > window.innerHeight) posY = Math.max(10, window.innerHeight - 190);
 
     card.style.left = `${posX}px`;
     card.style.top = `${posY}px`;
@@ -228,8 +235,9 @@ function bindFloatingCard(element, getCardDataFn) {
         touchCardTimer = setTimeout(() => {
             const data = getCardDataFn();
             if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats);
-        }, 250);
+        }, 220);
     };
+    element.ontouchmove = () => hideFloatingCard(); // 📱 滑動時自動取消
     element.ontouchend = () => hideFloatingCard();
     element.ontouchcancel = () => hideFloatingCard();
 }
@@ -251,6 +259,13 @@ function renderStatusBadges(containerEl, effectsMap) {
         const badge = document.createElement('div');
         const isBuff = eff.type === "buff";
         badge.className = `status-badge ${isBuff ? 'buff' : 'debuff'}`;
+        badge.style.cssText = `
+            display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;
+            border-radius: 12px; font-size: 10px; font-weight: bold; margin-right: 4px; margin-bottom: 4px;
+            background: ${isBuff ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)'};
+            border: 1px solid ${isBuff ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)'};
+            color: ${isBuff ? '#2ecc71' : '#ff4757'}; cursor: pointer;
+        `;
         badge.innerHTML = `<span>${eff.icon || '✨'}</span> <span>${eff.name}</span> <b>(${eff.duration})</b>`;
 
         bindFloatingCard(badge, () => ({
@@ -318,8 +333,8 @@ function allocateStatPoint(statKey) {
     accountMeta.statPoints--;
     accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
     
-    resetCurrentRunData();
-    saveGameData();
+    if (typeof resetCurrentRunData === "function") resetCurrentRunData();
+    if (typeof saveGameData === "function") saveGameData();
     
     showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
     addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！`, "perfect");
@@ -469,7 +484,7 @@ function syncCharacterDataUi() {
     const folderSummary = DOM.get('char-folder-summary');
     if (folderSummary) {
         folderSummary.innerHTML = pts > 0 
-            ? `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold;">[✨ ${pts} 點數待分配]</span>`
+            ? `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold; text-shadow: 0 0 6px rgba(0,255,204,0.5);">[✨ ${pts} 點數待分配]</span>`
             : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
@@ -494,17 +509,17 @@ function syncCharacterDataUi() {
             cell.style.cssText = `
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 4px; padding: 4px 6px;
+                border-radius: 6px; padding: 5px 8px;
                 display: flex; justify-content: space-between; align-items: center;
-                cursor: pointer;
+                cursor: pointer; transition: all 0.2s ease;
             `;
 
             cell.innerHTML = `
                 <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 11px; color: #ddd;">${s.name} <b style="color: #00ffcc;">${val}</b></span>
+                    <span style="font-size: 11px; color: #ddd; font-weight: 600;">${s.name} <b style="color: #00ffcc;">${val}</b></span>
                 </div>
                 <button class="btn-game" 
-                    style="padding: 2px 6px; font-size: 11px; min-width: 22px; height: 22px; line-height: 1;"
+                    style="padding: 2px 8px; font-size: 11px; min-width: 24px; height: 22px; line-height: 1; font-weight: bold; background: ${hasPoints ? 'linear-gradient(135deg, #16a085, #0a5c4c)' : 'rgba(255,255,255,0.05)'};"
                     ${hasPoints ? "" : "disabled"} 
                     onclick="event.stopPropagation(); allocateStatPoint('${s.key}')">+</button>
             `;
@@ -620,13 +635,14 @@ function syncCharacterDataUi() {
             const item = currentRun.inventory[i];
             const slot = document.createElement('div');
             slot.style.cssText = `
-                height: 32px;
-                border: 1px dashed ${item ? "rgba(255,215,0,0.5)" : "rgba(255,255,255,0.15)"};
+                height: 34px;
+                border: 1px ${item ? "solid rgba(255,215,0,0.5)" : "dashed rgba(255,255,255,0.15)"};
                 background: ${item ? "rgba(255,215,0,0.08)" : "rgba(0,0,0,0.2)"};
-                border-radius: 4px; display: flex; align-items: center; justify-content: center;
-                font-size: 10px; cursor: ${item ? "pointer" : "default"}; position: relative;
-                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px;
+                border-radius: 6px; display: flex; align-items: center; justify-content: center;
+                font-size: 11px; cursor: ${item ? "pointer" : "default"}; position: relative;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px;
                 color: ${item ? "#ffd700" : "#666"};
+                box-shadow: ${item ? "0 2px 6px rgba(0,0,0,0.3)" : "none"};
                 transition: all 0.2s ease;
             `;
 
@@ -665,7 +681,7 @@ function syncCharacterDataUi() {
                     return { title: item, type: typeStr, desc: desc, stats: statsStr };
                 });
             } else {
-                slot.innerHTML = `<span style="color:#444;">空</span>`;
+                slot.innerHTML = `<span style="color:#444; font-size:10px;">空位</span>`;
             }
             bagContainer.appendChild(slot);
         }
@@ -898,14 +914,14 @@ function renderVillageGuild() {
         const advBanner = document.createElement('div');
         advBanner.style.cssText = `
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.3));
-            border: 2px solid #ffd700; border-radius: 10px; padding: 12px; margin-bottom: 15px;
-            text-align: center; box-shadow: 0 0 12px rgba(255, 215, 0, 0.3); width: 100%;
+            border: 2px solid #ffd700; border-radius: 12px; padding: 14px; margin-bottom: 15px;
+            text-align: center; box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); width: 100%;
         `;
         advBanner.innerHTML = `
             <div style="font-size: 15px; font-weight: bold; color: #ffd700; margin-bottom: 4px;">
                 🌟【血脈突破】你已具備資格進行皇家二轉突破儀式！
             </div>
-            <p style="font-size: 11px; color: #e0e0e0; margin-bottom: 8px;">
+            <p style="font-size: 11px; color: #e0e0e0; margin-bottom: 10px;">
                 角色已達到 Lv.20！前往踏入更高階的職業殿堂，解鎖終極戰術能力。
             </p>
             <button class="btn-game btn-rerun" style="padding: 6px 16px; font-size: 12px; font-weight: bold;" onclick="openJobAdvancementModal()">
@@ -922,7 +938,7 @@ function renderVillageGuild() {
         row.style.cssText = `
             background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.05); margin-bottom: 6px; width: 100%;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s;
         `;
 
         const currentLv = (accountMeta.skills && accountMeta.skills[s.name]) || (currentRun.skills && currentRun.skills[s.name]) || 0;
@@ -979,6 +995,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     if (!containerEl) return;
     const filterRow = document.createElement('div');
     filterRow.className = "warehouse-filter-row";
+    filterRow.style.cssText = "display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;";
 
     const tags = [
         { key: "all", label: "🌐 全部" },
@@ -989,7 +1006,8 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
 
     tags.forEach(t => {
         const btn = document.createElement('button');
-        btn.className = `tag-btn ${activeWarehouseFilter === t.key ? 'active' : ''}`;
+        btn.className = `btn-game ${activeWarehouseFilter === t.key ? 'btn-rerun' : ''}`;
+        btn.style.cssText = "padding: 4px 10px; font-size: 10px; font-weight: 600;";
         btn.innerText = t.label;
         btn.onclick = () => {
             activeWarehouseFilter = t.key;
@@ -1200,16 +1218,14 @@ function renderVillageWorkshop() {
 
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
 
-    // 🔒 讀取玩家已解鎖的傳說藍圖清單
     const unlockedBlueprints = accountMeta.unlockedBlueprints || [];
 
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
         
-        // 🛑 核心邏輯：若是傳說藍圖，未成功在黑市買到者，絕對不顯示！
         if (b.isLegendary) {
             if (!unlockedBlueprints.includes(b.name)) {
-                return false; // 未解鎖，直接隱藏
+                return false; 
             }
             return matchCat && (activeCraftingLvlRange === "legendary" || b.range === activeCraftingLvlRange || activeCraftingLvlRange === "51-60");
         }
@@ -1566,7 +1582,7 @@ function executeSellWarehouseItem(itemName, qty = 1) {
     currentRun.gold = (currentRun.gold || 0) + totalEarn;
 
     if (typeof addLog === "function") {
-        addLog(`💰【黑市交易】成功變賣 <strong>${itemName} x${sellQty}</strong>，換得 <span class="gold-victory-text">+${totalEarn} G</span>！`, "perfect");
+        addLog(`💰【黑市交易】成功變賣 <strong>${itemName} x${sellQty}</strong>，換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
     }
     if (typeof showToast === "function") {
         showToast(`💰 變賣成功 +${totalEarn} G`, "success");
@@ -1602,7 +1618,7 @@ function executeSellAllJunkMaterials() {
     currentRun.gold = (currentRun.gold || 0) + totalEarn;
 
     if (typeof addLog === "function") {
-        addLog(`🧹💰【黑市一鍵大清掃】成功回收 <strong>${soldItemsCount} 件低階雜物</strong>，合共換得 <span class="gold-victory-text">+${totalEarn} G</span>！`, "perfect");
+        addLog(`🧹💰【黑市一鍵大清掃】成功回收 <strong>${soldItemsCount} 件低階雜物</strong>，合共換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
     }
     if (typeof showToast === "function") {
         showToast(`🧹 清理完成，獲得 +${totalEarn} G！`, "success");
@@ -1620,7 +1636,6 @@ function executeSellAllJunkMaterials() {
 let activeBlackMarketTab = "buy";
 let blackMarketTimerInterval = null;
 
-// 🔄 4 小時隨機刷新黑市貨架 (含 5% 傳說藍圖率)
 function getOrRefreshBlackMarketStock() {
     const now = Date.now();
     if (!accountMeta.blackMarketStock || !accountMeta.blackMarketNextRefresh || now >= accountMeta.blackMarketNextRefresh) {
@@ -1640,7 +1655,6 @@ function generateBlackMarketStock() {
     const legendaries = MARKET_ITEMS_POOL.getLegendaryBlueprints ? MARKET_ITEMS_POOL.getLegendaryBlueprints() : [];
 
     for (let i = 0; i < 3; i++) {
-        // 5% 概率觸發傳說裝備藍圖
         const isLegendaryRoll = Math.random() < 0.05 && legendaries.length > 0;
         let item = null;
 
@@ -1648,7 +1662,6 @@ function generateBlackMarketStock() {
             const randIdx = Math.floor(Math.random() * legendaries.length);
             item = { ...legendaries[randIdx] };
         } else {
-            // 50% 機率為消耗品，50% 為高級素材
             const isMaterial = Math.random() < 0.5 && materials.length > 0;
             if (isMaterial) {
                 const randIdx = Math.floor(Math.random() * materials.length);
@@ -1680,27 +1693,25 @@ function renderVillageSquare() {
     if (!squareContainer) return;
 
     squareContainer.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
             
-            <!-- ⚖️ 精簡版黑市進入橫幅 -->
             <div style="
-                background: linear-gradient(135deg, rgba(30, 20, 10, 0.9), rgba(60, 30, 10, 0.9)); 
-                border: 1px solid #d35400; border-radius: 10px; padding: 12px; 
+                background: radial-gradient(circle at 0% 0%, rgba(230, 126, 34, 0.2) 0%, rgba(20, 15, 10, 0.95) 100%); 
+                border: 1px solid rgba(230, 126, 34, 0.4); border-radius: 12px; padding: 14px; 
                 display: flex; justify-content: space-between; align-items: center;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             ">
                 <div>
-                    <div style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</div>
-                    <div style="font-size: 11px; color: #aaa; margin-top: 2px;">提供稀有素材採購、傳說藍圖與倉庫變賣服務。</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #e67e22; letter-spacing: 0.5px;">⚖️ 地下黑市交易所</div>
+                    <div style="font-size: 11px; color: #aaa; margin-top: 3px;">提供稀有素材採購、傳說藍圖與倉庫變賣服務。</div>
                 </div>
                 <button class="btn-game btn-rerun" style="padding: 6px 14px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="openBlackMarketModal('buy')">
                     🛒 進入交易選單
                 </button>
             </div>
 
-            <!-- 💬 聊天室 (附帶線上人數顯示) -->
-            <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid #2980b9; border-radius: 10px; padding: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid rgba(41, 128, 185, 0.3); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="font-size: 13px; font-weight: bold; color: #3498db;">💬 冒險者廣場頻道</span>
                     <span style="font-size: 11px; color: #00ffcc; font-weight: bold; background: rgba(0,255,204,0.1); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(0,255,204,0.3);">
                         🟢 線上勇者: <span id="square-online-count">${currentOnlineCount}</span> 人
@@ -1708,18 +1719,18 @@ function renderVillageSquare() {
                 </div>
                 
                 <div id="square-chat-box" style="
-                    height: 120px; overflow-y: auto; background: rgba(0,0,0,0.4); 
-                    border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; 
-                    padding: 6px; font-size: 11px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;
+                    height: 130px; overflow-y: auto; background: rgba(0,0,0,0.4); 
+                    border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; 
+                    padding: 8px; font-size: 11px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;
                 ">
                 </div>
 
                 <div style="display: flex; gap: 6px;">
                     <input type="text" id="square-chat-input" placeholder="輸入發言內容..." maxlength="40" style="
-                        flex: 1; background: rgba(0,0,0,0.5); border: 1px solid #3498db; 
-                        border-radius: 4px; color: #fff; padding: 4px 8px; font-size: 11px; outline: none;
+                        flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(52, 152, 219, 0.4); 
+                        border-radius: 6px; color: #fff; padding: 6px 10px; font-size: 11px; outline: none;
                     " onkeypress="if(event.key === 'Enter') sendSquareChatMessage()">
-                    <button class="btn-game btn-explore" style="padding: 4px 10px; font-size: 11px;" onclick="sendSquareChatMessage()">
+                    <button class="btn-game btn-explore" style="padding: 6px 12px; font-size: 11px;" onclick="sendSquareChatMessage()">
                         發送
                     </button>
                 </div>
@@ -1744,7 +1755,7 @@ function openBlackMarketModal(tab = "buy") {
         overlay.id = 'black-market-modal-overlay';
         overlay.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             display: flex; justify-content: center; align-items: center;
             z-index: 9999; padding: 15px; box-sizing: border-box;
         `;
@@ -1798,42 +1809,38 @@ function renderBlackMarketModalContent() {
 
     overlay.innerHTML = `
         <div style="
-            background: #181512; border: 2px solid #d35400; border-radius: 12px;
+            background: rgba(24, 21, 18, 0.98); border: 2px solid #d35400; border-radius: 16px;
             width: 100%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column;
-            box-shadow: 0 0 20px rgba(211, 84, 0, 0.4); overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(211, 84, 0, 0.3); overflow: hidden;
         ">
-            <!-- 標頭與金幣顯示 -->
-            <div style="background: #251a14; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+            <div style="background: rgba(37, 26, 20, 0.95); padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
                 <div style="display:flex; flex-direction:column;">
                     <span style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</span>
-                    <span style="font-size: 10px; color: #888;">⏳ 距離下次補貨: <span id="bm-refresh-timer" style="color:#00ffcc; font-weight:bold;">00:00:00</span></span>
+                    <span style="font-size: 10px; color: #888; margin-top: 2px;">⏳ 距離下次補貨: <span id="bm-refresh-timer" style="color:#00ffcc; font-weight:bold;">00:00:00</span></span>
                 </div>
                 <span style="font-size: 12px; color: #ffd700; font-weight: bold;">🪙 現金: ${playerGold} G</span>
             </div>
 
-            <!-- 買賣頁籤按鈕 -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <button style="
-                    padding: 8px; border: none; background: ${activeBlackMarketTab === 'buy' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
+                    padding: 10px; border: none; background: ${activeBlackMarketTab === 'buy' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
                     color: ${activeBlackMarketTab === 'buy' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 12px; cursor: pointer;
-                    border-bottom: 2px solid ${activeBlackMarketTab === 'buy' ? '#e67e22' : 'transparent'};
+                    border-bottom: 2px solid ${activeBlackMarketTab === 'buy' ? '#e67e22' : 'transparent'}; transition: all 0.2s;
                 " onclick="switchBlackMarketTab('buy')">🛒 採購黑市物資 (限額 3 件)</button>
 
                 <button style="
-                    padding: 8px; border: none; background: ${activeBlackMarketTab === 'sell' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
+                    padding: 10px; border: none; background: ${activeBlackMarketTab === 'sell' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
                     color: ${activeBlackMarketTab === 'sell' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 12px; cursor: pointer;
-                    border-bottom: 2px solid ${activeBlackMarketTab === 'sell' ? '#e67e22' : 'transparent'};
+                    border-bottom: 2px solid ${activeBlackMarketTab === 'sell' ? '#e67e22' : 'transparent'}; transition: all 0.2s;
                 " onclick="switchBlackMarketTab('sell')">💰 變賣倉庫物資</button>
             </div>
 
-            <!-- 內容清單區塊 -->
-            <div id="black-market-modal-list" style="padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 200px;">
+            <div id="black-market-modal-list" style="padding: 12px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 220px;">
             </div>
 
-            <!-- 底部動作鈕 -->
-            <div style="padding: 10px; background: #251a14; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+            <div style="padding: 12px; background: rgba(37, 26, 20, 0.95); border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
                 ${activeBlackMarketTab === 'sell' ? `
-                    <button class="btn-game btn-rerun" style="padding: 4px 10px; font-size: 11px; background: #c0392b !important;" onclick="executeSellAllJunkMaterials(); renderBlackMarketModalContent();">
+                    <button class="btn-game btn-rerun" style="padding: 6px 12px; font-size: 11px; background: #c0392b !important;" onclick="executeSellAllJunkMaterials(); renderBlackMarketModalContent();">
                         🧹 一鍵清掃雜物
                     </button>
                 ` : `<span></span>`}
@@ -1846,14 +1853,13 @@ function renderBlackMarketModalContent() {
     if (!listEl) return;
 
     if (activeBlackMarketTab === "buy") {
-        // 🛒 買入清單渲染
         stockList.forEach((item) => {
             const canAfford = playerGold >= item.price && !item.bought;
             const row = document.createElement('div');
             row.style.cssText = `
                 display: flex; justify-content: space-between; align-items: center;
                 background: ${item.isLegendary ? 'rgba(230, 126, 34, 0.15)' : 'rgba(255,255,255,0.03)'}; 
-                padding: 8px; border-radius: 6px;
+                padding: 10px; border-radius: 8px;
                 border: 1px solid ${item.isLegendary ? '#e67e22' : 'rgba(255,255,255,0.05)'};
             `;
 
@@ -1868,7 +1874,7 @@ function renderBlackMarketModalContent() {
                     <span style="font-size: 10px; color: #aaa;">${item.desc}</span>
                 </div>
                 <button class="btn-game ${item.bought ? 'btn-rest' : 'btn-explore'}" 
-                    style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" 
+                    style="padding: 5px 10px; font-size: 11px; white-space: nowrap;" 
                     ${canAfford ? "" : "disabled"} 
                     onclick="executeBuyBlackMarketItem(${item.idx})">
                     ${item.bought ? "❌ 已售罄" : `🪙 ${item.price} G`}
@@ -1877,7 +1883,6 @@ function renderBlackMarketModalContent() {
             listEl.appendChild(row);
         });
     } else {
-        // 💰 賣出清單渲染 (讀取倉庫)
         const warehouseData = accountMeta.warehouse || {};
         let hasItems = false;
 
@@ -1894,7 +1899,7 @@ function renderBlackMarketModalContent() {
             const row = document.createElement('div');
             row.style.cssText = `
                 display: flex; justify-content: space-between; align-items: center;
-                background: rgba(255,255,255,0.03); padding: 6px 8px; border-radius: 6px;
+                background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;
                 border: 1px solid rgba(255,255,255,0.05);
             `;
             row.innerHTML = `
@@ -1904,15 +1909,15 @@ function renderBlackMarketModalContent() {
                     <div style="font-size: 10px; color: #888;">收購單價: ${unitPrice} G</div>
                 </div>
                 <div style="display: flex; gap: 4px;">
-                    <button class="btn-game" style="padding: 3px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1); renderBlackMarketModalContent();">賣 1 個</button>
-                    <button class="btn-game btn-rest" style="padding: 3px 6px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty}); renderBlackMarketModalContent();">全賣</button>
+                    <button class="btn-game" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1); renderBlackMarketModalContent();">賣 1 個</button>
+                    <button class="btn-game btn-rest" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty}); renderBlackMarketModalContent();">全賣</button>
                 </div>
             `;
             listEl.appendChild(row);
         }
 
         if (!hasItems) {
-            listEl.innerHTML = `<div style="color:#666; font-size:12px; text-align:center; padding: 20px;">📦 倉庫目前空空如也，沒有可賣出的物資。</div>`;
+            listEl.innerHTML = `<div style="color:#666; font-size:12px; text-align:center; padding: 30px;">📦 倉庫目前空空如也，沒有可賣出的物資。</div>`;
         }
     }
 }
@@ -1937,22 +1942,20 @@ function executeBuyBlackMarketItem(stockIndex) {
     }
 
     currentRun.gold -= item.price;
-    item.bought = true; // 標記為已售罄
+    item.bought = true; 
 
     if (item.isLegendary && item.blueprintName) {
-        // 🌟 傳說神裝藍圖：寫入已解鎖清單
         if (!accountMeta.unlockedBlueprints) accountMeta.unlockedBlueprints = [];
         if (!accountMeta.unlockedBlueprints.includes(item.blueprintName)) {
             accountMeta.unlockedBlueprints.push(item.blueprintName);
         }
         showToast(`📜 成功購買 ${item.name}！已解鎖加工所打造資格`, "success");
-        addLog(`🛒【黑市交易】花費 <span class="gold-text">${item.price} G</span> 購買了 <strong>${item.name}</strong>！解鎖了加工所打造資格。`, "perfect");
+        addLog(`🛒【黑市交易】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${item.name}</strong>！解鎖了加工所打造資格。`, "perfect");
     } else {
-        // 🌾 一般素材/消耗品：存入倉庫
         if (!accountMeta.warehouse) accountMeta.warehouse = {};
         accountMeta.warehouse[item.name] = (accountMeta.warehouse[item.name] || 0) + 1;
         showToast(`🛒 成功購買 ${item.name}！已存入倉庫`, "success");
-        addLog(`🛒【黑市採購】花費 <span class="gold-text">${item.price} G</span> 購買了 <strong>${item.name}</strong> 並存入倉庫。`, "perfect");
+        addLog(`🛒【黑市採購】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${item.name}</strong> 並存入倉庫。`, "perfect");
     }
 
     if (typeof saveGameData === "function") saveGameData();
@@ -1961,7 +1964,7 @@ function executeBuyBlackMarketItem(stockIndex) {
 }
 
 // --------------------------------------------------------------------------
-// 聊天室輔助函式
+// 💬 聊天室輔助函式
 // --------------------------------------------------------------------------
 
 function sendSquareChatMessage() {
@@ -1994,9 +1997,9 @@ function renderSquareChatBox() {
     const chatBox = document.getElementById('square-chat-box');
     if (!chatBox) return;
 
-    let html = `<div style="color: #7f8c8d; font-style: italic;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
+    let html = `<div style="color: #7f8c8d; font-style: italic; margin-bottom: 4px;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
     localChatHistory.forEach(item => {
-        html += `<div style="line-height: 1.3;"><strong style="color:#00ffcc;">[${item.name}]</strong>: <span style="color:#eee;">${item.msg}</span></div>`;
+        html += `<div style="line-height: 1.4; margin-bottom: 2px;"><strong style="color:#00ffcc;">[${item.name}]</strong>: <span style="color:#eee;">${item.msg}</span></div>`;
     });
 
     chatBox.innerHTML = html;
