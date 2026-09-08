@@ -117,7 +117,7 @@ const CRAFTING_BLUEPRINTS = [
     { name: "📿 死神寂滅吊墜", type: "accessory", range: "51-60", stats: { critChance: 20, hit: 20 }, ingredients: { "死神鐮刃": 3, "九頭蛇血": 12, "怨靈淚晶": 20 }, desc: "吊墜由骷髏死牙製成，佩戴者攻擊會觸發極度精準與收割效果。" },
     { name: "💍 秩序審判天之戒", type: "accessory", range: "51-60", stats: { maxHp: 400, mdef: 25, mpRegen: 15 }, ingredients: { "裁決羽毛": 4, "九頭蛇血": 12, "史萊姆黏液": 25 }, desc: "神羽天光庇護，大幅增加魔防、MP 回復及生命上限。" },
 
-    // 🌟 ✨ 新增：10 種傳說裝備藍圖 (全部自帶 Lv.1 專屬裝備技能) ✨
+    // 🌟 ✨ 10 種傳說裝備藍圖 (全部自帶 Lv.1 專屬裝備技能) ✨
     { name: "🗡️ 傳說·光輝聖劍", type: "weapon", range: "legendary", isLegendary: true, skill: { name: "聖光突刺", lv: 1, desc: "造成 200% 物理傷害並補滿 50 HP" }, stats: { atk: 350, hit: 40, spd: 20 }, ingredients: { "裁決羽毛": 10, "星塵碎片": 10, "混沌核心": 5 }, desc: "【傳說武器】封印著天堂聖光的至高神劍。" },
     { name: "🪓 傳說·毀滅帝王斧", type: "weapon", range: "legendary", isLegendary: true, skill: { name: "地裂崩山", lv: 1, desc: "造成 300% 物理傷害並使敵方眩暈 1 回合" }, stats: { atk: 450, hit: 20, spd: -10 }, ingredients: { "混沌核心": 10, "死神鐮刃": 10, "惡魔之角": 15 }, desc: "【傳說武器】一斧劈開大地，蘊藏毀滅萬物之力。" },
     { name: "🏹 傳說·幻影神箭弓", type: "weapon", range: "legendary", isLegendary: true, skill: { name: "萬箭齊發", lv: 1, desc: "進行 4 次連續射擊，每次造成 60% 傷害" }, stats: { atk: 300, hit: 60, spd: 25 }, ingredients: { "裁決羽毛": 12, "時空皮革": 15, "星塵碎片": 8 }, desc: "【傳說武器】無形無相，發射出撕裂空間的幻影箭雨。" },
@@ -169,7 +169,6 @@ const RECIPES_DATABASE = [
 // ==========================================================================
 
 const MARKET_ITEMS_POOL = {
-    // 1. 常規消耗品：回復藥 / 低層成品料理
     consumables: [
         { name: "🧪 微光初級治癒藥水", price: 20, type: "potion", desc: "立刻回復 50 點 HP。" },
         { name: "🧪 皇家大瓶強效魔藥", price: 80, type: "potion", desc: "立刻回復 150 點 HP。" },
@@ -180,7 +179,6 @@ const MARKET_ITEMS_POOL = {
         { name: "🍲 哥布林雜碎湯", price: 35, type: "dish", desc: "進入地下城前 15 層最大生命值固定 +60 點。" }
     ],
 
-    // 2. 高級素材 (單價 > 5k = 5000 G)
     materials: [
         { name: "星塵碎片", price: 5500, type: "material", desc: "【高級素材】蘊含星辰微光的珍稀結晶。" },
         { name: "混沌核心", price: 6800, type: "material", desc: "【高級素材】爆發著混沌能量的核心。" },
@@ -189,7 +187,6 @@ const MARKET_ITEMS_POOL = {
         { name: "死神鐮刃", price: 8500, type: "material", desc: "【高級素材】死神武器碎裂後的極致刃片。" }
     ],
 
-    // 3. 傳說裝備藍圖 (單價 > 10k = 10000 G, 從 CRAFTING_BLUEPRINTS 自動過濾)
     getLegendaryBlueprints: function() {
         return CRAFTING_BLUEPRINTS.filter(b => b.isLegendary).map(b => ({
             name: `📜 藍圖：${b.name}`,
@@ -201,3 +198,17 @@ const MARKET_ITEMS_POOL = {
         }));
     }
 };
+
+// --------------------------------------------------------------------------
+// ⚡ 效能優化：快查索引 Helper (O(1) 效能查詢)
+// --------------------------------------------------------------------------
+const _blueprintMap = new Map(CRAFTING_BLUEPRINTS.map(item => [item.name, item]));
+const _recipeMap = new Map(RECIPES_DATABASE.map(item => [item.name, item]));
+
+function getItemBlueprintByName(name) {
+    return _blueprintMap.get(name) || null;
+}
+
+function getRecipeByName(name) {
+    return _recipeMap.get(name) || null;
+}
