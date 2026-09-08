@@ -1444,3 +1444,78 @@ body {
     0% { opacity: 0; transform: scale(0.88) translateY(10px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
 }
+
+/* ==========================================================================
+   🛠️ 畫面視覺修復 (Action Panel Card & Clean Damage Text)
+   ========================================================================== */
+
+/* 1. 修正左下角動作按鈕區面板：補全卡片背景與邊框，消除懸空感 */
+.action-panel, 
+#action-panel-box {
+    background: rgba(18, 22, 32, 0.85) !important;
+    border: 1px solid rgba(0, 255, 204, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.05) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+}
+
+/* 確保按鈕群組間距舒適 */
+.action-btn-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+
+/* 2. 修正戰鬥日誌內傷害數字：徹底清除模糊、縱向拉伸與錯位 */
+.log-panel .num-popup {
+    display: inline-block !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    font-style: normal !important;
+    padding: 2px 8px !important;
+    margin: 0 4px !important;
+    border-radius: 4px !important;
+    vertical-align: middle !important;
+    letter-spacing: 0.5px !important;
+    transform: none !important; /* 清除歪斜拉伸 */
+    filter: none !important;    /* 清除模糊濾鏡 */
+    line-height: 1.2 !important;
+    text-shadow: none !important;
+}
+
+/* 魔物暴擊/反噬傷害膠囊徽章 (紅色高亮) */
+.log-panel .num-boss-strike {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #e63946, #b7094c) !important;
+    border: 1px solid #ff4d6d !important;
+    box-shadow: 0 0 8px rgba(230, 57, 70, 0.5) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* 玩家物理傷害 (黃金色) */
+.log-panel .num-p-dmg {
+    color: #ffd700 !important;
+    background: rgba(255, 215, 0, 0.15) !important;
+    border: 1px solid rgba(255, 215, 0, 0.4) !important;
+}
+
+/* 玩家魔法傷害 (青藍色) */
+.log-panel .num-m-dmg {
+    color: #00ffff !important;
+    background: rgba(0, 255, 255, 0.15) !important;
+    border: 1px solid rgba(0, 255, 255, 0.4) !important;
+}
+
+/* MISS 閃避徽章 */
+.log-panel .num-miss {
+    color: #aaaaaa !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
