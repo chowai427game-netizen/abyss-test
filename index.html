@@ -229,16 +229,17 @@
             </section>
             
             <!-- 🕹️ 3. 全局動作按鈕區 -->
-            <section class="action-panel" id="action-panel-box" style="display: none;">
-                <div class="action-btn-group">
-                    <div class="primary-actions-row">
-                        <button id="btn-main-action" type="button" onclick="handleMainAction()" class="btn-game btn-explore flex-grow-main">⚔️ 前進探險</button>
-                        <button id="btn-rerun-action" type="button" onclick="handleRerunAction()" class="btn-game btn-rerun flex-grow-sub" style="display: none;">🔄 重巡本層整備</button>
-                    </div>
-                    <button id="btn-auto-battle" type="button" class="btn-game btn-rerun full-width margin-top-xs" style="display: none;" onclick="toggleTacticsDrawer()">⚡ 自動戰術策略</button>
-                    <button id="btn-secondary-action" type="button" onclick="handleSecondaryAction()" class="btn-game btn-rest full-width margin-top-xs" style="display: none;">⛺ 逃回村莊</button>
+            <!-- 🎮 整合型戰術動作面板 -->
+            <div id="action-panel-box" class="action-panel">
+                <div class="action-selector-wrapper">
+                    <select id="action-menu-select" class="select-game action-dropdown">
+                        <!-- 這裡會由 ui.js 根據狀態動態注入選項 -->
+                    </select>
+                    <button id="btn-execute-action" class="btn-game btn-explore" onclick="executeSelectedAction()">
+                        ⚡ 執行指令
+                    </button>
                 </div>
-            </section>
+            </div>
 
         </aside>
 
