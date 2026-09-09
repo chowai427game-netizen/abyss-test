@@ -1,6 +1,6 @@
 /* ==========================================================================
    🎮 命運深淵：血脈傳承 (Abyss of Destiny: Blood & Heritage)
-   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v4.1 GPU Accelerated)
+   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v4.2 Modern Refactored)
    ========================================================================== */
 
 /* ==========================================================================
@@ -80,7 +80,6 @@ body {
     margin: 0 auto 25px auto;
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
     animation: spinLoader 2.2s linear infinite;
-    will-change: transform;
 }
 
 .magic-circle-loader::after {
@@ -157,7 +156,7 @@ body {
     border: 1px solid var(--panel-border);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
                 inset 0 1px 1px rgba(255, 255, 255, 0.1);
-    overflow: hidden;
+    overflow: clip; /* 🛠️ 修復：替換 overflow: hidden 以釋放手機端 Sticky 吸附 */
 }
 
 .game-container > h2 {
@@ -186,7 +185,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.04);
     padding: 18px;
     border-radius: 14px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     width: 100%;
     max-width: 100%;
 }
@@ -203,40 +202,6 @@ body {
 
 .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .flex-layout { display: flex; flex-direction: column; gap: 10px; }
-
-.select-game {
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--gold-glow);
-    background: rgba(12, 12, 18, 0.9);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    border-radius: 10px;
-    outline: none;
-    cursor: pointer;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 10px rgba(255, 215, 0, 0.05);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg fill='%23ffd700' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 18px;
-    padding-right: 32px;
-}
-
-.select-game:hover, .select-game:focus {
-    border-color: var(--gold-glow);
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
-    background-color: rgba(20, 20, 30, 0.95);
-}
-
-.select-game option {
-    background: #111116;
-    color: #e3e3e6;
-    padding: 10px;
-}
 
 .title-panel-style {
     background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.08) 0%, rgba(0,0,0,0) 70%);
@@ -287,7 +252,7 @@ body {
 .name-input {
     width: 100%; padding: 14px; font-size: 16px; background: rgba(0, 0, 0, 0.5); color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; text-align: center;
-    margin-bottom: 20px; transition: all 0.3s;
+    margin-bottom: 12px; transition: all 0.3s;
 }
 .name-input:focus { outline: none; border-color: var(--gold-glow); box-shadow: 0 0 12px rgba(255, 215, 0, 0.2); background: rgba(0, 0, 0, 0.7); }
 
@@ -304,11 +269,11 @@ body {
 }
 
 /* ==========================================================================
-   📊 ZONE 3: 狀態儀表、生命魔條與勇者面板 (含白條傷害殘影)
+   📊 ZONE 3: 狀態儀表、生命魔條與勇者面板
    ========================================================================== */
 .status-panel {
-    background: rgba(0, 0, 0, 0.3); padding: 16px; border-radius: 14px; margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.03); display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px;
+    background: rgba(0, 0, 0, 0.3); padding: 14px; border-radius: 14px; margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.03); display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px;
 }
 .status-item { 
     font-size: 13px; color: #d1d1d6; display: flex; justify-content: space-between !important; 
@@ -325,10 +290,9 @@ body {
     position: absolute; top: 0; left: 0; height: 100%; width: 100%;
     background: #ffffff; opacity: 0.75; border-radius: 3px;
     transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1;
-    will-change: width;
 }
 
-.visual-bar-fill { position: relative; z-index: 2; height: 100%; width: 100%; border-radius: 3px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); will-change: width; }
+.visual-bar-fill { position: relative; z-index: 2; height: 100%; width: 100%; border-radius: 3px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .hp-color { background: var(--clr-hp); box-shadow: 0 0 8px rgba(255,65,108,0.5); }
 .mp-color { background: var(--clr-mp); box-shadow: 0 0 8px rgba(0,198,255,0.5); }
 
@@ -348,7 +312,7 @@ body {
 .mini-bar-box .visual-bar-bg { height: 4px; margin-top: 4px; }
 
 .stats-mini-grid {
-    grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;
+    grid-column: span 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
 }
 
 .grid-cell {
@@ -385,27 +349,24 @@ body {
     100% { opacity: 1; transform: translateY(0); }
 }
 
-.folder-item { font-size: 11px; color: #aaa; line-height: 1.4; }
-.folder-label { color: var(--text-muted); }
-
 /* ==========================================================================
    🗺️ ZONE 4: 村莊分區導覽系統與三大加工公會介面
    ========================================================================== */
-.village-nav-bar, .town-map-nav {
-    display: flex; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 4px; border-radius: 10px; margin-bottom: 15px;
+.village-nav-bar {
+    display: flex; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 4px; border-radius: 10px; margin-bottom: 12px;
     border: 1px solid rgba(255, 255, 255, 0.03); overflow-x: auto; scrollbar-width: none;
     width: 100%;
 }
-.village-nav-bar::-webkit-scrollbar, .town-map-nav::-webkit-scrollbar { display: none; }
+.village-nav-bar::-webkit-scrollbar { display: none; }
 
-.btn-nav-tab, .btn-map-node {
-    flex: 1; min-width: 80px; background: rgba(0, 0, 0, 0.3) !important; border: 1px solid rgba(255, 255, 255, 0.03) !important; 
-    color: var(--text-muted) !important; padding: 10px 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 7px; white-space: nowrap; transition: all 0.2s;
+.btn-nav-tab {
+    flex: 1; min-width: 75px; background: rgba(0, 0, 0, 0.3) !important; border: 1px solid rgba(255, 255, 255, 0.03) !important; 
+    color: var(--text-muted) !important; padding: 8px 6px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 7px; white-space: nowrap; transition: all 0.2s;
     text-align: center;
 }
-.btn-nav-tab:hover, .btn-map-node:hover { color: #fff !important; background: rgba(255, 255, 255, 0.05) !important; }
+.btn-nav-tab:hover { color: #fff !important; background: rgba(255, 255, 255, 0.05) !important; }
 
-.btn-nav-tab.active, .btn-map-node.active {
+.btn-nav-tab.active {
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%) !important;
     color: var(--gold-glow) !important; border: 1px solid rgba(255, 215, 0, 0.3) !important;
     text-shadow: 0 0 6px rgba(255,215,0,0.5); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -413,537 +374,93 @@ body {
 
 .v-sub-loc-panel { 
     animation: subLocFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    width: 100%;
-    min-width: 0;
+    width: 100%; min-width: 0;
 }
 @keyframes subLocFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
-.placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 30px 20px; text-align: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
-.placeholder-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #fff; letter-spacing: 1px; }
-
-.job-select-style { border-color: rgba(0, 206, 166, 0.15); background: linear-gradient(180deg, rgba(0,206,166,0.02) 0%, rgba(0,0,0,0) 100%); }
-.cooking-style { border-color: rgba(155, 89, 182, 0.15); background: linear-gradient(180deg, rgba(155, 89, 182, 0.02) 0%, rgba(0,0,0,0) 100%); }
-.reward-style { border: 1px solid var(--gold-glow); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
-
-.guild-section-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.job-tier-badge {
-    font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 12px;
-    background: rgba(155, 89, 182, 0.2); color: #dcd0ff; border: 1px solid rgba(155, 89, 182, 0.4);
-}
-
-.scrollable-panel-content {
-    max-height: 380px; overflow-y: auto; padding-right: 6px; border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.03);
-    display: flex; flex-direction: column; gap: 10px; padding: 12px; width: 100%;
-}
-
-.scrollable-panel-content::-webkit-scrollbar { width: 6px; }
-.scrollable-panel-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+.placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 25px 15px; text-align: center; }
 
 /* ==========================================================================
-   📜 ZONE 5: 日誌與電影級打擊感系統 (GPU 硬體加速版)
+   📜 ZONE 5: 日誌與電影級打擊感系統
    ========================================================================== */
 .log-panel {
     height: 250px; overflow-y: auto; overflow-x: hidden;
     position: relative;
     background: radial-gradient(circle at 50% 100%, rgba(15, 15, 22, 0.9) 0%, rgba(7, 7, 10, 0.98) 100%);
-    padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
-    box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
-    margin-bottom: 20px; font-size: 14px; line-height: 1.65; scroll-behavior: smooth;
+    padding: 14px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 3px 15px rgba(0,0,0,0.9);
+    margin-bottom: 12px; font-size: 13px; line-height: 1.6; scroll-behavior: smooth;
 }
 
 .log-row-box {
     position: relative;
-    background: rgba(255, 255, 255, 0.01); border-radius: 8px; padding: 8px 12px; margin: 7px 0;
-    border-left: 3px solid rgba(255, 255, 255, 0.15); color: #e3e3e6; border-top: 1px solid rgba(255, 255, 255, 0.02);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
-    animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    transform-origin: left center; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-    will-change: transform, opacity;
+    background: rgba(255, 255, 255, 0.01); border-radius: 6px; padding: 6px 10px; margin: 5px 0;
+    border-left: 3px solid rgba(255, 255, 255, 0.15); color: #e3e3e6;
+    animation: logCinematicPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes logCinematicPop {
-    0% { transform: translate3d(-15px, 0, 0) scale(0.93); opacity: 0; filter: brightness(2); }
-    100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; filter: brightness(1); }
+    0% { transform: translate3d(-10px, 0, 0); opacity: 0; }
+    100% { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 
 .log-perfect {
-    background: linear-gradient(90deg, rgba(46, 213, 115, 0.15) 0%, rgba(46, 213, 115, 0.02) 100%) !important;
-    border-left: 4px solid var(--clr-success) !important; font-weight: 600; color: #ffffff !important;
-    box-shadow: inset 10px 0 15px rgba(46, 213, 115, 0.05), 0 4px 12px rgba(46, 213, 115, 0.08);
-    text-shadow: 0 0 6px rgba(46, 213, 115, 0.4);
-}
-
-.log-deal-dmg, .log-deal {
-    background: linear-gradient(90deg, rgba(40, 50, 70, 0.8) 0%, rgba(10, 15, 25, 0.3) 100%) !important;
-    border-left: 4px solid #a8b2c1 !important; color: #e2e8f0 !important;
-    box-shadow: inset 3px 0 15px rgba(168, 178, 193, 0.15);
-}
-
-.log-skill-hit {
-    border-left: 4px solid var(--neon-gold) !important;
-    background: linear-gradient(90deg, rgba(80, 60, 0, 0.85) 0%, rgba(30, 15, 0, 0.4) 100%) !important;
-    color: #fff !important;
-    box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 10px rgba(255, 215, 0, 0.2);
-    animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards, logPulseGold 2s infinite alternate !important;
-}
-
-@keyframes logPulseGold {
-    0% { box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 5px rgba(255, 215, 0, 0.1); filter: brightness(1.8); }
-    100% { box-shadow: inset 4px 0 35px rgba(255, 215, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.4); border-left-color: #fff; filter: brightness(1); }
-}
-
-.log-miss {
-    background: linear-gradient(90deg, rgba(142, 142, 147, 0.12) 0%, rgba(0,0,0,0) 100%) !important;
-    border-left: 3px solid #8e8e93 !important; color: #b0b0b8 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    animation: logCinematicPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards, logMissGlitch 0.35s ease-out forwards;
-}
-
-@keyframes logMissGlitch {
-    0% { transform: translate3d(0, 0, 0); }
-    20% { transform: translate3d(8px, 0, 0); }
-    40% { transform: translate3d(-4px, 0, 0); }
-    100% { transform: translate3d(0, 0, 0); }
+    background: rgba(46, 213, 115, 0.1) !important;
+    border-left: 4px solid var(--clr-success) !important; color: #ffffff !important;
 }
 
 .log-take-dmg {
-    border-left: 5px solid #ff3838 !important; color: #ff7675 !important; font-weight: bold;
-    background: linear-gradient(90deg, rgba(231, 76, 60, 0.25) 0%, rgba(200, 30, 30, 0.03) 100%) !important;
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.2), inset 0 0 8px rgba(231, 76, 60, 0.1);
-    text-shadow: 0 0 8px rgba(255, 56, 56, 0.6), 0 1px 2px #000;
-    animation: logCinematicPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards, logDamageShake 0.38s ease-in-out forwards !important;
+    border-left: 4px solid #ff3838 !important; color: #ff7675 !important;
+    background: rgba(231, 76, 60, 0.15) !important;
 }
 
-@keyframes logDamageShake {
-    0% { transform: translate3d(0, 0, 0); filter: brightness(2); }
-    15% { transform: translate3d(-12px, 0, 0) skewX(-3deg); }
-    30% { transform: translate3d(9px, 0, 0) skewX(2deg); }
-    45% { transform: translate3d(-6px, 0, 0); }
-    60% { transform: translate3d(4px, 0, 0); }
-    100% { transform: translate3d(0, 0, 0); filter: brightness(1); }
+/* 戰鬥日誌內傷害數字膠囊 */
+.log-panel .num-popup {
+    display: inline-block !important;
+    font-size: 11px !important; font-weight: 800 !important;
+    padding: 2px 6px !important; margin: 0 4px !important;
+    border-radius: 4px !important; vertical-align: middle !important;
 }
 
-.log-env-tick {
-    background: linear-gradient(90deg, rgba(155, 89, 182, 0.15) 0%, rgba(0,0,0,0) 100%) !important;
-    border-left: 4px solid #9b59b6 !important; color: #e8dbff !important; box-shadow: 0 2px 8px rgba(155, 89, 182, 0.1);
-    animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards, logEnvPulse 0.3s ease-out forwards;
-}
-
-@keyframes logEnvPulse {
-    0% { transform: translate3d(0, -4px, 0); filter: saturate(1.8); }
-    100% { transform: translate3d(0, 0, 0); filter: saturate(1); }
-}
+.log-panel .num-p-dmg { color: var(--gold-glow) !important; background: rgba(255, 215, 0, 0.15) !important; border: 1px solid rgba(255, 215, 0, 0.4) !important; }
+.log-panel .num-m-dmg { color: var(--clr-cyan) !important; background: rgba(0, 255, 255, 0.15) !important; border: 1px solid rgba(0, 255, 255, 0.4) !important; }
+.log-panel .num-boss-strike { color: #ffffff !important; background: linear-gradient(135deg, #e63946, #b7094c) !important; border: 1px solid #ff4d6d !important; }
+.log-panel .num-miss { color: #aaaaaa !important; background: rgba(255, 255, 255, 0.1) !important; }
 
 /* ==========================================================================
-   💥 ZONE 6: 全職業多元素純【光線】與【光粒】魔導動態特效系統
+   💥 ZONE 6: 全職業多元素純光線特效
    ========================================================================== */
-
-/* 🗡️ 1. 近戰與雙刀斬擊 (Hyper Light Blades) */
-.strike-slash, .strike-monster {
-    display: inline-block; position: relative; color: #ffaaaa !important;
-    font-weight: 900 !important; padding: 0 8px; letter-spacing: 1px;
-    animation: textRedFlash 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
-}
-
-.strike-monster { animation: textRedFlash 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards, monsterPunchShake 0.3s linear forwards; }
-
-@keyframes textRedFlash {
-    0% { color: #ffffff !important; text-shadow: none; }
-    25% { color: #ff3838 !important; text-shadow: 0 0 10px #ff2a3b, 0 0 20px #ff4757; }
-    100% { color: #ffffff !important; text-shadow: none; }
-}
-
-@keyframes monsterPunchShake {
-    0% { transform: translate3d(0, 0, 0); } 20% { transform: translate3d(-3px, -1px, 0); }
-    40% { transform: translate3d(3px, 1px, 0); } 60% { transform: translate3d(-2px, 2px, 0); } 100% { transform: translate3d(0, 0, 0); }
-}
-
-.strike-slash::before {
-    content: ""; position: absolute; top: 50%; left: -30%; width: 160%; height: 3px;
-    background: linear-gradient(90deg, transparent 0%, #ffffff 30%, #ff3838 70%, transparent 100%);
-    box-shadow: 0 0 12px #ff2a3b, 0 0 25px #ff4757;
-    transform: translateY(-50%) rotate(-25deg) scaleX(0); opacity: 0; pointer-events: none; z-index: 5;
-    animation: hyperBladeSlash1 0.28s cubic-bezier(0.05, 0.85, 0.15, 1) forwards;
-    will-change: transform, opacity;
-}
-
-.strike-slash::after {
-    content: ""; position: absolute; top: 50%; left: -30%; width: 160%; height: 2px;
-    background: linear-gradient(90deg, transparent 0%, #ffffff 40%, var(--gold-glow) 80%, transparent 100%);
-    box-shadow: 0 0 8px var(--gold-glow), 0 0 18px #ff9f43;
-    transform: translateY(-50%) rotate(35deg) scaleX(0); opacity: 0; pointer-events: none; z-index: 6;
-    animation: hyperBladeSlash2 0.32s cubic-bezier(0.05, 0.85, 0.15, 1) 0.05s forwards;
-    will-change: transform, opacity;
-}
-
-@keyframes hyperBladeSlash1 {
-    0% { transform: translateY(-50%) rotate(-28deg) scaleX(0) translateX(-30px); opacity: 0; }
-    40% { transform: translateY(-50%) rotate(-25deg) scaleX(1.3) translateX(0); opacity: 1; filter: brightness(2.5); }
-    100% { transform: translateY(-50%) rotate(-20deg) scaleX(0.8) translateX(40px); opacity: 0; filter: blur(4px); }
-}
-
-@keyframes hyperBladeSlash2 {
-    0% { transform: translateY(-50%) rotate(38deg) scaleX(0) translateX(30px); opacity: 0; }
-    40% { transform: translateY(-50%) rotate(35deg) scaleX(1.2) translateX(0); opacity: 1; filter: brightness(2); }
-}
-
-/* 🔥 2. 烈焰爆裂與火系魔法 (Fire Stream & Spark Dust) */
-.skill-fire {
-    background: linear-gradient(90deg, #ff4e00, #ff9a00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(255, 78, 0, 0.6) !important; font-weight: 900 !important; display: inline-block; position: relative; padding: 0 8px;
-}
-
-.skill-fire::after {
-    content: ""; position: absolute; bottom: -2px; left: -10%; width: 120%; height: 2px;
-    background: linear-gradient(90deg, transparent, #ff4757, var(--gold-glow), #ff4757, transparent);
-    box-shadow: 0 0 10px #ff4757, 0 0 20px var(--gold-glow); animation: fireLineGlow 0.35s infinite alternate;
-}
-
-.skill-fire::before {
-    content: ""; position: absolute; top: 50%; left: 50%; width: 3px; height: 3px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; z-index: 3;
-    transform: translate(-50%, -50%); animation: pureFireParticles 0.45s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
-}
-
-@keyframes fireLineGlow {
-    0% { opacity: 0.6; transform: scaleY(1); }
-    100% { opacity: 1; transform: scaleY(3); box-shadow: 0 -4px 14px #ff3838; }
-}
-
-@keyframes pureFireParticles {
-    0% { opacity: 1; box-shadow: 0 0 0 #fff; }
-    100% { 
-        opacity: 0; 
-        box-shadow: -28px -22px 3px 2px #ff4757, 30px -18px 4px 2px #ff7f50, 
-                    -25px 24px 3px 1px #ffa502, 28px 25px 4px 2px #ffbe76,
-                    -40px 0px 2px 1px #ffffff, 40px -5px 3px 2px #ff3838;
-    }
-}
-
-/* ❄️ 3. 極寒霜凍與冰系魔法 (Prismatic Crystal Rays & Frost Sparkles) */
-.skill-ice {
-    background: linear-gradient(90deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(0, 242, 254, 0.6) !important; font-weight: 900 !important; display: inline-block;
-    position: relative; padding: 2px 8px; border: 1px solid rgba(0, 242, 254, 0.6);
-    box-shadow: inset 0 0 8px rgba(0, 242, 254, 0.4), 0 0 12px rgba(0, 242, 254, 0.3);
-    border-radius: 4px; animation: iceBoxPulse 0.5s ease-out forwards;
-}
-
-.skill-ice::after {
-    content: ""; position: absolute; right: -14px; top: -8px; width: 14px; height: 14px;
-    background: radial-gradient(circle, #ffffff 20%, #00f2fe 100%);
-    clip-path: polygon(50% 0%, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0% 50%, 35% 35%);
-    box-shadow: 0 0 10px #00f2fe; opacity: 0; animation: pureIceCrystal 0.5s ease-out forwards;
-}
-
-.skill-ice::before {
-    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-    box-shadow: -10px -10px 4px 1px rgba(255, 255, 255, 0.8), 20px -8px 5px 1px rgba(0, 242, 254, 0.9),
-                -15px 15px 3px 1px rgba(112, 161, 255, 0.7), 25px 12px 4px 1px rgba(255, 255, 255, 0.9);
-    opacity: 0; animation: iceParticleDust 0.45s ease-out forwards;
-}
-
-@keyframes iceBoxPulse {
-    0% { border-color: #fff; box-shadow: 0 0 25px #00f2fe; transform: scale(1.1); }
-    100% { border-color: rgba(0, 242, 254, 0.6); transform: scale(1); }
-}
-
-@keyframes pureIceCrystal {
-    0% { transform: scale(0.2) rotate(0deg); opacity: 1; }
-    100% { transform: scale(1.6) rotate(180deg); opacity: 0; filter: blur(1px); }
-}
-
-@keyframes iceParticleDust {
-    0% { opacity: 0; transform: scale(0.6); }
-    50% { opacity: 1; }
-    100% { opacity: 0; transform: scale(1.3); }
-}
-
-/* ⚡ 4. 雷霆電光與雷系魔法 (Jagged Lightning Arc & Plasma Spark Beads) */
-.skill-lightning {
-    background: linear-gradient(90deg, #fdfc47, #24fe41); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(253, 252, 71, 0.6) !important; font-weight: 900 !important; display: inline-block;
-    position: relative; padding: 0 8px; animation: lightningJitter 0.25s steps(2, start) infinite;
-}
-
-.skill-lightning::before {
-    content: ""; position: absolute; top: -16px; left: 15%; width: 16px; height: 36px;
-    background: #ffffff; box-shadow: 0 0 12px #f1c40f, 0 0 24px #ffffff;
-    clip-path: polygon(50% 0%, 0% 55%, 45% 55%, 10% 100%, 100% 35%, 55% 35%);
-    pointer-events: none; opacity: 0; animation: pureBoltStrike 0.3s steps(1) forwards;
-}
-
-.skill-lightning::after {
-    content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 2px;
-    background: linear-gradient(90deg, #f1c40f, #ffffff, #f1c40f);
-    box-shadow: 0 -12px 6px 1px #fff2a8, 0 12px 6px 1px #f1c40f; opacity: 0.8;
-    animation: plasmaPulse 0.2s infinite alternate;
-}
-
-@keyframes lightningJitter {
-    0% { transform: skewX(-12deg) scale(1.08); }
-    50% { transform: skewX(12deg) scale(0.95); }
-    100% { transform: skewX(0deg) scale(1); }
-}
-
-@keyframes pureBoltStrike {
-    0% { opacity: 0; transform: translateY(-12px) scale(0.5); }
-    20% { opacity: 1; transform: translateY(0) scale(1.4); }
-    40% { opacity: 0; }
-    60% { opacity: 1; transform: translateX(6px) scale(1); }
-    80%, 100% { opacity: 0; }
-}
-
-@keyframes plasmaPulse {
-    0% { opacity: 0.3; transform: scaleX(0.8); }
-    100% { opacity: 1; transform: scaleX(1.2); }
-}
-
-/* 🔮 5. 奧術星界與法術脈衝 (Arcane Rings & Cosmic Dust Stream) */
-.skill-arcane {
-    display: inline-block; position: relative; color: #e8dbff !important; font-weight: 900 !important;
-    padding: 0 8px; text-shadow: 0 0 10px #a55eea, 0 0 22px #8854d0;
-}
-
-.skill-arcane::before {
-    content: ""; position: absolute; top: -4px; left: -6px; right: -6px; bottom: -4px;
-    border: 1.5px solid #a55eea; border-radius: 50%;
-    box-shadow: 0 0 12px #8854d0, inset 0 0 8px #a55eea;
-    animation: arcaneCircleSpin 0.6s linear forwards; pointer-events: none;
-}
-
-.skill-arcane::after {
-    content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translate(-50%, -50%);
-    animation: cosmicRayDust 0.5s ease-out forwards;
-}
-
-@keyframes arcaneCircleSpin {
-    0% { transform: scale(0.3) rotate(0deg); opacity: 0; }
-    50% { opacity: 1; }
-    100% { transform: scale(1.2) rotate(180deg); opacity: 0; }
-}
-
-@keyframes cosmicRayDust {
-    0% { opacity: 1; box-shadow: 0 0 0 #fff; }
-    100% { 
-        opacity: 0; 
-        box-shadow: -22px -20px 4px 2px #a55eea, 24px -16px 5px 2px #8854d0, 
-                    -20px 22px 3px 2px #4b7bec, 22px 20px 4px 2px #e8dbff;
-    }
-}
-
-/* ✨ 6. 神聖光束與聖光粒子 (Holy Pillars & Sacred Dust Waves) */
-.skill-holy {
-    background: linear-gradient(90deg, #fffacd, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8) !important; font-weight: 900 !important; display: inline-block;
-    position: relative; padding: 0 8px;
-}
-
-.skill-holy::before {
-    content: ""; position: absolute; top: -35px; left: 50%; width: 6px; height: 75px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 30%, var(--gold-glow) 70%, rgba(255, 215, 0, 0) 100%);
-    box-shadow: 0 0 15px var(--gold-glow), 0 0 30px #ffffff, 0 0 8px var(--clr-success);
-    transform: translateX(-50%) scaleY(0); opacity: 0; pointer-events: none; z-index: 4;
-    animation: holyBeamDrop 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
-}
-
-.skill-holy::after {
-    content: ""; position: absolute; bottom: 0; left: 50%; width: 3px; height: 3px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translateX(-50%);
-    animation: holyRisingParticles 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
-}
-
-@keyframes holyBeamDrop {
-    0% { transform: translateX(-50%) scaleY(0); opacity: 0; }
-    40% { transform: translateX(-50%) scaleY(1.3); opacity: 1; filter: brightness(2); }
-    100% { transform: translateX(-50%) scaleY(1); opacity: 0; filter: blur(4px); }
-}
-
-@keyframes holyRisingParticles {
-    0% { opacity: 0; box-shadow: 0 0 0 #fff; }
-    30% { opacity: 1; }
-    100% { 
-        opacity: 0; 
-        box-shadow: -18px -25px 4px 2px var(--gold-glow), 16px -30px 5px 2px var(--clr-success), 
-                    -12px -42px 3px 1px #ffffff, 14px -50px 4px 2px var(--gold-glow);
-    }
-}
-
-/* 🧪 7. 劇毒與出血 (Poison Corrosive Rays & Bleed Laser Lines) */
-.skill-poison {
-    background: linear-gradient(90deg, #a18cd1, #fbc2eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(161, 140, 209, 0.6) !important; font-weight: 900 !important; display: inline-block; position: relative;
-}
-
-.skill-poison::after {
-    content: ""; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px;
-    background: linear-gradient(90deg, #27ae60, #58d68d, #11998e);
-    box-shadow: 0 0 8px var(--clr-success); animation: poisonWaveLine 0.4s infinite alternate;
-}
-
-@keyframes poisonWaveLine {
-    0% { transform: scaleY(1) skewX(-10deg); opacity: 0.6; }
-    100% { transform: scaleY(2.5) skewX(10deg); opacity: 1; }
-}
-
-.skill-bleed {
-    display: inline-block; position: relative; color: #e74c3c !important; font-weight: 900 !important;
-    text-shadow: 0 0 8px #c0392b, 0 0 18px #8e44ad;
-}
-
-/* 💥 8. 物理重擊與暴擊速度線 (Bash Lines & Speedline Radial Bursts) */
-.skill-bash {
-    display: inline-block; position: relative; color: #fff2a8 !important; font-weight: 900 !important; padding: 0 6px;
-    text-shadow: 0 0 8px #ff9f43, 0 0 18px #ff5252; animation: bashImpactText 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.skill-crit {
-    background: linear-gradient(135deg, #fff 0%, var(--gold-glow) 40%, #ff8c00 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 140, 0, 0.6) !important;
-    font-size: 1.2em !important; font-weight: 900 !important; font-style: italic;
-    display: inline-block; animation: critShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-}
-
-.skill-crit + .num-popup::before,
-.num-boss-strike::before {
-    content: ""; position: absolute; top: 50%; left: 50%; width: 75px; height: 75px;
-    background: repeating-conic-gradient(
-        from 0deg,
-        rgba(255, 215, 0, 0.7) 0deg 4deg,
-        transparent 4deg 15deg
-    );
-    border-radius: 50%; transform: translate(-50%, -50%) scale(0);
-    z-index: -1; pointer-events: none; animation: speedlineBurst 0.35s ease-out forwards;
-}
-
-@keyframes speedlineBurst {
-    0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
-    60% { transform: translate(-50%, -50%) scale(1.4) rotate(45deg); opacity: 0.8; }
-    100% { transform: translate(-50%, -50%) scale(2.2) rotate(90deg); opacity: 0; filter: blur(2px); }
-}
-
-@keyframes bashImpactText {
-    0% { transform: scale(0.5); filter: brightness(3); }
-    40% { transform: scale(1.4); filter: brightness(2); }
-    100% { transform: scale(1); filter: brightness(1.2); }
-}
-
-/* 💨 9. MISS 殘影與閃避線 (Ghost Trail Lines) */
-.miss-effect {
-    display: inline-block; position: relative; color: #d1d1d6 !important; font-weight: bold; font-style: italic; padding: 0 4px;
-    text-shadow: 0 0 6px rgba(255, 255, 255, 0.6), 0 0 12px rgba(160, 160, 200, 0.4);
-    animation: missGhostGlitch 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
-}
-
-@keyframes missGhostGlitch {
-    0% { transform: scale(0.6) translateX(-18px) skewX(-20deg); opacity: 0; filter: blur(4px); }
-    40% { transform: scale(1.3) translateX(6px) skewX(12deg); opacity: 1; filter: blur(0); }
-    100% { transform: scale(1) translateX(0) skewX(0); filter: blur(0); }
-}
-
-/* 💚 10. 治癒光陣 (Pure Healing Beams & Particle Dust) */
-.heal-effect {
-    display: inline-block; position: relative; color: var(--clr-success) !important; font-weight: 900 !important; padding: 0 6px;
-    animation: textGreenFlash 0.6s ease-in-out forwards;
-}
-
-@keyframes textGreenFlash {
-    0% { color: #ffffff !important; text-shadow: none; }
-    30% { color: var(--clr-success) !important; text-shadow: 0 0 10px #2ecc71, 0 0 20px #27ae60; }
-    100% { color: #ffffff !important; text-shadow: none; }
-}
-
-.heal-effect::before {
-    content: ""; position: absolute; bottom: -2px; left: 50%; width: 100%; height: 3px;
-    background: linear-gradient(90deg, transparent, var(--clr-success), #ffffff, var(--clr-success), transparent);
-    box-shadow: 0 0 10px var(--clr-success); transform: translateX(-50%); animation: healLightBeam 0.5s ease-out forwards;
-}
-
-.heal-effect::after {
-    content: ""; position: absolute; bottom: 0; left: 50%; width: 4px; height: 4px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translateX(-50%);
-    animation: healDustRise 0.6s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
-}
-
-@keyframes healLightBeam {
-    0% { transform: translateX(-50%) scaleX(0.2); opacity: 0; }
-    50% { transform: translateX(-50%) scaleX(1.4); opacity: 1; box-shadow: 0 -6px 15px #2ecc71; }
-    100% { transform: translateX(-50%) scaleX(1); opacity: 0; }
-}
-
-@keyframes healDustRise {
-    0% { opacity: 0; box-shadow: 0 0 0 #fff; }
-    30% { opacity: 1; }
-    100% { 
-        opacity: 0; 
-        box-shadow: -20px -25px 4px 2px var(--clr-success), 18px -30px 5px 2px #27ae60, 
-                    -12px -45px 3px 1px #ffffff, 15px -52px 4px 2px var(--clr-success);
-    }
-}
-
-/* 🔢 傷害與數字彈窗 (Pop & Fade Ultra) */
-.num-popup {
-    display: inline-block; font-family: 'Impact', 'Arial Black', sans-serif; font-size: 18px;
-    font-style: italic; margin-left: 8px; position: relative; z-index: 2; transform-origin: center;
-    animation: popAndFadeUltra 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
-    will-change: transform, opacity;
-}
-
-@keyframes popAndFadeUltra {
-    0% { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.3); }
-    20% { opacity: 1; transform: translate3d(0, -10px, 0) scale(1.6); }
-    40% { transform: translate3d(0, 0, 0) scale(1.1); }
-    80% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.1); }
-    100% { opacity: 0; transform: translate3d(0, -15px, 0) scale(0.9); filter: blur(2px); }
-}
-
-.num-p-dmg { color: #fff !important; text-shadow: 2px 2px 0px #000, 0 0 15px #ff2a2a, 0 0 30px #ff0000 !important; font-size: 1.25em !important; }
-.num-m-dmg { color: #fff !important; text-shadow: 2px 2px 0px #000, 0 0 15px #cc00ff, 0 0 30px #8800ff !important; font-size: 1.25em !important; }
-.num-h-heal { color: var(--clr-success) !important; text-shadow: 0 2px 4px #000, 0 0 10px #2ecc71; }
-.num-miss { color: #a0a0a8 !important; text-shadow: 0 2px 4px #000, 0 0 8px #8e8e93; }
-.num-boss-strike { color: #ff7675 !important; text-shadow: 0 2px 6px #000, 0 0 12px #ff0000; font-size: 19px; }
+.skill-fire { color: #ff7f50 !important; font-weight: bold; }
+.skill-ice { color: #00f2fe !important; font-weight: bold; }
+.skill-lightning { color: #f1c40f !important; font-weight: bold; }
+.skill-holy { color: #ffffff !important; font-weight: bold; text-shadow: 0 0 8px var(--gold-glow); }
 
 /* ==========================================================================
    🕹️ ZONE 7: 通用按鈕與控制矩陣
    ========================================================================== */
 .btn-game { 
     color: #fff; border-radius: 10px; cursor: pointer; font-weight: bold; 
-    border: 1px solid rgba(255, 255, 255, 0.08); padding: 14px; font-size: 14px; 
+    border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; font-size: 13px; 
     background: linear-gradient(135deg, #1c1c24 0%, #111116 100%);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 4px 10px rgba(0, 0, 0, 0.4);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
-    min-height: 40px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); transition: all 0.2s ease;
+    min-height: 36px;
 }
 
 .btn-explore { 
     background: linear-gradient(135deg, #16a085 0%, #0a5c4c 100%) !important; 
-    border: 1px solid #1abc9c !important; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-    box-shadow: 0 4px 15px rgba(22, 160, 133, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+    border: 1px solid #1abc9c !important;
 }
-.btn-explore:hover:not(:disabled) { 
-    filter: brightness(1.15); box-shadow: 0 6px 20px rgba(26, 188, 156, 0.5); transform: translateY(-2px);
-}
+.btn-explore:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
 
 .btn-rerun {
     background: linear-gradient(135deg, #d35400 0%, #962d00 100%) !important;
-    border: 1px solid #e67e22 !important; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-    box-shadow: 0 4px 15px rgba(211, 84, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
-}
-.btn-rerun:hover:not(:disabled) {
-    filter: brightness(1.15); box-shadow: 0 6px 20px rgba(230, 126, 34, 0.5); transform: translateY(-2px);
+    border: 1px solid #e67e22 !important;
 }
 
 .btn-rest { 
     background: linear-gradient(135deg, #2980b9 0%, #1a5276 100%) !important; 
-    border: 1px solid #3498db !important; box-shadow: 0 4px 12px rgba(41, 128, 185, 0.2);
+    border: 1px solid #3498db !important;
 }
-.btn-rest:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
 
 /* ==========================================================================
    🎭 ZONE 8: 戰偶紙娃娃系統
@@ -954,595 +471,29 @@ body {
 }
 
 .doll-grid {
-    display: grid; grid-template-columns: 1fr 60px 1fr; grid-template-rows: 62px 42px;
+    display: grid; grid-template-columns: 1fr 60px 1fr; grid-template-rows: 58px 38px;
     gap: 6px; align-items: center; width: 100%;
 }
 
 .doll-slot {
     background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px; height: 100%; display: flex; align-items: center; padding: 4px 6px;
-    transition: all 0.3s ease; min-width: 0;
 }
 
-.doll-slot:hover { background: rgba(255, 255, 255, 0.05); }
+.slot-inner { display: flex; align-items: center; gap: 5px; width: 100%; overflow: hidden; }
+.slot-icon { font-size: 15px; }
+.slot-info { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+.slot-label { font-size: 9px; color: #8e8e93; }
+.slot-name { font-size: 11px; color: #ffffff; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.slot-inner { display: flex; align-items: center; gap: 5px; width: 100%; overflow: hidden; min-width: 0; }
-.slot-icon { font-size: 16px; background: rgba(0, 0, 0, 0.3); padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; }
-.slot-info { display: flex; flex-direction: column; overflow: hidden; text-align: left; flex: 1; min-width: 0; }
-.slot-label { font-size: 10px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
-.slot-name { font-size: 11px; color: #ffffff; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; width: 100%; }
+.accessory-slot { grid-column: span 3; height: 34px; }
 
-.weapon-slot { border-color: rgba(231, 76, 60, 0.15); box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.05); }
-.armor-slot { border-color: rgba(52, 152, 219, 0.15); box-shadow: inset 0 0 8px rgba(52, 152, 219, 0.05); }
-
-.accessory-slot { grid-column: span 3; height: 38px; border-color: rgba(155, 89, 182, 0.15); box-shadow: inset 0 0 8px rgba(155, 89, 182, 0.05); }
-.accessory-slot .slot-inner { flex-direction: row; justify-content: flex-start; gap: 8px; }
-
-.doll-silhouette { position: relative; grid-row: span 1; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.silhouette-core { font-size: 26px; color: rgba(255, 255, 255, 0.12); z-index: 2; animation: hologramPulse 2s infinite ease-in-out; }
-.hologram-ring { position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 1px dashed rgba(0, 255, 255, 0.15); animation: rotateHologram 12s linear infinite; z-index: 1; }
-
-@keyframes rotateHologram { 100% { transform: rotate(360deg); } }
-
-.doll-silhouette::after {
-    content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 2px;
-    background: linear-gradient(90deg, transparent 0%, var(--clr-cyan) 50%, transparent 100%);
-    box-shadow: 0 0 8px var(--clr-cyan), 0 0 15px var(--clr-cyan); opacity: 0.7;
-    animation: laserScanMove 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; pointer-events: none;
-}
-
-@keyframes laserScanMove {
-    0% { top: 5%; opacity: 0.2; }
-    50% { opacity: 1; }
-    100% { top: 95%; opacity: 0.2; }
-}
+.doll-silhouette { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; }
+.silhouette-core { font-size: 22px; color: rgba(255, 255, 255, 0.15); }
 
 /* ==========================================================================
-   🧭 ZONE 9: 戰術抽屜與 ATB 平滑線性過渡
+   🎒 ZONE 9: 背包緊湊化與雙軌 layout
    ========================================================================== */
-.log-wrapper {
-    position: relative; width: 100%; height: 260px; margin-top: 8px;
-    overflow: hidden; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(10, 10, 15, 0.4);
-}
-
-.tactics-drawer {
-    position: absolute; top: 0; right: 0; bottom: 0; width: 160px;
-    background: rgba(15, 15, 22, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-left: 1px solid rgba(255, 255, 255, 0.1); z-index: 10; display: flex;
-    transform: translate3d(100%, 0, 0); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: transform;
-}
-
-.tactics-drawer.expanded { transform: translate3d(0, 0, 0); box-shadow: -10px 0 25px rgba(0, 0, 0, 0.8); }
-
-.drawer-trigger-tab {
-    position: absolute; left: -32px; top: 15px; width: 32px; padding: 10px 4px;
-    border-radius: 8px 0 0 8px; background: rgba(212, 175, 55, 0.15); border: 1px solid rgba(212, 175, 55, 0.3);
-    border-right: none; color: var(--gold-glow); cursor: pointer; display: flex;
-    flex-direction: column; align-items: center; gap: 4px; font-size: 11px; transition: all 0.2s; outline: none;
-}
-
-.drawer-trigger-tab:hover { background: rgba(212, 175, 55, 0.25); color: #fff; }
-.tactics-drawer.expanded .drawer-trigger-tab { background: rgba(231, 76, 60, 0.15); border-color: rgba(231, 76, 60, 0.3); color: #ff4757; }
-
-.trigger-icon { font-size: 13px; animation: rotateGear 6s linear infinite; }
-@keyframes rotateGear { 100% { transform: rotate(360deg); } }
-
-.trigger-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 10px; font-weight: bold; letter-spacing: 1px; }
-
-.drawer-panel-content { flex: 1; display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; overflow: hidden; }
-.drawer-header { font-size: 11px; color: var(--gold-glow); font-weight: bold; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 6px; margin-bottom: 8px; text-align: center; }
-.tactics-options-container { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
-
-.btn-tactic-option {
-    background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 6px; padding: 6px 8px; text-align: left; cursor: pointer; transition: all 0.2s;
-    display: flex; flex-direction: column; outline: none;
-}
-
-.btn-tactic-option:hover { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.1); }
-.btn-tactic-option .tactic-title { font-size: 11px; font-weight: bold; color: #bbb; }
-.btn-tactic-option .tactic-desc { font-size: 10px; color: #888; margin-top: 2px; line-height: 1.2; }
-
-.btn-tactic-option.active { background: rgba(46, 204, 113, 0.08) !important; border-color: rgba(46, 204, 113, 0.4) !important; }
-.btn-tactic-option.active .tactic-title { color: var(--clr-success) !important; text-shadow: 0 0 5px rgba(46, 204, 113, 0.2); }
-.btn-tactic-option.active .tactic-desc { color: #8be4af !important; }
-
-#tactic-btn-OFFENSIVE.active { background: rgba(231, 76, 60, 0.08) !important; border-color: rgba(231, 76, 60, 0.4) !important; }
-#tactic-btn-OFFENSIVE.active .tactic-title { color: #e74c3c !important; }
-#tactic-btn-OFFENSIVE.active .tactic-desc { color: #ff8f83 !important; }
-
-.atb-color {
-    background: linear-gradient(90deg, #f1c40f 0%, #ff9f43 50%, #ff6b6b 100%) !important;
-    background-size: 200% 100% !important;
-    box-shadow: 0 0 12px rgba(255, 159, 67, 0.9) !important;
-    border-radius: 4px !important; transition: width 0.25s linear !important; 
-    animation: atbFlowLine 1s linear infinite !important;
-}
-
-@keyframes atbFlowLine {
-    0% { background-position: 0% 0%; }
-    100% { background-position: 200% 0%; }
-}
-
-/* ==========================================================================
-   🏆 ZONE 10: Boss 勝利、QTE 彈窗、素材不足彈窗與 360° 轉盤開鎖
-   ========================================================================== */
-.log-victory-badge {
-    background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(0, 0, 0, 0.4) 80%) !important;
-    border-left: 4px solid var(--gold-glow) !important; border-right: 1px solid rgba(212, 175, 55, 0.1);
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    animation: goldPopVictory 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.gold-victory-text {
-    color: var(--gold-glow) !important; font-family: 'Impact', 'Arial Black', sans-serif;
-    letter-spacing: 1px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.6), 0 2px 2px #000; font-weight: bold;
-}
-
-@keyframes goldPopVictory {
-    0% { transform: translate3d(0, 10px, 0) scale(0.96); filter: brightness(2); opacity: 0; }
-    60% { transform: translate3d(0, -2px, 0) scale(1.02); filter: brightness(1.3); }
-    100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
-}
-
-#boss-victory-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: radial-gradient(circle at 50% 45%, rgba(26, 20, 5, 0.98) 0%, #050402 100%);
-    z-index: 100000; display: flex; justify-content: center; align-items: center;
-    overflow: hidden; opacity: 0; animation: overlayFadeIn 0.5s ease-out forwards;
-}
-
-@keyframes overlayFadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
-
-.victory-cloud-shimmer {
-    position: absolute; width: 130%; height: 130%;
-    background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.08) 0%, transparent 65%);
-    animation: cloudPulse 6s ease-in-out infinite alternate; pointer-events: none;
-}
-
-@keyframes cloudPulse {
-    0% { transform: scale(0.9) rotate(0deg); opacity: 0.7; }
-    100% { transform: scale(1.1) rotate(15deg); opacity: 1; }
-}
-
-.victory-crystal-container {
-    text-align: center; width: 90%; max-width: 520px; padding: 40px 30px; border-radius: 24px;
-    background: rgba(15, 13, 10, 0.65); border: 1px solid rgba(212, 175, 55, 0.25);
-    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(212, 175, 55, 0.05), 0 0 40px rgba(212, 175, 55, 0.1);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    transform: scale(0.7); opacity: 0; animation: crystalZoomUp 0.6s cubic-bezier(0.15, 0.85, 0.35, 1.1) 0.15s forwards;
-}
-
-@keyframes crystalZoomUp {
-    0% { transform: scale(0.7); opacity: 0; filter: blur(4px); }
-    100% { transform: scale(1); opacity: 1; filter: blur(0); }
-}
-
-.victory-laurel-crown {
-    font-size: 45px; margin-bottom: 10px; filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.6));
-    animation: crownFloat 2s ease-in-out infinite;
-}
-
-@keyframes crownFloat { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-6px) scale(1.05); } 100% { transform: translateY(0) scale(1); } }
-
-.victory-grand-title {
-    font-family: 'Georgia', serif; font-size: 48px; font-weight: 900;
-    letter-spacing: 12px; margin: 0; padding-left: 12px;
-    background: linear-gradient(180deg, #ffffff 0%, #fff4cc 30%, var(--gold-glow) 70%, #b39200 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
-}
-
-.victory-divider-line {
-    width: 0%; height: 1px; background: linear-gradient(90deg, transparent 0%, var(--gold-glow) 50%, transparent 100%);
-    margin: 18px auto; animation: lineStretch 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards;
-}
-
-@keyframes lineStretch { 0% { width: 0%; opacity: 0; } 100% { width: 100%; opacity: 1; } }
-
-.victory-target-sub { font-size: 14px; color: #e3e3e6; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 15px 0; font-weight: 600; }
-.victory-scroll-fluff { font-size: 12px; color: #a2a2a7; line-height: 1.8; max-width: 320px; margin: 0 auto 25px auto; letter-spacing: 0.5px; }
-.victory-reward-badge-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 30px; }
-.v-badge { font-size: 11px; font-weight: bold; padding: 6px 14px; border-radius: 6px; letter-spacing: 0.5px; }
-.gold-glint { background: rgba(255, 215, 0, 0.1); color: var(--gold-glow); border: 1px solid rgba(255, 215, 0, 0.3); }
-.warehouse-sync { background: rgba(46, 213, 115, 0.1); color: var(--clr-success); border: 1px solid rgba(46, 213, 115, 0.3); }
-.victory-click-prompt { font-size: 11px; color: #636366; letter-spacing: 1px; animation: blinkPrompt 1.5s infinite alternate ease-in-out; }
-
-@keyframes blinkPrompt { 0% { opacity: 0.3; } 100% { opacity: 0.9; } }
-
-/* QTE 彈窗 */
-#qte-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: radial-gradient(circle at 50% 50%, rgba(10, 10, 15, 0.96) 0%, rgba(5, 5, 7, 0.99) 100%);
-    z-index: 100002; display: flex; justify-content: center; align-items: center; opacity: 1; transition: all 0.3s ease;
-}
-
-.qte-box {
-    background: rgba(20, 20, 27, 0.95); border: 2px solid var(--gold-glow);
-    box-shadow: 0 0 45px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.7);
-    padding: 35px 25px; border-radius: 20px; text-align: center; width: 90%; max-width: 340px;
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: qteZoomIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-@keyframes qteZoomIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-
-#qte-skill-name { font-size: 15px; color: #fff; margin: 0 0 25px 0; line-height: 1.6; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
-
-#qte-tap-btn {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important; border: 1px solid #2ecc71 !important;
-    color: #fff !important; font-size: 18px !important; font-weight: 900 !important; padding: 16px !important;
-    border-radius: 50px !important; cursor: pointer; width: 100%; display: block; margin-bottom: 25px;
-    box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); text-shadow: 0 1px 2px rgba(0,0,0,0.6); transition: all 0.15s ease;
-}
-
-.qte-timer-bg {
-    width: 100%; height: 16px; background: #121214; border-radius: 8px; overflow: hidden; position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-}
-
-.qte-timer-bg::after {
-    content: "PERFECT"; font-family: -apple-system, sans-serif; font-size: 10px; font-weight: 900;
-    color: rgba(255, 215, 0, 0.95); text-shadow: 0 1px 1px #000; display: flex; justify-content: center;
-    align-items: center; position: absolute; left: 65%; width: 20%; height: 100%;
-    background: rgba(212, 175, 55, 0.35); border-left: 1.5px dashed var(--gold-glow); border-right: 1.5px dashed var(--gold-glow);
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); top: 0; pointer-events: none; z-index: 2;
-}
-
-#qte-timer-fill {
-    height: 100%; width: 0%; background: linear-gradient(90deg, #3498db 0%, #f1c40f 64%, #2ecc71 75%, #e74c3c 100%);
-    box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); position: absolute; top: 0; left: 0; z-index: 1; transition: width 0.025s linear;
-}
-
-/* 🔑 360° 轉盤開鎖 (Radial Lockpick QTE) */
-.chest-action-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
-
-.lockpick-dial {
-    position: relative; width: 200px; height: 200px; margin: 0 auto 15px auto;
-    border-radius: 50%; background: radial-gradient(circle, #1a1a24 0%, #08080c 100%);
-    border: 4px solid rgba(255, 215, 0, 0.3); box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5);
-    touch-action: none; cursor: grab; user-select: none;
-}
-.lockpick-dial:active { cursor: grabbing; }
-
-.lockpick-sweet-spot {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    border-radius: 50%; pointer-events: none; transition: opacity 0.2s ease; opacity: 0.2;
-}
-
-.lockpick-needle {
-    position: absolute; top: 50%; left: 50%; width: 4px; height: 80px;
-    background: linear-gradient(180deg, var(--gold-glow) 0%, #ffffff 100%); box-shadow: 0 0 8px var(--gold-glow);
-    border-radius: 2px; transform-origin: 50% 0%; transform: translate(-50%, 0) rotate(0deg); pointer-events: none;
-}
-
-.lockpick-core {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 50px; height: 50px; border-radius: 50%; background: #111116; border: 2px solid var(--gold-glow);
-    display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); pointer-events: none;
-}
-
-.lockpick-dial.in-sweet-spot {
-    border-color: var(--clr-cyan) !important; box-shadow: 0 0 25px rgba(0, 255, 204, 0.6), inset 0 0 15px rgba(0, 255, 204, 0.3);
-}
-
-.lockpick-dial.in-sweet-spot .lockpick-core { border-color: var(--clr-cyan); box-shadow: 0 0 15px var(--clr-cyan); }
-
-.lockpick-progress-bg { width: 100%; height: 10px; background: rgba(0, 0, 0, 0.6); border-radius: 5px; overflow: hidden; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.1); }
-.lockpick-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f1c40f 0%, var(--clr-cyan) 100%); box-shadow: 0 0 10px var(--clr-cyan); transition: width 0.1s linear; }
-.lockpick-hint { font-size: 11px; color: #aaa; margin-bottom: 12px; min-height: 16px; }
-
-/* ⚠️ 素材與資源不足專屬 Modal 彈窗 */
-#mat-alert-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    z-index: 100005; display: flex; justify-content: center; align-items: center;
-    opacity: 0; visibility: hidden; transition: all 0.25s ease-out;
-}
-#mat-alert-overlay.active { opacity: 1; visibility: visible; }
-
-.mat-alert-box {
-    background: radial-gradient(circle at 50% 0%, rgba(231, 76, 60, 0.25) 0%, rgba(15, 12, 15, 0.98) 80%);
-    border: 1px solid rgba(231, 76, 60, 0.5); border-radius: 18px; padding: 25px;
-    width: 90%; max-width: 360px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(231, 76, 60, 0.2);
-    transform: scale(0.85); transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-#mat-alert-overlay.active .mat-alert-box { transform: scale(1); }
-
-.mat-alert-header { font-size: 16px; font-weight: 900; color: #ff4757; margin-bottom: 12px; letter-spacing: 1px; }
-.mat-alert-content { font-size: 13px; color: #d1d1d6; line-height: 1.6; margin-bottom: 20px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
-.mat-alert-btn { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border: 1px solid #ff6b6b; color: #fff; width: 100%; padding: 12px; font-weight: bold; border-radius: 10px; cursor: pointer; }
-
-/* ==========================================================================
-   🚀 ZONE 12: 戰鬥日記專屬純【光束】與【光錐】投射物 (Pure Laser Projectiles)
-   ========================================================================== */
-.projectile-entity {
-    position: absolute; bottom: 20px; left: 10px; width: 30px; height: 30px;
-    z-index: 99; pointer-events: none; display: flex; align-items: center; justify-content: center;
-    animation: flyToLogTarget 0.42s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
-    will-change: transform, opacity;
-}
-
-.proj-fire .fx-core {
-    width: 18px; height: 18px;
-    background: radial-gradient(circle, #ffffff 10%, #ffbe76 40%, #ff4757 80%, rgba(255, 71, 87, 0) 100%);
-    border-radius: 50%; box-shadow: 0 0 12px #ff4757, 0 0 25px #ffa502, -15px 0 10px #ff3838;
-}
-
-.proj-ice .fx-core {
-    width: 12px; height: 24px;
-    background: linear-gradient(135deg, #ffffff 0%, #70a1ff 50%, #00f2fe 100%);
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    box-shadow: 0 0 14px #70a1ff, 0 0 22px #00d2d3;
-}
-
-.proj-lightning .fx-core {
-    width: 32px; height: 12px; background: #ffffff;
-    box-shadow: 0 0 12px #eccc68, 0 0 24px #f1c40f;
-    clip-path: polygon(0% 40%, 30% 0%, 40% 50%, 70% 10%, 100% 60%, 60% 100%, 50% 50%, 20% 90%);
-}
-
-.proj-arcane .fx-core {
-    width: 18px; height: 18px;
-    background: radial-gradient(circle, #ffffff 20%, #a55eea 60%, #4b7bec 100%);
-    border-radius: 50%; box-shadow: 0 0 15px #a55eea, 0 0 25px #8854d0;
-}
-
-.proj-arrow .fx-core {
-    width: 36px; height: 3px;
-    background: linear-gradient(90deg, transparent 0%, var(--clr-success) 50%, #ffffff 100%);
-    box-shadow: 0 0 10px var(--clr-success), 0 0 18px #ffffff;
-}
-
-.proj-holy .fx-core {
-    width: 8px; height: 42px;
-    background: linear-gradient(180deg, #ffffff 0%, var(--gold-glow) 50%, var(--clr-success) 100%);
-    box-shadow: 0 0 18px var(--gold-glow), 0 0 30px #ffffff;
-    border-radius: 4px; transform: rotate(-15deg);
-}
-
-@keyframes flyToLogTarget {
-    0% { transform: translate3d(0, 0, 0) scale(0.4) rotate(-20deg); opacity: 0; }
-    20% { opacity: 1; transform: translate3d(40px, -20px, 0) scale(1.1) rotate(-10deg); }
-    80% { opacity: 1; transform: translate3d(180px, -60px, 0) scale(1) rotate(15deg); }
-    100% { opacity: 0; transform: translate3d(220px, -80px, 0) scale(1.8) rotate(25deg); filter: brightness(2); }
-}
-
-/* ==========================================================================
-   📦 ZONE 11: 容器滾動條、Toast、Floating Card 與 RWD 響應式雙軌
-   ========================================================================== */
-#toast-container {
-    position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
-    z-index: 100010; display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: 90%; max-width: 320px;
-}
-
-.toast-item {
-    background: rgba(20, 20, 28, 0.92); border: 1px solid rgba(255, 215, 0, 0.4);
-    color: #ffffff; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px); opacity: 0; transform: translateY(-15px) scale(0.95);
-    animation: toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.toast-item.toast-success { border-color: rgba(46, 204, 113, 0.6); }
-.toast-item.toast-warn { border-color: rgba(231, 76, 60, 0.6); }
-.toast-item.toast-fade-out { animation: toastOut 0.25s ease-in forwards; }
-
-@keyframes toastIn { to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes toastOut { to { opacity: 0; transform: translateY(-10px) scale(0.9); } }
-
-/* Floating Card */
-#floating-item-card {
-    position: fixed; z-index: 100020; width: 220px; background: rgba(14, 14, 20, 0.96);
-    border: 1px solid var(--gold-glow); border-radius: 10px; padding: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.15);
-    backdrop-filter: blur(10px); pointer-events: none; opacity: 0; visibility: hidden;
-    transition: opacity 0.15s ease-out, transform 0.15s ease-out; transform: translateY(5px);
-}
-#floating-item-card.active { opacity: 1; visibility: visible; transform: translateY(0); }
-
-/* Warehouse & Pill Box */
-.warehouse-pill-box {
-    display: flex; flex-wrap: wrap; gap: 6px; max-height: 90px; overflow-y: auto; padding: 6px;
-    background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 4px;
-}
-
-.warehouse-pill {
-    background: #232334; border: 1px solid #3d3d5c; color: #e0e0e0; padding: 3px 9px;
-    border-radius: 12px; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center;
-}
-.warehouse-pill .count { color: var(--gold-glow); font-weight: bold; margin-left: 4px; }
-
-#blueprints-container, #recipes-container {
-    max-height: 480px; overflow-y: auto; padding-right: 8px; border-radius: 8px;
-    background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.02);
-}
-
-.game-layout-split { display: flex; flex-direction: column; gap: 20px; width: 100%; }
-.left-layout-column, .right-layout-column { display: flex; flex-direction: column; gap: 16px; width: 100%; min-width: 0; }
-
-@media (min-width: 850px) {
-    body { align-items: center; padding: 30px 10px; background: radial-gradient(circle at 50% 30%, #1c1c28 0%, #060608 100%); }
-    .game-container { max-width: 980px; }
-    
-    .game-layout-split { 
-        display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; width: 100%;
-    }
-    
-    .right-layout-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; overflow: hidden; }
-    .left-layout-column { min-width: 0; }
-
-    #log-box { height: 380px; margin-bottom: 0; }
-    #title-box { max-width: 460px; margin: 15px auto; }
-}
-
-@media (max-width: 849px) {
-    .game-layout-split { display: flex; flex-direction: column; }
-    .left-layout-column { order: 2; }
-    .right-layout-column { order: 1; }
-    .action-panel {
-        position: sticky; bottom: 10px; z-index: 999;
-        background: rgba(10, 10, 15, 0.95) !important; backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.1) !important; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.8) !important;
-        border-radius: 12px; padding: 10px !important;
-    }
-}
-
-@media (max-width: 768px) {
-    #blueprints-container, #recipes-container {
-        display: grid !important; grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important; max-height: 55vh !important; overflow-y: auto !important; padding: 6px !important;
-    }
-}
-
-/* 通用 Helper */
-.hidden-element { display: none !important; }
-.full-width { width: 100% !important; }
-.full-size { width: 100% !important; height: 100% !important; }
-.margin-top-sm { margin-top: 6px !important; }
-.margin-top-md { margin-top: 12px !important; }
-.text-gold { color: var(--gold-glow); }
-.text-cyan { color: var(--clr-cyan); }
-
-/* ==========================================================================
-   🖼️ 全局 Modal 彈窗隱藏與置中修復 (Fix Auto-Open Display Bug)
-   ========================================================================== */
-
-/* 1. 全螢幕遮罩：預設隱藏 display: none */
-.modal-backdrop {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    background: rgba(5, 7, 12, 0.82) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    display: none; 
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 99999 !important;
-    padding: 16px !important;
-    box-sizing: border-box !important;
-    margin: 0 !important;
-}
-
-/* 2. 當 JS 開啟彈窗（設定 style="display: flex" 或 class="active"）時開啟 */
-.modal-backdrop[style*="display: flex"],
-.modal-backdrop[style*="display:flex"],
-.modal-backdrop.active {
-    display: flex !important;
-}
-
-/* 3. 彈窗主體卡片：居中樣式 */
-.modal-card, .qte-box {
-    background: rgba(18, 22, 32, 0.96) !important;
-    border: 1px solid rgba(0, 255, 204, 0.4) !important;
-    border-radius: 16px !important;
-    padding: 20px 18px !important;
-    width: 100% !important;
-    max-width: 400px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 255, 204, 0.15) !important;
-    margin: auto !important;
-    text-align: center !important;
-    box-sizing: border-box !important;
-    animation: modalPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* 4. 寶箱動作按鈕直排網格 */
-.chest-action-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    margin-top: 15px !important;
-    width: 100% !important;
-}
-
-/* 5. 彈窗動畫 */
-@keyframes modalPopIn {
-    0% { opacity: 0; transform: scale(0.88) translateY(10px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* ==========================================================================
-   🛠️ 畫面視覺修復 (Action Panel Card & Clean Damage Text)
-   ========================================================================== */
-
-/* 1. 修正動作按鈕區面板：補全卡片背景與邊框 */
-.action-panel, 
-#action-panel-box {
-    background: rgba(18, 22, 32, 0.85) !important;
-    border: 1px solid rgba(0, 255, 204, 0.2) !important;
-    border-radius: 12px !important;
-    padding: 12px !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.05) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
-    margin-top: 10px !important;
-}
-
-/* 按鈕群組間距 */
-.action-btn-group {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-}
-
-/* 2. 戰鬥日誌內傷害數字膠囊 */
-.log-panel .num-popup {
-    display: inline-block !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 800 !important;
-    font-style: normal !important;
-    padding: 2px 8px !important;
-    margin: 0 4px !important;
-    border-radius: 4px !important;
-    vertical-align: middle !important;
-    letter-spacing: 0.5px !important;
-    transform: none !important;
-    filter: none !important;
-    line-height: 1.2 !important;
-    text-shadow: none !important;
-}
-
-/* 魔物暴擊/反噬傷害膠囊徽章 */
-.log-panel .num-boss-strike {
-    color: #ffffff !important;
-    background: linear-gradient(135deg, #e63946, #b7094c) !important;
-    border: 1px solid #ff4d6d !important;
-    box-shadow: 0 0 8px rgba(230, 57, 70, 0.5) !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
-}
-
-/* 玩家物理傷害 (黃金色) */
-.log-panel .num-p-dmg {
-    color: var(--gold-glow) !important;
-    background: rgba(255, 215, 0, 0.15) !important;
-    border: 1px solid rgba(255, 215, 0, 0.4) !important;
-}
-
-/* 玩家魔法傷害 (青藍色) */
-.log-panel .num-m-dmg {
-    color: var(--clr-cyan) !important;
-    background: rgba(0, 255, 255, 0.15) !important;
-    border: 1px solid rgba(0, 255, 255, 0.4) !important;
-}
-
-/* MISS 閃避徽章 */
-.log-panel .num-miss {
-    color: #aaaaaa !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-/* ==========================================================================
-   🎒 背包緊湊化與手機版高度瘦身修復 (Fix Bag Grid & Mobile Long Screen Bug)
-   ========================================================================== */
-
-/* 1. 背包容器：3 欄緊湊網格 */
 #bag-slots-container,
 .bag-grid-3col {
     display: grid !important;
@@ -1550,86 +501,116 @@ body {
     gap: 4px !important;
     margin-top: 6px !important;
     width: 100% !important;
-    box-sizing: border-box !important;
 }
 
-/* 2. 背包單格子 */
 .bag-slot {
-    background: rgba(0, 0, 0, 0.4) !important;
-    border: 1px dashed rgba(255, 255, 255, 0.15) !important;
-    border-radius: 6px !important;
-    min-height: var(--bag-slot-height) !important;
-    height: var(--bag-slot-height) !important;
-    padding: 2px 4px !important;
-    font-size: 11px !important;
-    color: #888888 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    box-sizing: border-box !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    transition: all 0.2s ease !important;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    min-height: var(--bag-slot-height);
+    height: var(--bag-slot-height);
+    padding: 2px 4px;
+    font-size: 11px;
+    color: #888888;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: all 0.2s ease;
 }
 
-/* 背包道具高亮 */
-.bag-slot.has-item,
-.bag-slot:not(:empty):not(:contains("空位")) {
+/* 🛠️ 修復：替換無效的 :contains() 選擇器，改為相容標準的 .has-item */
+.bag-slot.has-item {
     background: rgba(255, 215, 0, 0.12) !important;
     border: 1px solid rgba(255, 215, 0, 0.5) !important;
     color: var(--gold-glow) !important;
     font-weight: bold !important;
-    box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.15) !important;
     cursor: pointer !important;
 }
 
-/* 3. 動作面板瘦身 */
-.action-panel,
+/* ==========================================================================
+   🛠️ ZONE 10: 全局 Modal 彈窗置中與面板維護
+   ========================================================================== */
+.action-panel, 
 #action-panel-box {
-    padding: 8px 10px !important;
-    margin-top: 8px !important;
+    background: rgba(18, 22, 32, 0.85);
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    width: 100%;
+    margin-top: 8px;
 }
 
 .action-btn-group {
-    gap: 6px !important;
+    display: flex; flex-direction: column; gap: 6px; width: 100%;
 }
 
-.action-btn-group .btn-game {
-    padding: 8px 10px !important;
-    font-size: 12px !important;
-    min-height: 36px !important;
-    line-height: 1.2 !important;
+.primary-actions-row {
+    display: flex; gap: 6px; width: 100%;
+}
+.flex-grow-main { flex: 2; }
+.flex-grow-sub { flex: 1; }
+
+.modal-backdrop {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(5, 7, 12, 0.82);
+    backdrop-filter: blur(10px);
+    display: none; justify-content: center; align-items: center;
+    z-index: 99999; padding: 16px;
 }
 
-/* 4. 📱 手機端 (Mobile) 專用極致響應式壓縮 */
-@media (max-width: 768px) {
-    .status-panel, 
-    .action-panel, 
-    .dynamic-panel {
-        padding: 8px 10px !important;
-        margin-bottom: 8px !important;
+.modal-backdrop.active,
+.modal-backdrop[style*="display: flex"],
+.modal-backdrop[style*="display:flex"] {
+    display: flex !important;
+}
+
+.modal-card, .qte-box {
+    background: rgba(18, 22, 32, 0.96);
+    border: 1px solid rgba(0, 255, 204, 0.4);
+    border-radius: 16px; padding: 20px 18px;
+    width: 100%; max-width: 400px; text-align: center;
+    animation: modalPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes modalPopIn {
+    0% { opacity: 0; transform: scale(0.88); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* ==========================================================================
+   📱 ZONE 11: RWD 雙軌響應式佈局
+   ========================================================================== */
+.game-layout-split { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.left-layout-column, .right-layout-column { display: flex; flex-direction: column; gap: 12px; width: 100%; min-width: 0; }
+
+@media (min-width: 850px) {
+    body { padding: 30px 10px; }
+    .game-container { max-width: 980px; }
+    
+    .game-layout-split { 
+        display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; width: 100%;
     }
 
-    .status-header-row {
-        font-size: 12px !important;
-        gap: 6px !important;
-    }
+    #log-box { height: 380px; }
+}
 
-    #bag-slots-container {
-        gap: 4px !important;
-    }
-
-    .bag-slot {
-        height: 30px !important;
-        min-height: 30px !important;
-        font-size: 10px !important;
-    }
-
-    .btn-game {
-        padding: 6px 8px !important;
-        font-size: 12px !important;
-        min-height: 34px !important;
+@media (max-width: 849px) {
+    .left-layout-column { order: 2; }
+    .right-layout-column { order: 1; }
+    
+    /* 📱 手機端 Sticky 按鈕吸附修復 */
+    .action-panel {
+        position: sticky; bottom: 10px; z-index: 999;
+        background: rgba(10, 10, 15, 0.95) !important;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.8);
     }
 }
+
+/* Helper Class */
+.full-width { width: 100% !important; }
+.margin-top-xs { margin-top: 4px !important; }
+.margin-top-sm { margin-top: 8px !important; }
+.text-gold { color: var(--gold-glow); }
+.text-cyan { color: var(--clr-cyan); }
