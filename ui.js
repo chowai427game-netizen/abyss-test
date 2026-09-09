@@ -8,10 +8,10 @@ const MAX_CHAT_LOGS = 25;
 let localChatHistory = [];
 const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時 (14400000 ms)
 
-// 🛡️ 安全 HTML 轉義函式 (防止 XSS 攻擊)
-function escapeHtml(str) {
-    if (typeof str !== 'string') return str;
-    return str
+// 🛡️ XSS 資安防禦：HTML 特殊字元轉義函式
+function escapeHTML(str) {
+    if (!str) return "";
+    return String(str)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -91,7 +91,7 @@ let activeCraftingLvlRange = "1-10";
 let activeWarehouseFilter = "all";
 
 // --------------------------------------------------------------------------
-// 🍞 1. Toast 輕量通知 API (優化微卡片微調)
+// 🍞 1. Toast 輕量通知 API
 // --------------------------------------------------------------------------
 
 function showToast(msg, type = "info") {
@@ -139,9 +139,9 @@ function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣
     if (titleEl) titleEl.innerText = title;
     if (bodyEl) {
         if (Array.isArray(missingDetails)) {
-            bodyEl.innerHTML = missingDetails.map(item => `<div style="margin-bottom: 4px;">• ${escapeHtml(item)}</div>`).join('');
+            bodyEl.innerHTML = missingDetails.map(item => `<div style="margin-bottom: 4px;">• ${item}</div>`).join('');
         } else {
-            bodyEl.innerHTML = escapeHtml(missingDetails);
+            bodyEl.innerHTML = missingDetails;
         }
     }
 
@@ -154,7 +154,7 @@ function hideMaterialAlert() {
 }
 
 // --------------------------------------------------------------------------
-// 👻 2. 血條傷害殘影白條控制 (防呆除零優化)
+// 👻 2. 血條傷害殘影白條控制
 // --------------------------------------------------------------------------
 
 let ghostHpTimer = null;
@@ -165,9 +165,7 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
     const ghostEl = DOM.get(ghostElId);
     if (!fillEl) return;
 
-    const safeMax = (typeof max === 'number' && max > 0) ? max : 1;
-    const safeCurrent = (typeof current === 'number') ? current : 0;
-    const targetPct = Math.max(0, Math.min(100, (safeCurrent / safeMax) * 100));
+    const targetPct = Math.max(0, Math.min(100, (current / max) * 100));
 
     if (!ghostEl) {
         fillEl.style.width = `${targetPct}%`;
@@ -192,7 +190,7 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
 }
 
 // --------------------------------------------------------------------------
-// 🎴 3. 通用 Floating Card 浮動卡片引擎 (含手機滑動誤觸防止)
+// 🎴 3. 通用 Floating Card 浮動卡片引擎 (含手機滑動誤觸與定時器競爭保護)
 // --------------------------------------------------------------------------
 
 let touchCardTimer = null;
@@ -207,8 +205,8 @@ function showFloatingCard(e, title, type, desc, stats = "") {
 
     card.innerHTML = `
         <div style="font-weight: bold; font-size: 13px; color: var(--gold-glow); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-            <span>${escapeHtml(title)}</span>
-            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #aaa;">${escapeHtml(type)}</span>
+            <span>${title}</span>
+            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #aaa;">${type}</span>
         </div>
         <div style="font-size: 11px; color: #d1d1d6; line-height: 1.5; margin-bottom: 6px;">${desc}</div>
         ${stats ? `<div style="font-size: 10px; color: #00ffcc; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 5px; margin-top: 5px;">${stats}</div>` : ''}
@@ -230,7 +228,10 @@ function showFloatingCard(e, title, type, desc, stats = "") {
 }
 
 function hideFloatingCard() {
-    clearTimeout(touchCardTimer);
+    if (touchCardTimer) {
+        clearTimeout(touchCardTimer);
+        touchCardTimer = null;
+    }
     const card = document.getElementById('floating-item-card');
     if (card) card.classList.remove('active');
 }
@@ -245,12 +246,13 @@ function bindFloatingCard(element, getCardDataFn) {
     element.onmouseleave = () => hideFloatingCard();
 
     element.ontouchstart = (e) => {
+        if (touchCardTimer) clearTimeout(touchCardTimer);
         touchCardTimer = setTimeout(() => {
             const data = getCardDataFn();
             if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats);
         }, 220);
     };
-    element.ontouchmove = () => hideFloatingCard();
+    element.ontouchmove = () => hideFloatingCard(); 
     element.ontouchend = () => hideFloatingCard();
     element.ontouchcancel = () => hideFloatingCard();
 }
@@ -279,7 +281,7 @@ function renderStatusBadges(containerEl, effectsMap) {
             border: 1px solid ${isBuff ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)'};
             color: ${isBuff ? '#2ecc71' : '#ff4757'}; cursor: pointer;
         `;
-        badge.innerHTML = `<span>${eff.icon || '✨'}</span> <span>${escapeHtml(eff.name)}</span> <b>(${eff.duration})</b>`;
+        badge.innerHTML = `<span>${eff.icon || '✨'}</span> <span>${eff.name}</span> <b>(${eff.duration})</b>`;
 
         bindFloatingCard(badge, () => ({
             title: eff.name,
@@ -381,7 +383,7 @@ function executeWithdrawFoodFromWarehouse(itemName) {
 
     if (typeof saveGameData === "function") saveGameData();
     showToast(`🎒 取出 ${itemName} 放入背包`, "success");
-    addLog(`🎒 從倉庫取出 <strong>${escapeHtml(itemName)}</strong> 放入攜帶背包。`, "perfect");
+    addLog(`🎒 從倉庫取出 <strong>${itemName}</strong> 放入攜帶背包。`, "perfect");
     
     updateUI();
     if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
@@ -398,7 +400,7 @@ function executeDepositBagItemToWarehouse(bagIndex) {
 
     if (typeof saveGameData === "function") saveGameData();
     showToast(`📦 ${itemName} 已存入倉庫`, "info");
-    addLog(`📦 已將背包中的 <strong>${escapeHtml(itemName)}</strong> 退回存放至倉庫。`, "perfect");
+    addLog(`📦 已將背包中的 <strong>${itemName}</strong> 退回存放至倉庫。`, "perfect");
 
     updateUI();
     if (currentVillageLocation === "KITCHEN") renderVillageCookingWorkshop();
@@ -430,7 +432,7 @@ function executeDepositAllBagItems() {
 }
 
 // --------------------------------------------------------------------------
-// ⚔️ 裝備數值比對預覽計算
+// ⚔️ 裝備數值比對預覽計算 (已升級 O(1) Map 快查)
 // --------------------------------------------------------------------------
 
 function getEquipmentStatDiff(blueprint) {
@@ -440,8 +442,8 @@ function getEquipmentStatDiff(blueprint) {
     const currentlyEquippedName = accountMeta.equipment?.[slotType];
 
     let currentStats = {};
-    if (currentlyEquippedName && typeof CRAFTING_BLUEPRINTS !== "undefined") {
-        const equippedBp = CRAFTING_BLUEPRINTS.find(b => b.name === currentlyEquippedName);
+    if (currentlyEquippedName) {
+        const equippedBp = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(currentlyEquippedName) : (typeof CRAFTING_BLUEPRINTS !== "undefined" ? CRAFTING_BLUEPRINTS.find(b => b.name === currentlyEquippedName) : null);
         if (equippedBp) {
             const currentRefineLvl = accountMeta.itemRefines?.[currentlyEquippedName] || 0;
             for (let k in equippedBp.stats) {
@@ -474,7 +476,7 @@ function getEquipmentStatDiff(blueprint) {
 }
 
 // --------------------------------------------------------------------------
-// 👤 角色數據 UI 同步 (重構背包套用 CSS Class)
+// 👤 角色數據 UI 同步
 // --------------------------------------------------------------------------
 
 function syncCharacterDataUi() {
@@ -575,10 +577,7 @@ function syncCharacterDataUi() {
     updateHpBarWithGhost(currentRun.hp, currentRun.maxHp, 'hp-bar-fill', 'hp-bar-ghost');
 
     const mpBar = DOM.get('mp-bar-fill');
-    if (mpBar) {
-        const safeMaxMp = currentRun.maxMp > 0 ? currentRun.maxMp : 1;
-        mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / safeMaxMp) * 100))}%`;
-    }
+    if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
 
     renderStatusBadges(DOM.get('player-status-badges'), currentRun.activeEffects);
 
@@ -615,12 +614,10 @@ function syncCharacterDataUi() {
         bindFloatingCard(slotEl, () => {
             let desc = "未裝備任何道具。";
             let stats = "";
-            if (typeof CRAFTING_BLUEPRINTS !== "undefined") {
-                const bp = CRAFTING_BLUEPRINTS.find(b => b.name === eqName);
-                if (bp) {
-                    desc = bp.desc;
-                    stats = Object.keys(bp.stats).map(k => `${k}: +${bp.stats[k]}`).join(" | ");
-                }
+            const bp = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(eqName) : (typeof CRAFTING_BLUEPRINTS !== "undefined" ? CRAFTING_BLUEPRINTS.find(b => b.name === eqName) : null);
+            if (bp) {
+                desc = bp.desc;
+                stats = Object.keys(bp.stats).map(k => `${k}: +${bp.stats[k]}`).join(" | ");
             }
             return { title: eqName, type: `裝備部位: ${type.toUpperCase()}`, desc: desc, stats: stats };
         });
@@ -644,15 +641,23 @@ function syncCharacterDataUi() {
 
     const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
-        // 掛載 CSS 控制的緊湊網格類別
-        bagContainer.className = "bag-grid-3col";
         bagContainer.classList.toggle('bag-full', invLen >= maxBag);
         bagContainer.innerHTML = "";
 
         for (let i = 0; i < maxBag; i++) {
             const item = currentRun.inventory[i];
             const slot = document.createElement('div');
-            slot.className = `bag-slot ${item ? 'has-item' : ''}`;
+            slot.style.cssText = `
+                height: 34px;
+                border: 1px ${item ? "solid rgba(255,215,0,0.5)" : "dashed rgba(255,255,255,0.15)"};
+                background: ${item ? "rgba(255,215,0,0.08)" : "rgba(0,0,0,0.2)"};
+                border-radius: 6px; display: flex; align-items: center; justify-content: center;
+                font-size: 11px; cursor: ${item ? "pointer" : "default"}; position: relative;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px;
+                color: ${item ? "#ffd700" : "#666"};
+                box-shadow: ${item ? "0 2px 6px rgba(0,0,0,0.3)" : "none"};
+                transition: all 0.2s ease;
+            `;
 
             if (item) {
                 slot.innerText = item;
@@ -671,21 +676,19 @@ function syncCharacterDataUi() {
                     let typeStr = "消耗品";
                     let statsStr = gameState === "BATTLE" ? "點擊在戰鬥中使用" : "點擊退回存入倉庫";
 
-                    if (typeof RECIPES_DATABASE !== "undefined") {
-                        const recipe = RECIPES_DATABASE.find(r => r.name === item);
-                        if (recipe) {
-                            desc = recipe.desc;
-                            typeStr = recipe.type === "village_eat" ? "長效 Buff 料理" : "戰鬥回復料理";
-                        }
+                    const recipe = typeof getRecipeByName === "function" ? getRecipeByName(item) : (typeof RECIPES_DATABASE !== "undefined" ? RECIPES_DATABASE.find(r => r.name === item) : null);
+                    if (recipe) {
+                        desc = recipe.desc;
+                        typeStr = recipe.type === "village_eat" ? "長效 Buff 料理" : "戰鬥回復料理";
                     }
-                    if (typeof CRAFTING_BLUEPRINTS !== "undefined") {
-                        const bp = CRAFTING_BLUEPRINTS.find(b => b.name === item);
-                        if (bp) {
-                            desc = bp.desc;
-                            typeStr = "神裝藍圖產物";
-                            statsStr += " | " + Object.keys(bp.stats).map(k => `${k}: +${bp.stats[k]}`).join(" | ");
-                        }
+
+                    const bp = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(item) : (typeof CRAFTING_BLUEPRINTS !== "undefined" ? CRAFTING_BLUEPRINTS.find(b => b.name === item) : null);
+                    if (bp) {
+                        desc = bp.desc;
+                        typeStr = "神裝藍圖產物";
+                        statsStr += " | " + Object.keys(bp.stats).map(k => `${k}: +${bp.stats[k]}`).join(" | ");
                     }
+
                     return { title: item, type: typeStr, desc: desc, stats: statsStr };
                 });
             } else {
@@ -971,7 +974,7 @@ function renderVillageGuild() {
 
         row.innerHTML = `
             <div>
-                <strong style="color: #ffd700; font-size: 12px;">${skillTypeTag} ${escapeHtml(s.name)}</strong>
+                <strong style="color: #ffd700; font-size: 12px;">${skillTypeTag} ${s.name}</strong>
                 <span style="color: #8e8e93; font-size: 11px; margin-left: 6px;">Lv.${currentLv} / 10</span>
             </div>
         `;
@@ -1065,7 +1068,7 @@ function renderVillageCookingWorkshop() {
                 rawMaterials.forEach(m => {
                     const pill = document.createElement('span');
                     pill.className = "warehouse-pill";
-                    pill.innerHTML = `${escapeHtml(m.name)} <span class="count">x${m.qty}</span>`;
+                    pill.innerHTML = `${m.name} <span class="count">x${m.qty}</span>`;
                     rawMatContainer.appendChild(pill);
                 });
             }
@@ -1083,7 +1086,7 @@ function renderVillageCookingWorkshop() {
                     background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2);
                     border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;
                 `;
-                dishRow.innerHTML = `<span>🍱 <strong>${escapeHtml(d.name)}</strong> (x${d.qty})</span>`;
+                dishRow.innerHTML = `<span>🍱 <strong>${d.name}</strong> (x${d.qty})</span>`;
 
                 const btnWithdraw = document.createElement('button');
                 btnWithdraw.className = "btn-game btn-explore";
@@ -1095,10 +1098,8 @@ function renderVillageCookingWorkshop() {
 
                 bindFloatingCard(dishRow, () => {
                     let desc = "完成的美味料理。";
-                    if (typeof RECIPES_DATABASE !== "undefined") {
-                        const r = RECIPES_DATABASE.find(item => item.name === d.name);
-                        if (r) desc = r.desc;
-                    }
+                    const r = typeof getRecipeByName === "function" ? getRecipeByName(d.name) : (typeof RECIPES_DATABASE !== "undefined" ? RECIPES_DATABASE.find(item => item.name === d.name) : null);
+                    if (r) desc = r.desc;
                     return { title: d.name, type: "成品料理", desc: desc, stats: `倉庫現存數量: ${d.qty}` };
                 });
 
@@ -1139,7 +1140,7 @@ function renderVillageCookingWorkshop() {
 
         const ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
 
-        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:12px;">${escapeHtml(recipe.name)}</strong></div>`;
+        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:12px;">${recipe.name}</strong></div>`;
 
         const btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
@@ -1192,7 +1193,7 @@ function renderVillageWorkshop() {
             itemsList.forEach(item => {
                 const pill = document.createElement('span');
                 pill.className = "warehouse-pill";
-                pill.innerHTML = `${escapeHtml(item.name)} <span class="count">x${item.qty}</span>`;
+                pill.innerHTML = `${item.name} <span class="count">x${item.qty}</span>`;
                 pillBox.appendChild(pill);
             });
         }
@@ -1228,6 +1229,7 @@ function renderVillageWorkshop() {
 
     const unlockedBlueprints = accountMeta.unlockedBlueprints || [];
 
+    // 🔧 P1 修復：對接傳說藍圖篩選 Logic (支援無 range 屬性判讀)
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
         
@@ -1235,7 +1237,7 @@ function renderVillageWorkshop() {
             if (!unlockedBlueprints.includes(b.name)) {
                 return false; 
             }
-            return matchCat && (activeCraftingLvlRange === "legendary" || b.range === activeCraftingLvlRange || activeCraftingLvlRange === "51-60");
+            return matchCat && (activeCraftingLvlRange === "legendary" || b.range === activeCraftingLvlRange || activeCraftingLvlRange === "51-60" || !b.range);
         }
 
         const matchLvl = (b.range === activeCraftingLvlRange);
@@ -1267,9 +1269,9 @@ function renderVillageWorkshop() {
         const statDiffHtml = getEquipmentStatDiff(blueprint);
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
 
-        const skillTag = blueprint.skill ? `<div style="font-size:10px; color:#00ffcc;">✨ 附帶技能: [${escapeHtml(blueprint.skill.name)}]</div>` : "";
+        const skillTag = blueprint.skill ? `<div style="font-size:10px; color:#00ffcc;">✨ 附帶技能: [${blueprint.skill.name}]</div>` : "";
 
-        row.innerHTML = `<div><strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:12px;">${escapeHtml(blueprint.name)}${refineBadge}</strong>${skillTag}</div>`;
+        row.innerHTML = `<div><strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:12px;">${blueprint.name}${refineBadge}</strong>${skillTag}</div>`;
 
         const btnGroup = document.createElement('div');
         btnGroup.style.cssText = "display: flex; gap: 4px;";
@@ -1401,7 +1403,7 @@ function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty =
     overlay.innerHTML = `
         <div class="modal-card">
             <h3 id="chest-inspect-title" class="modal-title-cyan" style="font-size: 16px; color: #00ffcc; margin-bottom: 8px;">
-                📦 發現 ${escapeHtml(cleanChestName)}
+                📦 發現 ${cleanChestName}
             </h3>
             <p id="chest-inspect-desc" class="modal-subtitle" style="font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4;">
                 此寶箱掛有高階鎖芯，需要精細開鎖（難度：<strong style="color:#ffd700;">${difficulty.toUpperCase()}</strong>）。
@@ -1463,14 +1465,12 @@ function initLockpickQTE(difficulty = "medium") {
     const startAngle = (tAngle - tol + 360) % 360;
     const endAngle = (tAngle + tol) % 360;
 
-    if (sweetSpot) {
-        sweetSpot.style.background = `conic-gradient(
-            from 0deg,
-            transparent 0deg ${startAngle}deg,
-            rgba(0, 255, 204, 0.6) ${startAngle}deg ${endAngle}deg,
-            transparent ${endAngle}deg 360deg
-        )`;
-    }
+    sweetSpot.style.background = `conic-gradient(
+        from 0deg,
+        transparent 0deg ${startAngle}deg,
+        rgba(0, 255, 204, 0.6) ${startAngle}deg ${endAngle}deg,
+        transparent ${endAngle}deg 360deg
+    )`;
 
     updateLockpickNeedle(0);
     updateProgressFill(0);
@@ -1623,7 +1623,7 @@ function executeSellWarehouseItem(itemName, qty = 1) {
     currentRun.gold = (currentRun.gold || 0) + totalEarn;
 
     if (typeof addLog === "function") {
-        addLog(`💰【黑市交易】成功變賣 <strong>${escapeHtml(itemName)} x${sellQty}</strong>，換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
+        addLog(`💰【黑市交易】成功變賣 <strong>${itemName} x${sellQty}</strong>，換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
     }
     if (typeof showToast === "function") {
         showToast(`💰 變賣成功 +${totalEarn} G`, "success");
@@ -1909,10 +1909,10 @@ function renderBlackMarketModalContent() {
             row.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <div>
-                        <strong style="color: ${nameColor}; font-size: 12px;">${escapeHtml(item.name)}</strong>
-                        <span style="font-size: 10px; color: #ff9f43; margin-left: 4px;">[${escapeHtml(item.type)}]</span>
+                        <strong style="color: ${nameColor}; font-size: 12px;">${item.name}</strong>
+                        <span style="font-size: 10px; color: #ff9f43; margin-left: 4px;">[${item.type}]</span>
                     </div>
-                    <span style="font-size: 10px; color: #aaa;">${escapeHtml(item.desc)}</span>
+                    <span style="font-size: 10px; color: #aaa;">${item.desc}</span>
                 </div>
                 <button class="btn-game ${item.bought ? 'btn-rest' : 'btn-explore'}" 
                     style="padding: 5px 10px; font-size: 11px; white-space: nowrap;" 
@@ -1945,13 +1945,13 @@ function renderBlackMarketModalContent() {
             `;
             row.innerHTML = `
                 <div>
-                    <span style="font-size: 12px; color: #fff;">${escapeHtml(itemName)}</span>
+                    <span style="font-size: 12px; color: #fff;">${itemName}</span>
                     <span style="font-size: 11px; color: #ffd700; font-weight: bold;"> x${qty}</span>
                     <div style="font-size: 10px; color: #888;">收購單價: ${unitPrice} G</div>
                 </div>
                 <div style="display: flex; gap: 4px;">
-                    <button class="btn-game" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${escapeHtml(itemName)}', 1); renderBlackMarketModalContent();">賣 1 個</button>
-                    <button class="btn-game btn-rest" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${escapeHtml(itemName)}', ${qty}); renderBlackMarketModalContent();">全賣</button>
+                    <button class="btn-game" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1); renderBlackMarketModalContent();">賣 1 個</button>
+                    <button class="btn-game btn-rest" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty}); renderBlackMarketModalContent();">全賣</button>
                 </div>
             `;
             listEl.appendChild(row);
@@ -1991,12 +1991,12 @@ function executeBuyBlackMarketItem(stockIndex) {
             accountMeta.unlockedBlueprints.push(item.blueprintName);
         }
         showToast(`📜 成功購買 ${item.name}！已解鎖加工所打造資格`, "success");
-        addLog(`🛒【黑市交易】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${escapeHtml(item.name)}</strong>！解鎖了加工所打造資格。`, "perfect");
+        addLog(`🛒【黑市交易】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${item.name}</strong>！解鎖了加工所打造資格。`, "perfect");
     } else {
         if (!accountMeta.warehouse) accountMeta.warehouse = {};
         accountMeta.warehouse[item.name] = (accountMeta.warehouse[item.name] || 0) + 1;
         showToast(`🛒 成功購買 ${item.name}！已存入倉庫`, "success");
-        addLog(`🛒【黑市採購】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${escapeHtml(item.name)}</strong> 並存入倉庫。`, "perfect");
+        addLog(`🛒【黑市採購】花費 <span style="color:#ffd700;">${item.price} G</span> 購買了 <strong>${item.name}</strong> 並存入倉庫。`, "perfect");
     }
 
     if (typeof saveGameData === "function") saveGameData();
@@ -2005,7 +2005,7 @@ function executeBuyBlackMarketItem(stockIndex) {
 }
 
 // --------------------------------------------------------------------------
-// 💬 聊天室輔助函式 (XSS 安全過濾版)
+// 💬 聊天室輔助函式 (資安加固版)
 // --------------------------------------------------------------------------
 
 function sendSquareChatMessage() {
@@ -2040,7 +2040,10 @@ function renderSquareChatBox() {
 
     let html = `<div style="color: #7f8c8d; font-style: italic; margin-bottom: 4px;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
     localChatHistory.forEach(item => {
-        html += `<div style="line-height: 1.4; margin-bottom: 2px;"><strong style="color:#00ffcc;">[${escapeHtml(item.name)}]</strong>: <span style="color:#eee;">${escapeHtml(item.msg)}</span></div>`;
+        // 🔧 P0 防護：進行 HTML Entity 轉義過濾
+        const safeName = escapeHTML(item.name);
+        const safeMsg = escapeHTML(item.msg);
+        html += `<div style="line-height: 1.4; margin-bottom: 2px;"><strong style="color:#00ffcc;">[${safeName}]</strong>: <span style="color:#eee;">${safeMsg}</span></div>`;
     });
 
     chatBox.innerHTML = html;
