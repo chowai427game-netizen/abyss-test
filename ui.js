@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.2)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.3)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告（必須放在最頂端，防止 ReferenceError）
@@ -7,6 +7,7 @@ let currentOnlineCount = 1;
 const MAX_CHAT_LOGS = 25;
 let localChatHistory = [];
 const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時 (14400000 ms)
+let loginLoadingInterval = null;
 
 // 🛡️ XSS 資安防禦：HTML 特殊字元轉義函式
 function escapeHTML(str) {
@@ -89,6 +90,66 @@ let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 let activeWarehouseFilter = "all";
+
+// --------------------------------------------------------------------------
+// ⏳ 0. 登入 5-10 秒動態加載遮罩 ( Render 免費伺服器冷啟動優化)
+// --------------------------------------------------------------------------
+
+function showLoginLoadingOverlay(targetSeconds = 8, message = "正在喚醒 Render 雲端伺服器...") {
+    let overlay = document.getElementById('login-loading-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'login-loading-overlay';
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 10, 15, 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10000; color: #fff; text-align: center; padding: 20px; box-sizing: border-box;
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    let currentSec = targetSeconds;
+    overlay.innerHTML = `
+        <div style="background: rgba(20, 25, 35, 0.95); border: 2px solid #00ffcc; border-radius: 16px; padding: 25px; max-width: 380px; width: 90%; box-shadow: 0 0 30px rgba(0,255,204,0.3);">
+            <div style="font-size: 36px; margin-bottom: 12px; display: inline-block; animation: pulse 1.5s infinite;">🔮</div>
+            <div style="font-size: 16px; font-weight: bold; color: #00ffcc; margin-bottom: 8px;">${message}</div>
+            <div style="font-size: 11px; color: #aaa; margin-bottom: 15px; line-height: 1.5;"> Render 免費雲端伺服器正在冷啟動中<br>請稍後 5~10 秒以建立安全的血脈通道...</div>
+            <div style="background: rgba(0,0,0,0.6); border-radius: 10px; height: 12px; overflow: hidden; position: relative; width: 100%; border: 1px solid rgba(255,255,255,0.15);">
+                <div id="login-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #16a085, #00ffcc, #ffd700); transition: width 0.2s linear;"></div>
+            </div>
+            <div id="login-countdown-text" style="font-size: 11px; color: #ffd700; margin-top: 12px; font-weight: bold;">估計剩餘時間：${currentSec} 秒</div>
+        </div>
+    `;
+    overlay.style.display = 'flex';
+
+    if (loginLoadingInterval) clearInterval(loginLoadingInterval);
+    let elapsedMs = 0;
+    const totalMs = targetSeconds * 1000;
+
+    loginLoadingInterval = setInterval(() => {
+        elapsedMs += 100;
+        const pct = Math.min(100, Math.floor((elapsedMs / totalMs) * 100));
+        const remainSec = Math.max(0, Math.ceil((totalMs - elapsedMs) / 1000));
+
+        const bar = document.getElementById('login-progress-bar');
+        const txt = document.getElementById('login-countdown-text');
+        if (bar) bar.style.width = `${pct}%`;
+        if (txt) txt.innerText = remainSec > 0 ? `估計剩餘時間：${remainSec} 秒` : `雲端伺服器響應中，即將進入...`;
+
+        if (elapsedMs >= totalMs) {
+            clearInterval(loginLoadingInterval);
+        }
+    }, 100);
+}
+
+function hideLoginLoadingOverlay() {
+    if (loginLoadingInterval) clearInterval(loginLoadingInterval);
+    const overlay = document.getElementById('login-loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
 
 // --------------------------------------------------------------------------
 // 🍞 1. Toast 輕量通知 API
@@ -353,18 +414,15 @@ function allocateStatPoint(statKey) {
         accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
     
-    // 1. 扣除點數並增加屬性
     accountMeta.statPoints--;
     accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
     
-    // 2. ⚡ 強制觸發全域重新計算屬性 (優先使用 window.resetCurrentRunData)
     if (typeof resetCurrentRunData === "function") {
         resetCurrentRunData();
     } else if (typeof StatEngine !== "undefined" && StatEngine.resetCurrentRunData) {
         StatEngine.resetCurrentRunData();
     }
     
-    // 3. 💖 保障村莊全額滿血/魔或補足上限差額
     if (typeof currentRun !== "undefined" && currentRun) {
         if (typeof gameState !== "undefined" && gameState === "VILLAGE") {
             currentRun.hp = currentRun.maxHp;
@@ -372,20 +430,17 @@ function allocateStatPoint(statKey) {
         }
     }
     
-    // 4. 自動存檔
     if (typeof saveGameData === "function") {
         saveGameData();
     }
     
-    // 5. 提示與 Log
     if (typeof showToast === "function") {
         showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
     }
     if (typeof addLog === "function") {
-        addLog(`⚡ 屬性點數分配：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
+        addLog(`⚡ 屬力配點：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
     }
     
-    // 6. 立即刷新 UI 面板
     updateUI();
 }
 
@@ -515,7 +570,6 @@ function getEquipmentStatDiff(blueprint) {
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
 
-    // ⚡【核心關鍵】每一次同步 UI 時，確保強制驅動屬性引擎重新計算裝備與配點！
     if (typeof resetCurrentRunData === "function") {
         resetCurrentRunData();
     } else if (typeof StatEngine !== "undefined" && StatEngine.resetCurrentRunData) {
@@ -543,7 +597,6 @@ function syncCharacterDataUi() {
             : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
-    // 渲染屬性加點面板
     const gridEl = DOM.get('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
@@ -591,7 +644,6 @@ function syncCharacterDataUi() {
         });
     }
 
-    // 💖 渲染血量條與魔力條
     const hpEl = DOM.get('p-hp');
     const maxHpEl = DOM.get('p-maxhp');
     const mpEl = DOM.get('p-mp');
@@ -624,7 +676,6 @@ function syncCharacterDataUi() {
 
     renderStatusBadges(DOM.get('player-status-badges'), currentRun.activeEffects);
 
-    // 🛡️ 實時連動戰鬥面板數據 (ATK, MATK, DEF, MDEF)
     const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
     setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk || 0})`);
@@ -638,7 +689,6 @@ function syncCharacterDataUi() {
     const skillListEl = DOM.get('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
 
-    // ⚔️ 渲染裝備部位與強化星級
     const getRefineLvl = (slot, eqName) => (accountMeta.itemRefines?.[eqName]) || (accountMeta.equipmentStars?.[slot]) || 0;
 
     const wName = accountMeta.equipment?.weapon || "空手";
@@ -858,7 +908,7 @@ function updateUI() {
         bindFloatingCard(envBar, () => ({
             title: ENVIRONMENT_DATABASE[currentEnvironment].name || "環境力場",
             type: "戰場環境",
-            desc: ENVIRONMENT_DATABASE[currentEnvironment].desc || "該區域受異常力場覆蓋，影響屬性變化。",
+            desc: ENVIRONMENT_DATABASE[currentEnvironment].desc || "該區域受異常力場覆蓋，影響屬力變化。",
             stats: ENVIRONMENT_DATABASE[currentEnvironment].logText
         }));
     }
@@ -1387,6 +1437,10 @@ function renderVillageWorkshop() {
     });
 }
 
+// --------------------------------------------------------------------------
+// 📜 日記戰鬥日誌 (Log Box) - 傷害數字高亮與持久特效升級 API
+// --------------------------------------------------------------------------
+
 function addLog(msg, type = "deal") {
     const box = DOM.get('log-box');
     if (!box) return;
@@ -1400,9 +1454,33 @@ function addLog(msg, type = "deal") {
         "victory-badge": " log-victory-badge"
     };
 
+    // ⚡【傷害數字特效增強】自動匹配 msg 中的傷害數值，改為炫彩持久文字徽章（絕對不會消失）
+    let formattedMsg = msg;
+    if (typeof formattedMsg === "string") {
+        // 1. 高亮傷害數值 (如 "120 點傷害", "受到 45 點物理傷害")
+        formattedMsg = formattedMsg.replace(/(\d+)\s*(點傷害|點物理傷害|點魔法傷害|傷害)/g, (match, num, label) => {
+            return `<span style="background: rgba(231, 76, 60, 0.25); border: 1px solid rgba(231, 76, 60, 0.6); color: #ff4757; font-weight: 800; padding: 1px 6px; border-radius: 6px; font-size: 11px; text-shadow: 0 0 5px rgba(255,71,87,0.5); display: inline-block; margin: 0 2px;">💥 ${num} ${label}</span>`;
+        });
+
+        // 2. 高亮回復數值 (如 "+50 HP", "回復 30 HP")
+        formattedMsg = formattedMsg.replace(/(\+\d+|\d+)\s*(HP|魔力|MP|點生命)/g, (match, num, label) => {
+            const isMp = label.includes("MP") || label.includes("魔力");
+            const bg = isMp ? "rgba(52, 152, 219, 0.25)" : "rgba(46, 204, 113, 0.25)";
+            const border = isMp ? "rgba(52, 152, 219, 0.6)" : "rgba(46, 204, 113, 0.6)";
+            const color = isMp ? "#3498db" : "#2ecc71";
+            const icon = isMp ? "🔮" : "💖";
+            return `<span style="background: ${bg}; border: 1px solid ${border}; color: ${color}; font-weight: 800; padding: 1px 6px; border-radius: 6px; font-size: 11px; text-shadow: 0 0 5px ${color}; display: inline-block; margin: 0 2px;">${icon} ${num} ${label}</span>`;
+        });
+
+        // 3. 高亮獲得金幣或經驗 (如 "+100 G", "獲得 50 EXP")
+        formattedMsg = formattedMsg.replace(/(\+\d+|\d+)\s*(G|EXP|金幣|經驗)/g, (match, num, label) => {
+            return `<span style="background: rgba(241, 196, 15, 0.2); border: 1px solid rgba(241, 196, 15, 0.6); color: #ffd700; font-weight: bold; padding: 1px 5px; border-radius: 6px; font-size: 10px; display: inline-block; margin: 0 2px;">🪙 ${num} ${label}</span>`;
+        });
+    }
+
     const p = document.createElement('div');
     p.className = `log-row-box${classMap[type] || ""}`;
-    p.innerHTML = msg;
+    p.innerHTML = formattedMsg;
     box.appendChild(p);
     
     box.scrollTo({
