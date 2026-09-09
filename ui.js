@@ -1437,22 +1437,7 @@ function renderVillageWorkshop() {
     });
 }
 
-// --------------------------------------------------------------------------
-// 📜 日記戰鬥日誌 (Log Box) - 傷害數字高亮與持久特效升級 API
-// --------------------------------------------------------------------------
 
-function addLog(msg, type = "deal") {
-    const box = DOM.get('log-box');
-    if (!box) return;
-
-    const classMap = {
-        take: " log-take-dmg",
-        perfect: " log-perfect",
-        env: " log-env-tick",
-        miss: " log-miss",
-        "skill-hit": " log-skill-hit",
-        "victory-badge": " log-victory-badge"
-    };
 
    // 📜 日記戰鬥日誌 (Log Box) - 傷害數字高亮與電競字型連動 API
 function addLog(msg, type = "deal") {
