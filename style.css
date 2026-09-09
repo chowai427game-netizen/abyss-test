@@ -879,75 +879,84 @@ body {
 }
 
 /* ==========================================================================
-   🔢 ZONE 6-B: 傷害與數字膠囊 (100% 替換電競字型 + 絕對不消失機制)
+   💥 傷害數字純文字打擊感 (無外框 + 亮紅字 + 黑描邊陰影 + 由大變小動態)
    ========================================================================== */
 
-/* 核心數字徽章基底：全面採用 Chakra Petch 高電競感字體，並強制 opacity: 1 絕不消失 */
-.num-popup, 
-.log-panel .num-popup {
+/* 1. 傷害數字 (徹底移除框線與底色) */
+.log-panel .num-p-dmg,
+.log-panel .num-boss-strike,
+.num-p-dmg {
     display: inline-block !important;
-    font-family: var(--font-damage) !important;
-    font-size: 12px !important;
-    font-weight: 800 !important;
-    font-style: normal !important;
-    padding: 2px 8px !important;
-    margin: 0 3px !important;
-    border-radius: 6px !important;
-    vertical-align: middle !important;
-    letter-spacing: 0.5px !important;
-    transform: none !important;
-    filter: none !important;
-    line-height: 1.2 !important;
-    opacity: 1 !important; /* ⚡ 關鍵修正：傷害數字絕對不消失 */
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
-    transition: transform 0.2s ease !important;
-}
-
-/* 玩家物理傷害 (黃金高亮膠囊) */
-.num-p-dmg,
-.log-panel .num-p-dmg {
-    color: #ffd700 !important;
-    background: rgba(255, 215, 0, 0.18) !important;
-    border: 1px solid rgba(255, 215, 0, 0.6) !important;
-    text-shadow: 0 0 6px rgba(255, 215, 0, 0.6), 0 1px 2px #000 !important;
-}
-
-/* 玩家魔法傷害 (霓虹青藍膠囊) */
-.num-m-dmg,
-.log-panel .num-m-dmg {
-    color: #00ffff !important;
-    background: rgba(0, 255, 255, 0.18) !important;
-    border: 1px solid rgba(0, 255, 255, 0.6) !important;
-    text-shadow: 0 0 6px rgba(0, 255, 255, 0.6), 0 1px 2px #000 !important;
-}
-
-/* 治癒回復 (翡翠綠膠囊) */
-.num-h-heal,
-.log-panel .num-h-heal {
-    color: #2ecc71 !important;
-    background: rgba(46, 204, 113, 0.18) !important;
-    border: 1px solid rgba(46, 204, 113, 0.6) !important;
-    text-shadow: 0 0 6px rgba(46, 204, 113, 0.6) !important;
-}
-
-/* 魔物暴擊/反噬傷害徽章 (血紅火爆膠囊) */
-.num-boss-strike,
-.log-panel .num-boss-strike {
-    color: #ffffff !important;
-    background: linear-gradient(135deg, #e63946, #b7094c) !important;
-    border: 1px solid #ff4d6d !important;
-    box-shadow: 0 0 10px rgba(230, 57, 70, 0.7) !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
-    font-size: 13px !important;
+    font-family: var(--font-damage), 'Chakra Petch', sans-serif !important;
+    font-size: 15px !important;
     font-weight: 900 !important;
+    font-style: italic !important;
+    color: #ff2a2a !important;            /* 鮮豔血紅色 */
+    background: transparent !important;   /* ❌ 移除黃/綠/紅背景色 */
+    border: none !important;              /* ❌ 移除外框 */
+    box-shadow: none !important;          /* ❌ 移除膠囊陰影 */
+    padding: 0 4px !important;
+    margin: 0 2px !important;
+    vertical-align: middle !important;
+    
+    /* 2. 重黑立體描邊 + 紅色外發光陰影 */
+    text-shadow: 
+        2px 2px 0px #000, 
+        -1px -1px 0px #000, 
+        1px -1px 0px #000, 
+        -1px 1px 0px #000, 
+        0 0 12px rgba(255, 42, 42, 0.9) !important;
+
+    /* 3. 由大變小的動態動畫 */
+    animation: dmgPopImpact 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+    transform-origin: center center !important;
 }
 
-/* MISS 閃避徽章 */
-.num-miss,
-.log-panel .num-miss {
-    color: #cccccc !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+/* 3. 關鍵幀動畫：由巨大衝擊放大 ➔ 快速回縮 ➔ 穩定停格 */
+@keyframes dmgPopImpact {
+    0% {
+        transform: scale(2.4) translateY(-3px);
+        filter: brightness(2.5);
+        opacity: 0.7;
+    }
+    45% {
+        transform: scale(0.85) translateY(0);
+        filter: brightness(1.4);
+        opacity: 1;
+    }
+    75% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+        opacity: 1;
+    }
+}
+
+/* 4. 回復與魔力文字 (同步去除外框，保持純文字) */
+.log-panel .num-h-heal {
+    display: inline-block !important;
+    font-family: var(--font-damage), sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #2ecc71 !important;
+    background: transparent !important;
+    border: none !important;
+    text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 8px rgba(46, 204, 113, 0.8) !important;
+    animation: dmgPopImpact 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+.log-panel .num-m-dmg {
+    display: inline-block !important;
+    font-family: var(--font-damage), sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #00f2fe !important;
+    background: transparent !important;
+    border: none !important;
+    text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 8px rgba(0, 242, 254, 0.8) !important;
+    animation: dmgPopImpact 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
 }
 
 /* ==========================================================================
