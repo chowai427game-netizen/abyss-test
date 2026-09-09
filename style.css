@@ -1,21 +1,26 @@
 /* ==========================================================================
    🎮 命運深淵：血脈傳承 (Abyss of Destiny: Blood & Heritage)
-   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v4.3)
+   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v4.5)
+   ✨ 本次升級：電競字型導入 + 傷害數字永久保留 + 全系魔導特效極致化
    ========================================================================== */
+
+/* 🔤 0. 導入國際級電競與魔幻專用數字字體 */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700;800;900&family=Russo+One&family=Orbitron:wght@800;900&display=swap');
 
 /* ==========================================================================
    🔮 ZONE 1: 皇家核心主題變數與全域底色重置
    ========================================================================== */
 :root {
     --bg-main: #0a0a0d;
-    --panel-bg: rgba(22, 22, 27, 0.88);
+    --panel-bg: rgba(22, 22, 27, 0.85);
     --panel-border: rgba(255, 255, 255, 0.08);
     --gold-glow: #ffd700;
     --neon-gold: #ffd700;
     --gold-dim: #b39700;
-    --neon-cyan: #00ffcc;
     --text-main: #e3e3e6;
     --text-muted: #8e8e93;
+    
+    --font-damage: 'Chakra Petch', 'Russo One', 'Orbitron', sans-serif;
     
     --clr-hp: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
     --clr-mp: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
@@ -42,14 +47,14 @@ body {
 }
 
 /* ==========================================================================
-   🌌 ZONE 0: 全螢幕魔導加載與 Render 伺服器喚醒遮罩
+   🌌 ZONE 0: 全螢幕魔導加載遮罩 (Loading Overlay)
    ========================================================================== */
-#loading-overlay, #login-loading-overlay {
+#loading-overlay {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
     background: radial-gradient(circle at 50% 50%, #111116 0%, #050507 100%);
     z-index: 99999;
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    display: flex; justify-content: center; align-items: center;
     transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
     opacity: 1; visibility: visible;
 }
@@ -108,12 +113,6 @@ body {
 @keyframes textPulse {
     0% { opacity: 0.6; transform: scale(0.99); } 
     100% { opacity: 1; transform: scale(1.01); }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.4)); }
-    50% { transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(0, 255, 204, 0.8)); }
-    100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.4)); }
 }
 
 .loading-bar-bg {
@@ -442,7 +441,7 @@ body {
 .scrollable-panel-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
 
 /* ==========================================================================
-   📜 ZONE 5: 日誌與電影級打擊感系統 (含持久傷害徽章美化)
+   📜 ZONE 5: 日誌與電影級打擊感系統 (含永不消失傷害數字與字體替換)
    ========================================================================== */
 .log-panel {
     height: 250px; overflow-y: auto; overflow-x: hidden;
@@ -451,16 +450,16 @@ body {
     padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
     margin-bottom: 20px; font-size: 13px; line-height: 1.65; scroll-behavior: smooth;
-    word-break: break-word;
 }
 
 .log-row-box {
     position: relative;
     background: rgba(255, 255, 255, 0.01); border-radius: 8px; padding: 8px 12px; margin: 7px 0;
     border-left: 3px solid rgba(255, 255, 255, 0.15); color: #e3e3e6; border-top: 1px solid rgba(255, 255, 255, 0.02);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3); animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
+    animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: left center; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-    display: block;
+    will-change: transform, opacity;
 }
 
 @keyframes logCinematicPop {
@@ -490,7 +489,7 @@ body {
 }
 
 @keyframes logPulseGold {
-    0% { box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 5px rgba(255, 215, 0, 0.1); filter: brightness(1.8); }
+    0% { box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 5px rgba(255, 215, 0, 0.1); filter: brightness(1.4); }
     100% { box-shadow: inset 4px 0 35px rgba(255, 215, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.4); border-left-color: #fff; filter: brightness(1); }
 }
 
@@ -527,16 +526,11 @@ body {
 .log-env-tick {
     background: linear-gradient(90deg, rgba(155, 89, 182, 0.15) 0%, rgba(0,0,0,0) 100%) !important;
     border-left: 4px solid #9b59b6 !important; color: #e8dbff !important; box-shadow: 0 2px 8px rgba(155, 89, 182, 0.1);
-    animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards, logEnvPulse 0.3s ease-out forwards;
-}
-
-@keyframes logEnvPulse {
-    0% { transform: translateY(-4px); filter: saturate(1.8); }
-    100% { transform: translateY(0); filter: saturate(1); }
+    animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ==========================================================================
-   💥 ZONE 6: 全職業多元素純【光線】與【光粒】魔導動態特效系統
+   💥 ZONE 6: 全職業多元素純【光線】與【光粒】魔導極致動態特效系統 (極致重構)
    ========================================================================== */
 
 /* 🗡️ 1. 近戰與雙刀斬擊 (Hyper Light Blades) */
@@ -588,43 +582,44 @@ body {
 
 /* 🔥 2. 烈焰爆裂與火系魔法 (Fire Stream & Spark Dust) */
 .skill-fire {
-    background: linear-gradient(90deg, #ff4e00, #ff9a00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(255, 78, 0, 0.6) !important; font-weight: 900 !important; display: inline-block; position: relative; padding: 0 8px;
+    background: linear-gradient(90deg, #ff3838, #ff9f43, #ffd700); 
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(255, 78, 0, 0.8) !important; font-weight: 900 !important; display: inline-block; position: relative; padding: 0 8px;
 }
 
 .skill-fire::after {
-    content: ""; position: absolute; bottom: -2px; left: -10%; width: 120%; height: 2px;
+    content: ""; position: absolute; bottom: -2px; left: -10%; width: 120%; height: 3px;
     background: linear-gradient(90deg, transparent, #ff4757, #ffd700, #ff4757, transparent);
-    box-shadow: 0 0 10px #ff4757, 0 0 20px #ffd700; animation: fireLineGlow 0.35s infinite alternate;
+    box-shadow: 0 0 12px #ff4757, 0 0 22px #ffd700; animation: fireLineGlow 0.35s infinite alternate;
 }
 
 .skill-fire::before {
-    content: ""; position: absolute; top: 50%; left: 50%; width: 3px; height: 3px;
+    content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
     border-radius: 50%; background: #ffffff; pointer-events: none; z-index: 3;
     transform: translate(-50%, -50%); animation: pureFireParticles 0.45s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
 }
 
 @keyframes fireLineGlow {
     0% { opacity: 0.6; transform: scaleY(1); }
-    100% { opacity: 1; transform: scaleY(3); box-shadow: 0 -4px 14px #ff3838; }
+    100% { opacity: 1; transform: scaleY(3); box-shadow: 0 -4px 18px #ff3838; }
 }
 
 @keyframes pureFireParticles {
     0% { opacity: 1; box-shadow: 0 0 0 #fff; }
     100% { 
         opacity: 0; 
-        box-shadow: -28px -22px 3px 2px #ff4757, 30px -18px 4px 2px #ff7f50, 
-                    -25px 24px 3px 1px #ffa502, 28px 25px 4px 2px #ffbe76,
-                    -40px 0px 2px 1px #ffffff, 40px -5px 3px 2px #ff3838;
+        box-shadow: -32px -24px 4px 2px #ff4757, 34px -20px 5px 2px #ff7f50, 
+                    -28px 26px 4px 1px #ffa502, 32px 28px 5px 2px #ffbe76,
+                    -45px 0px 3px 1px #ffffff, 45px -5px 4px 2px #ff3838;
     }
 }
 
 /* ❄️ 3. 極寒霜凍與冰系魔法 (Prismatic Crystal Rays & Frost Sparkles) */
 .skill-ice {
-    background: linear-gradient(90deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(0, 242, 254, 0.6) !important; font-weight: 900 !important; display: inline-block;
-    position: relative; padding: 2px 8px; border: 1px solid rgba(0, 242, 254, 0.6);
-    box-shadow: inset 0 0 8px rgba(0, 242, 254, 0.4), 0 0 12px rgba(0, 242, 254, 0.3);
+    background: linear-gradient(90deg, #00f2fe, #4facfe, #00d2d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(0, 242, 254, 0.8) !important; font-weight: 900 !important; display: inline-block;
+    position: relative; padding: 2px 8px; border: 1px solid rgba(0, 242, 254, 0.8);
+    box-shadow: inset 0 0 10px rgba(0, 242, 254, 0.5), 0 0 15px rgba(0, 242, 254, 0.4);
     border-radius: 4px; animation: iceBoxPulse 0.5s ease-out forwards;
 }
 
@@ -632,19 +627,19 @@ body {
     content: ""; position: absolute; right: -14px; top: -8px; width: 14px; height: 14px;
     background: radial-gradient(circle, #ffffff 20%, #00f2fe 100%);
     clip-path: polygon(50% 0%, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0% 50%, 35% 35%);
-    box-shadow: 0 0 10px #00f2fe; opacity: 0; animation: pureIceCrystal 0.5s ease-out forwards;
+    box-shadow: 0 0 12px #00f2fe; opacity: 0; animation: pureIceCrystal 0.5s ease-out forwards;
 }
 
 .skill-ice::before {
     content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-    box-shadow: -10px -10px 4px 1px rgba(255, 255, 255, 0.8), 20px -8px 5px 1px rgba(0, 242, 254, 0.9),
-                -15px 15px 3px 1px rgba(112, 161, 255, 0.7), 25px 12px 4px 1px rgba(255, 255, 255, 0.9);
+    box-shadow: -12px -12px 5px 1px rgba(255, 255, 255, 0.9), 22px -10px 6px 1px rgba(0, 242, 254, 0.95),
+                -18px 18px 4px 1px rgba(112, 161, 255, 0.8), 28px 14px 5px 1px rgba(255, 255, 255, 0.9);
     opacity: 0; animation: iceParticleDust 0.45s ease-out forwards;
 }
 
 @keyframes iceBoxPulse {
     0% { border-color: #fff; box-shadow: 0 0 25px #00f2fe; transform: scale(1.1); }
-    100% { border-color: rgba(0, 242, 254, 0.6); transform: scale(1); }
+    100% { border-color: rgba(0, 242, 254, 0.8); transform: scale(1); }
 }
 
 @keyframes pureIceCrystal {
@@ -660,14 +655,14 @@ body {
 
 /* ⚡ 4. 雷霆電光與雷系魔法 (Jagged Lightning Arc & Plasma Spark Beads) */
 .skill-lightning {
-    background: linear-gradient(90deg, #fdfc47, #24fe41); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(253, 252, 71, 0.6) !important; font-weight: 900 !important; display: inline-block;
+    background: linear-gradient(90deg, #fdfc47, #24fe41, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 18px rgba(253, 252, 71, 0.8) !important; font-weight: 900 !important; display: inline-block;
     position: relative; padding: 0 8px; animation: lightningJitter 0.25s steps(2, start) infinite;
 }
 
 .skill-lightning::before {
     content: ""; position: absolute; top: -16px; left: 15%; width: 16px; height: 36px;
-    background: #ffffff; box-shadow: 0 0 12px #f1c40f, 0 0 24px #ffffff;
+    background: #ffffff; box-shadow: 0 0 15px #f1c40f, 0 0 30px #ffffff;
     clip-path: polygon(50% 0%, 0% 55%, 45% 55%, 10% 100%, 100% 35%, 55% 35%);
     pointer-events: none; opacity: 0; animation: pureBoltStrike 0.3s steps(1) forwards;
 }
@@ -675,7 +670,7 @@ body {
 .skill-lightning::after {
     content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 2px;
     background: linear-gradient(90deg, #f1c40f, #ffffff, #f1c40f);
-    box-shadow: 0 -12px 6px 1px #fff2a8, 0 12px 6px 1px #f1c40f; opacity: 0.8;
+    box-shadow: 0 -12px 8px 1px #fff2a8, 0 12px 8px 1px #f1c40f; opacity: 0.8;
     animation: plasmaPulse 0.2s infinite alternate;
 }
 
@@ -701,13 +696,13 @@ body {
 /* 🔮 5. 奧術星界與法術脈衝 (Arcane Rings & Cosmic Dust Stream) */
 .skill-arcane {
     display: inline-block; position: relative; color: #e8dbff !important; font-weight: 900 !important;
-    padding: 0 8px; text-shadow: 0 0 10px #a55eea, 0 0 22px #8854d0;
+    padding: 0 8px; text-shadow: 0 0 12px #a55eea, 0 0 25px #8854d0, 0 0 35px #4b7bec;
 }
 
 .skill-arcane::before {
     content: ""; position: absolute; top: -4px; left: -6px; right: -6px; bottom: -4px;
     border: 1.5px solid #a55eea; border-radius: 50%;
-    box-shadow: 0 0 12px #8854d0, inset 0 0 8px #a55eea;
+    box-shadow: 0 0 15px #8854d0, inset 0 0 10px #a55eea;
     animation: arcaneCircleSpin 0.6s linear forwards; pointer-events: none;
 }
 
@@ -720,29 +715,29 @@ body {
 @keyframes arcaneCircleSpin {
     0% { transform: scale(0.3) rotate(0deg); opacity: 0; }
     50% { opacity: 1; }
-    100% { transform: scale(1.2) rotate(180deg); opacity: 0; }
+    100% { transform: scale(1.3) rotate(180deg); opacity: 0; }
 }
 
 @keyframes cosmicRayDust {
     0% { opacity: 1; box-shadow: 0 0 0 #fff; }
     100% { 
         opacity: 0; 
-        box-shadow: -22px -20px 4px 2px #a55eea, 24px -16px 5px 2px #8854d0, 
-                    -20px 22px 3px 2px #4b7bec, 22px 20px 4px 2px #e8dbff;
+        box-shadow: -25px -22px 5px 2px #a55eea, 26px -18px 6px 2px #8854d0, 
+                    -22px 24px 4px 2px #4b7bec, 25px 22px 5px 2px #e8dbff;
     }
 }
 
 /* ✨ 6. 神聖光束與聖光粒子 (Holy Pillars & Sacred Dust Waves) */
 .skill-holy {
-    background: linear-gradient(90deg, #fffacd, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8) !important; font-weight: 900 !important; display: inline-block;
+    background: linear-gradient(90deg, #fffacd, #ffffff, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 25px rgba(255, 255, 255, 0.9) !important; font-weight: 900 !important; display: inline-block;
     position: relative; padding: 0 8px;
 }
 
 .skill-holy::before {
     content: ""; position: absolute; top: -35px; left: 50%; width: 6px; height: 75px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 30%, #ffd700 70%, rgba(255, 215, 0, 0) 100%);
-    box-shadow: 0 0 15px #ffd700, 0 0 30px #ffffff, 0 0 8px #2ecc71;
+    box-shadow: 0 0 18px #ffd700, 0 0 35px #ffffff, 0 0 10px #2ecc71;
     transform: translateX(-50%) scaleY(0); opacity: 0; pointer-events: none; z-index: 4;
     animation: holyBeamDrop 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
@@ -764,21 +759,21 @@ body {
     30% { opacity: 1; }
     100% { 
         opacity: 0; 
-        box-shadow: -18px -25px 4px 2px #ffd700, 16px -30px 5px 2px #2ecc71, 
-                    -12px -42px 3px 1px #ffffff, 14px -50px 4px 2px #ffd700;
+        box-shadow: -20px -28px 5px 2px #ffd700, 20px -32px 6px 2px #2ecc71, 
+                    -14px -45px 4px 1px #ffffff, 16px -55px 5px 2px #ffd700;
     }
 }
 
 /* 🧪 7. 劇毒與出血 (Poison Corrosive Rays & Bleed Laser Lines) */
 .skill-poison {
-    background: linear-gradient(90deg, #a18cd1, #fbc2eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 15px rgba(161, 140, 209, 0.6) !important; font-weight: 900 !important; display: inline-block; position: relative;
+    background: linear-gradient(90deg, #2ecc71, #27ae60, #a18cd1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 18px rgba(46, 204, 113, 0.8) !important; font-weight: 900 !important; display: inline-block; position: relative;
 }
 
 .skill-poison::after {
     content: ""; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px;
     background: linear-gradient(90deg, #27ae60, #58d68d, #11998e);
-    box-shadow: 0 0 8px #2ecc71; animation: poisonWaveLine 0.4s infinite alternate;
+    box-shadow: 0 0 10px #2ecc71; animation: poisonWaveLine 0.4s infinite alternate;
 }
 
 @keyframes poisonWaveLine {
@@ -787,31 +782,32 @@ body {
 }
 
 .skill-bleed {
-    display: inline-block; position: relative; color: #e74c3c !important; font-weight: 900 !important;
-    text-shadow: 0 0 8px #c0392b, 0 0 18px #8e44ad;
+    display: inline-block; position: relative; color: #ff4757 !important; font-weight: 900 !important;
+    text-shadow: 0 0 10px #c0392b, 0 0 20px #ff3838;
 }
 
 /* 💥 8. 物理重擊與暴擊速度線 (Bash Lines & Speedline Radial Bursts) */
 .skill-bash {
     display: inline-block; position: relative; color: #fff2a8 !important; font-weight: 900 !important; padding: 0 6px;
-    text-shadow: 0 0 8px #ff9f43, 0 0 18px #ff5252; animation: bashImpactText 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    text-shadow: 0 0 10px #ff9f43, 0 0 22px #ff5252; animation: bashImpactText 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 .skill-crit {
-    background: linear-gradient(135deg, #fff 0%, #ffd700 40%, #ff8c00 100%);
+    font-family: var(--font-damage) !important;
+    background: linear-gradient(135deg, #ffffff 0%, #ffd700 40%, #ff8c00 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 140, 0, 0.6) !important;
-    font-size: 1.2em !important; font-weight: 900 !important; font-style: italic;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 0 40px rgba(255, 140, 0, 0.7) !important;
+    font-size: 1.25em !important; font-weight: 900 !important; font-style: italic;
     display: inline-block; animation: critShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
 .skill-crit + .num-popup::before,
 .num-boss-strike::before {
-    content: ""; position: absolute; top: 50%; left: 50%; width: 75px; height: 75px;
+    content: ""; position: absolute; top: 50%; left: 50%; width: 85px; height: 85px;
     background: repeating-conic-gradient(
         from 0deg,
-        rgba(255, 215, 0, 0.7) 0deg 4deg,
-        transparent 4deg 15deg
+        rgba(255, 215, 0, 0.8) 0deg 5deg,
+        transparent 5deg 15deg
     );
     border-radius: 50%; transform: translate(-50%, -50%) scale(0);
     z-index: -1; pointer-events: none; animation: speedlineBurst 0.35s ease-out forwards;
@@ -857,7 +853,7 @@ body {
 .heal-effect::before {
     content: ""; position: absolute; bottom: -2px; left: 50%; width: 100%; height: 3px;
     background: linear-gradient(90deg, transparent, #2ecc71, #ffffff, #2ecc71, transparent);
-    box-shadow: 0 0 10px #2ecc71; transform: translateX(-50%); animation: healLightBeam 0.5s ease-out forwards;
+    box-shadow: 0 0 12px #2ecc71; transform: translateX(-50%); animation: healLightBeam 0.5s ease-out forwards;
 }
 
 .heal-effect::after {
@@ -877,31 +873,82 @@ body {
     30% { opacity: 1; }
     100% { 
         opacity: 0; 
-        box-shadow: -20px -25px 4px 2px #2ecc71, 18px -30px 5px 2px #27ae60, 
-                    -12px -45px 3px 1px #ffffff, 15px -52px 4px 2px #2ecc71;
+        box-shadow: -22px -28px 5px 2px #2ecc71, 20px -32px 6px 2px #27ae60, 
+                    -14px -48px 4px 1px #ffffff, 18px -55px 5px 2px #2ecc71;
     }
 }
 
-/* 🔢 傷害與數字彈窗 (Pop & Fade Ultra) */
-.num-popup {
-    display: inline-block; font-family: 'Impact', 'Arial Black', sans-serif; font-size: 18px;
-    font-style: italic; margin-left: 8px; position: relative; z-index: 2; transform-origin: center;
-    animation: popAndFadeUltra 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+/* ==========================================================================
+   🔢 ZONE 6-B: 傷害與數字膠囊 (100% 替換電競字型 + 絕對不消失機制)
+   ========================================================================== */
+
+/* 核心數字徽章基底：全面採用 Chakra Petch 高電競感字體，並強制 opacity: 1 絕不消失 */
+.num-popup, 
+.log-panel .num-popup {
+    display: inline-block !important;
+    font-family: var(--font-damage) !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    font-style: normal !important;
+    padding: 2px 8px !important;
+    margin: 0 3px !important;
+    border-radius: 6px !important;
+    vertical-align: middle !important;
+    letter-spacing: 0.5px !important;
+    transform: none !important;
+    filter: none !important;
+    line-height: 1.2 !important;
+    opacity: 1 !important; /* ⚡ 關鍵修正：傷害數字絕對不消失 */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+    transition: transform 0.2s ease !important;
 }
 
-@keyframes popAndFadeUltra {
-    0% { opacity: 0; transform: scale(0.3) translateY(20px); }
-    20% { opacity: 1; transform: scale(1.6) translateY(-10px); }
-    40% { transform: scale(1.1) translateY(0); }
-    80% { opacity: 1; transform: scale(1.1) translateY(0); }
-    100% { opacity: 0; transform: scale(0.9) translateY(-15px); filter: blur(2px); }
+/* 玩家物理傷害 (黃金高亮膠囊) */
+.num-p-dmg,
+.log-panel .num-p-dmg {
+    color: #ffd700 !important;
+    background: rgba(255, 215, 0, 0.18) !important;
+    border: 1px solid rgba(255, 215, 0, 0.6) !important;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.6), 0 1px 2px #000 !important;
 }
 
-.num-p-dmg { color: #fff !important; text-shadow: 2px 2px 0px #000, 0 0 15px #ff2a2a, 0 0 30px #ff0000 !important; font-size: 1.25em !important; }
-.num-m-dmg { color: #fff !important; text-shadow: 2px 2px 0px #000, 0 0 15px #cc00ff, 0 0 30px #8800ff !important; font-size: 1.25em !important; }
-.num-h-heal { color: #2ecc71 !important; text-shadow: 0 2px 4px #000, 0 0 10px #2ecc71; }
-.num-miss { color: #a0a0a8 !important; text-shadow: 0 2px 4px #000, 0 0 8px #8e8e93; }
-.num-boss-strike { color: #ff7675 !important; text-shadow: 0 2px 6px #000, 0 0 12px #ff0000; font-size: 19px; }
+/* 玩家魔法傷害 (霓虹青藍膠囊) */
+.num-m-dmg,
+.log-panel .num-m-dmg {
+    color: #00ffff !important;
+    background: rgba(0, 255, 255, 0.18) !important;
+    border: 1px solid rgba(0, 255, 255, 0.6) !important;
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.6), 0 1px 2px #000 !important;
+}
+
+/* 治癒回復 (翡翠綠膠囊) */
+.num-h-heal,
+.log-panel .num-h-heal {
+    color: #2ecc71 !important;
+    background: rgba(46, 204, 113, 0.18) !important;
+    border: 1px solid rgba(46, 204, 113, 0.6) !important;
+    text-shadow: 0 0 6px rgba(46, 204, 113, 0.6) !important;
+}
+
+/* 魔物暴擊/反噬傷害徽章 (血紅火爆膠囊) */
+.num-boss-strike,
+.log-panel .num-boss-strike {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #e63946, #b7094c) !important;
+    border: 1px solid #ff4d6d !important;
+    box-shadow: 0 0 10px rgba(230, 57, 70, 0.7) !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+}
+
+/* MISS 閃避徽章 */
+.num-miss,
+.log-panel .num-miss {
+    color: #cccccc !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
 
 /* ==========================================================================
    🕹️ ZONE 7: 通用按鈕與控制矩陣
@@ -1068,7 +1115,7 @@ body {
 }
 
 .gold-victory-text {
-    color: #ffd700 !important; font-family: 'Impact', 'Arial Black', sans-serif;
+    color: #ffd700 !important; font-family: var(--font-damage);
     letter-spacing: 1px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.6), 0 2px 2px #000; font-weight: bold;
 }
 
@@ -1173,7 +1220,7 @@ body {
 }
 
 .qte-timer-bg::after {
-    content: "PERFECT"; font-family: -apple-system, sans-serif; font-size: 7px; font-weight: 900;
+    content: "PERFECT"; font-family: var(--font-damage); font-size: 8px; font-weight: 900;
     color: rgba(255, 215, 0, 0.95); text-shadow: 0 1px 1px #000; display: flex; justify-content: center;
     align-items: center; position: absolute; left: 65%; width: 20%; height: 100%;
     background: rgba(212, 175, 55, 0.35); border-left: 1.5px dashed #ffd700; border-right: 1.5px dashed #ffd700;
@@ -1398,6 +1445,7 @@ body {
    🖼️ 全局 Modal 彈窗隱藏與置中修復 (Fix Auto-Open Display Bug)
    ========================================================================== */
 
+/* 1. 全螢幕遮罩：預設隱藏 display: none，當 JS 設定 display: flex 時才進行置中 */
 .modal-backdrop {
     position: fixed !important;
     top: 0 !important;
@@ -1416,12 +1464,14 @@ body {
     margin: 0 !important;
 }
 
+/* 2. 當 JS 開啟彈窗（設定 style="display: flex" 或 class="active"）時才強行顯示 */
 .modal-backdrop[style*="display: flex"],
 .modal-backdrop[style*="display:flex"],
 .modal-backdrop.active {
     display: flex !important;
 }
 
+/* 3. 彈窗主體卡片：居中樣式 */
 .modal-card, .qte-box {
     background: rgba(18, 22, 32, 0.96) !important;
     border: 1px solid rgba(0, 255, 204, 0.4) !important;
@@ -1436,6 +1486,7 @@ body {
     animation: modalPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* 4. 寶箱動作按鈕直排網格 */
 .chest-action-grid {
     display: flex !important;
     flex-direction: column !important;
@@ -1444,6 +1495,7 @@ body {
     width: 100% !important;
 }
 
+/* 5. 彈窗動畫 */
 @keyframes modalPopIn {
     0% { opacity: 0; transform: scale(0.88) translateY(10px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -1453,6 +1505,7 @@ body {
    🛠️ 畫面視覺修復 (Action Panel Card & Clean Damage Text)
    ========================================================================== */
 
+/* 1. 修正左下角動作按鈕區面板：補全卡片背景與邊框，消除懸空感 */
 .action-panel, 
 #action-panel-box {
     background: rgba(18, 22, 32, 0.85) !important;
@@ -1467,6 +1520,7 @@ body {
     margin-top: 10px !important;
 }
 
+/* 確保按鈕群組間距舒適 */
 .action-btn-group {
     display: flex !important;
     flex-direction: column !important;
@@ -1474,54 +1528,11 @@ body {
     width: 100% !important;
 }
 
-/* 修正戰鬥日誌內傷害數字：徹底清除模糊、縱向拉伸與錯位 */
-.log-panel .num-popup {
-    display: inline-block !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 800 !important;
-    font-style: normal !important;
-    padding: 2px 8px !important;
-    margin: 0 4px !important;
-    border-radius: 4px !important;
-    vertical-align: middle !important;
-    letter-spacing: 0.5px !important;
-    transform: none !important;
-    filter: none !important;
-    line-height: 1.2 !important;
-    text-shadow: none !important;
-}
-
-.log-panel .num-boss-strike {
-    color: #ffffff !important;
-    background: linear-gradient(135deg, #e63946, #b7094c) !important;
-    border: 1px solid #ff4d6d !important;
-    box-shadow: 0 0 8px rgba(230, 57, 70, 0.5) !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
-}
-
-.log-panel .num-p-dmg {
-    color: #ffd700 !important;
-    background: rgba(255, 215, 0, 0.15) !important;
-    border: 1px solid rgba(255, 215, 0, 0.4) !important;
-}
-
-.log-panel .num-m-dmg {
-    color: #00ffff !important;
-    background: rgba(0, 255, 255, 0.15) !important;
-    border: 1px solid rgba(0, 255, 255, 0.4) !important;
-}
-
-.log-panel .num-miss {
-    color: #aaaaaa !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
 /* ==========================================================================
    🎒 背包緊湊化與手機版高度瘦身修復 (Fix Bag Grid & Mobile Long Screen Bug)
    ========================================================================== */
 
+/* 1. 重構背包容器：強制 3 欄緊湊網格，徹底解決長條擠壓問題 */
 #bag-slots-container,
 .bag-grid-3col {
     display: grid !important;
@@ -1532,6 +1543,7 @@ body {
     box-sizing: border-box !important;
 }
 
+/* 2. 背包單一格子樣式：固定高度，精簡 Padding */
 .bag-slot {
     background: rgba(0, 0, 0, 0.4) !important;
     border: 1px dashed rgba(255, 255, 255, 0.15) !important;
@@ -1552,6 +1564,7 @@ body {
     transition: all 0.2s ease !important;
 }
 
+/* 背包有道具時的高亮效果 */
 .bag-slot.has-item,
 .bag-slot:not(:empty):not(:contains("空位")) {
     background: rgba(255, 215, 0, 0.12) !important;
@@ -1562,6 +1575,7 @@ body {
     cursor: pointer !important;
 }
 
+/* 3. 動作面板瘦身：減少邊距，防止畫面過長 */
 .action-panel,
 #action-panel-box {
     padding: 8px 10px !important;
@@ -1579,7 +1593,9 @@ body {
     line-height: 1.2 !important;
 }
 
+/* 4. 📱 手機端 (Mobile) 專用極致響應式壓縮 */
 @media (max-width: 768px) {
+    /* 縮減全局面板內邊距 */
     .status-panel, 
     .action-panel, 
     .dynamic-panel {
@@ -1587,11 +1603,13 @@ body {
         margin-bottom: 8px !important;
     }
 
+    /* 玩家狀態頭部資訊縮小 */
     .status-header-row {
         font-size: 12px !important;
         gap: 6px !important;
     }
 
+    /* 背包改為更加精緊的 3 欄 */
     #bag-slots-container {
         gap: 4px !important;
     }
@@ -1602,6 +1620,7 @@ body {
         font-size: 10px !important;
     }
 
+    /* 按鈕壓縮高度 */
     .btn-game {
         padding: 6px 8px !important;
         font-size: 12px !important;
