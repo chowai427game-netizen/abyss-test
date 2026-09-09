@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎 (v2.0 完整修復版)
+// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎 (v4.1)
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
@@ -79,6 +79,21 @@ let activeVillageBuffs = { maxHpAdd: 0, maxMpAdd: 0, atkAdd: 0, expRate: 1.0 };
 let gameState = "VILLAGE";
 let currentEnvironment = "NORMAL";
 let currentVillageLocation = "GATE";
+
+/**
+ * 🛠️ 冒險狀態一鍵重置 API (進入新局或死亡時調用)
+ */
+function resetRunState() {
+    playerShield = 0;
+    activeMonster = null;
+    playerStatusEffects = { burn: 0, poison: 0, freeze: 0 };
+    if (currentRun) {
+        currentRun.hp = currentRun.maxHp || 100;
+        currentRun.mp = currentRun.maxMp || 50;
+        currentRun.qteBuffDuration = 0;
+        currentRun.qteBuffTurns = 0;
+    }
+}
 
 /**
  * 通用非阻塞式 UI 訊息通知 helper (取代阻斷式 alert)
@@ -285,6 +300,10 @@ async function saveGameData(immediate = false) {
         if (currentRun.lv !== undefined) accountMeta.lv = currentRun.lv;
         if (currentRun.exp !== undefined) accountMeta.exp = currentRun.exp;
 
+        // 🔒 確保最高紀錄樓層正確更新 (修正 Bug)
+        const currentFloorVal = typeof dungeonFloor !== "undefined" ? Number(dungeonFloor) : 1;
+        accountMeta.maxFloor = Math.max(Number(accountMeta.maxFloor) || 1, currentFloorVal);
+
         // 🔒 確保 nextExp 保持最高遞增值，防護不被重置
         const validNextExp = Math.max(30, accountMeta.nextExp || 30, currentRun.nextExp || 30);
         accountMeta.nextExp = validNextExp;
@@ -318,11 +337,14 @@ async function saveGameData(immediate = false) {
 }
 
 /**
- * 實際執行雲端 API 存檔請求
+ * 實際執行雲端 API 存檔請求 (帶有 5 秒逾時保護)
  */
 async function executeCloudSave() {
     if (isSavingToCloud) return; // 避免併發連線衝突
     isSavingToCloud = true;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 秒逾時護欄
 
     try {
         const payload = {
@@ -335,13 +357,42 @@ async function executeCloudSave() {
         await fetch(`${SERVER_URL}/api/active/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
     } catch (error) {
-        console.warn("雲端同步異常，數據已安全暫存於本地快取。");
+        console.warn("雲端同步異常或連線逾時，數據已安全暫存於本地快取。");
     } finally {
-        isSavingToCloud = false;
+        clearTimeout(timeoutId);
+        isSavingToCloud = false; // 確保必定釋放鎖定
     }
+}
+
+/**
+ * 手動匯出 JSON 存檔 (備份 API)
+ */
+function exportSaveJSON() {
+    if (!accountMeta) return "";
+    return JSON.stringify(accountMeta, null, 2);
+}
+
+/**
+ * 手動匯入 JSON 存檔 (復原 API)
+ */
+function importSaveJSON(jsonString) {
+    try {
+        const parsed = JSON.parse(jsonString);
+        if (parsed && parsed.name && parsed.pin) {
+            accountMeta = Object.assign(createDefaultAccountMeta(parsed.name, parsed.pin), parsed);
+            saveGameData(true);
+            notifyUser("✨ 存檔匯入成功！", "success");
+            return true;
+        }
+    } catch(e) {
+        notifyUser("❌ JSON 格式無效，匯入失敗！", "warn");
+    }
+    return false;
 }
 
 /**
