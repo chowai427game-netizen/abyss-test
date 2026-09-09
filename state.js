@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎 (v4.1)
+// 🔑 state.js：永久帳號存檔結構、PIN 碼身分驗證與雲端雙向同步引擎 (v4.2)
 // ==========================================================================
 
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
@@ -196,7 +196,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * 初始化或載入玩家存檔 (雲端優先，本地 fallback)
+ * 初始化或載入玩家存檔 (含 8 秒 Render 平滑冷啟動遮罩)
  */
 async function initOrLoadPlayer(inputName, inputPin) {
     const targetName = inputName ? inputName.trim() : "";
@@ -212,18 +212,29 @@ async function initOrLoadPlayer(inputName, inputPin) {
         return { success: false, isNewUser: false };
     }
 
+    // ⚡ 1. 喚起 8 秒冷啟動專屬加載彈窗與進度條 (解決 Render 睡眠延遲)
+    if (typeof showLoginLoadingOverlay === "function") {
+        showLoginLoadingOverlay(8, "正在連結 Render 伺服器驗證血脈...");
+    }
+
     let isNewUser = false;
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 9000); // 9秒護欄
+
         const res = await fetch(`${SERVER_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: targetName, pin: targetPin })
+            body: JSON.stringify({ name: targetName, pin: targetPin }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (!data.success) {
+            if (typeof hideLoginLoadingOverlay === "function") hideLoginLoadingOverlay();
             notifyUser(data.message || "❌ 登入失敗！PIN 碼可能錯誤。", "warn");
             return { success: false, isNewUser: false };
         }
@@ -239,12 +250,13 @@ async function initOrLoadPlayer(inputName, inputPin) {
         }
 
     } catch (err) {
-        console.warn("網絡連線失敗，切換至離線存檔驗證。");
+        console.warn("網絡連線逾時或失敗，切換至離線存檔驗證。");
         const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
         const encodedPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${targetName}`);
         const localPin = encodedPin ? decodePin(encodedPin) : null;
 
         if (localData && localPin && localPin !== targetPin) {
+            if (typeof hideLoginLoadingOverlay === "function") hideLoginLoadingOverlay();
             notifyUser("🔐 本地 PIN 碼驗證失敗！", "warn");
             return { success: false, isNewUser: false };
         }
@@ -260,6 +272,11 @@ async function initOrLoadPlayer(inputName, inputPin) {
         } else {
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
             isNewUser = true;
+        }
+    } finally {
+        // ⚡ 2. 登入回應完成，關閉加載遮罩
+        if (typeof hideLoginLoadingOverlay === "function") {
+            hideLoginLoadingOverlay();
         }
     }
 
@@ -294,17 +311,14 @@ async function initOrLoadPlayer(inputName, inputPin) {
 async function saveGameData(immediate = false) {
     if (!accountMeta || !accountMeta.name) return;
 
-    // 1. 即時將 currentRun 數據同步回 accountMeta
     if (typeof currentRun !== "undefined") {
         if (currentRun.gold !== undefined) accountMeta.gold = currentRun.gold;
         if (currentRun.lv !== undefined) accountMeta.lv = currentRun.lv;
         if (currentRun.exp !== undefined) accountMeta.exp = currentRun.exp;
 
-        // 🔒 確保最高紀錄樓層正確更新 (修正 Bug)
         const currentFloorVal = typeof dungeonFloor !== "undefined" ? Number(dungeonFloor) : 1;
         accountMeta.maxFloor = Math.max(Number(accountMeta.maxFloor) || 1, currentFloorVal);
 
-        // 🔒 確保 nextExp 保持最高遞增值，防護不被重置
         const validNextExp = Math.max(30, accountMeta.nextExp || 30, currentRun.nextExp || 30);
         accountMeta.nextExp = validNextExp;
         currentRun.nextExp = validNextExp;
@@ -316,7 +330,6 @@ async function saveGameData(immediate = false) {
     accountMeta.lastSavedAt = Date.now();
     const charKey = `ABYSS_DESTINY_SAVE_${accountMeta.name}`;
 
-    // 2. 本地 LocalStorage 立即同步 (零延遲防閃退)
     try {
         localStorage.setItem(charKey, JSON.stringify(accountMeta));
         localStorage.setItem(`ABYSS_DESTINY_PIN_${accountMeta.name}`, encodePin(accountMeta.pin));
@@ -325,14 +338,13 @@ async function saveGameData(immediate = false) {
         console.error("LocalStorage 寫入失敗:", e);
     }
 
-    // 3. 雲端同步防抖 (Debounce Trigger)
     if (immediate) {
         executeCloudSave();
     } else {
         if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
         saveDebounceTimer = setTimeout(() => {
             executeCloudSave();
-        }, 1500); // 1.5 秒內若無新動作才發送雲端請求
+        }, 1500);
     }
 }
 
@@ -340,11 +352,11 @@ async function saveGameData(immediate = false) {
  * 實際執行雲端 API 存檔請求 (帶有 5 秒逾時保護)
  */
 async function executeCloudSave() {
-    if (isSavingToCloud) return; // 避免併發連線衝突
+    if (isSavingToCloud) return;
     isSavingToCloud = true;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 秒逾時護欄
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
         const payload = {
@@ -365,7 +377,7 @@ async function executeCloudSave() {
         console.warn("雲端同步異常或連線逾時，數據已安全暫存於本地快取。");
     } finally {
         clearTimeout(timeoutId);
-        isSavingToCloud = false; // 確保必定釋放鎖定
+        isSavingToCloud = false;
     }
 }
 
