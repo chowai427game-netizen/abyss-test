@@ -1026,6 +1026,7 @@ function updateUI() {
     }
     
     syncCharacterDataUi();
+    updateActionPanelUI();
 }
 
 function formatSkillEffectText(s, lv, playerRun) {
