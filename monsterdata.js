@@ -1,49 +1,49 @@
 // ==========================================================================
-// 👹 monsterdata.js：1F-59F 怪物分流與六大深淵領主數據庫
+// 👹 monsterdata.js：1F-59F 怪物分流與六大深淵領主數據庫 (v4.1)
 // ==========================================================================
 
 const REGULAR_MONSTERS_POOL = [
     // === 🧱 1F - 9F ===
-    { name: "💧 藍色史萊姆", minFloor: 1, maxFloor: 9, baseHp: 40, hpScale: 14, baseAtk: 4, atkScale: 2.5, baseDef: 1, def: 1, baseMdef: 1, mdef: 1, baseSpd: 14, flee: 5 },
-    { name: "👺 綠皮哥布林", minFloor: 1, maxFloor: 9, baseHp: 45, hpScale: 15, baseAtk: 5, atkScale: 2.8, baseDef: 2, def: 2, baseMdef: 1, mdef: 1, baseSpd: 26, flee: 18 },
-    { name: "🐗 荒野半獸人", minFloor: 1, maxFloor: 9, baseHp: 55, hpScale: 18, baseAtk: 6, atkScale: 3.2, baseDef: 4, def: 4, baseMdef: 2, mdef: 2, baseSpd: 12, flee: 8 },
-    { name: "👻 迷途哭泣怨靈", minFloor: 1, maxFloor: 9, baseHp: 38, hpScale: 13, baseAtk: 5, atkScale: 3.0, baseDef: 1, def: 1, baseMdef: 6, mdef: 6, baseSpd: 22, flee: 15 },
-    { name: "🧱 古墓巨石守衛", minFloor: 1, maxFloor: 9, baseHp: 70, hpScale: 22, baseAtk: 4, atkScale: 2.2, baseDef: 8, def: 8, baseMdef: 3, mdef: 3, baseSpd: 8, flee: 2 },
+    { name: "💧 藍色史萊姆", minFloor: 1, maxFloor: 9, baseHp: 40, hpScale: 14, baseAtk: 4, atkScale: 2.5, baseDef: 1, baseMdef: 1, baseSpd: 14, flee: 5 },
+    { name: "👺 綠皮哥布林", minFloor: 1, maxFloor: 9, baseHp: 45, hpScale: 15, baseAtk: 5, atkScale: 2.8, baseDef: 2, baseMdef: 1, baseSpd: 26, flee: 18 },
+    { name: "🐗 荒野半獸人", minFloor: 1, maxFloor: 9, baseHp: 55, hpScale: 18, baseAtk: 6, atkScale: 3.2, baseDef: 4, baseMdef: 2, baseSpd: 12, flee: 8 },
+    { name: "👻 迷途哭泣怨靈", minFloor: 1, maxFloor: 9, baseHp: 38, hpScale: 13, baseAtk: 5, atkScale: 3.0, baseDef: 1, baseMdef: 6, baseSpd: 22, flee: 15 },
+    { name: "🧱 古墓巨石守衛", minFloor: 1, maxFloor: 9, baseHp: 70, hpScale: 22, baseAtk: 4, atkScale: 2.2, baseDef: 8, baseMdef: 3, baseSpd: 8, flee: 2 },
 
     // === ❄️ 11F - 19F ===
-    { name: "❄️ 冰川小惡魔", minFloor: 11, maxFloor: 19, baseHp: 180, hpScale: 25, baseAtk: 18, atkScale: 4.5, baseDef: 8, def: 8, baseMdef: 12, mdef: 12, baseSpd: 20, flee: 22 },
-    { name: "🕷️ 地底毒牙蛛", minFloor: 11, maxFloor: 19, baseHp: 150, hpScale: 22, baseAtk: 22, atkScale: 5.0, baseDef: 6, def: 6, baseMdef: 8, mdef: 8, baseSpd: 28, flee: 30 },
-    { name: "🧟 復甦凍僵腐屍", minFloor: 11, maxFloor: 19, baseHp: 240, hpScale: 30, baseAtk: 15, atkScale: 3.8, baseDef: 12, def: 12, baseMdef: 5, mdef: 5, baseSpd: 10, flee: 10 },
-    { name: "🦅 冰原吸血皮翼", minFloor: 11, maxFloor: 19, baseHp: 130, hpScale: 20, baseAtk: 20, atkScale: 4.2, baseDef: 5, def: 5, baseMdef: 10, mdef: 10, baseSpd: 32, flee: 35 },
-    { name: "🛡️ 鋼鐵霜殼陸龜", minFloor: 11, maxFloor: 19, baseHp: 320, hpScale: 40, baseAtk: 12, atkScale: 3.0, baseDef: 20, def: 20, baseMdef: 12, mdef: 12, baseSpd: 7, flee: 5 },
+    { name: "❄️ 冰川小惡魔", minFloor: 11, maxFloor: 19, baseHp: 180, hpScale: 25, baseAtk: 18, atkScale: 4.5, baseDef: 8, baseMdef: 12, baseSpd: 20, flee: 22 },
+    { name: "🕷️ 地底毒牙蛛", minFloor: 11, maxFloor: 19, baseHp: 150, hpScale: 22, baseAtk: 22, atkScale: 5.0, baseDef: 6, baseMdef: 8, baseSpd: 28, flee: 30 },
+    { name: "🧟 復甦凍僵腐屍", minFloor: 11, maxFloor: 19, baseHp: 240, hpScale: 30, baseAtk: 15, atkScale: 3.8, baseDef: 12, baseMdef: 5, baseSpd: 10, flee: 10 },
+    { name: "🦅 冰原吸血皮翼", minFloor: 11, maxFloor: 19, baseHp: 130, hpScale: 20, baseAtk: 20, atkScale: 4.2, baseDef: 5, baseMdef: 10, baseSpd: 32, flee: 35 },
+    { name: "🛡️ 鋼鐵霜殼陸龜", minFloor: 11, maxFloor: 19, baseHp: 320, hpScale: 40, baseAtk: 12, atkScale: 3.0, baseDef: 20, baseMdef: 12, baseSpd: 7, flee: 5 },
 
     // === 🔥 21F - 29F ===
-    { name: "🔥 焦土爆烈小鬼", minFloor: 21, maxFloor: 29, baseHp: 380, hpScale: 35, baseAtk: 45, atkScale: 7.0, baseDef: 12, def: 12, baseMdef: 20, mdef: 20, baseSpd: 24, flee: 28 },
-    { name: "🦎 熔岩劇毒壁虎", minFloor: 21, maxFloor: 29, baseHp: 450, hpScale: 40, baseAtk: 38, atkScale: 6.2, baseDef: 16, def: 16, baseMdef: 14, mdef: 14, baseSpd: 22, flee: 25 },
-    { name: "💀 焦黑地獄刺客", minFloor: 21, maxFloor: 29, baseHp: 350, hpScale: 32, baseAtk: 55, atkScale: 8.5, baseDef: 10, def: 10, baseMdef: 12, mdef: 12, baseSpd: 36, flee: 42 },
-    { name: "🥩 煉獄虐殺食人魔", minFloor: 21, maxFloor: 29, baseHp: 600, hpScale: 55, baseAtk: 50, atkScale: 7.5, baseDef: 25, def: 25, baseMdef: 10, mdef: 10, baseSpd: 12, flee: 12 },
-    { name: "🔮 浮空禁忌魔導書", minFloor: 21, maxFloor: 29, baseHp: 300, hpScale: 28, baseAtk: 48, atkScale: 8.0, baseDef: 8, def: 8, baseMdef: 30, mdef: 30, baseSpd: 18, flee: 20 },
+    { name: "🔥 焦土爆烈小鬼", minFloor: 21, maxFloor: 29, baseHp: 380, hpScale: 35, baseAtk: 45, atkScale: 7.0, baseDef: 12, baseMdef: 20, baseSpd: 24, flee: 28 },
+    { name: "🦎 熔岩劇毒壁虎", minFloor: 21, maxFloor: 29, baseHp: 450, hpScale: 40, baseAtk: 38, atkScale: 6.2, baseDef: 16, baseMdef: 14, baseSpd: 22, flee: 25 },
+    { name: "💀 焦黑地獄刺客", minFloor: 21, maxFloor: 29, baseHp: 350, hpScale: 32, baseAtk: 55, atkScale: 8.5, baseDef: 10, baseMdef: 12, baseSpd: 36, flee: 42 },
+    { name: "🥩 煉獄虐殺食人魔", minFloor: 21, maxFloor: 29, baseHp: 600, hpScale: 55, baseAtk: 50, atkScale: 7.5, baseDef: 25, baseMdef: 10, baseSpd: 12, flee: 12 },
+    { name: "🔮 浮空禁忌魔導書", minFloor: 21, maxFloor: 29, baseHp: 300, hpScale: 28, baseAtk: 48, atkScale: 8.0, baseDef: 8, baseMdef: 30, baseSpd: 18, flee: 20 },
 
     // === 🌀 31F - 39F ===
-    { name: "👁️ 虛空扭曲觀察者", minFloor: 31, maxFloor: 39, baseHp: 800, hpScale: 65, baseAtk: 75, atkScale: 10.5, baseDef: 18, def: 18, baseMdef: 40, mdef: 40, baseSpd: 22, flee: 30 },
-    { name: "🌌 裂縫黯夜潛行者", minFloor: 31, maxFloor: 39, baseHp: 720, hpScale: 60, baseAtk: 90, atkScale: 12.0, baseDef: 15, def: 15, baseMdef: 20, mdef: 20, baseSpd: 30, flee: 50 },
-    { name: "🦇 異次元吸血巨蝠", minFloor: 31, maxFloor: 39, baseHp: 650, hpScale: 55, baseAtk: 85, atkScale: 11.5, baseDef: 12, def: 12, baseMdef: 25, mdef: 25, baseSpd: 38, flee: 48 },
-    { name: "🗿 虛空遺蹟守衛像", minFloor: 31, maxFloor: 39, baseHp: 1100, hpScale: 90, baseAtk: 65, atkScale: 8.0, baseDef: 40, def: 40, baseMdef: 30, mdef: 30, baseSpd: 11, flee: 10 },
-    { name: "🐍 劇毒多頭利維坦", minFloor: 31, maxFloor: 39, baseHp: 950, hpScale: 75, baseAtk: 80, atkScale: 10.0, baseDef: 28, def: 28, baseMdef: 28, mdef: 28, baseSpd: 16, flee: 20 },
+    { name: "👁️ 虛空扭曲觀察者", minFloor: 31, maxFloor: 39, baseHp: 800, hpScale: 65, baseAtk: 75, atkScale: 10.5, baseDef: 18, baseMdef: 40, baseSpd: 22, flee: 30 },
+    { name: "🌌 裂縫黯夜潛行者", minFloor: 31, maxFloor: 39, baseHp: 720, hpScale: 60, baseAtk: 90, atkScale: 12.0, baseDef: 15, baseMdef: 20, baseSpd: 30, flee: 50 },
+    { name: "🦇 異次元吸血巨蝠", minFloor: 31, maxFloor: 39, baseHp: 650, hpScale: 55, baseAtk: 85, atkScale: 11.5, baseDef: 12, baseMdef: 25, baseSpd: 38, flee: 48 },
+    { name: "🗿 虛空遺蹟守衛像", minFloor: 31, maxFloor: 39, baseHp: 1100, hpScale: 90, baseAtk: 65, atkScale: 8.0, baseDef: 40, baseMdef: 30, baseSpd: 11, flee: 10 },
+    { name: "🐍 劇毒多頭利維坦", minFloor: 31, maxFloor: 39, baseHp: 950, hpScale: 75, baseAtk: 80, atkScale: 10.0, baseDef: 28, baseMdef: 28, baseSpd: 16, flee: 20 },
 
     // === 👹 41F - 49F ===
-    { name: "👿 深淵貪婪狂魔", minFloor: 41, maxFloor: 49, baseHp: 1600, hpScale: 110, baseAtk: 130, atkScale: 15.0, baseDef: 35, def: 35, baseMdef: 30, mdef: 30, baseSpd: 24, flee: 35 },
-    { name: "🗡️ 墮落暗殺刺刃者", minFloor: 41, maxFloor: 49, baseHp: 1300, hpScale: 95, baseAtk: 160, atkScale: 18.0, baseDef: 22, def: 22, baseMdef: 25, mdef: 25, baseSpd: 40, flee: 60 },
-    { name: "🧠 奪心碎裂魔靈", minFloor: 41, maxFloor: 49, baseHp: 1200, hpScale: 90, baseAtk: 145, atkScale: 16.5, baseDef: 18, def: 18, baseMdef: 50, mdef: 50, baseSpd: 28, flee: 40 },
-    { name: "🐲 岩漿黑羽幼龍", minFloor: 41, maxFloor: 49, baseHp: 2200, hpScale: 150, baseAtk: 120, atkScale: 14.0, baseDef: 45, def: 45, baseMdef: 35, mdef: 35, baseSpd: 15, flee: 18 },
-    { name: "🥀 嗜血泣淚妖花", minFloor: 41, maxFloor: 49, baseHp: 1500, hpScale: 100, baseAtk: 135, atkScale: 16.0, baseDef: 28, def: 28, baseMdef: 42, mdef: 42, baseSpd: 12, flee: 15 },
+    { name: "👿 深淵貪婪狂魔", minFloor: 41, maxFloor: 49, baseHp: 1600, hpScale: 110, baseAtk: 130, atkScale: 15.0, baseDef: 35, baseMdef: 30, baseSpd: 24, flee: 35 },
+    { name: "🗡️ 墮落暗殺刺刃者", minFloor: 41, maxFloor: 49, baseHp: 1300, hpScale: 95, baseAtk: 160, atkScale: 18.0, baseDef: 22, baseMdef: 25, baseSpd: 40, flee: 60 },
+    { name: "🧠 奪心碎裂魔靈", minFloor: 41, maxFloor: 49, baseHp: 1200, hpScale: 90, baseAtk: 145, atkScale: 16.5, baseDef: 18, baseMdef: 50, baseSpd: 28, flee: 40 },
+    { name: "🐲 岩漿黑羽幼龍", minFloor: 41, maxFloor: 49, baseHp: 2200, hpScale: 150, baseAtk: 120, atkScale: 14.0, baseDef: 45, baseMdef: 35, baseSpd: 15, flee: 18 },
+    { name: "🥀 嗜血泣淚妖花", minFloor: 41, maxFloor: 49, baseHp: 1500, hpScale: 100, baseAtk: 135, atkScale: 16.0, baseDef: 28, baseMdef: 42, baseSpd: 12, flee: 15 },
 
     // === 🌌 51F - 59F ===
-    { name: "✨ 織星流星漫遊者", minFloor: 51, maxFloor: 59, baseHp: 3000, hpScale: 200, baseAtk: 220, atkScale: 25.0, baseDef: 40, def: 40, baseMdef: 60, mdef: 60, baseSpd: 28, flee: 55 },
-    { name: "🌌 混沌世界吞噬蟲", minFloor: 51, maxFloor: 59, baseHp: 3500, hpScale: 240, baseAtk: 200, atkScale: 22.0, baseDef: 55, def: 55, baseMdef: 45, mdef: 45, baseSpd: 18, flee: 25 },
-    { name: "🪐 重力異變奇點", minFloor: 51, maxFloor: 59, baseHp: 4500, hpScale: 300, baseAtk: 180, atkScale: 20.0, baseDef: 70, def: 70, baseMdef: 70, mdef: 70, baseSpd: 12, flee: 10 },
-    { name: "💀 終焉寂滅死神", minFloor: 51, maxFloor: 59, baseHp: 2800, hpScale: 180, baseAtk: 260, atkScale: 30.0, baseDef: 30, def: 30, baseMdef: 50, mdef: 50, baseSpd: 45, flee: 70 },
-    { name: "👑 宇宙虛無秩序使者", minFloor: 51, maxFloor: 59, baseHp: 4000, hpScale: 270, baseAtk: 210, atkScale: 24.0, baseDef: 50, def: 50, baseMdef: 65, mdef: 65, baseSpd: 22, flee: 40 }
+    { name: "✨ 織星流星漫遊者", minFloor: 51, maxFloor: 59, baseHp: 3000, hpScale: 200, baseAtk: 220, atkScale: 25.0, baseDef: 40, baseMdef: 60, baseSpd: 28, flee: 55 },
+    { name: "🌌 混沌世界吞噬蟲", minFloor: 51, maxFloor: 59, baseHp: 3500, hpScale: 240, baseAtk: 200, atkScale: 22.0, baseDef: 55, baseMdef: 45, baseSpd: 18, flee: 25 },
+    { name: "🪐 重力異變奇點", minFloor: 51, maxFloor: 59, baseHp: 4500, hpScale: 300, baseAtk: 180, atkScale: 20.0, baseDef: 70, baseMdef: 70, baseSpd: 12, flee: 10 },
+    { name: "💀 終焉寂滅死神", minFloor: 51, maxFloor: 59, baseHp: 2800, hpScale: 180, baseAtk: 260, atkScale: 30.0, baseDef: 30, baseMdef: 50, baseSpd: 45, flee: 70 },
+    { name: "👑 宇宙虛無秩序使者", minFloor: 51, maxFloor: 59, baseHp: 4000, hpScale: 270, baseAtk: 210, atkScale: 24.0, baseDef: 50, baseMdef: 65, baseSpd: 22, flee: 40 }
 ];
 
 const BOSS_DATABASE = {
@@ -64,11 +64,133 @@ const MONSTER_DROPS = {
     "✨ 織星流星漫遊者": "星塵碎片", "🌌 混沌世界吞噬蟲": "混沌核心", "🪐 重力異變奇點": "重力奇點", "💀 終焉寂滅死神": "死神鐮刃", "👑 宇宙虛無秩序使者": "裁決羽毛"
 };
 
-// ⚡ 效能優化：快查 Helper
-function getMonsterDrop(monsterName) {
-    return MONSTER_DROPS[monsterName] || null;
+// --------------------------------------------------------------------------
+// ⚡ 效能優化與生成 API (O(1) 雙向檢索與平滑數值生成器 v4.1)
+// --------------------------------------------------------------------------
+
+/**
+ * 輔助工具：去除怪物字串中的 Emoji 與圖案標示
+ */
+function cleanMonsterName(name) {
+    if (!name) return "";
+    return String(name).replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
 }
 
+const _dropMap = new Map();
+
+/**
+ * 初始化掉落表 Map (支援帶 Emoji 全名與純文字雙向 Key)
+ */
+function _initDropMap() {
+    _dropMap.clear();
+    for (let mName in MONSTER_DROPS) {
+        const drop = MONSTER_DROPS[mName];
+        _dropMap.set(mName, drop);
+        const cleanKey = cleanMonsterName(mName);
+        if (cleanKey && !_dropMap.has(cleanKey)) {
+            _dropMap.set(cleanKey, drop);
+        }
+    }
+}
+_initDropMap();
+
+/**
+ * 根據怪物名稱獲取掉落素材 (雙向名稱支援)
+ */
+function getMonsterDrop(monsterName) {
+    if (!monsterName) return null;
+    return _dropMap.get(monsterName) || _dropMap.get(cleanMonsterName(monsterName)) || null;
+}
+
+/**
+ * 判斷當前樓層是否為 Boss 關卡 (10F, 20F, 30F, 40F, 50F, 60F)
+ */
+function isBossFloor(floor) {
+    const f = parseInt(floor) || 1;
+    return Boolean(BOSS_DATABASE[f]);
+}
+
+/**
+ * 根據樓層獲取 Boss 資料
+ */
 function getBossByFloor(floor) {
-    return BOSS_DATABASE[floor] || null;
+    const f = parseInt(floor) || 1;
+    return BOSS_DATABASE[f] || null;
+}
+
+/**
+ * 獲取指定樓層可出現的常規怪物模板列表
+ */
+function getMonstersForFloor(floor) {
+    const f = Math.max(1, parseInt(floor) || 1);
+    return REGULAR_MONSTERS_POOL.filter(m => f >= m.minFloor && f <= m.maxFloor);
+}
+
+/**
+ * 核心生成器：傳入怪物模板與樓層，計算出平滑縮放後的怪物實體物件
+ */
+function generateMonsterInstance(template, floor) {
+    if (!template) return null;
+    const f = Math.max(1, parseInt(floor) || 1);
+    const deltaFloor = Math.max(0, f - template.minFloor);
+
+    const calcHp = Math.floor(template.baseHp + (template.hpScale || 10) * deltaFloor);
+    const calcAtk = Math.floor(template.baseAtk + (template.atkScale || 2.0) * deltaFloor);
+    const calcDef = Math.floor(template.baseDef + deltaFloor * 0.5);
+    const calcMdef = Math.floor(template.baseMdef + deltaFloor * 0.5);
+    
+    // 設定速度與閃避上限保護
+    const calcSpd = Math.min(80, Math.floor(template.baseSpd + deltaFloor * 0.3));
+    const calcFlee = Math.min(75, Math.floor(template.flee + deltaFloor * 0.4));
+
+    return {
+        name: template.name,
+        hp: calcHp,
+        maxHp: calcHp,
+        atk: calcAtk,
+        def: calcDef,
+        mdef: calcMdef,
+        spd: calcSpd,
+        flee: calcFlee,
+        isBoss: false,
+        dropItem: getMonsterDrop(template.name) || "史萊姆黏液",
+        desc: `${template.name}（深淵 ${f}F 棲息魔物）`
+    };
+}
+
+/**
+ * 一站式怪物生成 API：傳入樓層，自動回傳該樓層的 Boss 或隨機縮放常規怪物實體
+ */
+function spawnMonsterForFloor(floor) {
+    const f = Math.max(1, parseInt(floor) || 1);
+
+    // 1. 若為 Boss 關卡，回傳標準化 Boss 實體
+    if (isBossFloor(f)) {
+        const bossData = getBossByFloor(f);
+        return {
+            name: bossData.name,
+            hp: bossData.baseHp,
+            maxHp: bossData.baseHp,
+            atk: bossData.baseAtk,
+            def: bossData.def,
+            mdef: bossData.mdef,
+            spd: bossData.baseSpd,
+            flee: bossData.flee,
+            isBoss: true,
+            dropItem: bossData.dropItem,
+            desc: bossData.desc
+        };
+    }
+
+    // 2. 若為常規關卡，篩選對應樓層池並隨機抽出一個模板進行數值縮放
+    const availablePool = getMonstersForFloor(f);
+    if (availablePool.length === 0) {
+        // Fallback 保底怪物
+        const defaultTemplate = REGULAR_MONSTERS_POOL[0];
+        return generateMonsterInstance(defaultTemplate, f);
+    }
+
+    const randomIndex = Math.floor(Math.random() * availablePool.length);
+    const selectedTemplate = availablePool[randomIndex];
+    return generateMonsterInstance(selectedTemplate, f);
 }
