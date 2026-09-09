@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📦 itemdata.js：皇家魔導熔爐 & 頂級料理食譜庫 (雙向屬性相容 Key)
+// 📦 itemdata.js：皇家魔導熔爐 & 頂級料理食譜庫 (雙向屬性相容 Key v4.1)
 // ==========================================================================
 
 const CRAFTING_BLUEPRINTS = [
@@ -11,7 +11,7 @@ const CRAFTING_BLUEPRINTS = [
     { name: "🪵 古木法杖", type: "weapon", range: "1-10", stats: { matk: 18, mpRegen: 3 }, ingredients: { "巨石苔蘚": 3, "怨靈淚晶": 1 }, desc: "刻有魔法陣的木質短法杖，增幅魔攻。" },
     
     { name: "👕 獸皮背心", type: "armor", range: "1-10", stats: { maxHp: 40, block: 2, def: 2 }, ingredients: { "獸人後腿肉": 4 }, desc: "耐穿防風的基礎獸皮護甲。" },
-    { name: "鞋 疾風輕靴", type: "armor", range: "1-10", stats: { spd: 8, flee: 6 }, ingredients: { "哥布林香料": 3, "怨靈淚晶": 1 }, desc: "流動著哥布林狂熱意志的戰靴，提升迴避。" },
+    { name: "👟 疾風輕靴", type: "armor", range: "1-10", stats: { spd: 8, flee: 6 }, ingredients: { "哥布林香料": 3, "怨靈淚晶": 1 }, desc: "流動著哥布林狂熱意志的戰靴，提升迴避。" },
     { name: "🛡️ 舊木圓盾", type: "armor", range: "1-10", stats: { block: 4, def: 4, maxHp: 20 }, ingredients: { "巨石苔蘚": 3 }, desc: "表面長滿苔蘚的厚木板盾。" },
     { name: "👕 怨靈斗篷", type: "armor", range: "1-10", stats: { flee: 8, spd: 2, mdef: 2 }, ingredients: { "怨靈淚晶": 4 }, desc: "具有隱蔽特性的半透明舊披風。" },
     { name: "🛡️ 哥布林皮帽", type: "armor", range: "1-10", stats: { block: 1, def: 1, mdef: 2, maxHp: 30 }, ingredients: { "哥布林香料": 2, "史萊姆黏液": 2 }, desc: "有陣怪味的防砸護面皮帽。" },
@@ -30,7 +30,7 @@ const CRAFTING_BLUEPRINTS = [
     { name: "🏹 怨念強弓", type: "weapon", range: "11-20", stats: { atk: 28, hit: 15, spd: 5 }, ingredients: { "怨念皮翼": 3, "哥布林香料": 2 }, desc: "由蝙蝠骨架和皮翼拉絲製成的獵弓。" },
     
     { name: "👕 守衛重甲", type: "armor", range: "11-20", stats: { block: 10, def: 10, mdef: 4, maxHp: 60, spd: -4 }, ingredients: { "硬殼龜甲": 3, "巨石苔蘚": 2 }, desc: "融入堅硬背甲防護，極度防身但笨重。" },
-    { name: "鞋 霜凍舞靴", type: "armor", range: "11-20", stats: { spd: 12, flee: 8 }, ingredients: { "寒冰霜塵": 3, "史萊姆黏液": 3 }, desc: "在冰面上也能如履平地的敏捷凍靴。" },
+    { name: "👟 霜凍舞靴", type: "armor", range: "11-20", stats: { spd: 12, flee: 8 }, ingredients: { "寒冰霜塵": 3, "史萊姆黏液": 3 }, desc: "在冰面上也能如履平地的敏捷凍靴。" },
     { name: "👕 毒霧皮大衣", type: "armor", range: "11-20", stats: { maxHp: 100, block: 3, def: 3, mdef: 6 }, ingredients: { "毒蜘蛛腺體": 2, "腐屍毒素": 2 }, desc: "散發出刺鼻蛛毒氣味的厚皮大衣。" },
     { name: "🛡️ 霜殼巨盾", type: "armor", range: "11-20", stats: { block: 8, def: 8, mdef: 5, maxHp: 50 }, ingredients: { "硬殼龜甲": 2, "寒冰霜塵": 2 }, desc: "凍結水汽覆蓋的巨型龜甲防盾。" },
     { name: "👕 蝙蝠皮護額", type: "armor", range: "11-20", stats: { flee: 8, hit: 6, maxHp: 40 }, ingredients: { "怨念皮翼": 4 }, desc: "賦予微弱夜視和聲吶感知能力的輕型護額。" },
@@ -49,7 +49,7 @@ const CRAFTING_BLUEPRINTS = [
     { name: "🪄 禁忌熔岩法杖", type: "weapon", range: "21-30", stats: { matk: 60, mpRegen: 10, mdef: 8 }, ingredients: { "魔導碎頁": 3, "巨石苔蘚": 5 }, desc: "熔岩魔力流轉的法杖，回藍效能更強。" },
     
     { name: "👕 熔岩重型鎧甲", type: "armor", range: "21-30", stats: { block: 16, def: 16, mdef: 8, maxHp: 120, spd: -5 }, ingredients: { "熔岩鱗片": 4, "硬殼龜甲": 3 }, desc: "結合龜甲與熔岩高溫板甲，防禦超凡。" },
-    { name: "鞋 赤炎推進皮靴", type: "armor", range: "21-30", stats: { spd: 18, flee: 10 }, ingredients: { "烈焰餘燼": 3, "寒冰霜塵": 4 }, desc: "利用冷熱氣流噴射前進的蒸汽流皮靴。" },
+    { name: "👟 赤炎推進皮靴", type: "armor", range: "21-30", stats: { spd: 18, flee: 10 }, ingredients: { "烈焰餘燼": 3, "寒冰霜塵": 4 }, desc: "利用冷熱氣流噴射前進的蒸汽流皮靴。" },
     { name: "🛡️ 食人魔骨盾", type: "armor", range: "21-30", stats: { block: 12, def: 12, maxHp: 80 }, ingredients: { "食人魔厚皮": 3, "獸人後腿肉": 6 }, desc: "包裹着食人魔堅韌厚皮的骨製大盾。" },
     { name: "👕 灰燼偽裝斗篷", type: "armor", range: "21-30", stats: { flee: 15, spd: 4 }, ingredients: { "烈焰餘燼": 2, "怨念皮翼": 5 }, desc: "由火山灰燼與蝙蝠皮膜織成的暗影披風。" },
     { name: "🛡️ 熔火防爆頭盔", type: "armor", range: "21-30", stats: { block: 6, def: 6, mdef: 6, maxHp: 100 }, ingredients: { "焦黑骨碎": 3, "毒蜘蛛腺體": 4 }, desc: "覆蓋蛛網隔熱層的火山探索鋼盔。" },
@@ -71,7 +71,7 @@ const CRAFTING_BLUEPRINTS = [
     { name: "👕 時空閃爍皮甲", type: "armor", range: "31-40", stats: { maxHp: 180, flee: 18 }, ingredients: { "時空皮革": 4, "怨念皮翼": 8 }, desc: "時空皮革縫製，身體呈現半躍遷閃爍狀態。" },
     { name: "🛡️ 符文壁障面罩", type: "armor", range: "31-40", stats: { block: 15, def: 15, mdef: 10, maxHp: 150 }, ingredients: { "符文石板": 3, "焦黑骨碎": 6 }, desc: "散發出淡淡能量迴路幽光的防禦面罩。" },
     { name: "👕 九頭蛇皮鱗甲", type: "armor", range: "31-40", stats: { maxHp: 300, block: 10, def: 10, mdef: 10 }, ingredients: { "九頭蛇血": 2, "熔岩鱗片": 5 }, desc: "帶有超強自愈活性細胞的多層皮甲。" },
-    { name: "鞋 虛空躍遷之靴", type: "armor", range: "31-40", stats: { spd: 25, flee: 15 }, ingredients: { "時空皮革": 3, "寒冰霜塵": 8 }, desc: "輕輕起跳就能向前躍遷半米的時空靴。" },
+    { name: "👟 虛空躍遷之靴", type: "armor", range: "31-40", stats: { spd: 25, flee: 15 }, ingredients: { "時空皮革": 3, "寒冰霜塵": 8 }, desc: "輕輕起跳就能向前躍遷半米的時空靴。" },
     
     { name: "💍 虛空之眼死光戒", type: "accessory", range: "31-40", stats: { critChance: 15, hit: 12 }, ingredients: { "虛空眼球": 4, "烈焰餘燼": 8 }, desc: "凝視它的深淵，深淵回饋你致命的暴擊與命中。" },
     { name: "📿 時空摺疊護身符", type: "accessory", range: "31-40", stats: { flee: 18 }, ingredients: { "時空皮革": 4, "毒蜘蛛腺體": 8 }, desc: "將佩戴者周邊的時空進行微米摺疊的魔器。" },
@@ -90,7 +90,7 @@ const CRAFTING_BLUEPRINTS = [
     { name: "👕 暗影夜行緊身衣", type: "armor", range: "41-50", stats: { maxHp: 280, flee: 25 }, ingredients: { "暗刃鋼片": 3, "時空皮革": 8 }, desc: "穿戴後整個人融入地貌陰影，閃避率狂飆。" },
     { name: "🛡️ 精神壁障重盾", type: "armor", range: "41-50", stats: { block: 28, def: 28, mdef: 25, maxHp: 300 }, ingredients: { "奪心碎晶": 3, "符文石板": 8 }, desc: "散發出暗紫色精神能量磁場的念動巨盾。" },
     { name: "👕 龍鱗隔熱防護衣", type: "armor", range: "41-50", stats: { maxHp: 500, block: 20, def: 20, mdef: 15 }, ingredients: { "地龍魔爪": 2, "食人魔厚皮": 10 }, desc: "地龍護體鱗片精心織造，隔熱性能與強度極佳。" },
-    { name: "鞋 泣血幻步花靴", type: "armor", range: "41-50", stats: { spd: 35, flee: 20 }, ingredients: { "泣血花瓣": 4, "寒冰霜塵": 12 }, desc: "每走一步都會在大地上短暫留下一道血色花瓣殘影。" },
+    { name: "👟 泣血幻步花靴", type: "armor", range: "41-50", stats: { spd: 35, flee: 20 }, ingredients: { "泣血花瓣": 4, "寒冰霜塵": 12 }, desc: "每走一步都會在大地上短暫留下一道血色花瓣殘影。" },
     
     { name: "💍 惡魔之角碎骨戒", type: "accessory", range: "41-50", stats: { atk: 35, hit: 15, critChance: 8 }, ingredients: { "惡魔之角": 4, "烈焰餘燼": 12 }, desc: "用惡魔角質骨粉混合秘銀燒鑄的強擊指環。" },
     { name: "📿 暗影之鋼項鍊", type: "accessory", range: "41-50", stats: { hit: 20, spd: 8 }, ingredients: { "暗刃鋼片": 4, "怨念皮翼": 12 }, desc: "極細暗影鋼絲穿成的頸鍊，提升精準度與反應。" },
@@ -157,7 +157,7 @@ const RECIPES_DATABASE = [
     { name: "🍷 吸血蝠血橙釀", range: "31-40", ingredients: { "吸血毒牙": 2, "史萊姆黏液": 10 }, type: "village_eat", desc: "進城前吃：嗜血覺醒，物理揮砍永久附帶 5% 的吸血效果。" },
     { name: "🍵 符文古法養生湯", range: "31-40", ingredients: { "符文石板": 1, "巨石苔蘚": 10 }, type: "village_eat", desc: "進城前吃：古法守護，最大生命值上限 +100，防禦固定 +3。" },
 
-    { name: "🍷 逆轉禁忌血釀", range: "41-50", ingredients: { "虛空核心": 1, "祭司血清": 1 }, type: "dungeon_use", desc: "局內攜帶：顛倒虛空！直接強行跳過當前樓層戰鬥。" },
+    { name: "🍷 逆轉禁忌血釀", range: "41-50", ingredients: { "混沌核心": 1, "祭司血清": 1 }, type: "dungeon_use", desc: "局內攜帶：顛倒虛空！直接強行跳過當前樓層戰鬥。" },
     { name: "🍲 惡魔骨湯大砂鍋", range: "41-50", ingredients: { "惡魔之角": 2, "硬殼龜甲": 10 }, type: "village_eat", desc: "進城前吃：骨骼魔化，最大生命上限永久 +300 點。" },
     { name: "🥩 暗刃鐵板黑胡椒牛扒", range: "41-50", ingredients: { "暗刃鋼片": 2, "食人魔厚皮": 8 }, type: "village_eat", desc: "進城前吃：殺意浸透，基礎攻擊力永久暴力加成 +25 點。" },
     { name: "🥗 奪心魔靈精神沙律", range: "41-50", ingredients: { "奪心碎晶": 2, "魔導碎頁": 10 }, type: "village_eat", desc: "進城前吃：腦容量翻倍，Max MP 永久 +80，每回合回魔 +5。" },
@@ -194,21 +194,89 @@ const MARKET_ITEMS_POOL = {
             price: 15000,
             type: "blueprint",
             isLegendary: true,
-            desc: `【5% 特殊商品】解鎖 ${b.name} 打造資格，附帶 Lv.1 技能 [${b.skill.name}]。`
+            desc: `【5% 特殊商品】解鎖 ${b.name} 打造資格，附帶 Lv.1 技能 [${b.skill?.name || "專屬裝備特技"}]。`
         }));
     }
 };
 
 // --------------------------------------------------------------------------
-// ⚡ 效能優化：快查索引 Helper (O(1) 效能查詢)
+// ⚡ 效能優化：雙向快查索引 Helper (O(1) 效能與防禦雙向檢索)
 // --------------------------------------------------------------------------
-const _blueprintMap = new Map(CRAFTING_BLUEPRINTS.map(item => [item.name, item]));
-const _recipeMap = new Map(RECIPES_DATABASE.map(item => [item.name, item]));
 
-function getItemBlueprintByName(name) {
-    return _blueprintMap.get(name) || null;
+/**
+ * 輔助工具：去除字串中的 Emoji 與圖標（用於模糊比對）
+ */
+function cleanItemName(name) {
+    if (!name) return "";
+    return String(name).replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
 }
 
+const _blueprintMap = new Map();
+const _recipeMap = new Map();
+
+/**
+ * 動態初始化 Map 雜湊表（雙向寫入帶 Emoji 與純文字 Key）
+ */
+function _initLookupMaps() {
+    _blueprintMap.clear();
+    _recipeMap.clear();
+
+    CRAFTING_BLUEPRINTS.forEach(item => {
+        _blueprintMap.set(item.name, item);
+        const cleanKey = cleanItemName(item.name);
+        if (cleanKey && !_blueprintMap.has(cleanKey)) {
+            _blueprintMap.set(cleanKey, item);
+        }
+    });
+
+    RECIPES_DATABASE.forEach(item => {
+        _recipeMap.set(item.name, item);
+        const cleanKey = cleanItemName(item.name);
+        if (cleanKey && !_recipeMap.has(cleanKey)) {
+            _recipeMap.set(cleanKey, item);
+        }
+    });
+}
+
+// 執行 Map 初始化
+_initLookupMaps();
+
+/**
+ * 根據裝備名稱獲取藍圖 (支援帶 Emoji 全名或純文字名稱)
+ */
+function getItemBlueprintByName(name) {
+    if (!name) return null;
+    return _blueprintMap.get(name) || _blueprintMap.get(cleanItemName(name)) || null;
+}
+
+/**
+ * 根據料理名稱獲取食譜 (支援帶 Emoji 全名或純文字名稱)
+ */
 function getRecipeByName(name) {
-    return _recipeMap.get(name) || null;
+    if (!name) return null;
+    return _recipeMap.get(name) || _recipeMap.get(cleanItemName(name)) || null;
+}
+
+/**
+ * 根據類型獲取料理食譜列表 (新增輔助 API)
+ */
+function getRecipesByType(type) {
+    if (!type) return RECIPES_DATABASE;
+    return RECIPES_DATABASE.filter(r => r.type === type);
+}
+
+/**
+ * 根據等級範圍獲取裝備藍圖列表 (新增輔助 API)
+ */
+function getBlueprintsByRange(range) {
+    if (!range) return CRAFTING_BLUEPRINTS;
+    return CRAFTING_BLUEPRINTS.filter(b => b.range === range);
+}
+
+/**
+ * 根據裝備類別獲取藍圖 (weapon, armor, accessory)
+ */
+function getBlueprintsByType(type) {
+    if (!type) return CRAFTING_BLUEPRINTS;
+    return CRAFTING_BLUEPRINTS.filter(b => b.type === type);
 }
