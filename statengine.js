@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🧮 statengine.js：屬性計算與傷害判定引擎 (v4.1 前後端同構純函數版)
+// 🧮 statengine.js：屬性計算與傷害判定引擎 (v4.2 全域連動修復版)
 // ==========================================================================
 
 (function (exports) {
@@ -49,6 +49,10 @@
             LUK: (Number(acc.stats.LUK) || 0) + (jobBonus.LUK || 0)
         };
 
+        // 記錄舊的最大值，用於比例補算 HP/MP
+        const oldMaxHp = current.maxHp || 100;
+        const oldMaxMp = current.maxMp || 50;
+
         // ==========================================================================
         // ⚙️ 核心套用：適合 3 點/級的平滑成長公式 (防暴脹)
         // ==========================================================================
@@ -60,13 +64,13 @@
         current.spd = 20 + Math.floor(s.AGI * 0.5);
         current.flee = 10 + Math.floor(s.AGI * 0.6);
 
-        // 3. VIT 體質
+        // 3. VIT 體質 (加點 VIT 立刻拉高 maxHp)
         current.maxHp = 100 + (s.VIT * 10) + (villageBuffs.maxHpAdd || 0);
         current.def = Math.floor(s.VIT * 0.3);
         current.block = current.def;
         current.hpRegen = 1 + Math.floor(s.VIT / 10);
 
-        // 4. INT 智力
+        // 4. INT 智力 (加點 INT 立刻拉高 maxMp 與魔攻)
         current.matk = 15 + Math.floor(s.INT * 1.8 + Math.pow(Math.floor(s.INT / 10), 1.3));
         current.mdef = Math.floor(s.INT * 0.3);
         current.maxMp = 50 + (s.INT * 6) + (villageBuffs.maxMpAdd || 0);
@@ -84,7 +88,7 @@
         current.vampRate = 0;
         current.doubleStrike = 0;
 
-        // 職業攻防公式
+        // 職業攻防基礎公式
         if (job === "archer" || job === "hunter" || job === "bard_dancer") {
             current.atk = 15 + dexBonusAtk + Math.floor(s.STR * 0.5);
         } else if (job === "magician" || job === "acolyte" || job === "wizard" || job === "sage" || job === "priest") {
@@ -93,15 +97,12 @@
             current.atk = 15 + strBonusAtk + Math.floor(s.DEX * 0.5);
         }
 
-        current.hp = Math.min(current.hp || current.maxHp, current.maxHp);
-        current.mp = Math.min(current.mp || current.maxMp, current.maxMp);
-
-        // 2. 計算裝備加成 (裝備部位: weapon, armor, accessory)
+        // 2. 🛡️ 計算裝備加成 (裝備部位: weapon, armor, accessory)
         applyEquipmentStats('weapon', acc, current, bDb);
         applyEquipmentStats('armor', acc, current, bDb);
         applyEquipmentStats('accessory', acc, current, bDb);
 
-        // 3. 🔮 自動掃描已學習被動技能並套用屬性加成 (二轉跨職業繼承支援)
+        // 3. 🔮 自動掃描已學習被動技能並套用屬性加成
         if (current.skills && (sDb || typeof getAllSkillsForJob === "function")) {
             let availableSkills = [];
             if (typeof getAllSkillsForJob === "function") {
@@ -114,7 +115,6 @@
                 const skLv = current.skills[sKey];
                 if (skLv <= 0) continue;
 
-                // 支援 ID 或名稱比對
                 const sMeta = availableSkills.find(s => s.name === sKey || s.id === sKey);
                 if (sMeta && sMeta.type === "passive" && sMeta.passiveStats) {
                     for (let pStat in sMeta.passiveStats) {
@@ -133,6 +133,18 @@
                     }
                 }
             }
+        }
+
+        // 💖【關鍵修復】若是村莊狀態或加點後，直接補滿當前 HP / MP 至最新上限
+        if (typeof gameState !== "undefined" && gameState === "VILLAGE") {
+            current.hp = current.maxHp;
+            current.mp = current.maxMp;
+        } else {
+            // 戰鬥中加點則補足增長差額
+            const hpDiff = current.maxHp - oldMaxHp;
+            const mpDiff = current.maxMp - oldMaxMp;
+            current.hp = Math.min(current.maxHp, (current.hp || oldMaxHp) + Math.max(0, hpDiff));
+            current.mp = Math.min(current.maxMp, (current.mp || oldMaxMp) + Math.max(0, mpDiff));
         }
     }
 
@@ -157,7 +169,6 @@
 
         if (!blueprint || !blueprint.stats) return;
 
-        // 🛠️ 修正 Bug：相容 equipmentStars 與 itemRefines 雙命名
         const starLevel = (acc.equipmentStars && acc.equipmentStars[slot]) || 
                           (acc.itemRefines && acc.itemRefines[equipName]) || 0;
         const multiplier = 1 + (starLevel * 0.15);
@@ -202,7 +213,7 @@
 
         const refineLvl = (acc && acc.equipmentStars && acc.equipmentStars[slot]) || 
                           (acc && acc.itemRefines && acc.itemRefines[equipName]) || 0;
-        const multiplier = 1 + (refineLvl * 0.15); // 每 +1 增加 15% 基礎屬性
+        const multiplier = 1 + (refineLvl * 0.15);
 
         let finalStats = {};
         for (let key in blueprint.stats) {
@@ -222,7 +233,6 @@
         const current = playerRun || (typeof currentRun !== "undefined" ? currentRun : null);
         const dFloor = floor || (typeof dungeonFloor !== "undefined" ? dungeonFloor : 1);
 
-        // 1. 玩家攻擊怪物之命中與完全迴避判定
         if (isPlayerAttacking && monster) {
             if (!isMagic && Math.random() * 100 < (Number(monster.perfectDodge) || 0)) {
                 return { damage: 0, isCrit: false, isMiss: true, isPerfectDodge: true };
@@ -237,7 +247,6 @@
                 }
             }
         } 
-        // 2. 怪物攻擊玩家之命中與完全迴避判定
         else if (!isPlayerAttacking && monster) {
             if (!isMagic && Math.random() * 100 < (Number(current?.perfectDodge) || 0)) {
                 return { damage: 0, isCrit: false, isMiss: true, isPerfectDodge: true };
@@ -253,16 +262,13 @@
             }
         }
 
-        // 3. 防禦減傷公式計算
         const defConst = isMagic ? 40 : 50;
         const reduction = def / (def + Math.max(1, defConst));
         let baseDmg = atk * (1 - reduction);
 
-        // 4. 浮動浮動係數 (0.9 ~ 1.1)
         let variance = 0.9 + Math.random() * 0.2;
         let finalDmg = Math.max(1, Math.floor(baseDmg * variance));
 
-        // 5. 暴擊判定 (預設 1.5 倍爆傷)
         let isCrit = false;
         const playerCrit = Number(current?.critChance) || 0;
         if (isPlayerAttacking && !isMagic && Math.random() * 100 < playerCrit) {
@@ -278,5 +284,13 @@
     exports.applyEquipmentStats = applyEquipmentStats;
     exports.calculateEquipmentBonus = calculateEquipmentBonus;
     exports.calculateDamage = calculateDamage;
+
+    // 🌐【關鍵修復】顯式將關鍵函式直接掛載至全域 window，防止全域呼叫遺失
+    if (typeof window !== "undefined") {
+        window.resetCurrentRunData = resetCurrentRunData;
+        window.applyEquipmentStats = applyEquipmentStats;
+        window.calculateEquipmentBonus = calculateEquipmentBonus;
+        window.calculateDamage = calculateDamage;
+    }
 
 })(typeof exports !== 'undefined' ? exports : (window.StatEngine = {}));
