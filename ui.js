@@ -1437,7 +1437,7 @@ function renderVillageWorkshop() {
     });
 }
 
-// 📜 日記戰鬥日誌 (Log Box) - 傷害數字高亮與電競字型連動 API
+// 📜 日記戰鬥日誌 (Log Box) - 純紅字動態打擊感版
 function addLog(msg, type = "deal") {
     const box = DOM.get('log-box');
     if (!box) return;
@@ -1453,25 +1453,22 @@ function addLog(msg, type = "deal") {
 
     let formattedMsg = msg;
     if (typeof formattedMsg === "string") {
-        // 1. 🎯 扣血 / 傷害數值匹配 (如 "- 86 HP", "-12 HP", "86 點傷害")
+        // 1. 🎯 傷害數值匹配 (移除外框與底色，改為純動態紅字)
         formattedMsg = formattedMsg.replace(/(?:-\s*|\b)(\d+)\s*(點傷害|點物理傷害|點魔法傷害|傷害|HP(?!\s*\+))/g, (match, num, label) => {
-            const isTake = type === 'take' || msg.includes('魔物暴虐') || msg.includes('受到');
-            const badgeClass = isTake ? 'num-popup num-boss-strike' : 'num-popup num-p-dmg';
-            const icon = isTake ? '💥' : '⚔️';
-            return `<span class="${badgeClass}" style="font-family: var(--font-damage), sans-serif !important;">${icon} -${num} HP</span>`;
+            return `<span class="num-p-dmg">- ${num} HP</span>`;
         });
 
-        // 2. 💖 正向回復數值匹配 (如 "+50 HP", "回復 30 HP", "+20 MP")
+        // 2. 💖 正向回復數值 (純綠字/藍字，無外框)
         formattedMsg = formattedMsg.replace(/\+(\d+)\s*(HP|MP|魔力|點生命)/g, (match, num, label) => {
             const isMp = label.includes("MP") || label.includes("魔力");
-            const badgeClass = isMp ? 'num-popup num-m-dmg' : 'num-popup num-h-heal';
+            const cls = isMp ? 'num-m-dmg' : 'num-h-heal';
             const icon = isMp ? '🔮' : '💖';
-            return `<span class="${badgeClass}" style="font-family: var(--font-damage), sans-serif !important;">${icon} +${num} ${label}</span>`;
+            return `<span class="${cls}">${icon} +${num} ${label}</span>`;
         });
 
-        // 3. 🪙 獎勵獲得匹配 (如 "+22 G", "+50 EXP")
+        // 3. 🪙 獎勵獲得匹配
         formattedMsg = formattedMsg.replace(/\+(\d+)\s*(G|EXP|金幣|經驗)/g, (match, num, label) => {
-            return `<span class="gold-glint v-badge" style="font-family: var(--font-damage), sans-serif !important; display: inline-flex; align-items: center; gap: 2px; margin: 0 2px;">🪙 +${num} ${label}</span>`;
+            return `<span class="gold-glint v-badge" style="display: inline-flex; align-items: center; gap: 2px; margin: 0 2px;">🪙 +${num} ${label}</span>`;
         });
     }
 
@@ -1479,7 +1476,7 @@ function addLog(msg, type = "deal") {
     p.className = `log-row-box${classMap[type] || ""}`;
     p.innerHTML = formattedMsg;
     box.appendChild(p);
-    
+
     box.scrollTo({
         top: box.scrollHeight,
         behavior: 'smooth'
