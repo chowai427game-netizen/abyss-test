@@ -934,19 +934,118 @@ body {
     }
 }
 
-/* 4. 回復與魔力文字 (同步去除外框，保持純文字) */
-.log-panel .num-h-heal {
+/* ==========================================================================
+   💚 加血回復動態特效 (綠字 + 黑色強烈陰影 + 「+」粒子向上飄散消失)
+   ========================================================================== */
+
+/* 1. 回復數字本體 */
+.log-panel .num-h-heal,
+.num-h-heal {
+    position: relative !important;
     display: inline-block !important;
-    font-family: var(--font-damage), sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 800 !important;
-    color: #2ecc71 !important;
-    background: transparent !important;
+    font-family: var(--font-damage), 'Chakra Petch', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
+    color: #2ecc71 !important;            /* 翠綠色字體 */
+    background: transparent !important;   /* 移除背景外框 */
     border: none !important;
-    text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 8px rgba(46, 204, 113, 0.8) !important;
-    animation: dmgPopImpact 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+    box-shadow: none !important;
+    padding: 0 6px !important;
+    margin: 0 4px !important;
+    vertical-align: middle !important;
+    
+    /* 黑色邊框陰影 + 綠色外發光 */
+    text-shadow: 
+        2px 2px 0px #000, 
+        -1px -1px 0px #000, 
+        1px -1px 0px #000, 
+        -1px 1px 0px #000, 
+        0 0 10px rgba(46, 204, 113, 0.8) !important;
+
+    /* 數字本體：向上浮動 + 漸隱消失 */
+    animation: healTextFloat 0.85s cubic-bezier(0.2, 0.8, 0.25, 1) forwards !important;
 }
 
+/* 2. 動態「+」號粒子 (利用 ::before 與 ::after 產生額外飄散的 + 號) */
+.log-panel .num-h-heal::before,
+.log-panel .num-h-heal::after {
+    content: "+" !important;
+    position: absolute !important;
+    color: #58d68d !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    pointer-events: none !important;
+    text-shadow: 1px 1px 0px #000, 0 0 6px #2ecc71 !important;
+    opacity: 0;
+}
+
+/* 左側飄散粒子 + 號 */
+.log-panel .num-h-heal::before {
+    left: -6px !important;
+    top: -2px !important;
+    animation: plusParticleLeft 0.75s ease-out 0.08s forwards !important;
+}
+
+/* 右側飄散粒子 + 號 */
+.log-panel .num-h-heal::after {
+    right: -6px !important;
+    top: -4px !important;
+    animation: plusParticleRight 0.8s ease-out 0.15s forwards !important;
+}
+
+/* 🎬 動畫 1：數字本體向上漸散消失 */
+@keyframes healTextFloat {
+    0% {
+        transform: translateY(8px) scale(0.7);
+        opacity: 0;
+        filter: brightness(1.8);
+    }
+    30% {
+        transform: translateY(-3px) scale(1.2);
+        opacity: 1;
+    }
+    65% {
+        transform: translateY(-12px) scale(1);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateY(-24px) scale(0.85);
+        opacity: 0;
+        filter: blur(1px);
+    }
+}
+
+/* 🎬 動畫 2：左粒子「+」往左上方擴散消失 */
+@keyframes plusParticleLeft {
+    0% {
+        transform: translate(0, 0) scale(0.4);
+        opacity: 0;
+    }
+    35% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-14px, -26px) scale(1.4) rotate(-20deg);
+        opacity: 0;
+    }
+}
+
+/* 🎬 動畫 3：右粒子「+」往右上方擴散消失 */
+@keyframes plusParticleRight {
+    0% {
+        transform: translate(0, 0) scale(0.4);
+        opacity: 0;
+    }
+    35% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(14px, -30px) scale(1.5) rotate(25deg);
+        opacity: 0;
+    }
+}
+
+/* 4. 回魔文字 (同步去除外框，保持純文字) */
 .log-panel .num-m-dmg {
     display: inline-block !important;
     font-family: var(--font-damage), sans-serif !important;
