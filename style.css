@@ -1,6 +1,6 @@
 /* ==========================================================================
    🎮 命運深淵：血脈傳承 (Abyss of Destiny: Blood & Heritage)
-   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v4.0)
+   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v4.3)
    ========================================================================== */
 
 /* ==========================================================================
@@ -8,11 +8,12 @@
    ========================================================================== */
 :root {
     --bg-main: #0a0a0d;
-    --panel-bg: rgba(22, 22, 27, 0.85);
+    --panel-bg: rgba(22, 22, 27, 0.88);
     --panel-border: rgba(255, 255, 255, 0.08);
     --gold-glow: #ffd700;
     --neon-gold: #ffd700;
     --gold-dim: #b39700;
+    --neon-cyan: #00ffcc;
     --text-main: #e3e3e6;
     --text-muted: #8e8e93;
     
@@ -41,14 +42,14 @@ body {
 }
 
 /* ==========================================================================
-   🌌 ZONE 0: 全螢幕魔導加載遮罩 (Loading Overlay)
+   🌌 ZONE 0: 全螢幕魔導加載與 Render 伺服器喚醒遮罩
    ========================================================================== */
-#loading-overlay {
+#loading-overlay, #login-loading-overlay {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
     background: radial-gradient(circle at 50% 50%, #111116 0%, #050507 100%);
     z-index: 99999;
-    display: flex; justify-content: center; align-items: center;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
     transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
     opacity: 1; visibility: visible;
 }
@@ -107,6 +108,12 @@ body {
 @keyframes textPulse {
     0% { opacity: 0.6; transform: scale(0.99); } 
     100% { opacity: 1; transform: scale(1.01); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.4)); }
+    50% { transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(0, 255, 204, 0.8)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.4)); }
 }
 
 .loading-bar-bg {
@@ -435,7 +442,7 @@ body {
 .scrollable-panel-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
 
 /* ==========================================================================
-   📜 ZONE 5: 日誌與電影級打擊感系統
+   📜 ZONE 5: 日誌與電影級打擊感系統 (含持久傷害徽章美化)
    ========================================================================== */
 .log-panel {
     height: 250px; overflow-y: auto; overflow-x: hidden;
@@ -443,7 +450,8 @@ body {
     background: radial-gradient(circle at 50% 100%, rgba(15, 15, 22, 0.9) 0%, rgba(7, 7, 10, 0.98) 100%);
     padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
-    margin-bottom: 20px; font-size: 14px; line-height: 1.65; scroll-behavior: smooth;
+    margin-bottom: 20px; font-size: 13px; line-height: 1.65; scroll-behavior: smooth;
+    word-break: break-word;
 }
 
 .log-row-box {
@@ -452,6 +460,7 @@ body {
     border-left: 3px solid rgba(255, 255, 255, 0.15); color: #e3e3e6; border-top: 1px solid rgba(255, 255, 255, 0.02);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3); animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: left center; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: block;
 }
 
 @keyframes logCinematicPop {
@@ -1389,7 +1398,6 @@ body {
    🖼️ 全局 Modal 彈窗隱藏與置中修復 (Fix Auto-Open Display Bug)
    ========================================================================== */
 
-/* 1. 全螢幕遮罩：預設隱藏 display: none，當 JS 設定 display: flex 時才進行置中 */
 .modal-backdrop {
     position: fixed !important;
     top: 0 !important;
@@ -1399,7 +1407,7 @@ body {
     background: rgba(5, 7, 12, 0.82) !important;
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
-    display: none; /* 預設隱藏，避免一開網頁就彈出 */
+    display: none;
     justify-content: center !important;
     align-items: center !important;
     z-index: 99999 !important;
@@ -1408,14 +1416,12 @@ body {
     margin: 0 !important;
 }
 
-/* 2. 當 JS 開啟彈窗（設定 style="display: flex" 或 class="active"）時才強行顯示 */
 .modal-backdrop[style*="display: flex"],
 .modal-backdrop[style*="display:flex"],
 .modal-backdrop.active {
     display: flex !important;
 }
 
-/* 3. 彈窗主體卡片：居中樣式 */
 .modal-card, .qte-box {
     background: rgba(18, 22, 32, 0.96) !important;
     border: 1px solid rgba(0, 255, 204, 0.4) !important;
@@ -1430,7 +1436,6 @@ body {
     animation: modalPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-/* 4. 寶箱動作按鈕直排網格 */
 .chest-action-grid {
     display: flex !important;
     flex-direction: column !important;
@@ -1439,7 +1444,6 @@ body {
     width: 100% !important;
 }
 
-/* 5. 彈窗動畫 */
 @keyframes modalPopIn {
     0% { opacity: 0; transform: scale(0.88) translateY(10px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -1449,7 +1453,6 @@ body {
    🛠️ 畫面視覺修復 (Action Panel Card & Clean Damage Text)
    ========================================================================== */
 
-/* 1. 修正左下角動作按鈕區面板：補全卡片背景與邊框，消除懸空感 */
 .action-panel, 
 #action-panel-box {
     background: rgba(18, 22, 32, 0.85) !important;
@@ -1464,7 +1467,6 @@ body {
     margin-top: 10px !important;
 }
 
-/* 確保按鈕群組間距舒適 */
 .action-btn-group {
     display: flex !important;
     flex-direction: column !important;
@@ -1472,7 +1474,7 @@ body {
     width: 100% !important;
 }
 
-/* 2. 修正戰鬥日誌內傷害數字：徹底清除模糊、縱向拉伸與錯位 */
+/* 修正戰鬥日誌內傷害數字：徹底清除模糊、縱向拉伸與錯位 */
 .log-panel .num-popup {
     display: inline-block !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
@@ -1484,13 +1486,12 @@ body {
     border-radius: 4px !important;
     vertical-align: middle !important;
     letter-spacing: 0.5px !important;
-    transform: none !important; /* 清除歪斜拉伸 */
-    filter: none !important;    /* 清除模糊濾鏡 */
+    transform: none !important;
+    filter: none !important;
     line-height: 1.2 !important;
     text-shadow: none !important;
 }
 
-/* 魔物暴擊/反噬傷害膠囊徽章 (紅色高亮) */
 .log-panel .num-boss-strike {
     color: #ffffff !important;
     background: linear-gradient(135deg, #e63946, #b7094c) !important;
@@ -1499,31 +1500,28 @@ body {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
 }
 
-/* 玩家物理傷害 (黃金色) */
 .log-panel .num-p-dmg {
     color: #ffd700 !important;
     background: rgba(255, 215, 0, 0.15) !important;
     border: 1px solid rgba(255, 215, 0, 0.4) !important;
 }
 
-/* 玩家魔法傷害 (青藍色) */
 .log-panel .num-m-dmg {
     color: #00ffff !important;
     background: rgba(0, 255, 255, 0.15) !important;
     border: 1px solid rgba(0, 255, 255, 0.4) !important;
 }
 
-/* MISS 閃避徽章 */
 .log-panel .num-miss {
     color: #aaaaaa !important;
     background: rgba(255, 255, 255, 0.1) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
+
 /* ==========================================================================
    🎒 背包緊湊化與手機版高度瘦身修復 (Fix Bag Grid & Mobile Long Screen Bug)
    ========================================================================== */
 
-/* 1. 重構背包容器：強制 3 欄緊湊網格，徹底解決長條擠壓問題 */
 #bag-slots-container,
 .bag-grid-3col {
     display: grid !important;
@@ -1534,7 +1532,6 @@ body {
     box-sizing: border-box !important;
 }
 
-/* 2. 背包單一格子樣式：固定高度，精簡 Padding */
 .bag-slot {
     background: rgba(0, 0, 0, 0.4) !important;
     border: 1px dashed rgba(255, 255, 255, 0.15) !important;
@@ -1555,7 +1552,6 @@ body {
     transition: all 0.2s ease !important;
 }
 
-/* 背包有道具時的高亮效果 */
 .bag-slot.has-item,
 .bag-slot:not(:empty):not(:contains("空位")) {
     background: rgba(255, 215, 0, 0.12) !important;
@@ -1566,7 +1562,6 @@ body {
     cursor: pointer !important;
 }
 
-/* 3. 動作面板瘦身：減少邊距，防止畫面過長 */
 .action-panel,
 #action-panel-box {
     padding: 8px 10px !important;
@@ -1584,9 +1579,7 @@ body {
     line-height: 1.2 !important;
 }
 
-/* 4. 📱 手機端 (Mobile) 專用極致響應式壓縮 */
 @media (max-width: 768px) {
-    /* 縮減全局面板內邊距 */
     .status-panel, 
     .action-panel, 
     .dynamic-panel {
@@ -1594,13 +1587,11 @@ body {
         margin-bottom: 8px !important;
     }
 
-    /* 玩家狀態頭部資訊縮小 */
     .status-header-row {
         font-size: 12px !important;
         gap: 6px !important;
     }
 
-    /* 背包改為更加精緊的 3 欄 */
     #bag-slots-container {
         gap: 4px !important;
     }
@@ -1611,7 +1602,6 @@ body {
         font-size: 10px !important;
     }
 
-    /* 按鈕壓縮高度 */
     .btn-game {
         padding: 6px 8px !important;
         font-size: 12px !important;
