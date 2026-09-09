@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🎭 jobdata.js：皇家五大基礎職業、十大二轉進階職業、二轉樹與技能庫
+// 🎭 jobdata.js：皇家五大基礎職業、十大二轉進階職業、二轉樹與技能庫 (v4.1)
 // ==========================================================================
 
 const JOB_DATABASE = {
@@ -384,17 +384,42 @@ const ADVANCED_JOBS_DATABASE = {
     ]
 };
 
-// 🛠️ 邏輯與技能擷取輔助函式
+// 🛠️ 邏輯與技能擷取輔助函式 (高效與防禦增強版)
+
+/**
+ * 根據技能 ID 全局快速檢索技能物件 (新增高效 API)
+ */
+function getSkillById(skillId) {
+    if (!skillId) return null;
+    for (let jId in SKILLS_DATABASE) {
+        const found = SKILLS_DATABASE[jId].find(s => s.id === skillId);
+        if (found) return found;
+    }
+    return null;
+}
+
+/**
+ * 獲取基礎職業可轉職的二轉進階職業列表
+ */
+function getAdvancedJobsForBase(baseJobId) {
+    return ADVANCED_JOBS_DATABASE[baseJobId] || [];
+}
+
+/**
+ * 擷取指定職業的所有可用技能（自動包含一轉基礎技能）
+ */
 function getAllSkillsForJob(jobId) {
     let jobObj = JOB_DATABASE[jobId];
     if (!jobObj) return [];
 
     let skillsList = [];
     
+    // 若為二轉進階職業，先加入其基礎職業的技能
     if (jobObj.baseJob && SKILLS_DATABASE[jobObj.baseJob]) {
         skillsList = skillsList.concat(SKILLS_DATABASE[jobObj.baseJob]);
     }
     
+    // 加入當前職業專屬技能
     if (SKILLS_DATABASE[jobId]) {
         skillsList = skillsList.concat(SKILLS_DATABASE[jobId]);
     }
@@ -402,13 +427,20 @@ function getAllSkillsForJob(jobId) {
     return skillsList;
 }
 
+/**
+ * 獲取中文職業名稱
+ */
 function getJobChineseName(j) {
     return JOB_DATABASE[j]?.name || "無名勇者";
 }
 
+/**
+ * 計算職業等級屬性加成 (含數值安全防禦)
+ */
 function getJobBonusStats(jobId, jobLevel = 1) {
     const baseBonus = JOB_STAT_BONUS[jobId] || { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
-    const factor = Math.min(2.0, 1.0 + (jobLevel - 1) * 0.05);
+    const safeLevel = Math.max(1, parseInt(jobLevel) || 1);
+    const factor = Math.min(2.0, 1.0 + (safeLevel - 1) * 0.05);
     
     let calculated = {};
     for (let key in baseBonus) {
@@ -417,30 +449,41 @@ function getJobBonusStats(jobId, jobLevel = 1) {
     return calculated;
 }
 
-function canLearnSkill(playerData, skill, warehouse, currentLv = 0) {
+/**
+ * 判定玩家是否滿足技能學習條件 (強化空值保底防禦)
+ */
+function canLearnSkill(playerData, skill, warehouse = {}, currentLv = 0) {
+    if (!skill) {
+        return { canLearn: false, reason: "⚠️ 技能資料不存在！" };
+    }
+
     if (currentLv >= 10) {
         return { canLearn: false, reason: "👑 技能已達到最高等級上限 (Lv.10)！" };
     }
     
-    const playerLv = playerData.lv || playerData.level || 1;
+    const pData = playerData || {};
+    const playerLv = pData.lv || pData.level || 1;
     if (playerLv < skill.reqLv) {
         return { canLearn: false, reason: `📈 等級不足！需達到 Lv.${skill.reqLv}（當前 Lv.${playerLv}）` };
     }
 
     const nextLv = currentLv + 1;
-    const goldCost = skill.goldCost * nextLv;
-    const playerGold = playerData.gold || 0;
+    const goldCost = (skill.goldCost || 0) * nextLv;
+    const playerGold = pData.gold || 0;
     
     if (playerGold < goldCost) {
         return { canLearn: false, reason: `🪙 金幣不足！需要 ${goldCost} G（當前 ${playerGold} G）` };
     }
 
+    const safeWarehouse = warehouse || {};
     let missingMats = [];
-    for (let mat in skill.reqMat) {
-        let reqQty = skill.reqMat[mat] * nextLv;
-        let count = warehouse[mat] || 0;
-        if (count < reqQty) {
-            missingMats.push(`${mat} x${reqQty - count}`);
+    if (skill.reqMat) {
+        for (let mat in skill.reqMat) {
+            let reqQty = skill.reqMat[mat] * nextLv;
+            let count = safeWarehouse[mat] || 0;
+            if (count < reqQty) {
+                missingMats.push(`${mat} x${reqQty - count}`);
+            }
         }
     }
 
@@ -451,10 +494,14 @@ function canLearnSkill(playerData, skill, warehouse, currentLv = 0) {
     return { canLearn: true };
 }
 
+/**
+ * 判定玩家是否可以進行二轉進階轉職
+ */
 function canAdvanceJob(playerData) {
+    if (!playerData) return false;
     const currentJob = playerData.job;
     const currentLv = playerData.lv || playerData.level || 1;
     
-    const isBaseJob = ADVANCED_JOBS_DATABASE.hasOwnProperty(currentJob);
+    const isBaseJob = Object.prototype.hasOwnProperty.call(ADVANCED_JOBS_DATABASE, currentJob);
     return (currentLv >= 20 && isBaseJob);
 }
