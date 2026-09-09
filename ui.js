@@ -935,6 +935,7 @@ function updateUI() {
         
         initSwipeNavigation();
         syncCharacterDataUi();
+        updateActionPanelUI();
         return; 
     }
     
