@@ -341,7 +341,7 @@ function initSwipeNavigation() {
 }
 
 // --------------------------------------------------------------------------
-// 🎯 屬性配點邏輯 (已修復戰鬥屬性實時連動重算 Issue)
+// 🎯 屬性配點邏輯 (已修復 HP/MP 及全戰鬥屬性實時連動重算)
 // --------------------------------------------------------------------------
 
 function allocateStatPoint(statKey) {
@@ -358,25 +358,31 @@ function allocateStatPoint(statKey) {
     accountMeta.statPoints--;
     accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
     
-    // 2. ⚡【關鍵修復】強制觸發 statengine 重新計算屬性 (ATK, SPD, MaxHP, Defense 等)
+    // 2. ⚡ 強制觸發 statengine 重新計算最大上限 (MaxHP, MaxMP, ATK, SPD, Defense 等)
     if (typeof resetCurrentRunData === "function") {
         resetCurrentRunData();
     }
     
-    // 3. 儲存進度
+    // 3. 💖【關鍵修復】將當前 HP 與 MP 同步填滿至全新的上限值
+    if (currentRun) {
+        currentRun.hp = currentRun.maxHp;
+        currentRun.mp = currentRun.maxMp;
+    }
+    
+    // 4. 儲存進度
     if (typeof saveGameData === "function") {
         saveGameData();
     }
     
-    // 4. 顯示提示與 Log
+    // 5. 顯示提示與 Log
     if (typeof showToast === "function") {
         showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
     }
     if (typeof addLog === "function") {
-        addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！戰鬥數據已即時同步！`, "perfect");
+        addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
     }
     
-    // 5. 實時刷新 UI 面板數值
+    // 6. 實時刷新 UI 面板數值與血條長度
     if (typeof updateUI === "function") {
         updateUI();
     }
