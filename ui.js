@@ -401,7 +401,7 @@ function initSwipeNavigation() {
 }
 
 // --------------------------------------------------------------------------
-// 🎯 屬性配點邏輯 (已強化全域重算機制)
+// 🎯 屬性配點邏輯 (已修正括號閉合)
 // --------------------------------------------------------------------------
 
 function allocateStatPoint(statKey) {
@@ -441,6 +441,13 @@ function allocateStatPoint(statKey) {
         addLog(`⚡ 屬力配點：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
     }
 
+    updateUI();
+} // ✅ 補上關閉括號
+
+// --------------------------------------------------------------------------
+// 🎛️ 動態戰術動作選單更新邏輯
+// --------------------------------------------------------------------------
+
 function updateActionPanelUI() {
     const selectEl = document.getElementById('action-menu-select');
     const execBtn = document.getElementById('btn-execute-action');
@@ -478,7 +485,6 @@ function updateActionPanelUI() {
             <option value="next_floor">⚔️ 深入突進下一層 (B${dungeonFloor + 1}F)</option>
         `;
         
-        // 若為特定 BOSS 關卡，開放重巡本層
         if (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) {
             optionsHtml += `<option value="rerun_floor">🔄 重巡本層 (B${dungeonFloor}F)</option>`;
         }
@@ -491,9 +497,6 @@ function updateActionPanelUI() {
             execBtn.innerText = "⚔️ 前進下一階段";
         }
     }
-}
-    
-    updateUI();
 }
 
 // --------------------------------------------------------------------------
