@@ -1454,29 +1454,54 @@ function addLog(msg, type = "deal") {
         "victory-badge": " log-victory-badge"
     };
 
-    // ⚡【傷害數字特效增強】自動匹配 msg 中的傷害數值，改為炫彩持久文字徽章（絕對不會消失）
+   // 📜 日記戰鬥日誌 (Log Box) - 傷害數字高亮與電競字型連動 API
+function addLog(msg, type = "deal") {
+    const box = DOM.get('log-box');
+    if (!box) return;
+
+    const classMap = {
+        take: " log-take-dmg",
+        perfect: " log-perfect",
+        env: " log-env-tick",
+        miss: " log-miss",
+        "skill-hit": " log-skill-hit",
+        "victory-badge": " log-victory-badge"
+    };
+
     let formattedMsg = msg;
     if (typeof formattedMsg === "string") {
-        // 1. 高亮傷害數值 (如 "120 點傷害", "受到 45 點物理傷害")
-        formattedMsg = formattedMsg.replace(/(\d+)\s*(點傷害|點物理傷害|點魔法傷害|傷害)/g, (match, num, label) => {
-            return `<span style="background: rgba(231, 76, 60, 0.25); border: 1px solid rgba(231, 76, 60, 0.6); color: #ff4757; font-weight: 800; padding: 1px 6px; border-radius: 6px; font-size: 11px; text-shadow: 0 0 5px rgba(255,71,87,0.5); display: inline-block; margin: 0 2px;">💥 ${num} ${label}</span>`;
+        // 1. 🎯 扣血 / 傷害數值匹配 (如 "- 86 HP", "-12 HP", "86 點傷害")
+        formattedMsg = formattedMsg.replace(/(?:-\s*|\b)(\d+)\s*(點傷害|點物理傷害|點魔法傷害|傷害|HP(?!\s*\+))/g, (match, num, label) => {
+            const isTake = type === 'take' || msg.includes('魔物暴虐') || msg.includes('受到');
+            const badgeClass = isTake ? 'num-popup num-boss-strike' : 'num-popup num-p-dmg';
+            const icon = isTake ? '💥' : '⚔️';
+            return `<span class="${badgeClass}" style="font-family: var(--font-damage), sans-serif !important;">${icon} -${num} HP</span>`;
         });
 
-        // 2. 高亮回復數值 (如 "+50 HP", "回復 30 HP")
-        formattedMsg = formattedMsg.replace(/(\+\d+|\d+)\s*(HP|魔力|MP|點生命)/g, (match, num, label) => {
+        // 2. 💖 正向回復數值匹配 (如 "+50 HP", "回復 30 HP", "+20 MP")
+        formattedMsg = formattedMsg.replace(/\+(\d+)\s*(HP|MP|魔力|點生命)/g, (match, num, label) => {
             const isMp = label.includes("MP") || label.includes("魔力");
-            const bg = isMp ? "rgba(52, 152, 219, 0.25)" : "rgba(46, 204, 113, 0.25)";
-            const border = isMp ? "rgba(52, 152, 219, 0.6)" : "rgba(46, 204, 113, 0.6)";
-            const color = isMp ? "#3498db" : "#2ecc71";
-            const icon = isMp ? "🔮" : "💖";
-            return `<span style="background: ${bg}; border: 1px solid ${border}; color: ${color}; font-weight: 800; padding: 1px 6px; border-radius: 6px; font-size: 11px; text-shadow: 0 0 5px ${color}; display: inline-block; margin: 0 2px;">${icon} ${num} ${label}</span>`;
+            const badgeClass = isMp ? 'num-popup num-m-dmg' : 'num-popup num-h-heal';
+            const icon = isMp ? '🔮' : '💖';
+            return `<span class="${badgeClass}" style="font-family: var(--font-damage), sans-serif !important;">${icon} +${num} ${label}</span>`;
         });
 
-        // 3. 高亮獲得金幣或經驗 (如 "+100 G", "獲得 50 EXP")
-        formattedMsg = formattedMsg.replace(/(\+\d+|\d+)\s*(G|EXP|金幣|經驗)/g, (match, num, label) => {
-            return `<span style="background: rgba(241, 196, 15, 0.2); border: 1px solid rgba(241, 196, 15, 0.6); color: #ffd700; font-weight: bold; padding: 1px 5px; border-radius: 6px; font-size: 10px; display: inline-block; margin: 0 2px;">🪙 ${num} ${label}</span>`;
+        // 3. 🪙 獎勵獲得匹配 (如 "+22 G", "+50 EXP")
+        formattedMsg = formattedMsg.replace(/\+(\d+)\s*(G|EXP|金幣|經驗)/g, (match, num, label) => {
+            return `<span class="gold-glint v-badge" style="font-family: var(--font-damage), sans-serif !important; display: inline-flex; align-items: center; gap: 2px; margin: 0 2px;">🪙 +${num} ${label}</span>`;
         });
     }
+
+    const p = document.createElement('div');
+    p.className = `log-row-box${classMap[type] || ""}`;
+    p.innerHTML = formattedMsg;
+    box.appendChild(p);
+    
+    box.scrollTo({
+        top: box.scrollHeight,
+        behavior: 'smooth'
+    });
+} 
 
     const p = document.createElement('div');
     p.className = `log-row-box${classMap[type] || ""}`;
