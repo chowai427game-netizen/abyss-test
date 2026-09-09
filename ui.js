@@ -440,6 +440,58 @@ function allocateStatPoint(statKey) {
     if (typeof addLog === "function") {
         addLog(`⚡ 屬力配點：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
     }
+
+function updateActionPanelUI() {
+    const selectEl = document.getElementById('action-menu-select');
+    const execBtn = document.getElementById('btn-execute-action');
+    if (!selectEl) return;
+
+    // 1. ⛺ 在村莊時
+    if (gameState === "VILLAGE") {
+        selectEl.innerHTML = `
+            <option value="enter_dungeon">🔮 降臨進入地下城 (B${dungeonFloor || 1}F)</option>
+        `;
+        if (execBtn) {
+            execBtn.className = "btn-game btn-explore full-width";
+            execBtn.innerText = "🔮 啟動門降臨深淵";
+        }
+        return;
+    }
+
+    // 2. ⚔️ 戰鬥進行中
+    if (gameState === "BATTLE") {
+        const isAuto = typeof autoBattleActive !== "undefined" && autoBattleActive;
+        selectEl.innerHTML = `
+            <option value="auto_tactics">${isAuto ? '⏸️ 暫停自動戰術' : '⚡ 啟動自動戰術策略'}</option>
+            <option value="flee_village">🏃 撤退逃回地表村莊</option>
+        `;
+        if (execBtn) {
+            execBtn.className = "btn-game btn-rerun full-width";
+            execBtn.innerText = "⚡ 執行選定戰術";
+        }
+        return;
+    }
+
+    // 3. 🏆 戰鬥結束 / 獎勵養息階段 (REWARD / ENCOUNTER)
+    if (gameState === "REWARD" || gameState === "ENCOUNTER") {
+        let optionsHtml = `
+            <option value="next_floor">⚔️ 深入突進下一層 (B${dungeonFloor + 1}F)</option>
+        `;
+        
+        // 若為特定 BOSS 關卡，開放重巡本層
+        if (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) {
+            optionsHtml += `<option value="rerun_floor">🔄 重巡本層 (B${dungeonFloor}F)</option>`;
+        }
+
+        optionsHtml += `<option value="flee_village">🏃 撤退逃回地表村莊</option>`;
+        selectEl.innerHTML = optionsHtml;
+
+        if (execBtn) {
+            execBtn.className = "btn-game btn-explore full-width";
+            execBtn.innerText = "⚔️ 前進下一階段";
+        }
+    }
+}
     
     updateUI();
 }
@@ -2177,3 +2229,35 @@ function renderSquareChatBox() {
     chatBox.innerHTML = html;
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+// 🎯 根據下拉選單當前選中的選項，派發對應邏輯
+function executeSelectedAction() {
+    const selectEl = document.getElementById('action-menu-select');
+    if (!selectEl) return;
+
+    const actionValue = selectEl.value;
+
+    switch (actionValue) {
+        case "enter_dungeon":
+        case "next_floor":
+            if (typeof startNextFloor === "function") startNextFloor();
+            break;
+
+        case "rerun_floor":
+            if (typeof rerunCurrentFloor === "function") rerunCurrentFloor();
+            break;
+
+        case "auto_tactics":
+            if (typeof toggleAutoBattle === "function") toggleAutoBattle();
+            break;
+
+        case "flee_village":
+            if (typeof returnToVillage === "function") returnToVillage();
+            break;
+
+        default:
+            showToast("未知指令", "warn");
+            break;
+    }
+}
+
