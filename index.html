@@ -6,16 +6,28 @@
     <meta name="theme-color" content="#0a0d14">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>命運深淵：血脈傳承 - Abyss of Destiny</title>
 
+    <!-- 社交卡片與 PWA 預覽標籤 -->
+    <meta property="og:title" content="命運深淵：血脈傳承 - Abyss of Destiny">
+    <meta property="og:description" content="暗黑 Roguelike 魔導文字冒險，探索深淵裂縫，解鎖血脈傳承！">
+    <meta property="og:type" content="website">
+
     <!-- 引入 Socket.io 瀏覽器前端套件 -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- 🔔 全域 Toast 訊息懸浮容器 -->
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- 🔍 全域裝備與物品 Hover/Tap Floating 浮動卡片 -->
+<div id="floating-item-card" class="floating-card" aria-hidden="true"></div>
+
 <!-- 🌌 全螢幕魔導初始化加載遮罩 -->
-<div id="loading-overlay" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="loading-title">
+<div id="loading-overlay" class="modal-backdrop active" role="dialog" aria-modal="true" aria-labelledby="loading-title">
     <div class="loading-box">
         <div class="magic-circle-loader"></div>
         <h3 id="loading-title">🔮 命運矩陣同步中...</h3>
@@ -30,7 +42,7 @@
 </div>
 
 <!-- 🎭 全新勇者初始職業抉擇遮罩 -->
-<div id="initial-job-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="job-modal-title">
+<div id="initial-job-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="job-modal-title" aria-hidden="true">
     <div class="modal-card">
         <h2 id="job-modal-title" class="modal-title-cyan">🎭 選擇你的初始冒險血脈</h2>
         <p class="modal-subtitle">請選擇你的冒險道路！（重選職業將重置為 Lv.1，耗費 1,000 G）</p>
@@ -39,7 +51,7 @@
 </div>
 
 <!-- 👑 皇家二轉突破儀式遮罩 -->
-<div id="job-advancement-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="adv-job-modal-title">
+<div id="job-advancement-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="adv-job-modal-title" aria-hidden="true">
     <div class="modal-card">
         <h2 id="adv-job-modal-title" class="modal-title-gold">👑 皇家二轉突破選擇</h2>
         <p class="modal-subtitle">請選擇你未來的專精道路。轉職後將保留原有等級與技能，並解鎖專屬二轉天賦與新技能庫！</p>
@@ -47,6 +59,15 @@
         <button type="button" class="btn-game btn-rest full-width margin-top-sm" onclick="closeJobAdvancementModal()">
             ❌ 取消並返回
         </button>
+    </div>
+</div>
+
+<!-- ⚠️ 素材與資源不足專屬 Modal 彈窗 -->
+<div id="mat-alert-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="mat-alert-box">
+        <div id="mat-alert-header" class="mat-alert-header">⚠️ 素材資源不足</div>
+        <div id="mat-alert-content" class="mat-alert-content">缺乏鍛造所需的核心素材！</div>
+        <button type="button" class="mat-alert-btn" onclick="closeMatAlertModal()">理解並返回</button>
     </div>
 </div>
 
@@ -79,7 +100,7 @@
                 placeholder="請輸入你的勇者大名..." 
                 maxlength="12"
                 required
-                autocomplete="username"
+                autocomplete="off"
             >
             <input 
                 type="password" 
@@ -355,7 +376,7 @@
 </div>
 
 <!-- ⚡ 全螢幕 QTE 視窗 -->
-<div id="qte-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+<div id="qte-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="qte-box">
         <p id="qte-skill-name">⚡ QTE ⚡</p>
         <button id="qte-tap-btn" class="qte-interact-btn">🟢 撳我！</button>
@@ -364,7 +385,7 @@
 </div>
 
 <!-- 🏆 全螢幕領主討伐過場 -->
-<div id="boss-victory-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+<div id="boss-victory-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="victory-cloud-shimmer"></div>
     <div class="victory-crystal-container">
         <div class="victory-laurel-crown">👑</div>
@@ -381,7 +402,7 @@
 </div>
 
 <!-- 📦 1. 寶箱察看前置面板 -->
-<div id="chest-inspect-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+<div id="chest-inspect-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-card">
         <h3 id="chest-inspect-title" class="modal-title-cyan">📦 發現白銀寶箱</h3>
         <p id="chest-inspect-desc" class="modal-subtitle">寶箱上掛著一把結構精密的遠古機械鎖。</p>
@@ -394,7 +415,7 @@
 </div>
 
 <!-- 🔑 2. 360° 轉盤開鎖 QTE 面板 -->
-<div id="lockpick-modal-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+<div id="lockpick-modal-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="qte-box lockpick-modal-box">
         <div class="lockpick-header">⚙️ 轉盤機械解鎖中...</div>
         
@@ -415,19 +436,24 @@
     </div>
 </div>
 
-<!-- 1. 核心狀態與數值計算引擎 -->
-<script src="state.js"></script>
-<script src="statengine.js"></script>
+<!-- ========================================================================== -->
+<!-- 📜 核心腳本加載鏈 (嚴格依賴順序載入) -->
+<!-- ========================================================================== -->
 
-<!-- 2. 靜態資料庫 -->
+<!-- 1. 靜態資料庫群 (優先載入) -->
 <script src="jobdata.js"></script>
 <script src="itemdata.js"></script>
 <script src="monsterdata.js"></script>
 <script src="environmentdata.js"></script>
 <script src="eventdata.js"></script>
 
-<!-- 3. 主遊戲邏輯與 UI 渲染層 -->
-<script src="game.js"></script>
+<!-- 2. 核心計算與存檔引擎 -->
+<script src="statengine.js"></script>
+<script src="state.js"></script>
+
+<!-- 3. UI 渲染與主遊戲邏輯控制 -->
 <script src="ui.js"></script>
+<script src="game.js"></script>
+
 </body>
 </html>
