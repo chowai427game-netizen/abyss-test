@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.1)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.2)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告（必須放在最頂端，防止 ReferenceError）
@@ -273,7 +273,6 @@ function renderStatusBadges(containerEl, effectsMap) {
         const eff = activeMap[key];
         if (!eff) continue;
 
-        // 支援結構化 Buff 物件或簡單數值 (如 burn: 2)
         const duration = typeof eff === "object" ? eff.duration : eff;
         if (!duration || duration <= 0) continue;
 
@@ -341,7 +340,7 @@ function initSwipeNavigation() {
 }
 
 // --------------------------------------------------------------------------
-// 🎯 屬性配點邏輯 (已修復 HP/MP 及全戰鬥屬性實時連動重算)
+// 🎯 屬性配點邏輯 (已強化全域重算機制)
 // --------------------------------------------------------------------------
 
 function allocateStatPoint(statKey) {
@@ -354,38 +353,40 @@ function allocateStatPoint(statKey) {
         accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
     
-    // 1. 扣除點數並增加對應屬性
+    // 1. 扣除點數並增加屬性
     accountMeta.statPoints--;
     accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
     
-    // 2. ⚡ 強制觸發 statengine 重新計算最大上限 (MaxHP, MaxMP, ATK, SPD, Defense 等)
+    // 2. ⚡ 強制觸發全域重新計算屬性 (優先使用 window.resetCurrentRunData)
     if (typeof resetCurrentRunData === "function") {
         resetCurrentRunData();
+    } else if (typeof StatEngine !== "undefined" && StatEngine.resetCurrentRunData) {
+        StatEngine.resetCurrentRunData();
     }
     
-    // 3. 💖【關鍵修復】將當前 HP 與 MP 同步填滿至全新的上限值
-    if (currentRun) {
-        currentRun.hp = currentRun.maxHp;
-        currentRun.mp = currentRun.maxMp;
+    // 3. 💖 保障村莊全額滿血/魔或補足上限差額
+    if (typeof currentRun !== "undefined" && currentRun) {
+        if (typeof gameState !== "undefined" && gameState === "VILLAGE") {
+            currentRun.hp = currentRun.maxHp;
+            currentRun.mp = currentRun.maxMp;
+        }
     }
     
-    // 4. 儲存進度
+    // 4. 自動存檔
     if (typeof saveGameData === "function") {
         saveGameData();
     }
     
-    // 5. 顯示提示與 Log
+    // 5. 提示與 Log
     if (typeof showToast === "function") {
         showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
     }
     if (typeof addLog === "function") {
-        addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
+        addLog(`⚡ 屬性點數分配：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
     }
     
-    // 6. 實時刷新 UI 面板數值與血條長度
-    if (typeof updateUI === "function") {
-        updateUI();
-    }
+    // 6. 立即刷新 UI 面板
+    updateUI();
 }
 
 // --------------------------------------------------------------------------
@@ -477,15 +478,15 @@ function getEquipmentStatDiff(blueprint) {
     if (currentlyEquippedName) {
         const equippedBp = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(currentlyEquippedName) : (typeof CRAFTING_BLUEPRINTS !== "undefined" ? CRAFTING_BLUEPRINTS.find(b => b.name === currentlyEquippedName) : null);
         if (equippedBp) {
-            const currentRefineLvl = accountMeta.itemRefines?.[currentlyEquippedName] || 0;
+            const currentRefineLvl = (accountMeta.itemRefines?.[currentlyEquippedName]) || (accountMeta.equipmentStars?.[slotType]) || 0;
             for (let k in equippedBp.stats) {
                 currentStats[k] = Math.floor(equippedBp.stats[k] * (1 + currentRefineLvl * 0.15));
             }
         }
     }
 
-    const itemRefineLvl = accountMeta.itemRefines?.[blueprint.name] || 0;
-    const nameMap = { atk: "攻擊", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", flee: "閃避" };
+    const itemRefineLvl = (accountMeta.itemRefines?.[blueprint.name]) || 0;
+    const nameMap = { atk: "攻擊", matk: "魔攻", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", maxMp: "魔力", flee: "閃避", def: "物防", mdef: "魔防" };
 
     let diffParts = [];
     for (let statKey in blueprint.stats) {
@@ -508,11 +509,18 @@ function getEquipmentStatDiff(blueprint) {
 }
 
 // --------------------------------------------------------------------------
-// 👤 角色數據 UI 同步
+// 👤 角色數據 UI 同步 (全屬性實時連動版)
 // --------------------------------------------------------------------------
 
 function syncCharacterDataUi() {
     if (!accountMeta || !currentRun) return;
+
+    // ⚡【核心關鍵】每一次同步 UI 時，確保強制驅動屬性引擎重新計算裝備與配點！
+    if (typeof resetCurrentRunData === "function") {
+        resetCurrentRunData();
+    } else if (typeof StatEngine !== "undefined" && StatEngine.resetCurrentRunData) {
+        StatEngine.resetCurrentRunData();
+    }
 
     const nameEl = DOM.get('p-name');
     const jobEl = DOM.get('p-job');
@@ -535,6 +543,7 @@ function syncCharacterDataUi() {
             : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
+    // 渲染屬性加點面板
     const gridEl = DOM.get('stat-alloc-grid');
     if (gridEl) {
         gridEl.innerHTML = "";
@@ -582,6 +591,7 @@ function syncCharacterDataUi() {
         });
     }
 
+    // 💖 渲染血量條與魔力條
     const hpEl = DOM.get('p-hp');
     const maxHpEl = DOM.get('p-maxhp');
     const mpEl = DOM.get('p-mp');
@@ -594,6 +604,7 @@ function syncCharacterDataUi() {
     if (maxHpEl) maxHpEl.innerText = currentRun.maxHp;
     if (mpEl) mpEl.innerText = currentRun.mp;
     if (maxMpEl) maxMpEl.innerText = currentRun.maxMp;
+    
     if (pAtbRow) {
         if (gameState === "BATTLE") {
             pAtbRow.style.display = "block";
@@ -613,30 +624,34 @@ function syncCharacterDataUi() {
 
     renderStatusBadges(DOM.get('player-status-badges'), currentRun.activeEffects);
 
+    // 🛡️ 實時連動戰鬥面板數據 (ATK, MATK, DEF, MDEF)
     const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
-    setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk})`);
-    setTxt('p-block', `${currentRun.def} (魔防 ${currentRun.mdef})`);
+    setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk || 0})`);
+    setTxt('p-block', `${currentRun.def} (魔防 ${currentRun.mdef || 0})`);
     setTxt('p-spd', currentRun.spd);
     setTxt('p-crit', `${currentRun.critChance}%`);
-    setTxt('p-dodge', `${Math.floor(currentRun.flee)} (完迴 ${currentRun.perfectDodge}%)`);
-    setTxt('p-vamp', `${Math.floor(currentRun.hit)} HIT`);
+    setTxt('p-dodge', `${Math.floor(currentRun.flee)} (完迴 ${currentRun.perfectDodge || 0}%)`);
+    setTxt('p-vamp', `${Math.floor(currentRun.hit || 80)} HIT`);
 
     const skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");
     const skillListEl = DOM.get('p-skills-list');
     if (skillListEl) skillListEl.innerText = skList || "基本打擊";
 
-    const wStar = (accountMeta.equipmentStars?.weapon || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.weapon}]` : "";
-    const aStar = (accountMeta.equipmentStars?.armor || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.armor}]` : "";
-    const cStar = (accountMeta.equipmentStars?.accessory || 0) > 0 ? ` [⭐x${accountMeta.equipmentStars.accessory}]` : "";
+    // ⚔️ 渲染裝備部位與強化星級
+    const getRefineLvl = (slot, eqName) => (accountMeta.itemRefines?.[eqName]) || (accountMeta.equipmentStars?.[slot]) || 0;
 
     const wName = accountMeta.equipment?.weapon || "空手";
     const aName = accountMeta.equipment?.armor || "布衣";
     const cName = accountMeta.equipment?.accessory || "無";
 
-    setTxt('p-equip-weapon', wName + wStar);
-    setTxt('p-equip-armor', aName + aStar);
-    setTxt('p-equip-accessory', cName + cStar);
+    const wRefine = getRefineLvl('weapon', wName);
+    const aRefine = getRefineLvl('armor', aName);
+    const cRefine = getRefineLvl('accessory', cName);
+
+    setTxt('p-equip-weapon', wName + (wRefine > 0 ? ` (+${wRefine})` : ""));
+    setTxt('p-equip-armor', aName + (aRefine > 0 ? ` (+${aRefine})` : ""));
+    setTxt('p-equip-accessory', cName + (cRefine > 0 ? ` (+${cRefine})` : ""));
 
     ['slot-weapon', 'slot-armor', 'slot-accessory'].forEach(slotId => {
         const slotEl = DOM.get(slotId);
@@ -649,7 +664,9 @@ function syncCharacterDataUi() {
             const bp = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(eqName) : (typeof CRAFTING_BLUEPRINTS !== "undefined" ? CRAFTING_BLUEPRINTS.find(b => b.name === eqName) : null);
             if (bp) {
                 desc = bp.desc;
-                stats = Object.keys(bp.stats).map(k => `${k}: +${bp.stats[k]}`).join(" | ");
+                const rLvl = getRefineLvl(type, eqName);
+                const mult = 1 + rLvl * 0.15;
+                stats = Object.keys(bp.stats).map(k => `${k}: +${Math.floor(bp.stats[k] * mult)}`).join(" | ");
             }
             return { title: eqName, type: `裝備部位: ${type.toUpperCase()}`, desc: desc, stats: stats };
         });
@@ -1305,7 +1322,7 @@ function renderVillageWorkshop() {
             width: 100%; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         `;
 
-        const itemRefineLvl = accountMeta.itemRefines?.[blueprint.name] || 0;
+        const itemRefineLvl = (accountMeta.itemRefines?.[blueprint.name]) || (accountMeta.equipmentStars?.[blueprint.type]) || 0;
         const refineBadge = itemRefineLvl > 0 ? `<span style="color:#ffd700;"> (+${itemRefineLvl})</span>` : "";
         const statDiffHtml = getEquipmentStatDiff(blueprint);
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
@@ -1326,13 +1343,12 @@ function renderVillageWorkshop() {
 
         const isEquipped = (accountMeta.equipment?.weapon === blueprint.name || accountMeta.equipment?.armor === blueprint.name || accountMeta.equipment?.accessory === blueprint.name);
         const hasInWarehouse = (accountMeta.warehouse?.[blueprint.name] || 0) > 0;
-        const curRefine = accountMeta.itemRefines?.[blueprint.name] || 0;
 
         if (isEquipped || hasInWarehouse) {
             const btnRefine = document.createElement('button');
             btnRefine.className = "btn-game btn-rerun";
             btnRefine.style.cssText = "padding: 3px 6px; font-size: 10px; background: linear-gradient(135deg, #f39c12 0%, #d35400 100%) !important;";
-            btnRefine.innerHTML = `✨ 強化 (+${curRefine})`;
+            btnRefine.innerHTML = `✨ 強化 (+${itemRefineLvl})`;
             btnRefine.onclick = (e) => { 
                 e.stopPropagation(); 
                 if (typeof refineSpecificEquipment === "function") {
