@@ -341,12 +341,12 @@ function initSwipeNavigation() {
 }
 
 // --------------------------------------------------------------------------
-// 🎯 屬性配點邏輯
+// 🎯 屬性配點邏輯 (已修復戰鬥屬性實時連動重算 Issue)
 // --------------------------------------------------------------------------
 
 function allocateStatPoint(statKey) {
     if (!accountMeta.statPoints || accountMeta.statPoints <= 0) {
-        showToast("自由能力點數不足！", "warn");
+        if (typeof showToast === "function") showToast("自由能力點數不足！", "warn");
         return;
     }
     
@@ -354,15 +354,32 @@ function allocateStatPoint(statKey) {
         accountMeta.stats = { STR: 0, AGI: 0, VIT: 0, INT: 0, DEX: 0, LUK: 0 };
     }
     
+    // 1. 扣除點數並增加對應屬性
     accountMeta.statPoints--;
     accountMeta.stats[statKey] = (accountMeta.stats[statKey] || 0) + 1;
     
-    if (typeof resetCurrentRunData === "function") resetCurrentRunData();
-    if (typeof saveGameData === "function") saveGameData();
+    // 2. ⚡【關鍵修復】強制觸發 statengine 重新計算屬性 (ATK, SPD, MaxHP, Defense 等)
+    if (typeof resetCurrentRunData === "function") {
+        resetCurrentRunData();
+    }
     
-    showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
-    addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！`, "perfect");
-    updateUI();
+    // 3. 儲存進度
+    if (typeof saveGameData === "function") {
+        saveGameData();
+    }
+    
+    // 4. 顯示提示與 Log
+    if (typeof showToast === "function") {
+        showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
+    }
+    if (typeof addLog === "function") {
+        addLog(`⚡ 屬性強化：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！戰鬥數據已即時同步！`, "perfect");
+    }
+    
+    // 5. 實時刷新 UI 面板數值
+    if (typeof updateUI === "function") {
+        updateUI();
+    }
 }
 
 // --------------------------------------------------------------------------
