@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.1)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告（必須放在最頂端，防止 ReferenceError）
@@ -165,7 +165,8 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
     const ghostEl = DOM.get(ghostElId);
     if (!fillEl) return;
 
-    const targetPct = Math.max(0, Math.min(100, (current / max) * 100));
+    const safeMax = Math.max(1, max || 1);
+    const targetPct = Math.max(0, Math.min(100, (current / safeMax) * 100));
 
     if (!ghostEl) {
         fillEl.style.width = `${targetPct}%`;
@@ -190,7 +191,7 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
 }
 
 // --------------------------------------------------------------------------
-// 🎴 3. 通用 Floating Card 浮動卡片引擎 (含手機滑動誤觸與定時器競爭保護)
+// 🎴 3. 通用 Floating Card 浮動卡片引擎
 // --------------------------------------------------------------------------
 
 let touchCardTimer = null;
@@ -204,7 +205,7 @@ function showFloatingCard(e, title, type, desc, stats = "") {
     }
 
     card.innerHTML = `
-        <div style="font-weight: bold; font-size: 13px; color: var(--gold-glow); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-weight: bold; font-size: 13px; color: var(--gold-glow, #ffd700); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
             <span>${title}</span>
             <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #aaa;">${type}</span>
         </div>
@@ -265,14 +266,22 @@ function renderStatusBadges(containerEl, effectsMap) {
     if (!containerEl) return;
     containerEl.innerHTML = "";
 
-    if (!effectsMap || Object.keys(effectsMap).length === 0) return;
+    const activeMap = effectsMap || (typeof currentRun !== "undefined" ? (currentRun.activeEffects || currentRun.buffs) : null) || (typeof playerStatusEffects !== "undefined" ? playerStatusEffects : null);
+    if (!activeMap || Object.keys(activeMap).length === 0) return;
 
-    for (let key in effectsMap) {
-        const eff = effectsMap[key];
-        if (!eff || eff.duration <= 0) continue;
+    for (let key in activeMap) {
+        const eff = activeMap[key];
+        if (!eff) continue;
+
+        // 支援結構化 Buff 物件或簡單數值 (如 burn: 2)
+        const duration = typeof eff === "object" ? eff.duration : eff;
+        if (!duration || duration <= 0) continue;
+
+        const name = typeof eff === "object" ? eff.name : key.toUpperCase();
+        const icon = typeof eff === "object" ? (eff.icon || '✨') : '🔥';
+        const isBuff = typeof eff === "object" ? (eff.type === "buff") : false;
 
         const badge = document.createElement('div');
-        const isBuff = eff.type === "buff";
         badge.className = `status-badge ${isBuff ? 'buff' : 'debuff'}`;
         badge.style.cssText = `
             display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;
@@ -281,13 +290,13 @@ function renderStatusBadges(containerEl, effectsMap) {
             border: 1px solid ${isBuff ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)'};
             color: ${isBuff ? '#2ecc71' : '#ff4757'}; cursor: pointer;
         `;
-        badge.innerHTML = `<span>${eff.icon || '✨'}</span> <span>${eff.name}</span> <b>(${eff.duration})</b>`;
+        badge.innerHTML = `<span>${icon}</span> <span>${name}</span> <b>(${duration})</b>`;
 
         bindFloatingCard(badge, () => ({
-            title: eff.name,
+            title: name,
             type: isBuff ? "增益 Buff" : "減益 Debuff",
-            desc: eff.desc || "戰場狀態影響。",
-            stats: `剩餘回合: ${eff.duration}`
+            desc: (typeof eff === "object" && eff.desc) ? eff.desc : "戰場狀態影響。",
+            stats: `剩餘回合 / 層數: ${duration}`
         }));
 
         containerEl.appendChild(badge);
@@ -432,7 +441,7 @@ function executeDepositAllBagItems() {
 }
 
 // --------------------------------------------------------------------------
-// ⚔️ 裝備數值比對預覽計算 (已升級 O(1) Map 快查)
+// ⚔️ 裝備數值比對預覽計算
 // --------------------------------------------------------------------------
 
 function getEquipmentStatDiff(blueprint) {
@@ -577,7 +586,7 @@ function syncCharacterDataUi() {
     updateHpBarWithGhost(currentRun.hp, currentRun.maxHp, 'hp-bar-fill', 'hp-bar-ghost');
 
     const mpBar = DOM.get('mp-bar-fill');
-    if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / currentRun.maxMp) * 100))}%`;
+    if (mpBar) mpBar.style.width = `${Math.max(0, Math.min(100, (currentRun.mp / (currentRun.maxMp || 1)) * 100))}%`;
 
     renderStatusBadges(DOM.get('player-status-badges'), currentRun.activeEffects);
 
@@ -892,7 +901,7 @@ function formatSkillEffectText(s, lv, playerRun) {
     const maxMp = playerRun.maxMp || 100;
     const maxHp = playerRun.maxHp || 100;
 
-    let eff = s.run(lv, baseAtk, maxMp, maxHp, maxHp);
+    let eff = typeof s.run === "function" ? s.run(lv, baseAtk, maxMp, maxHp, maxHp) : null;
     if (!eff) return "無特定數值";
 
     let parts = [];
@@ -935,7 +944,7 @@ function renderVillageGuild() {
             <p style="font-size: 11px; color: #e0e0e0; margin-bottom: 10px;">
                 角色已達到 Lv.20！前往踏入更高階的職業殿堂，解鎖終極戰術能力。
             </p>
-            <button class="btn-game btn-rerun" style="padding: 6px 16px; font-size: 12px; font-weight: bold;" onclick="openJobAdvancementModal()">
+            <button class="btn-game btn-rerun" style="padding: 6px 16px; font-size: 12px; font-weight: bold;" onclick="if(typeof openJobAdvancementModal === 'function') openJobAdvancementModal(); else showToast('二轉系統載入中...', 'info');">
                 🏇✨ 開啟二轉突破選擇
             </button>
         `;
@@ -958,14 +967,14 @@ function renderVillageGuild() {
 
         const goldCost = s.goldCost * nextLv;
         const hasLevel = playerLv >= s.reqLv;
-        const hasGold = currentRun.gold >= goldCost;
+        const hasGold = (currentRun.gold || 0) >= goldCost;
         
         let reqMatTextArr = [];
         let hasMats = true;
         for (let mat in s.reqMat) {
             let reqQty = s.reqMat[mat] * nextLv;
             reqMatTextArr.push(`${mat} x${reqQty}`);
-            if ((accountMeta.warehouse[mat] || 0) < reqQty) hasMats = false;
+            if ((accountMeta.warehouse?.[mat] || 0) < reqQty) hasMats = false;
         }
         const reqMatText = reqMatTextArr.join(", ");
 
@@ -984,7 +993,14 @@ function renderVillageGuild() {
         btnLearn.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold;";
         btnLearn.innerText = isMaxLevel ? "滿級" : `升級 (${goldCost}G)`;
         btnLearn.disabled = btnDisabled;
-        btnLearn.onclick = (e) => { e.stopPropagation(); executeLearnSkill(s); };
+        btnLearn.onclick = (e) => { 
+            e.stopPropagation(); 
+            if (typeof executeLearnSkill === "function") {
+                executeLearnSkill(s); 
+            } else {
+                showToast("技能學習模組未載入", "warn");
+            }
+        };
 
         row.appendChild(btnLearn);
 
@@ -1146,7 +1162,10 @@ function renderVillageCookingWorkshop() {
         btnCook.className = "btn-game btn-cook";
         btnCook.style.cssText = "padding: 3px 8px; font-size: 11px;";
         btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 進食 Buff" : "🍳 烹飪存倉";
-        btnCook.onclick = (e) => { e.stopPropagation(); executeVillageCooking(recipe); };
+        btnCook.onclick = (e) => { 
+            e.stopPropagation(); 
+            if (typeof executeVillageCooking === "function") executeVillageCooking(recipe); 
+        };
 
         row.appendChild(btnCook);
 
@@ -1229,7 +1248,6 @@ function renderVillageWorkshop() {
 
     const unlockedBlueprints = accountMeta.unlockedBlueprints || [];
 
-    // 🔧 P1 修復：對接傳說藍圖篩選 Logic (支援無 range 屬性判讀)
     const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
         
@@ -1384,7 +1402,7 @@ let lockpickState = {
 };
 
 // ==========================================================================
-// 📦 寶箱察看與 QTE 開鎖前置彈窗修復版
+// 📦 寶箱察看與 QTE 開鎖前置彈窗
 // ==========================================================================
 
 function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty = "medium", onSuccess) {
@@ -1454,6 +1472,12 @@ function initLockpickQTE(difficulty = "medium") {
     const dial = document.getElementById('lockpick-dial');
     const sweetSpot = document.getElementById('lockpick-sweet-spot');
 
+    if (dial) {
+        dial.style.touchAction = 'none';
+        dial.style.webkitUserSelect = 'none';
+        dial.style.userSelect = 'none';
+    }
+
     lockpickState.tolerance = difficulty === 'hard' ? 8 : (difficulty === 'easy' ? 22 : 14);
     lockpickState.targetAngle = Math.floor(Math.random() * 300) + 30;
     lockpickState.currentAngle = 0;
@@ -1465,12 +1489,14 @@ function initLockpickQTE(difficulty = "medium") {
     const startAngle = (tAngle - tol + 360) % 360;
     const endAngle = (tAngle + tol) % 360;
 
-    sweetSpot.style.background = `conic-gradient(
-        from 0deg,
-        transparent 0deg ${startAngle}deg,
-        rgba(0, 255, 204, 0.6) ${startAngle}deg ${endAngle}deg,
-        transparent ${endAngle}deg 360deg
-    )`;
+    if (sweetSpot) {
+        sweetSpot.style.background = `conic-gradient(
+            from 0deg,
+            transparent 0deg ${startAngle}deg,
+            rgba(0, 255, 204, 0.6) ${startAngle}deg ${endAngle}deg,
+            transparent ${endAngle}deg 360deg
+        )`;
+    }
 
     updateLockpickNeedle(0);
     updateProgressFill(0);
@@ -1601,7 +1627,7 @@ function finishLockpickQTE(isSuccess) {
 
 function executeSellWarehouseItem(itemName, qty = 1) {
     if (!accountMeta.warehouse || !accountMeta.warehouse[itemName]) {
-        if (typeof showToast === "function") showToast("📦 倉庫中無此物品", "warn");
+        showToast("📦 倉庫中無此物品", "warn");
         return;
     }
 
@@ -1622,16 +1648,12 @@ function executeSellWarehouseItem(itemName, qty = 1) {
 
     currentRun.gold = (currentRun.gold || 0) + totalEarn;
 
-    if (typeof addLog === "function") {
-        addLog(`💰【黑市交易】成功變賣 <strong>${itemName} x${sellQty}</strong>，換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
-    }
-    if (typeof showToast === "function") {
-        showToast(`💰 變賣成功 +${totalEarn} G`, "success");
-    }
+    addLog(`💰【黑市交易】成功變賣 <strong>${itemName} x${sellQty}</strong>，換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
+    showToast(`💰 變賣成功 +${totalEarn} G`, "success");
 
     if (typeof saveGameData === "function") saveGameData();
-    if (typeof updateUI === "function") updateUI();
-    if (typeof renderVillageSquare === "function") renderVillageSquare();
+    updateUI();
+    if (currentVillageLocation === "SQUARE") renderVillageSquare();
 }
 
 function executeSellAllJunkMaterials() {
@@ -1652,22 +1674,18 @@ function executeSellAllJunkMaterials() {
     }
 
     if (soldItemsCount === 0) {
-        if (typeof showToast === "function") showToast("🧹 倉庫內沒有可清理的基礎雜物！", "info");
+        showToast("🧹 倉庫內沒有可清理的基礎雜物！", "info");
         return;
     }
 
     currentRun.gold = (currentRun.gold || 0) + totalEarn;
 
-    if (typeof addLog === "function") {
-        addLog(`🧹💰【黑市一鍵大清掃】成功回收 <strong>${soldItemsCount} 件低階雜物</strong>，合共換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
-    }
-    if (typeof showToast === "function") {
-        showToast(`🧹 清理完成，獲得 +${totalEarn} G！`, "success");
-    }
+    addLog(`🧹💰【黑市一鍵大清掃】成功回收 <strong>${soldItemsCount} 件低階雜物</strong>，合共換得 <span style="color:#ffd700; font-weight:bold;">+${totalEarn} G</span>！`, "perfect");
+    showToast(`🧹 清理完成，獲得 +${totalEarn} G！`, "success");
 
     if (typeof saveGameData === "function") saveGameData();
-    if (typeof updateUI === "function") updateUI();
-    if (typeof renderVillageSquare === "function") renderVillageSquare();
+    updateUI();
+    if (currentVillageLocation === "SQUARE") renderVillageSquare();
 }
 
 // ==========================================================================
@@ -2000,7 +2018,7 @@ function executeBuyBlackMarketItem(stockIndex) {
     }
 
     if (typeof saveGameData === "function") saveGameData();
-    if (typeof updateUI === "function") updateUI();
+    updateUI();
     renderBlackMarketModalContent();
 }
 
@@ -2040,7 +2058,6 @@ function renderSquareChatBox() {
 
     let html = `<div style="color: #7f8c8d; font-style: italic; margin-bottom: 4px;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
     localChatHistory.forEach(item => {
-        // 🔧 P0 防護：進行 HTML Entity 轉義過濾
         const safeName = escapeHTML(item.name);
         const safeMsg = escapeHTML(item.msg);
         html += `<div style="line-height: 1.4; margin-bottom: 2px;"><strong style="color:#00ffcc;">[${safeName}]</strong>: <span style="color:#eee;">${safeMsg}</span></div>`;
