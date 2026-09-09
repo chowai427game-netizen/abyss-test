@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine)
+// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.1)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -62,7 +62,7 @@ function applyDamageWithShield(target, rawDamage) {
 }
 
 // --------------------------------------------------------------------------
-// 💥 戰鬥特效與多投射物連發機制 (Staggered Multi-Projectiles FX)
+// 💥 戰場特效與多投射物連發機制 (Staggered Multi-Projectiles FX)
 // --------------------------------------------------------------------------
 function triggerProjectileFX(type = 'arcane', count = 1) {
     const logContainer = document.getElementById('log-box');
@@ -75,6 +75,7 @@ function triggerProjectileFX(type = 'arcane', count = 1) {
         setTimeout(() => {
             const proj = document.createElement('div');
             proj.className = `projectile-entity proj-${type}`;
+            proj.style.pointerEvents = 'none'; // 防誤觸點擊
             proj.innerHTML = `<div class="fx-core"></div>`;
             logContainer.appendChild(proj);
 
@@ -112,18 +113,25 @@ async function handleStartGame() {
     const inputName = document.getElementById('player-name-input')?.value;
     const inputPin = document.getElementById('player-pin-input')?.value;
 
-    if (typeof initOrLoadPlayer === "function") {
-        const result = await initOrLoadPlayer(inputName, inputPin);
+    try {
+        if (typeof initOrLoadPlayer === "function") {
+            const result = await initOrLoadPlayer(inputName, inputPin);
 
-        if (!result || !result.success) {
-            console.warn("🔐 PIN 碼驗證失敗，阻擋進入遊戲。");
-            return; 
-        }
+            if (!result || !result.success) {
+                console.warn("🔐 PIN 碼驗證失敗，阻擋進入遊戲。");
+                if (typeof showToast === "function") showToast("🔐 驗證失敗，請檢查 PIN 碼", "warn");
+                return; 
+            }
 
-        if (result.isNewUser || !accountMeta.job || accountMeta.job === "novice") {
-            renderInitialJobModal(false);
-            return;
+            if (result.isNewUser || !accountMeta.job || accountMeta.job === "novice") {
+                renderInitialJobModal(false);
+                return;
+            }
         }
+    } catch (err) {
+        console.error("🚨 載入角色發生異常:", err);
+        if (typeof showToast === "function") showToast("網路連線或載入異常，請重試", "warn");
+        return;
     }
 
     enterGameMainShell();
@@ -396,10 +404,11 @@ function syncTacticButtonsUi() {
 }
 
 // --------------------------------------------------------------------------
-// ⚡ 自動戰鬥 AI 邏輯 (完全修復 1 轉 + 2 轉跨階技能鏈對接)
+// ⚡ 自動戰鬥 AI 邏輯 (完全修復 1 轉 + 2 轉跨階技能鏈與空值對接)
 // --------------------------------------------------------------------------
 function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
+    if (!activeMonster || activeMonster.hp <= 0) return false;
 
     const hpPercent = (currentRun.hp / currentRun.maxHp) * 100;
     
@@ -423,7 +432,6 @@ function executeAutoBattleAiTurn() {
     }
 
     if (activeTactic === "OFFENSIVE") {
-        // 🔧 P0 修復：改用 getAllSkillsForJob 包含一轉與二轉的全套技能池
         const jobSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentRun.job) : (SKILLS_DATABASE[currentRun.job] || []);
         
         for (let i = jobSkills.length - 1; i >= 0; i--) {
@@ -436,7 +444,7 @@ function executeAutoBattleAiTurn() {
                 let baseAtkPower = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
                 let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                 
-                if (eff.dmg && activeMonster) {
+                if (eff.dmg && activeMonster && activeMonster.hp > 0) {
                     currentRun.mp -= sMeta.mp;
                     triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
                     let fxClass = detectSkillCssClass(sMeta.name);
@@ -722,7 +730,7 @@ function getStarUpCost(slot, currentStar) {
 }
 
 // ==========================================================================
-// ⚒️ 單一藍圖裝備獨立強化系統 (+1 ~ +20 安定/降階/爆裝修羅道)
+// ⚒️ 單一藍圖裝備獨立強化系統 (+1 ~ +20 安定/降階/爆裝修羅道 - 含穿戴連動防護)
 // ==========================================================================
 function refineSpecificEquipment(equipName) {
     if (!accountMeta.itemRefines) accountMeta.itemRefines = {};
@@ -952,10 +960,12 @@ function resolveAbyssEvent() {
 }
 
 // --------------------------------------------------------------------------
-// ⚔️ 地下城主戰鬥迴圈 (Dungeon Loop Engine)
+// ⚔️ 地下城主戰鬥迴圈 (Dungeon Loop Engine - 高效防洩漏計時器)
 // --------------------------------------------------------------------------
 async function runDungeonLoop() {
     try {
+        if (combatTickerTimer) clearInterval(combatTickerTimer); // 強制清理歷史計時器
+
         const mainBtn = document.getElementById('btn-main-action');
         if (mainBtn) mainBtn.disabled = true;
         const rerunBtn = document.getElementById('btn-rerun-action');
@@ -1035,7 +1045,6 @@ async function runDungeonLoop() {
         if (typeof updateUI === "function") updateUI();
 
         playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
-        if (combatTickerTimer) clearInterval(combatTickerTimer);
 
         combatTickerTimer = setInterval(() => {
             if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
@@ -1202,7 +1211,7 @@ function executePlayerActionTick() {
         }
     }
 
-    if (!executedSkill) {
+    if (!executedSkill && activeMonster && activeMonster.hp > 0) {
         let monsterDef = isMagicJob ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
         let dmgRes = typeof calculateDamage === "function" ? calculateDamage(baseAtkPower, monsterDef, true, isMagicJob) : { damage: baseAtkPower, isMiss: false };
         
@@ -1219,7 +1228,7 @@ function executePlayerActionTick() {
         }
     }
 
-    if (activeMonster.hp <= 0) { 
+    if (activeMonster && activeMonster.hp <= 0) { 
         if (combatTickerTimer) clearInterval(combatTickerTimer); 
         executeDungeonVictorySequence(); 
     }
@@ -1229,6 +1238,8 @@ function executePlayerActionTick() {
 // 👹 魔物行動 Tick
 // --------------------------------------------------------------------------
 function executeMonsterActionTick() {
+    if (!activeMonster || activeMonster.hp <= 0) return;
+
     if (activeMonster.freezeTurns > 0) { 
         activeMonster.freezeTurns--; 
         if (typeof addLog === "function") addLog(`❄️ 魔物處於 <span class="skill-ice">【冰凍狀態】</span>，無法行動！(剩餘 ${activeMonster.freezeTurns} 回合)`, "perfect");
@@ -1298,7 +1309,12 @@ function triggerBossVictoryModal(bossName) {
         overlay.style.display = 'none';
         overlay.removeEventListener('click', closeHandler);
     };
-    overlay.addEventListener('click', closeHandler);
+    
+    // 增加防誤觸延遲
+    setTimeout(() => {
+        overlay.addEventListener('click', closeHandler);
+    }, 800);
+
     setTimeout(closeHandler, 5000);
 }
 
