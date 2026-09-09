@@ -1437,9 +1437,7 @@ function renderVillageWorkshop() {
     });
 }
 
-
-
-   // 📜 日記戰鬥日誌 (Log Box) - 傷害數字高亮與電競字型連動 API
+// 📜 日記戰鬥日誌 (Log Box) - 傷害數字高亮與電競字型連動 API
 function addLog(msg, type = "deal") {
     const box = DOM.get('log-box');
     if (!box) return;
@@ -1476,17 +1474,6 @@ function addLog(msg, type = "deal") {
             return `<span class="gold-glint v-badge" style="font-family: var(--font-damage), sans-serif !important; display: inline-flex; align-items: center; gap: 2px; margin: 0 2px;">🪙 +${num} ${label}</span>`;
         });
     }
-
-    const p = document.createElement('div');
-    p.className = `log-row-box${classMap[type] || ""}`;
-    p.innerHTML = formattedMsg;
-    box.appendChild(p);
-    
-    box.scrollTo({
-        top: box.scrollHeight,
-        behavior: 'smooth'
-    });
-} 
 
     const p = document.createElement('div');
     p.className = `log-row-box${classMap[type] || ""}`;
