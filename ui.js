@@ -948,6 +948,19 @@ function updateUI() {
     const autoBtn = DOM.get('btn-auto-battle');
     const logWrapper = DOM.get('log-wrapper-box');
 
+    // 🔒 0. 登入/封面階段：隱藏所有遊戲內面板與操作按鈕
+    if (typeof gameState !== "undefined" && gameState === "TITLE") {
+        if (titleBox) titleBox.style.display = "block";
+        if (statusBox) statusBox.style.display = "none";
+        if (actionBox) actionBox.style.display = "none";
+        if (villageBox) villageBox.style.display = "none";
+        if (rewardBox) rewardBox.style.display = "none";
+        if (logWrapper) logWrapper.style.display = "none";
+        if (envBar) envBar.style.display = "none";
+        if (autoBtn) autoBtn.style.display = "none";
+        return;
+    }
+    
     if (gameState === "VILLAGE") {
         if (titleBox) titleBox.style.display = "none"; 
         if (statusBox) statusBox.style.display = "grid";
