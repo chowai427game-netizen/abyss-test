@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.5)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.6)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告
@@ -8,7 +8,7 @@ const MAX_CHAT_LOGS = 25;
 let localChatHistory = [];
 const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時
 let loginLoadingInterval = null;
-let autoSelectBlessingTimer = null; // 自動戰鬥代選定時器
+let autoSelectBlessingTimer = null; 
 
 // 🛡️ XSS 資安防禦：HTML 特殊字元轉義函式
 function escapeHTML(str) {
@@ -90,6 +90,7 @@ let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 let activeWarehouseFilter = "all";
+let currentVillageLocation = "SQUARE"; // 🎯 預設第一分頁切換為中央廣場 (SQUARE)
 
 // --------------------------------------------------------------------------
 // ⏳ 0. 登入動態遮罩
@@ -362,7 +363,7 @@ function renderStatusBadges(containerEl, effectsMap) {
 }
 
 // --------------------------------------------------------------------------
-// 📱 5. 手機端橫向滑動切換村莊分頁
+// 📱 5. 手機端橫向滑動切換村莊分頁（更新為 SQUARE 首位順序）
 // --------------------------------------------------------------------------
 
 function initSwipeNavigation() {
@@ -371,7 +372,8 @@ function initSwipeNavigation() {
 
     let touchStartX = 0;
     let touchStartY = 0;
-    const locations = ['GATE', 'GUILD', 'KITCHEN', 'WORKSHOP', 'SQUARE'];
+    // 🎯 更新分頁順序：SQUARE (首頁) ➔ GATE ➔ GUILD ➔ WORKSHOP ➔ KITCHEN
+    const locations = ['SQUARE', 'GATE', 'GUILD', 'WORKSHOP', 'KITCHEN'];
 
     villageBox.ontouchstart = (e) => {
         touchStartX = e.touches[0].clientX;
@@ -515,7 +517,7 @@ function updateActionPanelUI() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟【新功能加強】靈魂賜福手動三選一卡片渲染引擎 (Roguelite Core Choice System)
+// 🌟 靈魂賜福手動三選一卡片渲染引擎
 // --------------------------------------------------------------------------
 
 function renderBlessingRewardCards(customChoices = null) {
@@ -524,7 +526,6 @@ function renderBlessingRewardCards(customChoices = null) {
 
     if (autoSelectBlessingTimer) clearTimeout(autoSelectBlessingTimer);
 
-    // 預設 Boss 賜福選項（三選一）
     const defaultChoices = customChoices || [
         {
             id: "blessing_spd",
@@ -580,7 +581,7 @@ function renderBlessingRewardCards(customChoices = null) {
 
     const grid = document.getElementById('blessing-cards-grid');
 
-    defaultChoices.forEach((choice, index) => {
+    defaultChoices.forEach((choice) => {
         const card = document.createElement('div');
         card.className = "reward-card blessing-choice-card";
         card.style.cssText = `
@@ -621,7 +622,6 @@ function renderBlessingRewardCards(customChoices = null) {
 
     rewardBox.style.display = "block";
 
-    // 🤖 若玩家開啟自動戰鬥，1.5 秒後自動挑選第一項
     if (typeof autoBattleActive !== "undefined" && autoBattleActive) {
         showToast("🤖 自動戰術啟動中：1.5 秒後自動挑選賜福...", "info");
         autoSelectBlessingTimer = setTimeout(() => {
@@ -644,7 +644,6 @@ function selectBlessingChoice(choice) {
         addLog(`✨ 抉擇靈魂賜福：成功覺醒 <strong>${choice.title}</strong> (${choice.stats})！`, "perfect");
     }
 
-    // 清空並隱藏賜福外框
     const rewardBox = DOM.get('reward-panel-box');
     if (rewardBox) {
         rewardBox.innerHTML = "";
@@ -1017,16 +1016,26 @@ function getJobChineseName(j) {
     return jobNames[j] || "無名勇者";
 }
 
+// --------------------------------------------------------------------------
+// 🎯 村莊分頁切換（首位更新為 SQUARE 中央廣場）
+// --------------------------------------------------------------------------
+
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
-    const panels = ['v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
+    const panels = ['v-loc-square', 'v-loc-gate', 'v-loc-guild', 'v-loc-workshop', 'v-loc-kitchen'];
     panels.forEach(p => {
         const el = DOM.get(p);
         if (el) el.style.display = 'none';
     });
     
-    const tabs = { 'GATE': 'btn-tab-gate', 'GUILD': 'btn-tab-guild', 'KITCHEN': 'btn-tab-kitchen', 'SQUARE': 'btn-tab-square', 'WORKSHOP': 'btn-tab-workshop' };
+    const tabs = { 
+        'SQUARE': 'btn-tab-square', 
+        'GATE': 'btn-tab-gate', 
+        'GUILD': 'btn-tab-guild', 
+        'WORKSHOP': 'btn-tab-workshop', 
+        'KITCHEN': 'btn-tab-kitchen' 
+    };
     
     Object.keys(tabs).forEach(k => {
         const tBtn = DOM.get(tabs[k]);
@@ -1035,11 +1044,11 @@ function switchVillageLocation(targetLoc) {
     
     const locTextEl = DOM.get('location-text');
     const locMap = {
+        SQUARE: { el: 'v-loc-square', text: "💬 地表村莊 ➔ 中央廣場", render: renderVillageSquare },
         GATE: { el: 'v-loc-gate', text: "⛺ 地表村莊 ➔ 傳送大殿" },
         GUILD: { el: 'v-loc-guild', text: "🏛️ 地表村莊 ➔ 冒險者公會", render: renderVillageGuild },
-        KITCHEN: { el: 'v-loc-kitchen', text: "🍳 地表村莊 ➔ 皇家料理屋", render: renderVillageCookingWorkshop },
-        SQUARE: { el: 'v-loc-square', text: "💬 地表村莊 ➔ 中央廣場", render: renderVillageSquare },
-        WORKSHOP: { el: 'v-loc-workshop', text: "🛠️ 地表村莊 ➔ 魔導加工所", render: renderVillageWorkshop }
+        WORKSHOP: { el: 'v-loc-workshop', text: "🛠️ 地表村莊 ➔ 魔導加工所", render: renderVillageWorkshop },
+        KITCHEN: { el: 'v-loc-kitchen', text: "🍳 地表村莊 ➔ 皇家料理屋", render: renderVillageCookingWorkshop }
     };
 
     if (locMap[targetLoc]) {
@@ -1052,10 +1061,6 @@ function switchVillageLocation(targetLoc) {
     
     updateUI();
 }
-
-// --------------------------------------------------------------------------
-// 🛠️ updateUI 核心更新（完美判定：只有真正存在卡片時才顯示 rewardBox）
-// --------------------------------------------------------------------------
 
 function updateUI() {
     const titleBox = DOM.get('title-box');
@@ -1096,6 +1101,9 @@ function updateUI() {
         initSwipeNavigation();
         syncCharacterDataUi();
         updateActionPanelUI();
+
+        // 🎯 確定進入村莊時渲染預設分頁 (SQUARE)
+        switchVillageLocation(currentVillageLocation || 'SQUARE');
         return; 
     }
     
@@ -1172,7 +1180,6 @@ function updateUI() {
         if (mAtbRow) mAtbRow.style.display = "none";
     }
 
-    // 🎯 關鍵修復：必須包含 .reward-card 點擊卡片元素時，才開啟 rewardBox！避免無卡片時出現空白外框
     if (rewardBox) {
         const hasRewardCards = rewardBox.querySelectorAll('.reward-card').length > 0;
         rewardBox.style.display = ((gameState === "REWARD" || gameState === "ENCOUNTER") && hasRewardCards) ? "block" : "none";
@@ -1476,6 +1483,10 @@ function renderVillageCookingWorkshop() {
     });
 }
 
+// --------------------------------------------------------------------------
+// 🛠️ 加工所渲染 (修復：加入強化所需金幣顯示與金幣不足檢查)
+// --------------------------------------------------------------------------
+
 function renderVillageWorkshop() {
     const wBox = DOM.get('workshop-warehouse-display');
     if (wBox) {
@@ -1599,13 +1610,30 @@ function renderVillageWorkshop() {
         const hasInWarehouse = (accountMeta.warehouse?.[blueprint.name] || 0) > 0;
 
         if (isEquipped || hasInWarehouse) {
+            // 🎯 計算強化費用金幣
+            const refineCost = (itemRefineLvl + 1) * 100;
+            const playerGold = currentRun ? (currentRun.gold || 0) : 0;
+            const hasEnoughGold = playerGold >= refineCost;
+
             const btnRefine = document.createElement('button');
             btnRefine.className = "btn-game btn-rerun";
-            btnRefine.style.cssText = "padding: 3px 6px; font-size: 10px; background: linear-gradient(135deg, #f39c12 0%, #d35400 100%) !important;";
-            btnRefine.innerHTML = `✨ 強化 (+${itemRefineLvl})`;
+            btnRefine.style.cssText = `padding: 3px 6px; font-size: 10px; background: ${hasEnoughGold ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' : 'rgba(255,255,255,0.1)'} !important; color: ${hasEnoughGold ? '#fff' : '#aaa'};`;
+            btnRefine.innerHTML = `✨ 強化 (${refineCost}G)`;
+            
             btnRefine.onclick = (e) => { 
                 e.stopPropagation(); 
-                if (typeof refineSpecificEquipment === "function") refineSpecificEquipment(blueprint.name);
+                // 🎯 金幣門檻判定與 Toast 提醒
+                if (!hasEnoughGold) {
+                    showToast(`🪙 金幣不足！強化需要 ${refineCost} G（當前持有: ${playerGold} G）`, "warn");
+                    showMaterialAlert([`金幣不足：強化需要 🪙 ${refineCost} G`, `當前持有：🪙 ${playerGold} G`], "⚠️ 缺少強化金幣！");
+                    return;
+                }
+
+                if (typeof refineSpecificEquipment === "function") {
+                    refineSpecificEquipment(blueprint.name);
+                } else {
+                    showToast("強化模組進行中...", "info");
+                }
             };
             btnGroup.appendChild(btnRefine);
         }
