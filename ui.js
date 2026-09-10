@@ -442,6 +442,7 @@ function allocateStatPoint(statKey) {
 // 🎛️ 動態戰術動作面板引擎
 // --------------------------------------------------------------------------
 
+// 🎛️ 動態戰術動作面板引擎（已修復：補齊 game.js 所需之按鈕 ID）
 function updateActionPanelUI() {
     const actionBox = DOM.get('action-panel-box') || document.getElementById('action-panel-box');
     if (!actionBox) return;
@@ -453,6 +454,7 @@ function updateActionPanelUI() {
 
     if (gameState === "VILLAGE") {
         const btnEnter = document.createElement('button');
+        btnEnter.id = "btn-main-action"; // 🎯 補齊 ID
         btnEnter.className = "btn-game btn-explore full-width";
         btnEnter.style.cssText = "flex: 1; padding: 12px; font-size: 13px; font-weight: bold;";
         btnEnter.innerHTML = `🔮 進入地下城 (B${typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1}F)`;
@@ -463,6 +465,7 @@ function updateActionPanelUI() {
 
     if (gameState === "BATTLE") {
         const btnTactics = document.createElement('button');
+        btnTactics.id = "btn-main-action"; // 🎯 補齊 ID
         btnTactics.className = "btn-game btn-rerun";
         btnTactics.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         const isAuto = typeof autoBattleActive !== "undefined" && autoBattleActive;
@@ -477,6 +480,7 @@ function updateActionPanelUI() {
         };
 
         const btnFlee = document.createElement('button');
+        btnFlee.id = "btn-secondary-action"; // 🎯 補齊 ID
         btnFlee.className = "btn-game btn-rest";
         btnFlee.style.cssText = "flex: 1; padding: 10px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #c0392b, #7f8c8d) !important;";
         btnFlee.innerHTML = "🏃 回到村莊";
@@ -492,6 +496,7 @@ function updateActionPanelUI() {
         const nextF = currentF + 1;
 
         const btnNext = document.createElement('button');
+        btnNext.id = "btn-main-action"; // 🎯 補齊 ID
         btnNext.className = "btn-game btn-explore";
         btnNext.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         btnNext.innerHTML = `⚔️ 進入下層 (B${nextF}F)`;
@@ -499,6 +504,7 @@ function updateActionPanelUI() {
         actionBox.appendChild(btnNext);
 
         const btnRerun = document.createElement('button');
+        btnRerun.id = "btn-rerun-action"; // 🎯 補齊 ID
         btnRerun.className = "btn-game btn-rerun";
         btnRerun.style.cssText = "flex: 1.5; padding: 10px; font-size: 11px; font-weight: bold;";
         btnRerun.innerHTML = `🔄 重巡此層 (B${currentF}F)`;
@@ -506,6 +512,7 @@ function updateActionPanelUI() {
         actionBox.appendChild(btnRerun);
 
         const btnReturn = document.createElement('button');
+        btnReturn.id = "btn-secondary-action"; // 🎯 補齊 ID
         btnReturn.className = "btn-game btn-rest";
         btnReturn.style.cssText = "flex: 1; padding: 10px; font-size: 11px; font-weight: bold;";
         btnReturn.innerHTML = "⛺ 回到村莊";
@@ -1217,7 +1224,7 @@ function formatSkillEffectText(s, lv, playerRun) {
     return parts.length > 0 ? parts.join(" | ") : "特殊效果觸發";
 }
 
-// 🏛️ 冒險者公會渲染（優化：列表間距壓縮至 4px + 重構雙欄洗練重設按鈕）
+// 🏛️ 冒險者公會渲染（已修復：指向 game.js 正確的重置函式）
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
@@ -1248,7 +1255,6 @@ function renderVillageGuild() {
 
     jobSkills.forEach(s => {
         const row = document.createElement('div');
-        // 🎯 核心優化：padding 縮減為 5px 10px，margin-bottom 縮減為 4px
         row.style.cssText = `
             background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 6px;
             border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px; width: 100%;
@@ -1308,7 +1314,7 @@ function renderVillageGuild() {
         container.appendChild(row);
     });
 
-    // 🎯 核心優化：重塑『命運洗禮（洗點與轉職）』為緊湊的 2 欄精緻小卡片
+    // 🎯 正確指向 game.js 的 executeResetStats() 與 triggerReselectJobUI()
     const resetSection = document.createElement('div');
     resetSection.style.cssText = `
         margin-top: 10px; padding: 8px 10px; background: rgba(0, 0, 0, 0.25);
@@ -1320,15 +1326,20 @@ function renderVillageGuild() {
             ⚖️ 命運洗禮 (洗點與轉職)
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <button class="btn-game btn-rerun" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof openResetStatsModal === 'function') openResetStatsModal(); else showToast('點擊重洗屬性點 (耗 300 G)', 'info');">
+            <button class="btn-game btn-rerun" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof executeResetStats === 'function') executeResetStats(); else showToast('洗點模組載入中...', 'info');">
                 <span>🧹 重洗屬性點</span> <span style="font-size: 9px; opacity: 0.85;">(300G)</span>
             </button>
-            <button class="btn-game btn-explore" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #16a085, #0a5c4c) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof openResetJobModal === 'function') openResetJobModal(); else showToast('點擊重選職業 (耗 1,000 G)', 'info');">
+            <button class="btn-game btn-explore" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #16a085, #0a5c4c) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof triggerReselectJobUI === 'function') triggerReselectJobUI(); else showToast('轉職模組載入中...', 'info');">
                 <span>🔄 重選職業</span> <span style="font-size: 9px; opacity: 0.85;">(1,000G)</span>
             </button>
         </div>
     `;
     container.appendChild(resetSection);
+}
+
+// 🎯 相容性別名宣告
+function closeMatAlertModal() {
+    hideMaterialAlert();
 }
 
 function renderWarehouseFilterBar(containerEl, onFilterChange) {
