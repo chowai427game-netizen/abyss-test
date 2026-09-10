@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.2)
+// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.3)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -471,7 +471,7 @@ function executeAutoBattleAiTurn() {
 }
 
 // --------------------------------------------------------------------------
-// 🎯 主要動作控制鏈 (支援多狀態相容)
+// 🎯 主要動作控制鏈 (支援從 REWARD / VILLAGE 切換進入下一層)
 // --------------------------------------------------------------------------
 function handleMainAction() {
     try {
@@ -559,7 +559,7 @@ function handleSecondaryAction() {
 }
 
 // --------------------------------------------------------------------------
-// 🌐 UI 介面對接全域 API 封裝 (解決 ui.js 動態按鈕綁定懸空問題)
+// 🌐 UI 介面對接全域 API 封裝
 // --------------------------------------------------------------------------
 function startNextFloor() {
     handleMainAction();
@@ -1293,6 +1293,9 @@ function executeMonsterActionTick() {
     }
 }
 
+// --------------------------------------------------------------------------
+// 👑 勝利結算序列 (修復：狀態轉換與按鈕解鎖)
+// --------------------------------------------------------------------------
 function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
     let rewardG = isBossFloor ? (150 + dungeonFloor * 10) : (15 + Math.floor(dungeonFloor * 1.5));
@@ -1313,6 +1316,14 @@ function executeDungeonVictorySequence() {
     }
 
     activeMonster = null; 
+    gameState = "REWARD"; // 🎯 關鍵修復 1：將狀態轉為結算模式
+
+    // 🎯 關鍵修復 2：解鎖主要動作與重巡按鈕
+    const mainBtn = document.getElementById('btn-main-action');
+    const rerunBtn = document.getElementById('btn-rerun-action');
+    if (mainBtn) mainBtn.disabled = false;
+    if (rerunBtn) rerunBtn.disabled = false;
+
     addExperience(rewardExp);
 }
 
@@ -1388,7 +1399,7 @@ function checkLevelUpAndTriggerSelect() {
         if (typeof addLog === "function") addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 3 點能力點數！`, "perfect");
     }
 
-    if (gameState === "BATTLE") { 
+    if (gameState === "BATTLE" || gameState === "REWARD") { 
         let btnMain = document.getElementById('btn-main-action');
         if (btnMain) btnMain.disabled = false; 
     }
