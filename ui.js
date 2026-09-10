@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.3)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.4)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告（必須放在最頂端，防止 ReferenceError）
@@ -401,7 +401,7 @@ function initSwipeNavigation() {
 }
 
 // --------------------------------------------------------------------------
-// 🎯 屬性配點邏輯 (已修正括號閉合)
+// 🎯 屬性配點邏輯
 // --------------------------------------------------------------------------
 
 function allocateStatPoint(statKey) {
@@ -445,20 +445,19 @@ function allocateStatPoint(statKey) {
 }
 
 // --------------------------------------------------------------------------
-// 🎛️ 動態戰術動作面板引擎 (全面重構為動態獨立按鈕組)
+// 🎛️ 動態戰術動作面板引擎 (🛠️ 修正：解鎖全關卡勝利重巡按鈕)
 // --------------------------------------------------------------------------
 
 function updateActionPanelUI() {
     const actionBox = DOM.get('action-panel-box') || document.getElementById('action-panel-box');
     if (!actionBox) return;
 
-    // 清空舊按鈕/下拉選單，重構為彈性按鈕容器
     actionBox.innerHTML = "";
     actionBox.style.display = "flex";
     actionBox.style.gap = "8px";
     actionBox.style.width = "100%";
 
-    // 1. ⛺ 在村莊狀態：顯示 1 個滿寬按鈕 [🔮 進入地下城]
+    // 1. ⛺ 在村莊狀態
     if (gameState === "VILLAGE") {
         const btnEnter = document.createElement('button');
         btnEnter.className = "btn-game btn-explore full-width";
@@ -471,7 +470,7 @@ function updateActionPanelUI() {
         return;
     }
 
-    // 2. ⚔️ 戰鬥進行中：顯示 2 個按鈕 [⚡ 戰術] + [🏃 回到村莊]
+    // 2. ⚔️ 戰鬥進行中
     if (gameState === "BATTLE") {
         const btnTactics = document.createElement('button');
         btnTactics.className = "btn-game btn-rerun";
@@ -500,30 +499,32 @@ function updateActionPanelUI() {
         return;
     }
 
-    // 3. 🏆 戰鬥結束 / 獎勵養息階段 (REWARD / ENCOUNTER)：顯示 2~3 個按鈕
-    if (gameState === "REWARD" || gameState === "ENCOUNTER") {
+    // 3. 🏆 戰鬥結束 / 獎勵養息階段 (REWARD / ENCOUNTER / ENCOUNTER_RESOLVED)
+    if (gameState === "REWARD" || gameState === "ENCOUNTER" || gameState === "ENCOUNTER_RESOLVED") {
+        const currentF = typeof dungeonFloor !== "undefined" ? dungeonFloor : 1;
+        const nextF = currentF + 1;
+
+        // ⚔️ 按鈕 1：進入下層
         const btnNext = document.createElement('button');
         btnNext.className = "btn-game btn-explore";
         btnNext.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
-        btnNext.innerHTML = `⚔️ 進入下層 (B${(typeof dungeonFloor !== "undefined" ? dungeonFloor : 0) + 1}F)`;
+        btnNext.innerHTML = `⚔️ 進入下層 (B${nextF}F)`;
         btnNext.onclick = () => {
             if (typeof startNextFloor === "function") startNextFloor();
         };
         actionBox.appendChild(btnNext);
 
-        // 符合重巡條件（如 Boss 關卡）時顯示 [🔄 重巡本層]
-        const canRerun = typeof dungeonFloor !== "undefined" && dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0;
-        if (canRerun) {
-            const btnRerun = document.createElement('button');
-            btnRerun.className = "btn-game btn-rerun";
-            btnRerun.style.cssText = "flex: 1.5; padding: 10px; font-size: 11px; font-weight: bold;";
-            btnRerun.innerHTML = `🔄 重巡本層`;
-            btnRerun.onclick = () => {
-                if (typeof rerunCurrentFloor === "function") rerunCurrentFloor();
-            };
-            actionBox.appendChild(btnRerun);
-        }
+        // 🔄 按鈕 2：重巡此層 (🛠️ 修正：移除原本 % 10 限制，所有關卡獲勝均可重巡)
+        const btnRerun = document.createElement('button');
+        btnRerun.className = "btn-game btn-rerun";
+        btnRerun.style.cssText = "flex: 1.5; padding: 10px; font-size: 11px; font-weight: bold;";
+        btnRerun.innerHTML = `🔄 重巡此層 (B${currentF}F)`;
+        btnRerun.onclick = () => {
+            if (typeof rerunCurrentFloor === "function") rerunCurrentFloor();
+        };
+        actionBox.appendChild(btnRerun);
 
+        // ⛺ 按鈕 3：回到村莊
         const btnReturn = document.createElement('button');
         btnReturn.className = "btn-game btn-rest";
         btnReturn.style.cssText = "flex: 1; padding: 10px; font-size: 11px; font-weight: bold;";
@@ -655,7 +656,7 @@ function getEquipmentStatDiff(blueprint) {
 }
 
 // --------------------------------------------------------------------------
-// 👤 角色數據 UI 同步 (全屬性實時連動版)
+// 👤 角色數據 UI 同步
 // --------------------------------------------------------------------------
 
 function syncCharacterDataUi() {
@@ -948,7 +949,7 @@ function updateUI() {
     const autoBtn = DOM.get('btn-auto-battle');
     const logWrapper = DOM.get('log-wrapper-box');
 
-    // 🔒 0. 登入/封面階段：隱藏所有遊戲內面板與操作按鈕
+    // 🔒 0. 登入/封面階段
     if (typeof gameState !== "undefined" && gameState === "TITLE") {
         if (titleBox) titleBox.style.display = "block";
         if (statusBox) statusBox.style.display = "none";
@@ -976,7 +977,7 @@ function updateUI() {
         
         initSwipeNavigation();
         syncCharacterDataUi();
-        updateActionPanelUI(); // 動態同步村莊按鈕
+        updateActionPanelUI();
         return; 
     }
     
@@ -1054,12 +1055,14 @@ function updateUI() {
         if (mAtbRow) mAtbRow.style.display = "none";
     }
 
+    // 🎯 關鍵修復：只有在 REWARD/ENCOUNTER 且 rewardBox 內部「確定有子卡片元素」時才顯示外框
     if (rewardBox) {
-        rewardBox.style.display = (gameState === "REWARD" || gameState === "ENCOUNTER") ? "block" : "none";
+        const hasContent = rewardBox.children.length > 0 && rewardBox.innerHTML.trim() !== "";
+        rewardBox.style.display = ((gameState === "REWARD" || gameState === "ENCOUNTER") && hasContent) ? "block" : "none";
     }
     
     syncCharacterDataUi();
-    updateActionPanelUI(); // 動態同步戰鬥/結算階段按鈕
+    updateActionPanelUI(); 
 }
 
 function formatSkillEffectText(s, lv, playerRun) {
@@ -1526,7 +1529,7 @@ function renderVillageWorkshop() {
     });
 }
 
-// 📜 日記戰鬥日誌 (Log Box) - 純紅字動態打擊感版
+// 📜 日記戰鬥日誌 (Log Box)
 function addLog(msg, type = "deal") {
     const box = DOM.get('log-box');
     if (!box) return;
@@ -1597,10 +1600,6 @@ let lockpickState = {
     holdTimer: null,
     onSuccessCallback: null
 };
-
-// ==========================================================================
-// 📦 寶箱察看與 QTE 開鎖前置彈窗
-// ==========================================================================
 
 function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty = "medium", onSuccess) {
     let overlay = document.getElementById('chest-inspect-overlay');
