@@ -1,9 +1,9 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.1)
+// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.2)
 // ==========================================================================
 
 let combatTickerTimer = null; 
-let combatRoundCounter = 1;    
+let combatRoundCounter = 1;     
 
 let playerAtb = 0;
 let monsterAtb = 0;
@@ -68,21 +68,20 @@ function triggerProjectileFX(type = 'arcane', count = 1) {
     const logContainer = document.getElementById('log-box');
     if (!logContainer) return;
 
-    // 限制單次視覺最大投射物數量為 10 發，避免 DOM 過載
     const maxCount = Math.min(count, 10); 
     
     for (let i = 0; i < maxCount; i++) {
         setTimeout(() => {
             const proj = document.createElement('div');
             proj.className = `projectile-entity proj-${type}`;
-            proj.style.pointerEvents = 'none'; // 防誤觸點擊
+            proj.style.pointerEvents = 'none';
             proj.innerHTML = `<div class="fx-core"></div>`;
             logContainer.appendChild(proj);
 
             setTimeout(() => {
                 if (proj && proj.parentNode) proj.remove();
             }, 450);
-        }, i * 65); // 每發投射物間隔 65ms 陸續飛出
+        }, i * 65);
     }
 }
 
@@ -224,6 +223,7 @@ function selectInitialJob(jobId) {
 }
 
 function enterGameMainShell() {
+    gameState = "VILLAGE";
     const titleBox = document.getElementById('title-box');
     const statusPanel = document.getElementById('status-panel-box');
     const actionPanel = document.getElementById('action-panel-box');
@@ -404,7 +404,7 @@ function syncTacticButtonsUi() {
 }
 
 // --------------------------------------------------------------------------
-// ⚡ 自動戰鬥 AI 邏輯 (完全修復 1 轉 + 2 轉跨階技能鏈與空值對接)
+// ⚡ 自動戰鬥 AI 邏輯
 // --------------------------------------------------------------------------
 function executeAutoBattleAiTurn() {
     if (activeTactic === "MANUAL") return false;
@@ -470,9 +470,12 @@ function executeAutoBattleAiTurn() {
     return false;
 }
 
+// --------------------------------------------------------------------------
+// 🎯 主要動作控制鏈 (支援多狀態相容)
+// --------------------------------------------------------------------------
 function handleMainAction() {
     try {
-        if (gameState === "VILLAGE") {
+        if (typeof gameState === "undefined" || gameState === "VILLAGE") {
             gameState = "BATTLE";
             dungeonFloor = 1;
             const secBtn = document.getElementById('btn-secondary-action');
@@ -482,8 +485,9 @@ function handleMainAction() {
             }
             if (typeof updateUI === "function") updateUI();
             runDungeonLoop();
-        } else if (gameState === "BATTLE") {
-            dungeonFloor++;
+        } else if (gameState === "BATTLE" || gameState === "REWARD" || gameState === "ENCOUNTER_RESOLVED" || gameState === "ENCOUNTER") {
+            gameState = "BATTLE";
+            dungeonFloor = (dungeonFloor || 0) + 1;
             if (typeof updateUI === "function") updateUI();
             runDungeonLoop();
         }
@@ -554,6 +558,31 @@ function handleSecondaryAction() {
     if (typeof switchVillageLocation === "function") switchVillageLocation("GATE");
 }
 
+// --------------------------------------------------------------------------
+// 🌐 UI 介面對接全域 API 封裝 (解決 ui.js 動態按鈕綁定懸空問題)
+// --------------------------------------------------------------------------
+function startNextFloor() {
+    handleMainAction();
+}
+
+function rerunCurrentFloor() {
+    handleRerunAction();
+}
+
+function returnToVillage() {
+    handleSecondaryAction();
+}
+
+// 🛡️ 顯式暴露至全域 window，防止變數未定義
+if (typeof window !== "undefined") {
+    window.startNextFloor = startNextFloor;
+    window.rerunCurrentFloor = rerunCurrentFloor;
+    window.returnToVillage = returnToVillage;
+    window.handleMainAction = handleMainAction;
+    window.handleRerunAction = handleRerunAction;
+    window.handleSecondaryAction = handleSecondaryAction;
+}
+
 function removeBagItem(index) {
     if (!currentRun.inventory || index < 0 || index >= currentRun.inventory.length) return;
     
@@ -569,7 +598,6 @@ function executeUseDungeonItem(itemName, index) {
     if (gameState !== "BATTLE" || !activeMonster) return;
     if (typeof addLog === "function") addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
     
-    // 1. 回復 HP 類
     if (itemName.includes("厚牛巨堡") || itemName.includes("料理") || itemName.includes("牛扒") || itemName.includes("炸薯")) {
         let healVal = Math.floor(currentRun.maxHp * 0.5);
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
@@ -585,13 +613,11 @@ function executeUseDungeonItem(itemName, index) {
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
         if (typeof addLog === "function") addLog(`🧪 強效滋補！生命回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
     }
-    // 2. 回復 MP 類
     else if (itemName.includes("回魔劑") || itemName.includes("瓊漿")) {
         let mpVal = 80;
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpVal);
         if (typeof addLog === "function") addLog(`🍷 魔力泉湧！回復 <span class="heal-effect">+${mpVal} MP</span>！`, "perfect");
     }
-    // 3. 特殊控場與即死類
     else if (itemName.includes("永凍刨冰")) {
         activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 2;
         if (typeof addLog === "function") addLog(`❄️ 冰爽極限！魔物被徹底凍結 <strong>2 回合</strong> 無法行動！`, "perfect");
@@ -730,14 +756,13 @@ function getStarUpCost(slot, currentStar) {
 }
 
 // ==========================================================================
-// ⚒️ 單一藍圖裝備獨立強化系統 (+1 ~ +20 安定/降階/爆裝修羅道 - 含穿戴連動防護)
+// ⚒️ 單一藍圖裝備獨立強化系統
 // ==========================================================================
 function refineSpecificEquipment(equipName) {
     if (!accountMeta.itemRefines) accountMeta.itemRefines = {};
 
     const curLvl = accountMeta.itemRefines[equipName] || 0;
 
-    // 1. 上限檢查
     if (curLvl >= 20) {
         if (typeof showMaterialAlert === "function") {
             showMaterialAlert([`[${equipName}] 已達到最高強化極限 (+20)！`], "🌟 已達神裝頂峰");
@@ -746,9 +771,8 @@ function refineSpecificEquipment(equipName) {
     }
 
     const nextLvl = curLvl + 1;
-
-    // 2. 強化金幣需求
     const goldCost = nextLvl * 100;
+
     if ((currentRun.gold || 0) < goldCost) {
         if (typeof showMaterialAlert === "function") {
             showMaterialAlert([`強化至 +${nextLvl} 需要 🪙 ${goldCost} G (當前僅有 ${currentRun.gold || 0} G)`], "⚠️ 金幣不足");
@@ -758,23 +782,19 @@ function refineSpecificEquipment(equipName) {
 
     currentRun.gold -= goldCost;
 
-    // 3. 設定三階段機率與失敗懲罰類型
     let successRate = 1.0;
     let failureType = "NONE"; 
 
     if (nextLvl <= 5) {
-        // 🟢【新手安定期】(+1 ~ +5)：100% 成功
         successRate = 1.00;
         failureType = "NONE";
     } 
     else if (nextLvl <= 10) {
-        // 🟡【過渡陣痛期】(+6 ~ +10)：70% ~ 30%，失敗退回 1 階
         const transitionRates = { 6: 0.70, 7: 0.60, 8: 0.50, 9: 0.40, 10: 0.30 };
         successRate = transitionRates[nextLvl];
         failureType = "DOWNGRADE";
     } 
     else {
-        // 🔴【神裝修羅道】(+11 ~ +20)：15% ~ 0.5%，失敗裝備直接永久破壞
         const shuraRates = {
             11: 0.15, 12: 0.12, 13: 0.10, 14: 0.08, 15: 0.05,
             16: 0.04, 17: 0.03, 18: 0.02, 19: 0.01, 20: 0.005
@@ -783,7 +803,6 @@ function refineSpecificEquipment(equipName) {
         failureType = "BREAK";
     }
 
-    // 4. 進行機率判定
     const roll = Math.random();
 
     if (roll < successRate) {
@@ -831,7 +850,6 @@ function refineSpecificEquipment(equipName) {
     }
 }
 
-// 🔧 P1 優化：使用 getItemBlueprintByName 快查 Map
 function executeDismantle(equipName) {
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
     let b = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(equipName) : CRAFTING_BLUEPRINTS.find(x => x.name === equipName); 
@@ -960,11 +978,11 @@ function resolveAbyssEvent() {
 }
 
 // --------------------------------------------------------------------------
-// ⚔️ 地下城主戰鬥迴圈 (Dungeon Loop Engine - 高效防洩漏計時器)
+// ⚔️ 地下城主戰鬥迴圈 (Dungeon Loop Engine)
 // --------------------------------------------------------------------------
 async function runDungeonLoop() {
     try {
-        if (combatTickerTimer) clearInterval(combatTickerTimer); // 強制清理歷史計時器
+        if (combatTickerTimer) clearInterval(combatTickerTimer);
 
         const mainBtn = document.getElementById('btn-main-action');
         if (mainBtn) mainBtn.disabled = true;
@@ -1087,7 +1105,7 @@ function executeEnvironmentTick() {
 }
 
 // --------------------------------------------------------------------------
-// 🗡️ 玩家行動 Tick (支援多段動態打擊)
+// 🗡️ 玩家行動 Tick
 // --------------------------------------------------------------------------
 function executePlayerActionTick() {
     if (activeMonster && activeMonster.hp > 0) {
@@ -1309,8 +1327,7 @@ function triggerBossVictoryModal(bossName) {
         overlay.style.display = 'none';
         overlay.removeEventListener('click', closeHandler);
     };
-    
-    // 增加防誤觸延遲
+
     setTimeout(() => {
         overlay.addEventListener('click', closeHandler);
     }, 800);
@@ -1380,7 +1397,6 @@ function checkLevelUpAndTriggerSelect() {
     if (typeof updateUI === "function") updateUI();
 }
 
-// 🔧 P1 優化：使用 getItemBlueprintByName 快查 Map
 function executeEquipAction(equipName, actionType) {
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
     let blueprint = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(equipName) : CRAFTING_BLUEPRINTS.find(b => b.name === equipName); 
@@ -1407,7 +1423,7 @@ function executeEquipAction(equipName, actionType) {
 }
 
 // ==========================================================================
-// 🏇 皇家二轉突破儀式系統 (對接語義化 Modal)
+// 🏇 皇家二轉突破儀式系統
 // ==========================================================================
 
 function openJobAdvancementModal() {
