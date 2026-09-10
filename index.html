@@ -228,18 +228,8 @@
                 </details>
             </section>
             
-            <!-- 🕹️ 3. 全局動作按鈕區 -->
-            <!-- 🎮 整合型戰術動作面板 -->
-            <div id="action-panel-box" class="action-panel">
-                <div class="action-selector-wrapper">
-                    <select id="action-menu-select" class="select-game action-dropdown">
-                        <!-- 這裡會由 ui.js 根據狀態動態注入選項 -->
-                    </select>
-                    <button id="btn-execute-action" class="btn-game btn-explore" onclick="executeSelectedAction()">
-                        ⚡ 執行指令
-                    </button>
-                </div>
-            </div>
+            <!-- 🕹️ 3. 全局動作按鈕區 (預設隱藏，由 ui.js 根據遊戲狀態完全接管動態渲染) -->
+            <div id="action-panel-box" class="action-panel" style="display: none;"></div>
 
         </aside>
 
