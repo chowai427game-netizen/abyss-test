@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🌀 eventdata.js：40種邪神/仙子奇遇 & 5階級隨機寶箱數據庫 (v4.1 修復全域覆蓋與空值防護)
+// 🌀 eventdata.js：40種邪神/仙子奇遇 & 5階級隨機寶箱數據庫 (v5.0 Hyper-Engine Interconnected)
 // ==========================================================================
 
 // 🛡️ 輔助防護：確保 meta 與玩家狀態結構健全，簡化重複寫法
@@ -24,23 +24,22 @@ function ensureRunState(run) {
     return run;
 }
 
-// 📦 戰術背包流轉安全代理 (防止全域覆蓋，優先調用全域 game.js 的統一函式)
+// 📦 戰術背包流轉安全代理
 function safePushToInventoryEvent(run, meta, itemName) {
     if (typeof window !== "undefined" && typeof window.safePushToInventory === "function" && window.safePushToInventory !== safePushToInventoryEvent) {
         return window.safePushToInventory(run, meta, itemName);
     }
     
-    // 安全備用發放邏輯
     const safeRun = ensureRunState(run);
     const safeMeta = ensurePlayerMeta(meta);
     const maxBag = typeof MAX_BAG_SIZE !== "undefined" ? MAX_BAG_SIZE : 6;
     
     if (safeRun.inventory.length < maxBag) {
         safeRun.inventory.push(itemName);
-        return `🎁 成功將 [${itemName}] 塞進快捷背包！`;
+        return `🎒 成功將 [${itemName}] 塞進隨身背包！`;
     } else {
         safeMeta.warehouse[itemName] = (safeMeta.warehouse[itemName] || 0) + 1;
-        return `📦 快捷背包已滿，[${itemName}] 已自動放入村莊倉庫！`;
+        return `📦 隨身背包已滿，[${itemName}] 已自動放入村莊倉庫！`;
     }
 }
 
@@ -49,13 +48,16 @@ function safeRefreshStats() {
     if (typeof recalculateRunStats === "function") {
         recalculateRunStats();
     }
+    if (typeof resetCurrentRunData === "function") {
+        resetCurrentRunData();
+    }
     if (typeof updateUI === "function") {
         updateUI();
     }
 }
 
 // ==========================================================================
-// 📦 5 階級寶箱組態配置 (Tier 5 ~ Tier 1 嚴格配率與戰利品池)
+// 📦 5 階級寶箱組態配置
 // ==========================================================================
 
 const CHEST_TIERS_CONFIG = {
@@ -76,7 +78,7 @@ const CHEST_TIERS_CONFIG = {
         rate: 0.200,
         minGold: 50,
         maxGold: 150,
-        names: ["📦 冒險者遺留物資箱", "🕸️ 冰凍蛛絲鐵皮箱", "🛡️ 霜殼行軍皮革箱", "🦎 蜥蜴皮保險袋", "🧪 煉金術士棄置藥箱"],
+        names: ["📦 冒險者遺留物資箱", "🕸️ 冰凍蛛絲鐵皮箱", "🛡️ 霜殼行軍皮革箱", "蜥蜴皮保險袋", "🧪 煉金術士棄置藥箱"],
         loots: ["寒冰霜塵", "毒蜘蛛腺體", "腐屍毒素", "怨念皮翼", "硬殼龜甲", "🥩 烤野豬肉大串", "🧪 微光初級治癒藥水"]
     },
     TIER_3: {
@@ -111,17 +113,11 @@ const CHEST_TIERS_CONFIG = {
     }
 };
 
-/**
- * 根據階級獲取寶箱設定
- */
 function getChestConfigByTier(tier) {
     const key = `TIER_${tier}`;
     return CHEST_TIERS_CONFIG[key] || CHEST_TIERS_CONFIG.TIER_5;
 }
 
-/**
- * 🎲 寶箱抽取核心邏輯
- */
 function drawRandomChest() {
     const roll = Math.random();
 
@@ -151,9 +147,6 @@ function drawRandomChest() {
     };
 }
 
-/**
- * 開啟寶箱並發放獎勵
- */
 function openChestAndGetLoot(chestObj, run, meta) {
     const safeRun = ensureRunState(run);
     const safeMeta = ensurePlayerMeta(meta);
@@ -185,7 +178,7 @@ function openChestAndGetLoot(chestObj, run, meta) {
 }
 
 // ==========================================================================
-// 🌀 40 種奇遇數據庫 (完全保持舊數據邏輯，加強防禦性防護)
+// 🌀 40 種奇遇數據庫
 // ==========================================================================
 
 const ABYSS_EVENTS_DATABASE = [
@@ -494,18 +487,12 @@ const ABYSS_EVENTS_DATABASE = [
 // ⚡ 效能與事件檢索 Helper
 // --------------------------------------------------------------------------
 
-/**
- * 🎲 隨機獲取一個奇遇事件實體
- */
 function getRandomAbyssEvent() {
     if (!ABYSS_EVENTS_DATABASE || ABYSS_EVENTS_DATABASE.length === 0) return null;
     const randomIndex = Math.floor(Math.random() * ABYSS_EVENTS_DATABASE.length);
     return ABYSS_EVENTS_DATABASE[randomIndex];
 }
 
-/**
- * 根據陣列索引獲取奇遇事件
- */
 function getEventByIndex(index) {
     if (typeof index !== "number" || index < 0 || index >= ABYSS_EVENTS_DATABASE.length) {
         return null;
