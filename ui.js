@@ -442,60 +442,96 @@ function allocateStatPoint(statKey) {
     }
 
     updateUI();
-} // ✅ 補上關閉括號
+}
 
 // --------------------------------------------------------------------------
-// 🎛️ 動態戰術動作選單更新邏輯
+// 🎛️ 動態戰術動作面板引擎 (全面重構為動態獨立按鈕組)
 // --------------------------------------------------------------------------
 
 function updateActionPanelUI() {
-    const selectEl = document.getElementById('action-menu-select');
-    const execBtn = document.getElementById('btn-execute-action');
-    if (!selectEl) return;
+    const actionBox = DOM.get('action-panel-box') || document.getElementById('action-panel-box');
+    if (!actionBox) return;
 
-    // 1. ⛺ 在村莊時
+    // 清空舊按鈕/下拉選單，重構為彈性按鈕容器
+    actionBox.innerHTML = "";
+    actionBox.style.display = "flex";
+    actionBox.style.gap = "8px";
+    actionBox.style.width = "100%";
+
+    // 1. ⛺ 在村莊狀態：顯示 1 個滿寬按鈕 [🔮 進入地下城]
     if (gameState === "VILLAGE") {
-        selectEl.innerHTML = `
-            <option value="enter_dungeon">🔮 降臨進入地下城 (B${dungeonFloor || 1}F)</option>
-        `;
-        if (execBtn) {
-            execBtn.className = "btn-game btn-explore full-width";
-            execBtn.innerText = "🔮 啟動門降臨深淵";
-        }
+        const btnEnter = document.createElement('button');
+        btnEnter.className = "btn-game btn-explore full-width";
+        btnEnter.style.cssText = "flex: 1; padding: 12px; font-size: 13px; font-weight: bold;";
+        btnEnter.innerHTML = `🔮 進入地下城 (B${typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1}F)`;
+        btnEnter.onclick = () => {
+            if (typeof startNextFloor === "function") startNextFloor();
+        };
+        actionBox.appendChild(btnEnter);
         return;
     }
 
-    // 2. ⚔️ 戰鬥進行中
+    // 2. ⚔️ 戰鬥進行中：顯示 2 個按鈕 [⚡ 戰術] + [🏃 回到村莊]
     if (gameState === "BATTLE") {
+        const btnTactics = document.createElement('button');
+        btnTactics.className = "btn-game btn-rerun";
+        btnTactics.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         const isAuto = typeof autoBattleActive !== "undefined" && autoBattleActive;
-        selectEl.innerHTML = `
-            <option value="auto_tactics">${isAuto ? '⏸️ 暫停自動戰術' : '⚡ 啟動自動戰術策略'}</option>
-            <option value="flee_village">🏃 撤退逃回地表村莊</option>
-        `;
-        if (execBtn) {
-            execBtn.className = "btn-game btn-rerun full-width";
-            execBtn.innerText = "⚡ 執行選定戰術";
-        }
+        btnTactics.innerHTML = isAuto ? '⏸️ 暫停戰術' : '⚡ 戰術策略';
+        btnTactics.onclick = () => {
+            const drawer = DOM.get('tactics-drawer-box');
+            if (drawer) {
+                drawer.classList.toggle('expanded');
+            } else if (typeof toggleAutoBattle === "function") {
+                toggleAutoBattle();
+            }
+        };
+
+        const btnFlee = document.createElement('button');
+        btnFlee.className = "btn-game btn-rest";
+        btnFlee.style.cssText = "flex: 1; padding: 10px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #c0392b, #7f8c8d) !important;";
+        btnFlee.innerHTML = "🏃 回到村莊";
+        btnFlee.onclick = () => {
+            if (typeof returnToVillage === "function") returnToVillage();
+        };
+
+        actionBox.appendChild(btnTactics);
+        actionBox.appendChild(btnFlee);
         return;
     }
 
-    // 3. 🏆 戰鬥結束 / 獎勵養息階段 (REWARD / ENCOUNTER)
+    // 3. 🏆 戰鬥結束 / 獎勵養息階段 (REWARD / ENCOUNTER)：顯示 2~3 個按鈕
     if (gameState === "REWARD" || gameState === "ENCOUNTER") {
-        let optionsHtml = `
-            <option value="next_floor">⚔️ 深入突進下一層 (B${dungeonFloor + 1}F)</option>
-        `;
-        
-        if (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) {
-            optionsHtml += `<option value="rerun_floor">🔄 重巡本層 (B${dungeonFloor}F)</option>`;
+        const btnNext = document.createElement('button');
+        btnNext.className = "btn-game btn-explore";
+        btnNext.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
+        btnNext.innerHTML = `⚔️ 進入下層 (B${(typeof dungeonFloor !== "undefined" ? dungeonFloor : 0) + 1}F)`;
+        btnNext.onclick = () => {
+            if (typeof startNextFloor === "function") startNextFloor();
+        };
+        actionBox.appendChild(btnNext);
+
+        // 符合重巡條件（如 Boss 關卡）時顯示 [🔄 重巡本層]
+        const canRerun = typeof dungeonFloor !== "undefined" && dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0;
+        if (canRerun) {
+            const btnRerun = document.createElement('button');
+            btnRerun.className = "btn-game btn-rerun";
+            btnRerun.style.cssText = "flex: 1.5; padding: 10px; font-size: 11px; font-weight: bold;";
+            btnRerun.innerHTML = `🔄 重巡本層`;
+            btnRerun.onclick = () => {
+                if (typeof rerunCurrentFloor === "function") rerunCurrentFloor();
+            };
+            actionBox.appendChild(btnRerun);
         }
 
-        optionsHtml += `<option value="flee_village">🏃 撤退逃回地表村莊</option>`;
-        selectEl.innerHTML = optionsHtml;
-
-        if (execBtn) {
-            execBtn.className = "btn-game btn-explore full-width";
-            execBtn.innerText = "⚔️ 前進下一階段";
-        }
+        const btnReturn = document.createElement('button');
+        btnReturn.className = "btn-game btn-rest";
+        btnReturn.style.cssText = "flex: 1; padding: 10px; font-size: 11px; font-weight: bold;";
+        btnReturn.innerHTML = "⛺ 回到村莊";
+        btnReturn.onclick = () => {
+            if (typeof returnToVillage === "function") returnToVillage();
+        };
+        actionBox.appendChild(btnReturn);
     }
 }
 
@@ -925,17 +961,9 @@ function updateUI() {
         const drawer = DOM.get('tactics-drawer-box');
         if (drawer) drawer.classList.remove('expanded');
         
-        const mainActionBtn = DOM.get('btn-main-action');
-        if (mainActionBtn) {
-            mainActionBtn.innerText = "🔮 啟動傳送門降臨深淵 B1F";
-            mainActionBtn.disabled = false; 
-        }
-        const rerunBtn = DOM.get('btn-rerun-action');
-        if (rerunBtn) rerunBtn.style.display = "none";
-        
         initSwipeNavigation();
         syncCharacterDataUi();
-        updateActionPanelUI();
+        updateActionPanelUI(); // 動態同步村莊按鈕
         return; 
     }
     
@@ -947,15 +975,6 @@ function updateUI() {
     if (logWrapper) logWrapper.style.display = "block"; 
     if (envBar) envBar.style.display = "block";
     if (autoBtn) autoBtn.style.display = "block"; 
-    
-    const actBtn = DOM.get('btn-main-action');
-    if (actBtn) {
-        actBtn.innerText = (dungeonFloor % 10 === 0) ? `👹 討伐大領主 B${dungeonFloor}F 核心` : `⚔️ 深入突進下一層 B${dungeonFloor+1}F`;
-    }
-    const rerunBtn = DOM.get('btn-rerun-action');
-    if (rerunBtn) {
-        rerunBtn.style.display = (dungeonFloor > 0 && (dungeonFloor + 1) % 10 === 0) ? "block" : "none";
-    }
 
     if (envBar && typeof ENVIRONMENT_DATABASE !== "undefined" && ENVIRONMENT_DATABASE[currentEnvironment]) {
         envBar.className = ENVIRONMENT_DATABASE[currentEnvironment].className;
@@ -1027,7 +1046,7 @@ function updateUI() {
     }
     
     syncCharacterDataUi();
-    updateActionPanelUI();
+    updateActionPanelUI(); // 動態同步戰鬥/結算階段按鈕
 }
 
 function formatSkillEffectText(s, lv, playerRun) {
@@ -1510,12 +1529,10 @@ function addLog(msg, type = "deal") {
 
     let formattedMsg = msg;
     if (typeof formattedMsg === "string") {
-        // 1. 🎯 傷害數值匹配 (移除外框與底色，改為純動態紅字)
         formattedMsg = formattedMsg.replace(/(?:-\s*|\b)(\d+)\s*(點傷害|點物理傷害|點魔法傷害|傷害|HP(?!\s*\+))/g, (match, num, label) => {
             return `<span class="num-p-dmg">- ${num} HP</span>`;
         });
 
-        // 2. 💖 正向回復數值 (純綠字/藍字，無外框)
         formattedMsg = formattedMsg.replace(/\+(\d+)\s*(HP|MP|魔力|點生命)/g, (match, num, label) => {
             const isMp = label.includes("MP") || label.includes("魔力");
             const cls = isMp ? 'num-m-dmg' : 'num-h-heal';
@@ -1523,7 +1540,6 @@ function addLog(msg, type = "deal") {
             return `<span class="${cls}">${icon} +${num} ${label}</span>`;
         });
 
-        // 3. 🪙 獎勵獲得匹配
         formattedMsg = formattedMsg.replace(/\+(\d+)\s*(G|EXP|金幣|經驗)/g, (match, num, label) => {
             return `<span class="gold-glint v-badge" style="display: inline-flex; align-items: center; gap: 2px; margin: 0 2px;">🪙 +${num} ${label}</span>`;
         });
@@ -2234,35 +2250,3 @@ function renderSquareChatBox() {
     chatBox.innerHTML = html;
     chatBox.scrollTop = chatBox.scrollHeight;
 }
-
-// 🎯 根據下拉選單當前選中的選項，派發對應邏輯
-function executeSelectedAction() {
-    const selectEl = document.getElementById('action-menu-select');
-    if (!selectEl) return;
-
-    const actionValue = selectEl.value;
-
-    switch (actionValue) {
-        case "enter_dungeon":
-        case "next_floor":
-            if (typeof startNextFloor === "function") startNextFloor();
-            break;
-
-        case "rerun_floor":
-            if (typeof rerunCurrentFloor === "function") rerunCurrentFloor();
-            break;
-
-        case "auto_tactics":
-            if (typeof toggleAutoBattle === "function") toggleAutoBattle();
-            break;
-
-        case "flee_village":
-            if (typeof returnToVillage === "function") returnToVillage();
-            break;
-
-        default:
-            showToast("未知指令", "warn");
-            break;
-    }
-}
-
