@@ -62,7 +62,7 @@
     </div>
 </div>
 
-<!-- ⚠️ 素材與資源不足專屬 Modal 彈窗 (修正關閉觸發名稱) -->
+<!-- ⚠️ 素材與資源不足專屬 Modal 彈窗 -->
 <div id="mat-alert-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="mat-alert-box">
         <div id="mat-alert-header" class="mat-alert-header">⚠️ 素材資源不足</div>
@@ -249,32 +249,17 @@
                 <div id="v-loc-gate" class="v-sub-loc-panel">
                     <div class="placeholder-card gate-theme-card">
                         <h3 class="text-cyan-title">🌀 深淵傳送大門</h3>
-                        <p class="text-muted-desc">準備就緒後，點擊左側【🔮 啟動傳送門】即可直接降臨深淵探險！</p>
+                        <p class="text-muted-desc">準備就緒後，點擊左側【🔮 進入地下城】即可直接降臨深淵探險！</p>
                     </div>
                 </div>
 
-                <!-- 🏛️ 冒險者公會 HTML 結構 (清理重複的 guild-reset-section 靜態區塊) -->
+                <!-- 🏛️ 冒險者公會 HTML 結構 (由 ui.js renderVillageGuild 動態注入技能與洗點/轉職按鈕) -->
                 <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style guild-theme-bg">
                         <div class="panel-title text-purple-title">🏛️ 皇家冒險者公會</div>
-                        
                         <div class="guild-section">
                             <div class="guild-section-title">🎓 職業專屬技能傳承</div>
                             <div id="guild-skills-container" class="flex-layout"></div>
-                        </div>
-                    </div>
-                </div>
-
-                        <div class="guild-reset-section">
-                            <div class="guild-section-title text-cyan">⚖️ 命運洗禮 (洗點與轉職)</div>
-                            <div class="guild-btn-grid">
-                                <button type="button" class="btn-game btn-rerun reset-btn" onclick="executeResetStats()">
-                                    🎯 重洗屬性點<br><span class="btn-subtext">(消耗 300 G)</span>
-                                </button>
-                                <button type="button" class="btn-game btn-explore reset-btn" onclick="triggerReselectJobUI()">
-                                    🔄 重選職業<br><span class="btn-subtext">(Lv.1重置，耗 1,000 G)</span>
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
