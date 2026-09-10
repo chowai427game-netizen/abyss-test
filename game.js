@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.3)
+// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.4)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -31,7 +31,7 @@ function safePushToInventory(run, account, itemName) {
     }
 }
 
-// 🛡️ 顯式掛載全域，防止 eventdata.js 呼叫不到
+// 🛡️ 顯式掛載全域
 if (typeof window !== "undefined") {
     window.safePushToInventory = safePushToInventory;
 }
@@ -471,7 +471,7 @@ function executeAutoBattleAiTurn() {
 }
 
 // --------------------------------------------------------------------------
-// 🎯 主要動作控制鏈 (支援從 REWARD / VILLAGE 切換進入下一層)
+// 🎯 主要動作控制鏈
 // --------------------------------------------------------------------------
 function handleMainAction() {
     try {
@@ -573,7 +573,6 @@ function returnToVillage() {
     handleSecondaryAction();
 }
 
-// 🛡️ 顯式暴露至全域 window，防止變數未定義
 if (typeof window !== "undefined") {
     window.startNextFloor = startNextFloor;
     window.rerunCurrentFloor = rerunCurrentFloor;
@@ -1294,7 +1293,7 @@ function executeMonsterActionTick() {
 }
 
 // --------------------------------------------------------------------------
-// 👑 勝利結算序列 (修復：狀態轉換與按鈕解鎖)
+// 👑 勝利結算序列 (修復：非 Boss 層清空舊賜福內容並觸發 UI 刷新)
 // --------------------------------------------------------------------------
 function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
@@ -1310,21 +1309,27 @@ function executeDungeonVictorySequence() {
         if (typeof addLog === "function") addLog(msg, "perfect");
     }
 
+    activeMonster = null; 
+    gameState = "REWARD"; 
+
     if (isBossFloor) {
         triggerBossVictoryModal(activeMonster?.name);
         triggerBossTalentReward();
+    } else {
+        // 🎯 關鍵修復 3：非 Boss 層時清空賜福面板，避免渲染出空外框
+        const rewardBox = document.getElementById('reward-panel-box');
+        if (rewardBox) rewardBox.innerHTML = "";
     }
 
-    activeMonster = null; 
-    gameState = "REWARD"; // 🎯 關鍵修復 1：將狀態轉為結算模式
-
-    // 🎯 關鍵修復 2：解鎖主要動作與重巡按鈕
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
     if (mainBtn) mainBtn.disabled = false;
     if (rerunBtn) rerunBtn.disabled = false;
 
     addExperience(rewardExp);
+    
+    // 🎯 關鍵修復 4：結算完成立即調用 UI 刷新
+    if (typeof updateUI === "function") updateUI();
 }
 
 function triggerBossVictoryModal(bossName) {
