@@ -62,12 +62,12 @@
     </div>
 </div>
 
-<!-- ⚠️ 素材與資源不足專屬 Modal 彈窗 -->
+<!-- ⚠️ 素材與資源不足專屬 Modal 彈窗 (修正關閉觸發名稱) -->
 <div id="mat-alert-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="mat-alert-box">
         <div id="mat-alert-header" class="mat-alert-header">⚠️ 素材資源不足</div>
         <div id="mat-alert-content" class="mat-alert-content">缺乏鍛造所需的核心素材！</div>
-        <button type="button" class="mat-alert-btn" onclick="closeMatAlertModal()">理解並返回</button>
+        <button type="button" class="mat-alert-btn" onclick="hideMaterialAlert()">理解並返回</button>
     </div>
 </div>
 
@@ -253,6 +253,7 @@
                     </div>
                 </div>
 
+                <!-- 🏛️ 冒險者公會 HTML 結構 (清理重複的 guild-reset-section 靜態區塊) -->
                 <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style guild-theme-bg">
                         <div class="panel-title text-purple-title">🏛️ 皇家冒險者公會</div>
@@ -261,6 +262,8 @@
                             <div class="guild-section-title">🎓 職業專屬技能傳承</div>
                             <div id="guild-skills-container" class="flex-layout"></div>
                         </div>
+                    </div>
+                </div>
 
                         <div class="guild-reset-section">
                             <div class="guild-section-title text-cyan">⚖️ 命運洗禮 (洗點與轉職)</div>
