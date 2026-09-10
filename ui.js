@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.6)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.7)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告
@@ -362,7 +362,7 @@ function renderStatusBadges(containerEl, effectsMap) {
 }
 
 // --------------------------------------------------------------------------
-// 📱 5. 手機端橫向滑動切換村莊分頁 (已更新最新邏輯排位)
+// 📱 5. 手機端橫向滑動切換村莊分頁
 // --------------------------------------------------------------------------
 
 function initSwipeNavigation() {
@@ -371,7 +371,6 @@ function initSwipeNavigation() {
 
     let touchStartX = 0;
     let touchStartY = 0;
-    // 🎯 最新邏輯排位：GATE ➔ GUILD ➔ WORKSHOP ➔ KITCHEN ➔ SQUARE
     const locations = ['GATE', 'GUILD', 'WORKSHOP', 'KITCHEN', 'SQUARE'];
 
     villageBox.ontouchstart = (e) => {
@@ -516,7 +515,7 @@ function updateActionPanelUI() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 靈魂賜福手動三選一卡片渲染引擎 (Roguelite Core Choice System)
+// 🌟 靈魂賜福手動三選一卡片渲染引擎
 // --------------------------------------------------------------------------
 
 function renderBlessingRewardCards(customChoices = null) {
@@ -525,7 +524,6 @@ function renderBlessingRewardCards(customChoices = null) {
 
     if (autoSelectBlessingTimer) clearTimeout(autoSelectBlessingTimer);
 
-    // 預設 Boss 賜福選項（三選一）
     const defaultChoices = customChoices || [
         {
             id: "blessing_spd",
@@ -581,7 +579,7 @@ function renderBlessingRewardCards(customChoices = null) {
 
     const grid = document.getElementById('blessing-cards-grid');
 
-    defaultChoices.forEach((choice, index) => {
+    defaultChoices.forEach((choice) => {
         const card = document.createElement('div');
         card.className = "reward-card blessing-choice-card";
         card.style.cssText = `
@@ -622,7 +620,6 @@ function renderBlessingRewardCards(customChoices = null) {
 
     rewardBox.style.display = "block";
 
-    // 🤖 若玩家開啟自動戰鬥，1.5 秒後自動挑選第一項
     if (typeof autoBattleActive !== "undefined" && autoBattleActive) {
         showToast("🤖 自動戰術啟動中：1.5 秒後自動挑選賜福...", "info");
         autoSelectBlessingTimer = setTimeout(() => {
@@ -645,7 +642,6 @@ function selectBlessingChoice(choice) {
         addLog(`✨ 抉擇靈魂賜福：成功覺醒 <strong>${choice.title}</strong> (${choice.stats})！`, "perfect");
     }
 
-    // 清空並隱藏賜福外框
     const rewardBox = DOM.get('reward-panel-box');
     if (rewardBox) {
         rewardBox.innerHTML = "";
@@ -1018,7 +1014,6 @@ function getJobChineseName(j) {
     return jobNames[j] || "無名勇者";
 }
 
-// 🎯 村莊區域切換（已更新為最佳整備順序邏輯）
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
     
@@ -1222,6 +1217,7 @@ function formatSkillEffectText(s, lv, playerRun) {
     return parts.length > 0 ? parts.join(" | ") : "特殊效果觸發";
 }
 
+// 🏛️ 冒險者公會渲染（優化：列表間距壓縮至 4px + 重構雙欄洗練重設按鈕）
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
@@ -1234,17 +1230,14 @@ function renderVillageGuild() {
         const advBanner = document.createElement('div');
         advBanner.style.cssText = `
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.3));
-            border: 2px solid #ffd700; border-radius: 12px; padding: 14px; margin-bottom: 15px;
-            text-align: center; box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); width: 100%;
+            border: 2px solid #ffd700; border-radius: 10px; padding: 10px; margin-bottom: 10px;
+            text-align: center; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25); width: 100%;
         `;
         advBanner.innerHTML = `
-            <div style="font-size: 15px; font-weight: bold; color: #ffd700; margin-bottom: 4px;">
-                🌟【血脈突破】你已具備資格進行皇家二轉突破儀式！
+            <div style="font-size: 13px; font-weight: bold; color: #ffd700; margin-bottom: 2px;">
+                🌟【血脈突破】具備資格進行皇家二轉突破儀式！
             </div>
-            <p style="font-size: 11px; color: #e0e0e0; margin-bottom: 10px;">
-                角色已達到 Lv.20！前往踏入更高階的職業殿堂，解鎖終極戰術能力。
-            </p>
-            <button class="btn-game btn-rerun" style="padding: 6px 16px; font-size: 12px; font-weight: bold;" onclick="if(typeof openJobAdvancementModal === 'function') openJobAdvancementModal(); else showToast('二轉系統載入中...', 'info');">
+            <button class="btn-game btn-rerun" style="padding: 4px 12px; font-size: 11px; font-weight: bold; margin-top: 4px;" onclick="if(typeof openJobAdvancementModal === 'function') openJobAdvancementModal(); else showToast('二轉系統載入中...', 'info');">
                 🏇✨ 開啟二轉突破選擇
             </button>
         `;
@@ -1255,9 +1248,10 @@ function renderVillageGuild() {
 
     jobSkills.forEach(s => {
         const row = document.createElement('div');
+        // 🎯 核心優化：padding 縮減為 5px 10px，margin-bottom 縮減為 4px
         row.style.cssText = `
-            background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.05); margin-bottom: 6px; width: 100%;
+            background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px; width: 100%;
             display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s;
         `;
 
@@ -1284,13 +1278,13 @@ function renderVillageGuild() {
         row.innerHTML = `
             <div>
                 <strong style="color: #ffd700; font-size: 12px;">${skillTypeTag} ${s.name}</strong>
-                <span style="color: #8e8e93; font-size: 11px; margin-left: 6px;">Lv.${currentLv} / 10</span>
+                <span style="color: #8e8e93; font-size: 10px; margin-left: 6px;">Lv.${currentLv} / 10</span>
             </div>
         `;
 
         const btnLearn = document.createElement('button');
         btnLearn.className = "btn-game btn-explore";
-        btnLearn.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold;";
+        btnLearn.style.cssText = "padding: 3px 8px; font-size: 10px; font-weight: bold;";
         btnLearn.innerText = isMaxLevel ? "滿級" : `升級 (${goldCost}G)`;
         btnLearn.disabled = btnDisabled;
         btnLearn.onclick = (e) => { 
@@ -1313,13 +1307,35 @@ function renderVillageGuild() {
 
         container.appendChild(row);
     });
+
+    // 🎯 核心優化：重塑『命運洗禮（洗點與轉職）』為緊湊的 2 欄精緻小卡片
+    const resetSection = document.createElement('div');
+    resetSection.style.cssText = `
+        margin-top: 10px; padding: 8px 10px; background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; width: 100%;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
+    `;
+    resetSection.innerHTML = `
+        <div style="font-size: 11px; font-weight: bold; color: #ffd700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+            ⚖️ 命運洗禮 (洗點與轉職)
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="btn-game btn-rerun" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof openResetStatsModal === 'function') openResetStatsModal(); else showToast('點擊重洗屬性點 (耗 300 G)', 'info');">
+                <span>🧹 重洗屬性點</span> <span style="font-size: 9px; opacity: 0.85;">(300G)</span>
+            </button>
+            <button class="btn-game btn-explore" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #16a085, #0a5c4c) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof openResetJobModal === 'function') openResetJobModal(); else showToast('點擊重選職業 (耗 1,000 G)', 'info');">
+                <span>🔄 重選職業</span> <span style="font-size: 9px; opacity: 0.85;">(1,000G)</span>
+            </button>
+        </div>
+    `;
+    container.appendChild(resetSection);
 }
 
 function renderWarehouseFilterBar(containerEl, onFilterChange) {
     if (!containerEl) return;
     const filterRow = document.createElement('div');
     filterRow.className = "warehouse-filter-row";
-    filterRow.style.cssText = "display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;";
+    filterRow.style.cssText = "display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;";
 
     const tags = [
         { key: "all", label: "🌐 全部" },
@@ -1331,7 +1347,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     tags.forEach(t => {
         const btn = document.createElement('button');
         btn.className = `btn-game ${activeWarehouseFilter === t.key ? 'btn-rerun' : ''}`;
-        btn.style.cssText = "padding: 4px 10px; font-size: 10px; font-weight: 600;";
+        btn.style.cssText = "padding: 3px 8px; font-size: 10px; font-weight: 600;";
         btn.innerText = t.label;
         btn.onclick = () => {
             activeWarehouseFilter = t.key;
@@ -1343,6 +1359,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     containerEl.appendChild(filterRow);
 }
 
+// 🍳 皇家料理屋渲染（優化：列表間距壓縮至 4px）
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
@@ -1390,7 +1407,7 @@ function renderVillageCookingWorkshop() {
 
         if (activeWarehouseFilter !== "mat" && cookedDishes.length > 0) {
             const dishesGrid = document.createElement('div');
-            dishesGrid.style.cssText = "display: flex; flex-direction: column; gap: 4px; margin-top: 6px;";
+            dishesGrid.style.cssText = "display: flex; flex-direction: column; gap: 4px; margin-top: 4px;";
 
             cookedDishes.forEach(d => {
                 const dishRow = document.createElement('div');
@@ -1428,7 +1445,7 @@ function renderVillageCookingWorkshop() {
     rContainer.innerHTML = "";
 
     const selectorControl = document.createElement('div');
-    selectorControl.style.cssText = "margin-bottom: 10px; width: 100%;";
+    selectorControl.style.cssText = "margin-bottom: 8px; width: 100%;";
     selectorControl.innerHTML = `
         <select class="select-game" onchange="changeCookingTab(this.value)">
             <option value="1-10" ${activeCookingRange === "1-10" ? "selected" : ""}>📜 深淵階層 B1F ~ B10F 食譜</option>
@@ -1445,9 +1462,10 @@ function renderVillageCookingWorkshop() {
 
     filteredRecipes.forEach(recipe => {
         const row = document.createElement('div');
+        // 🎯 核心優化：padding 5px 8px，margin-bottom 4px
         row.style.cssText = `
-            background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.03); margin-bottom: 6px; width: 100%;
+            background: rgba(0,0,0,0.25); padding: 5px 8px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.03); margin-bottom: 4px; width: 100%;
             display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         `;
 
@@ -1457,7 +1475,7 @@ function renderVillageCookingWorkshop() {
 
         const btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
-        btnCook.style.cssText = "padding: 3px 8px; font-size: 11px;";
+        btnCook.style.cssText = "padding: 3px 8px; font-size: 10px;";
         btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 進食 Buff" : "🍳 烹飪存倉";
         btnCook.onclick = (e) => { 
             e.stopPropagation(); 
@@ -1477,7 +1495,7 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// 🛠️ 魔導加工所渲染（已修復：金幣消耗提示與金幣不足阻斷）
+// 🛠️ 魔導加工所渲染（優化：列表間距壓縮至 4px）
 function renderVillageWorkshop() {
     const wBox = DOM.get('workshop-warehouse-display');
     if (wBox) {
@@ -1522,7 +1540,7 @@ function renderVillageWorkshop() {
     bContainer.innerHTML = "";
 
     const selectorWrapper = document.createElement('div');
-    selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; width: 100%;";
+    selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; width: 100%;";
     selectorWrapper.innerHTML = `
         <select class="select-game" onchange="changeCraftingCat(this.value)">
             <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部神裝類別</option>
@@ -1570,11 +1588,12 @@ function renderVillageWorkshop() {
 
     filteredBlueprints.forEach(blueprint => {
         const row = document.createElement('div');
+        // 🎯 核心優化：padding 5px 8px，margin-bottom 4px
         row.style.cssText = `
             background: ${blueprint.isLegendary ? 'rgba(230, 126, 34, 0.15)' : 'rgba(0,0,0,0.2)'}; 
-            padding: 8px 10px; border-radius: 8px;
+            padding: 5px 8px; border-radius: 6px;
             border: 1px solid ${blueprint.isLegendary ? '#e67e22' : 'rgba(255,255,255,0.04)'}; 
-            margin-bottom: 6px; text-align: left;
+            margin-bottom: 4px; text-align: left;
             width: 100%; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         `;
 
@@ -1601,7 +1620,6 @@ function renderVillageWorkshop() {
         const hasInWarehouse = (accountMeta.warehouse?.[blueprint.name] || 0) > 0;
 
         if (isEquipped || hasInWarehouse) {
-            // 🎯 計算強化金幣費用並驗證
             const refineGoldCost = (itemRefineLvl + 1) * 100;
             const playerGold = (currentRun && currentRun.gold) ? currentRun.gold : 0;
             const hasEnoughGold = playerGold >= refineGoldCost;
