@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城戰鬥與狀態異常核心引擎 (Hyper-Optimized Engine v4.4)
+// 🕹️ game.js：完整地下城戰鬥、肉鴿分支地圖與狀態異常核心引擎 (Hyper-Optimized Engine v5.0 - Rogue Map Edition)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -470,13 +470,311 @@ function executeAutoBattleAiTurn() {
     return false;
 }
 
+// ==========================================================================
+// 🧭 核心肉鴿分支地圖系統 (Rogue-like Route Map Engine)
+// ==========================================================================
+
+function generateRouteNodes(floor) {
+    if (floor % 10 === 0) {
+        return [{
+            type: "BOSS",
+            title: `👹 領主巨室 (B${floor}F)`,
+            desc: "龐大的壓迫感席捲全身，深淵領主在此等候著你的血脈挑戰！",
+            icon: "👹",
+            color: "#ff3838"
+        }];
+    }
+
+    const typesPool = [
+        { type: "COMBAT", title: "⚔️ 魔物遭遇", desc: "常規深淵魔物遊盪，適合穩健獲取經驗與金幣。", icon: "⚔️", weight: 60, color: "#00ffcc" },
+        { type: "ELITE", title: "💀 精英巡邏", desc: "強大的精英魔物！(1.5倍威力，保證雙倍掉落與高階裝備)", icon: "💀", weight: 20, color: "#ff4757" },
+        { type: "EVENT", title: "❓ 命運遭遇", desc: "遠古遺蹟、神秘寶箱或隨機神聖泉水。", icon: "❓", weight: 12, color: "#a55eea" },
+        { type: "REST_SHOP", title: "⛺ 靈魂休憩所", desc: "溫馨的魔導營地，回復 50% HP/MP 或向流浪商人購入補給。", icon: "⛺", weight: 8, color: "#2ecc71" }
+    ];
+
+    let choices = [];
+    let count = Math.random() < 0.4 ? 2 : 3;
+
+    for (let i = 0; i < count; i++) {
+        let totalWeight = typesPool.reduce((acc, curr) => acc + curr.weight, 0);
+        let roll = Math.random() * totalWeight;
+        let accumulated = 0;
+        let selected = typesPool[0];
+
+        for (let t of typesPool) {
+            accumulated += t.weight;
+            if (roll <= accumulated) {
+                selected = t;
+                break;
+            }
+        }
+        choices.push({ ...selected });
+    }
+
+    if (!choices.some(c => c.type === "COMBAT" || c.type === "ELITE")) {
+        choices[0] = { ...typesPool[0] };
+    }
+
+    return choices;
+}
+
+function renderRouteSelectionPanel() {
+    const routeBox = document.getElementById('route-panel-box');
+    const routeContainer = document.getElementById('route-choices-container');
+    const monsterCard = document.getElementById('monster-status-card');
+    
+    if (!routeBox || !routeContainer) return;
+
+    if (!currentRun.currentNodes || currentRun.currentNodes.length === 0) {
+        currentRun.currentNodes = generateRouteNodes(dungeonFloor || 1);
+        if (typeof saveGameData === "function") saveGameData();
+    }
+
+    routeContainer.innerHTML = "";
+    routeBox.style.display = "block";
+    if (monsterCard) monsterCard.style.display = "none";
+
+    const titleEl = document.getElementById('route-title-text');
+    if (titleEl) {
+        titleEl.innerText = `🧭 命運分流：選擇前進 B${dungeonFloor}F 路線 🧭`;
+    }
+
+    currentRun.currentNodes.forEach((node, idx) => {
+        const btn = document.createElement('div');
+        btn.style.cssText = `
+            background: linear-gradient(135deg, rgba(20, 20, 28, 0.95) 0%, rgba(10, 10, 15, 0.98) 100%);
+            border: 1px solid ${node.color || '#ffd700'};
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 0 10px ${node.color}22;
+        `;
+
+        btn.onmouseover = () => {
+            btn.style.transform = "translateY(-2px)";
+            btn.style.boxShadow = `0 6px 20px ${node.color}66, inset 0 0 15px ${node.color}44`;
+        };
+        btn.onmouseout = () => {
+            btn.style.transform = "translateY(0)";
+            btn.style.boxShadow = `0 4px 15px rgba(0, 0, 0, 0.5), inset 0 0 10px ${node.color}22`;
+        };
+
+        btn.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 15px; font-weight: bold; color: ${node.color};">${node.icon} ${node.title}</span>
+                <span style="font-size: 10px; padding: 2px 8px; border-radius: 10px; background: ${node.color}22; color: ${node.color}; border: 1px solid ${node.color}55;">分支 #${idx + 1}</span>
+            </div>
+            <div style="font-size: 11px; color: #d1d1d6; line-height: 1.5;">${node.desc}</div>
+        `;
+
+        btn.onclick = () => {
+            selectRouteNode(idx);
+        };
+
+        routeContainer.appendChild(btn);
+    });
+
+    const villagePanel = document.getElementById('village-panel-box');
+    if (villagePanel) villagePanel.style.display = "none";
+}
+
+function selectRouteNode(index) {
+    if (!currentRun.currentNodes || !currentRun.currentNodes[index]) return;
+
+    const selectedNode = currentRun.currentNodes[index];
+    currentRun.selectedNodeType = selectedNode.type;
+    currentRun.currentNodes = [];
+
+    const routeBox = document.getElementById('route-panel-box');
+    if (routeBox) routeBox.style.display = "none";
+
+    if (typeof addLog === "function") {
+        addLog(`🧭【路線抉擇】你果斷踏入了 <strong>${selectedNode.title}</strong>！`, "perfect");
+    }
+
+    if (selectedNode.type === "REST_SHOP") {
+        executeRestShopNode();
+    } else if (selectedNode.type === "EVENT") {
+        gameState = "ENCOUNTER";
+        if (typeof updateUI === "function") updateUI();
+        triggerRandomAbyssEvent();
+    } else {
+        gameState = "BATTLE";
+        if (typeof updateUI === "function") updateUI();
+        startNodeCombat(selectedNode.type);
+    }
+}
+
+function executeRestShopNode() {
+    gameState = "REWARD";
+    const rewardBox = document.getElementById('reward-panel-box');
+    const rewardContainer = document.getElementById('reward-choices-container');
+    const rewardTitle = document.getElementById('reward-title-text');
+
+    if (!rewardBox || !rewardContainer) return;
+
+    rewardContainer.innerHTML = "";
+    rewardBox.style.display = "block";
+    if (rewardTitle) rewardTitle.innerText = "⛺ 靈魂休憩營地：請選擇補給 ⛺";
+
+    const healChoice = document.createElement('button');
+    healChoice.className = "btn-game btn-explore full-width margin-top-sm";
+    healChoice.innerHTML = "💖 靈魂泉水滋養 (回復 50% HP 與 MP)";
+    healChoice.onclick = () => {
+        let hpGain = Math.floor(currentRun.maxHp * 0.5);
+        let mpGain = Math.floor(currentRun.maxMp * 0.5);
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
+        currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
+        if (typeof addLog === "function") addLog(`⛺【靈魂滋養】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
+        resolveRestNodeDone();
+    };
+
+    const goldChoice = document.createElement('button');
+    goldChoice.className = "btn-game btn-rerun full-width margin-top-sm";
+    goldChoice.innerHTML = `🪙 尋獲前人遺物 (獲得 +${50 + dungeonFloor * 10} G 金幣)`;
+    goldChoice.onclick = () => {
+        let goldGain = 50 + dungeonFloor * 10;
+        currentRun.gold += goldGain;
+        if (typeof addLog === "function") addLog(`🪙【遺物翻找】翻找遠古骸骨，獲得金幣 <span class="gold-victory-text">+${goldGain} G</span>！`, "perfect");
+        resolveRestNodeDone();
+    };
+
+    rewardContainer.appendChild(healChoice);
+    rewardContainer.appendChild(goldChoice);
+
+    if (typeof updateUI === "function") updateUI();
+}
+
+function resolveRestNodeDone() {
+    const rewardBox = document.getElementById('reward-panel-box');
+    if (rewardBox) rewardBox.style.display = "none";
+
+    gameState = "ENCOUNTER_RESOLVED";
+    const mainBtn = document.getElementById('btn-main-action');
+    const rerunBtn = document.getElementById('btn-rerun-action');
+    if (mainBtn) mainBtn.disabled = false;
+    if (rerunBtn) rerunBtn.disabled = false;
+
+    if (typeof saveGameData === "function") saveGameData();
+    if (typeof updateUI === "function") updateUI();
+}
+
+function startNodeCombat(nodeType) {
+    try {
+        if (combatTickerTimer) clearInterval(combatTickerTimer);
+
+        const monsterCard = document.getElementById('monster-status-card');
+        if (monsterCard) monsterCard.style.display = "grid";
+
+        currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
+        
+        const isBossNode = (nodeType === "BOSS" || dungeonFloor % 10 === 0);
+        const isEliteNode = (nodeType === "ELITE");
+
+        if (isBossNode) {
+            let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { 
+                name: `👹 深淵無名魔皇`, 
+                baseHp: dungeonFloor * 40, 
+                baseAtk: dungeonFloor * 3, 
+                baseDef: dungeonFloor * 2,
+                baseMdef: dungeonFloor * 2,
+                baseSpd: 20, 
+                dropItem: "史萊姆黏液" 
+            };
+            
+            activeMonster = { 
+                name: bossMeta.name, 
+                hp: bossMeta.baseHp, 
+                maxHp: bossMeta.baseHp, 
+                atk: bossMeta.baseAtk, 
+                def: bossMeta.baseDef || bossMeta.def || (dungeonFloor * 2),
+                mdef: bossMeta.baseMdef || bossMeta.mdef || (dungeonFloor * 2),
+                spd: bossMeta.baseSpd, 
+                shield: 0,
+                poisonStacks: 0,
+                burnStacks: 0,
+                freezeTurns: 0, 
+                stunTurns: 0,
+                isSkipped: false, 
+                isBoss: true, 
+                fixedDrop: bossMeta.dropItem 
+            };
+            if (typeof addLog === "function") addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
+        } else {
+            let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
+            if (availableMonsters.length === 0 && typeof REGULAR_MONSTERS_POOL !== "undefined") availableMonsters = REGULAR_MONSTERS_POOL;
+            
+            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { 
+                name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseDef: 1, baseSpd: 15 
+            };
+
+            let scaleFactor = isEliteNode ? 1.6 : 1.0;
+            let scaledHp = Math.floor((rollSeed.baseHp + dungeonFloor * (rollSeed.hpScale || 5)) * scaleFactor);
+            let scaledAtk = Math.floor((rollSeed.baseAtk + dungeonFloor * (rollSeed.atkScale || 1)) * scaleFactor);
+            let scaledDef = Math.floor(((rollSeed.baseDef || 1) + dungeonFloor * 0.5) * scaleFactor);
+            let finalSpd = Math.floor((rollSeed.baseSpd || 15) * (isEliteNode ? 1.2 : 1.0));
+            
+            activeMonster = { 
+                name: isEliteNode ? `💀 精英・${rollSeed.name}` : rollSeed.name, 
+                hp: scaledHp, 
+                maxHp: scaledHp, 
+                atk: scaledAtk, 
+                def: scaledDef,
+                mdef: scaledDef,
+                spd: finalSpd, 
+                shield: 0,
+                poisonStacks: 0,
+                burnStacks: 0,
+                freezeTurns: 0, 
+                stunTurns: 0,
+                isSkipped: false, 
+                isBoss: false,
+                isElite: isEliteNode
+            };
+            
+            let eliteText = isEliteNode ? ` 🔥【狂暴精英對決】` : ``;
+            if (typeof addLog === "function") addLog(`⚔️【降臨 B${dungeonFloor}F】${eliteText}發現魔物：<strong>${activeMonster.name}</strong>`);
+        }
+        
+        if (typeof updateUI === "function") updateUI();
+
+        playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
+
+        combatTickerTimer = setInterval(() => {
+            if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
+                clearInterval(combatTickerTimer); 
+                return;
+            }
+            battleTimeElapsed += 0.25;
+            playerAtb += (currentRun.spd || 20);
+            monsterAtb += (activeMonster.spd || 15);
+            envAtb += 15;
+
+            if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
+            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                playerAtb = Math.min(100, playerAtb - 100); 
+                executePlayerActionTick(); 
+            }
+            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
+                monsterAtb = Math.min(100, monsterAtb - 100); 
+                executeMonsterActionTick(); 
+            }
+            if (typeof updateUI === "function") updateUI();
+        }, 250);
+    } catch(err) { 
+        if (typeof addLog === "function") addLog(`🚨 地下城異常：${err.message}`, "take"); 
+    }
+}
+
 // --------------------------------------------------------------------------
 // 🎯 主要動作控制鏈
 // --------------------------------------------------------------------------
 function handleMainAction() {
     try {
         if (typeof gameState === "undefined" || gameState === "VILLAGE") {
-            gameState = "BATTLE";
+            gameState = "SELECT_ROUTE";
             dungeonFloor = 1;
             const secBtn = document.getElementById('btn-secondary-action');
             if (secBtn) {
@@ -484,12 +782,14 @@ function handleMainAction() {
                 secBtn.innerText = "🏃 撤退逃回地表村莊";
             }
             if (typeof updateUI === "function") updateUI();
-            runDungeonLoop();
+            renderRouteSelectionPanel();
         } else if (gameState === "BATTLE" || gameState === "REWARD" || gameState === "ENCOUNTER_RESOLVED" || gameState === "ENCOUNTER") {
-            gameState = "BATTLE";
+            gameState = "SELECT_ROUTE";
             dungeonFloor = (dungeonFloor || 0) + 1;
             if (typeof updateUI === "function") updateUI();
-            runDungeonLoop();
+            renderRouteSelectionPanel();
+        } else if (gameState === "SELECT_ROUTE") {
+            renderRouteSelectionPanel();
         }
     } catch(err) {
         if (typeof addLog === "function") addLog(`🚨【動作發動失敗】主按鈕鏈接錯誤：${err.message}`, "take");
@@ -500,7 +800,7 @@ function handleRerunAction() {
     try {
         if (combatTickerTimer) clearInterval(combatTickerTimer);
         if (typeof addLog === "function") addLog(`🔄【重巡整備】你留在深淵 B${dungeonFloor}F 進行重巡狩獵，戰局重新載入！`, "perfect");
-        gameState = "BATTLE";
+        gameState = "SELECT_ROUTE";
         
         const mainBtn = document.getElementById('btn-main-action');
         const rerunBtn = document.getElementById('btn-rerun-action');
@@ -508,7 +808,7 @@ function handleRerunAction() {
         if (rerunBtn) rerunBtn.disabled = false;
 
         if (typeof updateUI === "function") updateUI();
-        runDungeonLoop();
+        renderRouteSelectionPanel();
     } catch(err) {
         if (typeof addLog === "function") addLog(`🚨【重巡失敗】: ${err.message}`, "take");
     }
@@ -518,9 +818,13 @@ function handleSecondaryAction() {
     if (combatTickerTimer) clearInterval(combatTickerTimer);
     gameState = "VILLAGE";
     currentEnvironment = "NORMAL";
+    currentRun.currentNodes = [];
     
     const secBtn = document.getElementById('btn-secondary-action');
     if (secBtn) secBtn.style.display = "none";
+
+    const routeBox = document.getElementById('route-panel-box');
+    if (routeBox) routeBox.style.display = "none";
     
     if (isQteActive) {
         isQteActive = false;
@@ -580,6 +884,7 @@ if (typeof window !== "undefined") {
     window.handleMainAction = handleMainAction;
     window.handleRerunAction = handleRerunAction;
     window.handleSecondaryAction = handleSecondaryAction;
+    window.selectRouteNode = selectRouteNode;
 }
 
 function removeBagItem(index) {
@@ -973,122 +1278,11 @@ function resolveAbyssEvent() {
     if (mainBtn) mainBtn.disabled = false;
     if (rerunBtn) rerunBtn.disabled = false;
     if (typeof updateUI === "function") updateUI(); 
-    runDungeonLoop(); 
 }
 
 // --------------------------------------------------------------------------
 // ⚔️ 地下城主戰鬥迴圈 (Dungeon Loop Engine)
 // --------------------------------------------------------------------------
-async function runDungeonLoop() {
-    try {
-        if (combatTickerTimer) clearInterval(combatTickerTimer);
-
-        const mainBtn = document.getElementById('btn-main-action');
-        if (mainBtn) mainBtn.disabled = true;
-        const rerunBtn = document.getElementById('btn-rerun-action');
-        if (rerunBtn) rerunBtn.disabled = true;
-
-        const isBossFloor = (dungeonFloor % 10 === 0);
-        if (!isBossFloor && Math.random() < 0.25 && gameState !== "ENCOUNTER_RESOLVED") {
-            gameState = "ENCOUNTER"; 
-            if (typeof updateUI === "function") updateUI(); 
-            triggerRandomAbyssEvent(); 
-            return; 
-        }
-        if (gameState === "ENCOUNTER_RESOLVED") { gameState = "BATTLE"; }
-
-        currentEnvironment = (dungeonFloor > 1 && Math.random() < 0.35) ? ["FIRE", "ICE", "POISON", "VOID"][Math.floor(Math.random() * 4)] : "NORMAL";
-        
-        if (isBossFloor) {
-            let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { 
-                name: `👹 深淵無名魔皇`, 
-                baseHp: dungeonFloor * 40, 
-                baseAtk: dungeonFloor * 3, 
-                baseDef: dungeonFloor * 2,
-                baseMdef: dungeonFloor * 2,
-                baseSpd: 20, 
-                dropItem: "史萊姆黏液" 
-            };
-            
-            activeMonster = { 
-                name: bossMeta.name, 
-                hp: bossMeta.baseHp, 
-                maxHp: bossMeta.baseHp, 
-                atk: bossMeta.baseAtk, 
-                def: bossMeta.baseDef || bossMeta.def || (dungeonFloor * 2),
-                mdef: bossMeta.baseMdef || bossMeta.mdef || (dungeonFloor * 2),
-                spd: bossMeta.baseSpd, 
-                shield: 0,
-                poisonStacks: 0,
-                burnStacks: 0,
-                freezeTurns: 0, 
-                stunTurns: 0,
-                isSkipped: false, 
-                isBoss: true, 
-                fixedDrop: bossMeta.dropItem 
-            };
-            if (typeof addLog === "function") addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
-        } else {
-            let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
-            if (availableMonsters.length === 0 && typeof REGULAR_MONSTERS_POOL !== "undefined") availableMonsters = REGULAR_MONSTERS_POOL;
-            
-            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { 
-                name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseDef: 1, baseSpd: 15 
-            };
-            let scaledHp = Math.floor(rollSeed.baseHp + dungeonFloor * (rollSeed.hpScale || 5));
-            let scaledAtk = Math.floor(rollSeed.baseAtk + dungeonFloor * (rollSeed.atkScale || 1));
-            let scaledDef = Math.floor((rollSeed.baseDef || 1) + dungeonFloor * 0.5);
-            let finalSpd = rollSeed.baseSpd || 15;
-            
-            activeMonster = { 
-                name: rollSeed.name, 
-                hp: scaledHp, 
-                maxHp: scaledHp, 
-                atk: scaledAtk, 
-                def: scaledDef,
-                mdef: scaledDef,
-                spd: finalSpd, 
-                shield: 0,
-                poisonStacks: 0,
-                burnStacks: 0,
-                freezeTurns: 0, 
-                stunTurns: 0,
-                isSkipped: false, 
-                isBoss: false 
-            };
-            if (typeof addLog === "function") addLog(`⚔️【降臨 B${dungeonFloor}F】發現魔物：<strong>${activeMonster.name}</strong>`);
-        }
-        
-        if (typeof updateUI === "function") updateUI();
-
-        playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
-
-        combatTickerTimer = setInterval(() => {
-            if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
-                clearInterval(combatTickerTimer); 
-                return;
-            }
-            battleTimeElapsed += 0.25;
-            playerAtb += (currentRun.spd || 20);
-            monsterAtb += (activeMonster.spd || 15);
-            envAtb += 15;
-
-            if (envAtb >= 100) { envAtb -= 100; executeEnvironmentTick(); }
-            if (playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
-                playerAtb = Math.min(100, playerAtb - 100); 
-                executePlayerActionTick(); 
-            }
-            if (monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) { 
-                monsterAtb = Math.min(100, monsterAtb - 100); 
-                executeMonsterActionTick(); 
-            }
-            if (typeof updateUI === "function") updateUI();
-        }, 250);
-    } catch(err) { 
-        if (typeof addLog === "function") addLog(`🚨 地下城異常：${err.message}`, "take"); 
-    }
-}
-
 function executeEnvironmentTick() {
     currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + Math.floor((currentRun.mpRegen || 15) / 2));
 
@@ -1293,30 +1487,39 @@ function executeMonsterActionTick() {
 }
 
 // --------------------------------------------------------------------------
-// 👑 勝利結算序列 (修復：非 Boss 層清空舊賜福內容並觸發 UI 刷新)
+// 👑 勝利結算序列
 // --------------------------------------------------------------------------
 function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
-    let rewardG = isBossFloor ? (150 + dungeonFloor * 10) : (15 + Math.floor(dungeonFloor * 1.5));
-    let rewardExp = isBossFloor ? (100 + dungeonFloor * 5) : (12 + dungeonFloor * 2);
+    let isElite = activeMonster?.isElite || false;
+
+    let multiplier = isBossFloor ? 3.0 : (isElite ? 1.8 : 1.0);
+    let rewardG = Math.floor((15 + Math.floor(dungeonFloor * 1.5)) * multiplier);
+    let rewardExp = Math.floor((12 + dungeonFloor * 2) * multiplier);
 
     currentRun.gold += rewardG; 
-    if (typeof addLog === "function") addLog(`👑 <span class="gold-victory-text">VICTORY!</span> 戰鬥勝利！獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
+    let victoryTag = isElite ? `💀 精英討伐成功！` : (isBossFloor ? `👑 領主討伐成功！` : `⚔️ 戰鬥勝利！`);
+    if (typeof addLog === "function") addLog(`${victoryTag} <span class="gold-victory-text">VICTORY!</span> 獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
     
-    let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" ? MONSTER_DROPS[activeMonster?.name] : null);
+    let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" ? MONSTER_DROPS[activeMonster?.name.replace("💀 精英・", "")] : null);
     if (dropItemName) {
         let msg = safePushToInventory(currentRun, accountMeta, dropItemName);
         if (typeof addLog === "function") addLog(msg, "perfect");
     }
 
+    if (isElite && Math.random() < 0.5) {
+        let extraDrop = "史萊姆黏液";
+        let msgExtra = safePushToInventory(currentRun, accountMeta, extraDrop);
+        if (typeof addLog === "function") addLog(`🌟【精英額外戰利品】${msgExtra}`, "perfect");
+    }
+
     activeMonster = null; 
-    gameState = "REWARD"; 
+    gameState = "ENCOUNTER_RESOLVED"; 
 
     if (isBossFloor) {
         triggerBossVictoryModal(activeMonster?.name);
         triggerBossTalentReward();
     } else {
-        // 🎯 關鍵修復 3：非 Boss 層時清空賜福面板，避免渲染出空外框
         const rewardBox = document.getElementById('reward-panel-box');
         if (rewardBox) rewardBox.innerHTML = "";
     }
@@ -1328,7 +1531,6 @@ function executeDungeonVictorySequence() {
 
     addExperience(rewardExp);
     
-    // 🎯 關鍵修復 4：結算完成立即調用 UI 刷新
     if (typeof updateUI === "function") updateUI();
 }
 
@@ -1372,6 +1574,7 @@ function executeDungeonDefeatSequence() {
     
     gameState = "VILLAGE"; 
     currentEnvironment = "NORMAL";
+    currentRun.currentNodes = [];
     
     if (typeof resetCurrentRunData === "function") resetCurrentRunData(); 
     currentRun.hp = currentRun.maxHp; 
