@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城戰鬥、40種奇遇卡片與動態環境力場引擎 (v5.2 Full-Data Synergy)
+// 🕹️ game.js：完整地下城戰鬥、40種奇遇卡片與動態環境力場引擎 (v5.3 Fix-Rest-Node-Bug)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -589,6 +589,9 @@ function selectRouteNode(index) {
     const routeBox = document.getElementById('route-panel-box');
     if (routeBox) routeBox.style.display = "none";
 
+    const actionPanel = document.getElementById('action-panel-box');
+    if (actionPanel) actionPanel.style.display = "flex";
+
     if (typeof addLog === "function") {
         addLog(`🧭【路線抉擇】你果斷踏入了 <strong>${selectedNode.title}</strong>！`, "perfect");
     }
@@ -676,6 +679,8 @@ function renderAbyssEventCard(eventObj) {
 
     rewardContainer.innerHTML = "";
     rewardBox.style.display = "block";
+    rewardBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
     if (rewardTitle) rewardTitle.innerText = `✨ ${eventObj.title} ✨`;
 
     const descDiv = document.createElement('div');
@@ -686,7 +691,7 @@ function renderAbyssEventCard(eventObj) {
     eventObj.choices.forEach((choice) => {
         const btn = document.createElement('button');
         btn.className = "btn-game btn-explore full-width margin-top-sm";
-        btn.style.cssText = "text-align: left; padding: 10px; font-size: 11px; white-space: normal;";
+        btn.style.cssText = "text-align: left; padding: 10px; font-size: 11px; white-space: normal; width: 100%; cursor: pointer;";
         btn.innerText = choice.text;
 
         btn.onclick = () => {
@@ -711,49 +716,80 @@ function renderAbyssEventCard(eventObj) {
 
 function resolveAbyssEvent() { 
     gameState = "ENCOUNTER_RESOLVED"; 
+    const rewardBox = document.getElementById('reward-panel-box');
+    if (rewardBox) rewardBox.style.display = "none";
+
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
-    if (mainBtn) mainBtn.disabled = false;
-    if (rerunBtn) rerunBtn.disabled = false;
+    if (mainBtn) {
+        mainBtn.disabled = false;
+        mainBtn.innerText = `🧭 前進下一層 (B${(dungeonFloor || 1) + 1}F)`;
+        mainBtn.style.display = "block";
+    }
+    if (rerunBtn) {
+        rerunBtn.disabled = false;
+        rerunBtn.style.display = "block";
+    }
+
+    if (typeof saveGameData === "function") saveGameData();
     if (typeof updateUI === "function") updateUI(); 
 }
 
+// --------------------------------------------------------------------------
+// 🛠️ 🎯 修復版：休憩營地節點 (修復無按鈕卡死 + 加入備援防護)
+// --------------------------------------------------------------------------
 function executeRestShopNode() {
     gameState = "REWARD";
     const rewardBox = document.getElementById('reward-panel-box');
     const rewardContainer = document.getElementById('reward-choices-container');
     const rewardTitle = document.getElementById('reward-title-text');
 
-    if (!rewardBox || !rewardContainer) return;
+    if (rewardBox) {
+        rewardBox.style.display = "block";
+        rewardBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 
-    rewardContainer.innerHTML = "";
-    rewardBox.style.display = "block";
     if (rewardTitle) rewardTitle.innerText = "⛺ 靈魂休憩營地：請選擇補給 ⛺";
 
-    const healChoice = document.createElement('button');
-    healChoice.className = "btn-game btn-explore full-width margin-top-sm";
-    healChoice.innerHTML = "💖 靈魂泉水滋養 (回復 50% HP 與 MP)";
-    healChoice.onclick = () => {
+    if (rewardContainer) {
+        rewardContainer.innerHTML = "";
+
+        const healChoice = document.createElement('button');
+        healChoice.className = "btn-game btn-explore full-width margin-top-sm";
+        healChoice.style.cssText = "width: 100%; padding: 12px; margin-top: 8px; font-size: 13px; font-weight: bold; text-align: left; cursor: pointer; background: linear-gradient(135deg, rgba(46,204,113,0.3) 0%, rgba(39,174,96,0.5) 100%); border: 1px solid #2ecc71; color: #fff; border-radius: 8px;";
+        healChoice.innerHTML = "💖 靈魂泉水滋養 (回復 50% HP 與 MP)";
+        healChoice.onclick = () => {
+            let hpGain = Math.floor(currentRun.maxHp * 0.5);
+            let mpGain = Math.floor(currentRun.maxMp * 0.5);
+            currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
+            currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
+            if (typeof addLog === "function") addLog(`⛺【靈魂滋養】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
+            resolveRestNodeDone();
+        };
+
+        const goldChoice = document.createElement('button');
+        goldChoice.className = "btn-game btn-rerun full-width margin-top-sm";
+        goldChoice.style.cssText = "width: 100%; padding: 12px; margin-top: 8px; font-size: 13px; font-weight: bold; text-align: left; cursor: pointer; background: linear-gradient(135deg, rgba(241,196,15,0.3) 0%, rgba(243,156,18,0.5) 100%); border: 1px solid #f1c40f; color: #fff; border-radius: 8px;";
+        goldChoice.innerHTML = `🪙 尋獲前人遺物 (獲得 +${50 + (dungeonFloor || 1) * 10} G 金幣)`;
+        goldChoice.onclick = () => {
+            let goldGain = 50 + (dungeonFloor || 1) * 10;
+            currentRun.gold += goldGain;
+            if (typeof addLog === "function") addLog(`🪙【遺物翻找】翻找遠古骸骨，獲得金幣 <span class="gold-victory-text">+${goldGain} G</span>！`, "perfect");
+            resolveRestNodeDone();
+        };
+
+        rewardContainer.appendChild(healChoice);
+        rewardContainer.appendChild(goldChoice);
+    } else {
+        // 🛡️ 備援機制：如果畫面沒有 reward-choices-container DOM 節點，直接進行回復並流轉，絕不卡死
         let hpGain = Math.floor(currentRun.maxHp * 0.5);
         let mpGain = Math.floor(currentRun.maxMp * 0.5);
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
-        if (typeof addLog === "function") addLog(`⛺【靈魂滋養】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
+        if (typeof addLog === "function") addLog(`⛺【靈魂滋養 (自動備援)】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
         resolveRestNodeDone();
-    };
-
-    const goldChoice = document.createElement('button');
-    goldChoice.className = "btn-game btn-rerun full-width margin-top-sm";
-    goldChoice.innerHTML = `🪙 尋獲前人遺物 (獲得 +${50 + dungeonFloor * 10} G 金幣)`;
-    goldChoice.onclick = () => {
-        let goldGain = 50 + dungeonFloor * 10;
-        currentRun.gold += goldGain;
-        if (typeof addLog === "function") addLog(`🪙【遺物翻找】翻找遠古骸骨，獲得金幣 <span class="gold-victory-text">+${goldGain} G</span>！`, "perfect");
-        resolveRestNodeDone();
-    };
-
-    rewardContainer.appendChild(healChoice);
-    rewardContainer.appendChild(goldChoice);
+        return;
+    }
 
     if (typeof updateUI === "function") updateUI();
 }
@@ -763,10 +799,18 @@ function resolveRestNodeDone() {
     if (rewardBox) rewardBox.style.display = "none";
 
     gameState = "ENCOUNTER_RESOLVED";
+    
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
-    if (mainBtn) mainBtn.disabled = false;
-    if (rerunBtn) rerunBtn.disabled = false;
+    if (mainBtn) {
+        mainBtn.disabled = false;
+        mainBtn.innerText = `🧭 前進下一層 (B${(dungeonFloor || 1) + 1}F)`;
+        mainBtn.style.display = "block";
+    }
+    if (rerunBtn) {
+        rerunBtn.disabled = false;
+        rerunBtn.style.display = "block";
+    }
 
     if (typeof saveGameData === "function") saveGameData();
     if (typeof updateUI === "function") updateUI();
@@ -1130,8 +1174,15 @@ function executeDungeonVictorySequence() {
 
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
-    if (mainBtn) mainBtn.disabled = false;
-    if (rerunBtn) rerunBtn.disabled = false;
+    if (mainBtn) {
+        mainBtn.disabled = false;
+        mainBtn.innerText = `🧭 前進下一層 (B${(dungeonFloor || 1) + 1}F)`;
+        mainBtn.style.display = "block";
+    }
+    if (rerunBtn) {
+        rerunBtn.disabled = false;
+        rerunBtn.style.display = "block";
+    }
 
     addExperience(rewardExp);
     
@@ -1211,7 +1262,7 @@ function checkLevelUpAndTriggerSelect() {
         if (typeof addLog === "function") addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 3 點能力點數！`, "perfect");
     }
 
-    if (gameState === "BATTLE" || gameState === "REWARD") { 
+    if (gameState === "BATTLE" || gameState === "REWARD" || gameState === "ENCOUNTER_RESOLVED") { 
         let btnMain = document.getElementById('btn-main-action');
         if (btnMain) btnMain.disabled = false; 
     }
