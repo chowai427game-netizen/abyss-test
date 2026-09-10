@@ -1,13 +1,14 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.4)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.5)
 // ==========================================================================
 
-// 🌐 1. 全域狀態變數宣告（必須放在最頂端，防止 ReferenceError）
+// 🌐 1. 全域狀態變數宣告
 let currentOnlineCount = 1; 
 const MAX_CHAT_LOGS = 25;
 let localChatHistory = [];
-const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時 (14400000 ms)
+const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時
 let loginLoadingInterval = null;
+let autoSelectBlessingTimer = null; // 自動戰鬥代選定時器
 
 // 🛡️ XSS 資安防禦：HTML 特殊字元轉義函式
 function escapeHTML(str) {
@@ -20,11 +21,10 @@ function escapeHTML(str) {
         .replace(/'/g, "&#039;");
 }
 
-// 📡 Socket.io 即時連線初始化 (自動讀取 state.js 中的 SERVER_URL)
+// 📡 Socket.io 即時連線初始化
 const SOCKET_TARGET_URL = (typeof SERVER_URL !== "undefined") ? SERVER_URL : "https://rpg-backend-fjvg.onrender.com";
 const socket = (typeof io !== "undefined") ? io(SOCKET_TARGET_URL) : null;
 
-// 📡 2. Socket 事件監聽器
 if (socket) {
     socket.on("update_online_count", (count) => {
         currentOnlineCount = count;
@@ -46,7 +46,7 @@ if (socket) {
     });
 }
 
-// 🗄️ 3. DOM 快取管理器 (高效動態檢索)
+// 🗄️ DOM 快取管理器
 const DOM = {
     isInitialized: false,
     elements: {},
@@ -92,7 +92,7 @@ let activeCraftingLvlRange = "1-10";
 let activeWarehouseFilter = "all";
 
 // --------------------------------------------------------------------------
-// ⏳ 0. 登入 5-10 秒動態加載遮罩 ( Render 免費伺服器冷啟動優化)
+// ⏳ 0. 登入動態遮罩
 // --------------------------------------------------------------------------
 
 function showLoginLoadingOverlay(targetSeconds = 8, message = "正在喚醒 Render 雲端伺服器...") {
@@ -146,9 +146,7 @@ function showLoginLoadingOverlay(targetSeconds = 8, message = "正在喚醒 Rend
 function hideLoginLoadingOverlay() {
     if (loginLoadingInterval) clearInterval(loginLoadingInterval);
     const overlay = document.getElementById('login-loading-overlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
+    if (overlay) overlay.style.display = 'none';
 }
 
 // --------------------------------------------------------------------------
@@ -215,7 +213,7 @@ function hideMaterialAlert() {
 }
 
 // --------------------------------------------------------------------------
-// 👻 2. 血條傷害殘影白條控制
+// 👻 2. 血條殘影控制
 // --------------------------------------------------------------------------
 
 let ghostHpTimer = null;
@@ -364,7 +362,7 @@ function renderStatusBadges(containerEl, effectsMap) {
 }
 
 // --------------------------------------------------------------------------
-// 📱 5. 手機端橫向滑動切換村莊分頁 (Swipe Navigation)
+// 📱 5. 手機端橫向滑動切換村莊分頁
 // --------------------------------------------------------------------------
 
 function initSwipeNavigation() {
@@ -430,13 +428,9 @@ function allocateStatPoint(statKey) {
         }
     }
     
-    if (typeof saveGameData === "function") {
-        saveGameData();
-    }
+    if (typeof saveGameData === "function") saveGameData();
     
-    if (typeof showToast === "function") {
-        showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
-    }
+    if (typeof showToast === "function") showToast(`⚡ ${statKey} 提升至 ${accountMeta.stats[statKey]}！`, "success");
     if (typeof addLog === "function") {
         addLog(`⚡ 屬力配點：<strong>${statKey}</strong> 提升至 ${accountMeta.stats[statKey]}！(HP: ${currentRun.maxHp} / MP: ${currentRun.maxMp})`, "perfect");
     }
@@ -445,7 +439,7 @@ function allocateStatPoint(statKey) {
 }
 
 // --------------------------------------------------------------------------
-// 🎛️ 動態戰術動作面板引擎 (🛠️ 修正：解鎖全關卡勝利重巡按鈕)
+// 🎛️ 動態戰術動作面板引擎
 // --------------------------------------------------------------------------
 
 function updateActionPanelUI() {
@@ -457,20 +451,16 @@ function updateActionPanelUI() {
     actionBox.style.gap = "8px";
     actionBox.style.width = "100%";
 
-    // 1. ⛺ 在村莊狀態
     if (gameState === "VILLAGE") {
         const btnEnter = document.createElement('button');
         btnEnter.className = "btn-game btn-explore full-width";
         btnEnter.style.cssText = "flex: 1; padding: 12px; font-size: 13px; font-weight: bold;";
         btnEnter.innerHTML = `🔮 進入地下城 (B${typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1}F)`;
-        btnEnter.onclick = () => {
-            if (typeof startNextFloor === "function") startNextFloor();
-        };
+        btnEnter.onclick = () => { if (typeof startNextFloor === "function") startNextFloor(); };
         actionBox.appendChild(btnEnter);
         return;
     }
 
-    // 2. ⚔️ 戰鬥進行中
     if (gameState === "BATTLE") {
         const btnTactics = document.createElement('button');
         btnTactics.className = "btn-game btn-rerun";
@@ -490,50 +480,178 @@ function updateActionPanelUI() {
         btnFlee.className = "btn-game btn-rest";
         btnFlee.style.cssText = "flex: 1; padding: 10px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #c0392b, #7f8c8d) !important;";
         btnFlee.innerHTML = "🏃 回到村莊";
-        btnFlee.onclick = () => {
-            if (typeof returnToVillage === "function") returnToVillage();
-        };
+        btnFlee.onclick = () => { if (typeof returnToVillage === "function") returnToVillage(); };
 
         actionBox.appendChild(btnTactics);
         actionBox.appendChild(btnFlee);
         return;
     }
 
-    // 3. 🏆 戰鬥結束 / 獎勵養息階段 (REWARD / ENCOUNTER / ENCOUNTER_RESOLVED)
     if (gameState === "REWARD" || gameState === "ENCOUNTER" || gameState === "ENCOUNTER_RESOLVED") {
         const currentF = typeof dungeonFloor !== "undefined" ? dungeonFloor : 1;
         const nextF = currentF + 1;
 
-        // ⚔️ 按鈕 1：進入下層
         const btnNext = document.createElement('button');
         btnNext.className = "btn-game btn-explore";
         btnNext.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         btnNext.innerHTML = `⚔️ 進入下層 (B${nextF}F)`;
-        btnNext.onclick = () => {
-            if (typeof startNextFloor === "function") startNextFloor();
-        };
+        btnNext.onclick = () => { if (typeof startNextFloor === "function") startNextFloor(); };
         actionBox.appendChild(btnNext);
 
-        // 🔄 按鈕 2：重巡此層 (🛠️ 修正：移除原本 % 10 限制，所有關卡獲勝均可重巡)
         const btnRerun = document.createElement('button');
         btnRerun.className = "btn-game btn-rerun";
         btnRerun.style.cssText = "flex: 1.5; padding: 10px; font-size: 11px; font-weight: bold;";
         btnRerun.innerHTML = `🔄 重巡此層 (B${currentF}F)`;
-        btnRerun.onclick = () => {
-            if (typeof rerunCurrentFloor === "function") rerunCurrentFloor();
-        };
+        btnRerun.onclick = () => { if (typeof rerunCurrentFloor === "function") rerunCurrentFloor(); };
         actionBox.appendChild(btnRerun);
 
-        // ⛺ 按鈕 3：回到村莊
         const btnReturn = document.createElement('button');
         btnReturn.className = "btn-game btn-rest";
         btnReturn.style.cssText = "flex: 1; padding: 10px; font-size: 11px; font-weight: bold;";
         btnReturn.innerHTML = "⛺ 回到村莊";
-        btnReturn.onclick = () => {
-            if (typeof returnToVillage === "function") returnToVillage();
-        };
+        btnReturn.onclick = () => { if (typeof returnToVillage === "function") returnToVillage(); };
         actionBox.appendChild(btnReturn);
     }
+}
+
+// --------------------------------------------------------------------------
+// 🌟【新功能加強】靈魂賜福手動三選一卡片渲染引擎 (Roguelite Core Choice System)
+// --------------------------------------------------------------------------
+
+function renderBlessingRewardCards(customChoices = null) {
+    const rewardBox = DOM.get('reward-panel-box');
+    if (!rewardBox) return;
+
+    if (autoSelectBlessingTimer) clearTimeout(autoSelectBlessingTimer);
+
+    // 預設 Boss 賜福選項（三選一）
+    const defaultChoices = customChoices || [
+        {
+            id: "blessing_spd",
+            icon: "⚡",
+            title: "狂暴神經反射",
+            type: "敏捷賜福",
+            desc: "行動條積攢速度永久提升，完全閃避率提升。",
+            stats: "SPD +5 | 閃避 +3%",
+            apply: () => {
+                if (!accountMeta.stats) accountMeta.stats = {};
+                accountMeta.stats.AGI = (accountMeta.stats.AGI || 0) + 5;
+                if (currentRun) currentRun.spd = (currentRun.spd || 10) + 5;
+            }
+        },
+        {
+            id: "blessing_hp",
+            icon: "🛡️",
+            title: "龍血不滅體魄",
+            type: "生存賜福",
+            desc: "最大生命值獲得史詩級突破，戰鬥減傷增加。",
+            stats: "MAX HP +30 | 減傷 +5",
+            apply: () => {
+                if (!accountMeta.stats) accountMeta.stats = {};
+                accountMeta.stats.VIT = (accountMeta.stats.VIT || 0) + 5;
+                if (currentRun) {
+                    currentRun.maxHp = (currentRun.maxHp || 100) + 30;
+                    currentRun.hp = currentRun.maxHp;
+                }
+            }
+        },
+        {
+            id: "blessing_atk",
+            icon: "🔮",
+            title: "深淵法力湧動",
+            type: "輸出賜福",
+            desc: "解鎖深淵魔力共鳴，極大增強魔法與物理攻擊力。",
+            stats: "ATK +8 | MATK +12",
+            apply: () => {
+                if (currentRun) {
+                    currentRun.atk = (currentRun.atk || 10) + 8;
+                    currentRun.matk = (currentRun.matk || 10) + 12;
+                }
+            }
+        }
+    ];
+
+    rewardBox.innerHTML = `
+        <div style="font-size: 13px; font-weight: bold; color: #ffd700; text-align: center; margin-bottom: 10px; letter-spacing: 1px;">
+            ✨ 抉擇靈魂賜福（請選擇一項） ✨
+        </div>
+        <div id="blessing-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; width: 100%;"></div>
+    `;
+
+    const grid = document.getElementById('blessing-cards-grid');
+
+    defaultChoices.forEach((choice, index) => {
+        const card = document.createElement('div');
+        card.className = "reward-card blessing-choice-card";
+        card.style.cssText = `
+            background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.15) 0%, rgba(20, 25, 35, 0.95) 100%);
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between;
+        `;
+
+        card.innerHTML = `
+            <div>
+                <div style="font-size: 22px; margin-bottom: 4px;">${choice.icon}</div>
+                <div style="font-size: 12px; font-weight: bold; color: #ffd700; margin-bottom: 2px;">${choice.title}</div>
+                <div style="font-size: 9px; color: #00ffcc; margin-bottom: 6px;">[${choice.type}]</div>
+                <div style="font-size: 10px; color: #ddd; line-height: 1.3; margin-bottom: 6px;">${choice.desc}</div>
+            </div>
+            <div style="font-size: 10px; font-weight: bold; color: #2ecc71; background: rgba(46, 204, 113, 0.1); padding: 3px; border-radius: 4px; border: 1px solid rgba(46, 204, 113, 0.3);">
+                ${choice.stats}
+            </div>
+        `;
+
+        card.onclick = () => selectBlessingChoice(choice);
+
+        card.onmouseenter = () => {
+            card.style.transform = "translateY(-4px)";
+            card.style.borderColor = "#00ffcc";
+            card.style.boxShadow = "0 6px 18px rgba(0,255,204,0.3)";
+        };
+        card.onmouseleave = () => {
+            card.style.transform = "none";
+            card.style.borderColor = "rgba(255, 215, 0, 0.5)";
+            card.style.boxShadow = "0 4px 12px rgba(0,0,0,0.4)";
+        };
+
+        grid.appendChild(card);
+    });
+
+    rewardBox.style.display = "block";
+
+    // 🤖 若玩家開啟自動戰鬥，1.5 秒後自動挑選第一項
+    if (typeof autoBattleActive !== "undefined" && autoBattleActive) {
+        showToast("🤖 自動戰術啟動中：1.5 秒後自動挑選賜福...", "info");
+        autoSelectBlessingTimer = setTimeout(() => {
+            selectBlessingChoice(defaultChoices[0]);
+        }, 1500);
+    }
+}
+
+function selectBlessingChoice(choice) {
+    if (autoSelectBlessingTimer) clearTimeout(autoSelectBlessingTimer);
+
+    if (choice && typeof choice.apply === "function") {
+        choice.apply();
+    }
+
+    if (typeof saveGameData === "function") saveGameData();
+
+    showToast(`✨ 獲得靈魂賜福：${choice.title}！`, "success");
+    if (typeof addLog === "function") {
+        addLog(`✨ 抉擇靈魂賜福：成功覺醒 <strong>${choice.title}</strong> (${choice.stats})！`, "perfect");
+    }
+
+    // 清空並隱藏賜福外框
+    const rewardBox = DOM.get('reward-panel-box');
+    if (rewardBox) {
+        rewardBox.innerHTML = "";
+        rewardBox.style.display = "none";
+    }
+
+    updateUI();
 }
 
 // --------------------------------------------------------------------------
@@ -612,7 +730,7 @@ function executeDepositAllBagItems() {
 }
 
 // --------------------------------------------------------------------------
-// ⚔️ 裝備數值比對預覽計算
+// ⚔️ 裝備數值比對與預覽
 // --------------------------------------------------------------------------
 
 function getEquipmentStatDiff(blueprint) {
@@ -753,7 +871,6 @@ function syncCharacterDataUi() {
         if (gameState === "BATTLE") {
             pAtbRow.style.display = "block";
             const pAtbPercent = Math.min(100, Math.max(0, typeof playerAtb !== "undefined" ? playerAtb : 0));
-                
             if (pAtbBar) pAtbBar.style.width = `${pAtbPercent}%`;
             if (pAtbText) pAtbText.innerText = `${Math.floor(pAtbPercent)}%`;
         } else {
@@ -854,9 +971,7 @@ function syncCharacterDataUi() {
                 slot.innerText = item;
                 slot.onclick = () => {
                     if (gameState === "BATTLE") {
-                        if (typeof executeUseDungeonItem === "function") {
-                            executeUseDungeonItem(item, i);
-                        }
+                        if (typeof executeUseDungeonItem === "function") executeUseDungeonItem(item, i);
                     } else {
                         executeDepositBagItemToWarehouse(i);
                     }
@@ -938,6 +1053,10 @@ function switchVillageLocation(targetLoc) {
     updateUI();
 }
 
+// --------------------------------------------------------------------------
+// 🛠️ updateUI 核心更新（完美判定：只有真正存在卡片時才顯示 rewardBox）
+// --------------------------------------------------------------------------
+
 function updateUI() {
     const titleBox = DOM.get('title-box');
     const statusBox = DOM.get('status-panel-box');
@@ -949,7 +1068,6 @@ function updateUI() {
     const autoBtn = DOM.get('btn-auto-battle');
     const logWrapper = DOM.get('log-wrapper-box');
 
-    // 🔒 0. 登入/封面階段
     if (typeof gameState !== "undefined" && gameState === "TITLE") {
         if (titleBox) titleBox.style.display = "block";
         if (statusBox) statusBox.style.display = "none";
@@ -1036,7 +1154,6 @@ function updateUI() {
         if (mAtbRow) {
             mAtbRow.style.display = "block";
             const mAtbBar = DOM.get('m-atb-bar-fill');
-            
             if (mAtbBar) {
                 const currentW = parseFloat(mAtbBar.style.width) || 0;
                 if (mAtbPercent < currentW) {
@@ -1055,10 +1172,10 @@ function updateUI() {
         if (mAtbRow) mAtbRow.style.display = "none";
     }
 
-    // 🎯 關鍵修復：只有在 REWARD/ENCOUNTER 且 rewardBox 內部「確定有子卡片元素」時才顯示外框
+    // 🎯 關鍵修復：必須包含 .reward-card 點擊卡片元素時，才開啟 rewardBox！避免無卡片時出現空白外框
     if (rewardBox) {
-        const hasContent = rewardBox.children.length > 0 && rewardBox.innerHTML.trim() !== "";
-        rewardBox.style.display = ((gameState === "REWARD" || gameState === "ENCOUNTER") && hasContent) ? "block" : "none";
+        const hasRewardCards = rewardBox.querySelectorAll('.reward-card').length > 0;
+        rewardBox.style.display = ((gameState === "REWARD" || gameState === "ENCOUNTER") && hasRewardCards) ? "block" : "none";
     }
     
     syncCharacterDataUi();
@@ -1177,11 +1294,8 @@ function renderVillageGuild() {
         btnLearn.disabled = btnDisabled;
         btnLearn.onclick = (e) => { 
             e.stopPropagation(); 
-            if (typeof executeLearnSkill === "function") {
-                executeLearnSkill(s); 
-            } else {
-                showToast("技能學習模組未載入", "warn");
-            }
+            if (typeof executeLearnSkill === "function") executeLearnSkill(s); 
+            else showToast("技能學習模組未載入", "warn");
         };
 
         row.appendChild(btnLearn);
@@ -1434,9 +1548,7 @@ function renderVillageWorkshop() {
         const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
         
         if (b.isLegendary) {
-            if (!unlockedBlueprints.includes(b.name)) {
-                return false; 
-            }
+            if (!unlockedBlueprints.includes(b.name)) return false; 
             return matchCat && (activeCraftingLvlRange === "legendary" || b.range === activeCraftingLvlRange || activeCraftingLvlRange === "51-60" || !b.range);
         }
 
@@ -1493,9 +1605,7 @@ function renderVillageWorkshop() {
             btnRefine.innerHTML = `✨ 強化 (+${itemRefineLvl})`;
             btnRefine.onclick = (e) => { 
                 e.stopPropagation(); 
-                if (typeof refineSpecificEquipment === "function") {
-                    refineSpecificEquipment(blueprint.name);
-                } 
+                if (typeof refineSpecificEquipment === "function") refineSpecificEquipment(blueprint.name);
             };
             btnGroup.appendChild(btnRefine);
         }
@@ -1529,7 +1639,7 @@ function renderVillageWorkshop() {
     });
 }
 
-// 📜 日記戰鬥日誌 (Log Box)
+// 📜 日記戰鬥日誌
 function addLog(msg, type = "deal") {
     const box = DOM.get('log-box');
     if (!box) return;
@@ -1588,7 +1698,7 @@ function changeCraftingLvl(range) {
 }
 
 // ==========================================================================
-// 🔑 360° 轉盤開鎖 (Radial Lockpick QTE System)
+// 🔑 360° 轉盤開鎖 QTE 系統
 // ==========================================================================
 
 let lockpickState = {
@@ -1603,7 +1713,6 @@ let lockpickState = {
 
 function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty = "medium", onSuccess) {
     let overlay = document.getElementById('chest-inspect-overlay');
-    
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'chest-inspect-overlay';
@@ -1997,10 +2106,6 @@ function renderVillageSquare() {
     renderSquareChatBox();
 }
 
-// --------------------------------------------------------------------------
-// 🪟 彈出式黑市買賣視窗 (Modal System)
-// --------------------------------------------------------------------------
-
 function openBlackMarketModal(tab = "buy") {
     activeBlackMarketTab = tab;
     let overlay = document.getElementById('black-market-modal-overlay');
@@ -2219,7 +2324,7 @@ function executeBuyBlackMarketItem(stockIndex) {
 }
 
 // --------------------------------------------------------------------------
-// 💬 聊天室輔助函式 (資安加固版)
+// 💬 聊天室輔助函式
 // --------------------------------------------------------------------------
 
 function sendSquareChatMessage() {
