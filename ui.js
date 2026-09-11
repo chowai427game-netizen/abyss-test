@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.7)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.8 Mobile RWD Standard)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告
@@ -442,7 +442,6 @@ function allocateStatPoint(statKey) {
 // 🎛️ 動態戰術動作面板引擎
 // --------------------------------------------------------------------------
 
-// 🎛️ 動態戰術動作面板引擎（已修復：補齊 game.js 所需之按鈕 ID）
 function updateActionPanelUI() {
     const actionBox = DOM.get('action-panel-box') || document.getElementById('action-panel-box');
     if (!actionBox) return;
@@ -454,7 +453,7 @@ function updateActionPanelUI() {
 
     if (gameState === "VILLAGE") {
         const btnEnter = document.createElement('button');
-        btnEnter.id = "btn-main-action"; // 🎯 補齊 ID
+        btnEnter.id = "btn-main-action";
         btnEnter.className = "btn-game btn-explore full-width";
         btnEnter.style.cssText = "flex: 1; padding: 12px; font-size: 13px; font-weight: bold;";
         btnEnter.innerHTML = `🔮 進入地下城 (B${typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1}F)`;
@@ -465,7 +464,7 @@ function updateActionPanelUI() {
 
     if (gameState === "BATTLE") {
         const btnTactics = document.createElement('button');
-        btnTactics.id = "btn-main-action"; // 🎯 補齊 ID
+        btnTactics.id = "btn-main-action";
         btnTactics.className = "btn-game btn-rerun";
         btnTactics.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         const isAuto = typeof autoBattleActive !== "undefined" && autoBattleActive;
@@ -480,7 +479,7 @@ function updateActionPanelUI() {
         };
 
         const btnFlee = document.createElement('button');
-        btnFlee.id = "btn-secondary-action"; // 🎯 補齊 ID
+        btnFlee.id = "btn-secondary-action";
         btnFlee.className = "btn-game btn-rest";
         btnFlee.style.cssText = "flex: 1; padding: 10px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #c0392b, #7f8c8d) !important;";
         btnFlee.innerHTML = "🏃 回到村莊";
@@ -496,7 +495,7 @@ function updateActionPanelUI() {
         const nextF = currentF + 1;
 
         const btnNext = document.createElement('button');
-        btnNext.id = "btn-main-action"; // 🎯 補齊 ID
+        btnNext.id = "btn-main-action";
         btnNext.className = "btn-game btn-explore";
         btnNext.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         btnNext.innerHTML = `⚔️ 進入下層 (B${nextF}F)`;
@@ -504,7 +503,7 @@ function updateActionPanelUI() {
         actionBox.appendChild(btnNext);
 
         const btnRerun = document.createElement('button');
-        btnRerun.id = "btn-rerun-action"; // 🎯 補齊 ID
+        btnRerun.id = "btn-rerun-action";
         btnRerun.className = "btn-game btn-rerun";
         btnRerun.style.cssText = "flex: 1.5; padding: 10px; font-size: 11px; font-weight: bold;";
         btnRerun.innerHTML = `🔄 重巡此層 (B${currentF}F)`;
@@ -512,7 +511,7 @@ function updateActionPanelUI() {
         actionBox.appendChild(btnRerun);
 
         const btnReturn = document.createElement('button');
-        btnReturn.id = "btn-secondary-action"; // 🎯 補齊 ID
+        btnReturn.id = "btn-secondary-action";
         btnReturn.className = "btn-game btn-rest";
         btnReturn.style.cssText = "flex: 1; padding: 10px; font-size: 11px; font-weight: bold;";
         btnReturn.innerHTML = "⛺ 回到村莊";
@@ -1224,7 +1223,7 @@ function formatSkillEffectText(s, lv, playerRun) {
     return parts.length > 0 ? parts.join(" | ") : "特殊效果觸發";
 }
 
-// 🏛️ 冒險者公會渲染（已修復：指向 game.js 正確的重置函式）
+// 🏛️ 冒險者公會渲染
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
@@ -1314,7 +1313,6 @@ function renderVillageGuild() {
         container.appendChild(row);
     });
 
-    // 🎯 正確指向 game.js 的 executeResetStats() 與 triggerReselectJobUI()
     const resetSection = document.createElement('div');
     resetSection.style.cssText = `
         margin-top: 10px; padding: 8px 10px; background: rgba(0, 0, 0, 0.25);
@@ -1370,7 +1368,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     containerEl.appendChild(filterRow);
 }
 
-// 🍳 皇家料理屋渲染（優化：列表間距壓縮至 4px）
+// 🍳 皇家料理屋渲染
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
@@ -1473,7 +1471,6 @@ function renderVillageCookingWorkshop() {
 
     filteredRecipes.forEach(recipe => {
         const row = document.createElement('div');
-        // 🎯 核心優化：padding 5px 8px，margin-bottom 4px
         row.style.cssText = `
             background: rgba(0,0,0,0.25); padding: 5px 8px; border-radius: 6px;
             border: 1px solid rgba(255,255,255,0.03); margin-bottom: 4px; width: 100%;
@@ -1506,7 +1503,7 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// 🛠️ 魔導加工所渲染（優化：列表間距壓縮至 4px）
+// 🛠️ 魔導加工所渲染（重構：全平台/手機端 Responsive Card Layout 上下分層）
 function renderVillageWorkshop() {
     const wBox = DOM.get('workshop-warehouse-display');
     if (wBox) {
@@ -1599,30 +1596,43 @@ function renderVillageWorkshop() {
 
     filteredBlueprints.forEach(blueprint => {
         const row = document.createElement('div');
-        // 🎯 核心優化：padding 5px 8px，margin-bottom 4px
+        row.className = "workshop-blueprint-card";
         row.style.cssText = `
-            background: ${blueprint.isLegendary ? 'rgba(230, 126, 34, 0.15)' : 'rgba(0,0,0,0.2)'}; 
-            padding: 5px 8px; border-radius: 6px;
-            border: 1px solid ${blueprint.isLegendary ? '#e67e22' : 'rgba(255,255,255,0.04)'}; 
-            margin-bottom: 4px; text-align: left;
-            width: 100%; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+            background: ${blueprint.isLegendary ? 'radial-gradient(circle at 0% 0%, rgba(230, 126, 34, 0.2) 0%, rgba(20, 15, 10, 0.85) 100%)' : 'rgba(15, 18, 25, 0.75)'}; 
+            padding: 8px 10px; border-radius: 8px;
+            border: 1px solid ${blueprint.isLegendary ? 'rgba(230, 126, 34, 0.6)' : 'rgba(255,255,255,0.08)'}; 
+            margin-bottom: 6px; text-align: left;
+            width: 100%; display: flex; flex-direction: column; gap: 6px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s ease;
+            box-sizing: border-box;
         `;
 
         const itemRefineLvl = (accountMeta.itemRefines?.[blueprint.name]) || (accountMeta.equipmentStars?.[blueprint.type]) || 0;
-        const refineBadge = itemRefineLvl > 0 ? `<span style="color:#ffd700;"> (+${itemRefineLvl})</span>` : "";
+        const refineBadge = itemRefineLvl > 0 ? `<span style="color:#ffd700; font-weight:bold;"> (+${itemRefineLvl})</span>` : "";
         const statDiffHtml = getEquipmentStatDiff(blueprint);
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
 
-        const skillTag = blueprint.skill ? `<div style="font-size:10px; color:#00ffcc;">✨ 附帶技能: [${blueprint.skill.name}]</div>` : "";
+        const skillTag = blueprint.skill ? `<span style="font-size:10px; color:#00ffcc; background:rgba(0,255,204,0.1); padding:1px 5px; border-radius:4px; border:1px solid rgba(0,255,204,0.3); margin-left:6px;">✨ [${blueprint.skill.name}]</span>` : "";
 
-        row.innerHTML = `<div><strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:12px;">${blueprint.name}${refineBadge}</strong>${skillTag}</div>`;
+        // 上層：裝備資訊與標籤
+        const infoDiv = document.createElement('div');
+        infoDiv.style.cssText = "display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 4px;";
+        infoDiv.innerHTML = `
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 2px;">
+                <strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:13px; font-weight:bold;">${blueprint.name}${refineBadge}</strong>
+                ${skillTag}
+            </div>
+            <span style="font-size: 10px; color: #8e8e93; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${blueprint.type.toUpperCase()}</span>
+        `;
+        row.appendChild(infoDiv);
 
+        // 下層：操作按鈕欄位（RWD 自適應防擠壓）
         const btnGroup = document.createElement('div');
-        btnGroup.style.cssText = "display: flex; gap: 4px;";
+        btnGroup.style.cssText = "display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: flex-end; align-items: center; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;";
 
         const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
-        btnForge.style.cssText = "padding: 3px 6px; font-size: 10px;";
+        btnForge.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
         btnForge.innerHTML = "🔨 打造";
         btnForge.onclick = (e) => { e.stopPropagation(); if (typeof executeForgeEquipment === "function") executeForgeEquipment(blueprint); };
         btnGroup.appendChild(btnForge);
@@ -1637,7 +1647,7 @@ function renderVillageWorkshop() {
 
             const btnRefine = document.createElement('button');
             btnRefine.className = "btn-game btn-rerun";
-            btnRefine.style.cssText = `padding: 3px 6px; font-size: 10px; background: ${hasEnoughGold ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' : 'rgba(255,255,255,0.1)'} !important;`;
+            btnRefine.style.cssText = `padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1.2; min-width: 90px; text-align: center; background: ${hasEnoughGold ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' : 'rgba(255,255,255,0.1)'} !important;`;
             btnRefine.innerHTML = `✨ 強化 +${itemRefineLvl + 1} (${refineGoldCost}G)`;
             if (!hasEnoughGold) {
                 btnRefine.style.opacity = "0.65";
@@ -1661,14 +1671,14 @@ function renderVillageWorkshop() {
         if (isEquipped) {
             const btnUnequip = document.createElement('button');
             btnUnequip.className = "btn-game btn-rest"; 
-            btnUnequip.style.cssText = "padding: 3px 6px; font-size: 10px;";
+            btnUnequip.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
             btnUnequip.innerHTML = "❌ 卸下";
             btnUnequip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "unequip"); };
             btnGroup.appendChild(btnUnequip);
         } else if (hasInWarehouse) {
             const btnEquip = document.createElement('button');
             btnEquip.className = "btn-game btn-rerun"; 
-            btnEquip.style.cssText = "padding: 3px 6px; font-size: 10px;";
+            btnEquip.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
             btnEquip.innerHTML = "⚡ 穿戴";
             btnEquip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "equip"); };
             btnGroup.appendChild(btnEquip);
