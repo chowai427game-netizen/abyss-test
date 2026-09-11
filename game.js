@@ -1,5 +1,5 @@
 // ==========================================================================
-// 🕹️ game.js：完整地下城戰鬥、40種奇遇卡片與動態環境力場引擎 (v5.4 Mobile-RWD & Event-Fix)
+// 🕹️ game.js：完整地下城戰鬥、40種奇遇卡片與動態環境力場引擎 (v5.3 Fix-Rest-Node-Bug)
 // ==========================================================================
 
 let combatTickerTimer = null; 
@@ -12,109 +12,6 @@ let battleTimeElapsed = 0;
 
 let isQteActive = false;
 let activeTactic = "BALANCED";
-
-// --------------------------------------------------------------------------
-// 📱 注入手機端加工所 RWD 防衝撞專用 CSS 樣式
-// --------------------------------------------------------------------------
-(function injectMobileWorkshopStyles() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById('mobile-workshop-override-style')) return;
-
-    const styleEl = document.createElement('style');
-    styleEl.id = 'mobile-workshop-override-style';
-    styleEl.innerHTML = `
-        /* 手機端加工所卡片重構與防重疊樣式 */
-        .workshop-grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
-            width: 100%;
-            box-sizing: border-box;
-            padding: 4px 0;
-        }
-
-        .workshop-card-mobile {
-            background: linear-gradient(135deg, rgba(20, 24, 33, 0.95) 0%, rgba(12, 15, 22, 0.98) 100%);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            border-radius: 10px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            box-sizing: border-box;
-            width: 100%;
-        }
-
-        .workshop-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .workshop-card-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #ffd700;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .workshop-card-badge {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(0, 255, 204, 0.15);
-            color: #00ffcc;
-            border: 1px solid rgba(0, 255, 204, 0.4);
-        }
-
-        .workshop-card-body {
-            font-size: 11px;
-            color: #cccccc;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-
-        .workshop-card-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: auto;
-            padding-top: 8px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .workshop-btn-sub {
-            flex: 1 1 calc(50% - 6px);
-            min-width: 90px;
-            padding: 8px 4px;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: center;
-            box-sizing: border-box;
-            white-space: nowrap;
-        }
-
-        @media (max-width: 600px) {
-            .workshop-grid-container {
-                grid-template-columns: 1fr !important;
-            }
-            .workshop-btn-sub {
-                flex: 1 1 100% !important;
-            }
-        }
-    `;
-    document.head.appendChild(styleEl);
-})();
 
 // 📦 安全物品放入背包/倉庫流轉防護
 function safePushToInventory(run, account, itemName) {
@@ -712,16 +609,13 @@ function selectRouteNode(index) {
     }
 }
 
-// --------------------------------------------------------------------------
-// 🎯 修復版：命運遭遇（奇遇與寶箱）觸發引擎 (安全防死鎖)
-// --------------------------------------------------------------------------
 function triggerRandomAbyssEvent() {
     const roll = Math.random();
 
     // 45% 觸發 40 種命運抉擇奇遇
     if (roll < 0.45 && typeof getRandomAbyssEvent === "function") {
         const ev = getRandomAbyssEvent();
-        if (ev && ev.choices && ev.choices.length > 0) {
+        if (ev) {
             renderAbyssEventCard(ev);
             return;
         }
@@ -770,24 +664,18 @@ function triggerRandomAbyssEvent() {
         return;
     }
 
-    // 10% 遠古泉水保底回復
+    // 10% 遠古泉水回復
     currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 30);
     if (typeof addLog === "function") addLog(`⛲【遠古泉水】遇見淨化泉水，HP 回復 +30。`, "perfect");
     resolveAbyssEvent();
 }
 
-// --------------------------------------------------------------------------
-// 🎯 修復版：奇遇卡片渲染與選項執行防護 (防止未發動/無 Log)
-// --------------------------------------------------------------------------
 function renderAbyssEventCard(eventObj) {
     const rewardBox = document.getElementById('reward-panel-box');
     const rewardContainer = document.getElementById('reward-choices-container');
     const rewardTitle = document.getElementById('reward-title-text');
 
-    if (!rewardBox || !rewardContainer) {
-        resolveAbyssEvent();
-        return;
-    }
+    if (!rewardBox || !rewardContainer) return;
 
     rewardContainer.innerHTML = "";
     rewardBox.style.display = "block";
@@ -797,31 +685,18 @@ function renderAbyssEventCard(eventObj) {
 
     const descDiv = document.createElement('div');
     descDiv.style.cssText = "width: 100%; font-size: 12px; color: #d1d1d6; margin-bottom: 12px; line-height: 1.5; text-align: left;";
-    descDiv.innerText = eventObj.desc || "命運的迷霧在四周蔓延，請做出你的抉擇……";
+    descDiv.innerText = eventObj.desc;
     rewardContainer.appendChild(descDiv);
 
-    (eventObj.choices || []).forEach((choice) => {
+    eventObj.choices.forEach((choice) => {
         const btn = document.createElement('button');
         btn.className = "btn-game btn-explore full-width margin-top-sm";
-        btn.style.cssText = "text-align: left; padding: 10px; font-size: 11px; white-space: normal; width: 100%; cursor: pointer; margin-top: 6px;";
+        btn.style.cssText = "text-align: left; padding: 10px; font-size: 11px; white-space: normal; width: 100%; cursor: pointer;";
         btn.innerText = choice.text;
 
         btn.onclick = () => {
             btn.disabled = true;
-            let logMsg = "";
-            try {
-                if (typeof choice.run === "function") {
-                    logMsg = choice.run(currentRun, accountMeta);
-                }
-            } catch (err) {
-                console.error("🚨 奇遇執行異常:", err);
-                logMsg = "✨ 命運之理運轉，周圍空氣微微震盪，奇遇和平結束。";
-            }
-
-            if (!logMsg || typeof logMsg !== "string") {
-                logMsg = "✨ 命運的波導悄然拂過，你的體能獲得了潛在的微幅滋育。";
-            }
-
+            let logMsg = choice.run(currentRun, accountMeta);
             if (typeof addLog === "function") {
                 addLog(`🌀【奇遇結算】${logMsg}`, "perfect");
             }
@@ -861,7 +736,7 @@ function resolveAbyssEvent() {
 }
 
 // --------------------------------------------------------------------------
-// ⛺ 靈魂休憩營地節點
+// 🛠️ 🎯 修復版：休憩營地節點 (修復無按鈕卡死 + 加入備援防護)
 // --------------------------------------------------------------------------
 function executeRestShopNode() {
     gameState = "REWARD";
@@ -906,11 +781,12 @@ function executeRestShopNode() {
         rewardContainer.appendChild(healChoice);
         rewardContainer.appendChild(goldChoice);
     } else {
+        // 🛡️ 備援機制：如果畫面沒有 reward-choices-container DOM 節點，直接進行回復並流轉，絕不卡死
         let hpGain = Math.floor(currentRun.maxHp * 0.5);
         let mpGain = Math.floor(currentRun.maxMp * 0.5);
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
-        if (typeof addLog === "function") addLog(`⛺【靈魂滋養 (自動補給)】回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
+        if (typeof addLog === "function") addLog(`⛺【靈魂滋養 (自動備援)】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
         resolveRestNodeDone();
         return;
     }
@@ -1491,118 +1367,8 @@ function rerunCurrentFloor() { handleRerunAction(); }
 function returnToVillage() { handleSecondaryAction(); }
 
 // --------------------------------------------------------------------------
-// 🛠️ 🎯 重構版：皇家魔導加工所 (Mobile-First RWD 無重疊渲染引擎)
+// 🛠️ 物品使用、鍛造與精鍊
 // --------------------------------------------------------------------------
-function renderVillageWorkshop() {
-    const workshopContainer = document.getElementById('workshop-content-box') || document.getElementById('village-location-content');
-    if (!workshopContainer) return;
-
-    if (typeof CRAFTING_BLUEPRINTS === "undefined") {
-        workshopContainer.innerHTML = "<div style='color:#aaa; font-size:12px; padding:20px;'>🛠️ 藍圖資料庫連線中...</div>";
-        return;
-    }
-
-    let html = `
-        <div style="width: 100%; box-sizing: border-box;">
-            <div style="font-size: 14px; font-weight: bold; color: #ffd700; margin-bottom: 8px; text-align: left; display: flex; justify-content: space-between; align-items: center;">
-                <span>🛠️ 皇家魔導加工所 (神裝鍛造 & 精鍊)</span>
-                <span style="font-size: 11px; color: #00ffcc;">🪙 擁有金幣: ${currentRun.gold || 0} G</span>
-            </div>
-            <div class="workshop-grid-container">
-    `;
-
-    CRAFTING_BLUEPRINTS.forEach(bp => {
-        const curRefine = (accountMeta.itemRefines && accountMeta.itemRefines[bp.name]) || 0;
-        const refineTag = curRefine > 0 ? `<span style="color:#ffd700; font-weight:bold;"> (+${curRefine})</span>` : "";
-
-        let isEquipped = false;
-        if (accountMeta.equipment) {
-            for (let slot in accountMeta.equipment) {
-                if (accountMeta.equipment[slot] === bp.name) {
-                    isEquipped = true;
-                    break;
-                }
-            }
-        }
-
-        const warehouseCount = (accountMeta.warehouse && accountMeta.warehouse[bp.name]) || 0;
-
-        // 素材需求檢測
-        let matList = [];
-        let canForge = true;
-        for (let mat in bp.ingredients) {
-            let req = bp.ingredients[mat];
-            let has = (accountMeta.warehouse && accountMeta.warehouse[mat]) || 0;
-            if (has < req) canForge = false;
-            matList.push(`${mat}: <span style="color:${has >= req ? '#00ffcc' : '#ff4757'};">${has}/${req}</span>`);
-        }
-
-        const nextRefineCost = (curRefine + 1) * 100;
-
-        html += `
-            <div class="workshop-card-mobile">
-                <div class="workshop-card-header">
-                    <div class="workshop-card-title">
-                        <span>⚔️ ${bp.name}${refineTag}</span>
-                    </div>
-                    <div>
-                        ${isEquipped ? '<span class="workshop-card-badge" style="background:rgba(46,204,113,0.2); color:#2ecc71; border-color:#2ecc71;">已裝備</span>' : ''}
-                        ${warehouseCount > 0 ? `<span class="workshop-card-badge">倉庫 x${warehouseCount}</span>` : ''}
-                    </div>
-                </div>
-
-                <div class="workshop-card-body">
-                    <div style="color: #aaa; margin-bottom: 4px;"><strong>配方需求：</strong>${matList.join(" | ")}</div>
-                    <div style="color: #7d5fff;"><strong>部位：</strong>${bp.type || "裝備"} | <strong>基礎屬性：</strong>ATK/DEF +${bp.statBonus || 10}</div>
-                </div>
-
-                <div class="workshop-card-actions">
-                    <button type="button" class="btn-game btn-explore workshop-btn-sub" 
-                            style="background: linear-gradient(135deg, rgba(0,255,204,0.2) 0%, rgba(0,184,148,0.4) 100%); border:1px solid #00ffcc; color:#fff;"
-                            onclick="executeForgeEquipmentByName('${bp.name}')">
-                        🔨 打造神裝
-                    </button>
-
-                    ${(isEquipped || warehouseCount > 0) ? `
-                        <button type="button" class="btn-game btn-rerun workshop-btn-sub" 
-                                style="background: linear-gradient(135deg, rgba(241,196,15,0.25) 0%, rgba(243,156,18,0.45) 100%); border:1px solid #f1c40f; color:#fff;"
-                                onclick="refineSpecificEquipment('${bp.name}')">
-                            ✨ 強化 +${curRefine + 1} (${nextRefineCost}G)
-                        </button>
-                    ` : ''}
-
-                    ${warehouseCount > 0 && !isEquipped ? `
-                        <button type="button" class="btn-game btn-explore workshop-btn-sub" 
-                                style="background: linear-gradient(135deg, rgba(52,152,219,0.3) 0%, rgba(41,128,185,0.5) 100%); border:1px solid #3498db; color:#fff;"
-                                onclick="executeEquipAction('${bp.name}', 'equip')">
-                            🛡️ 佩戴上身
-                        </button>
-                    ` : ''}
-
-                    ${isEquipped ? `
-                        <button type="button" class="btn-game btn-rest workshop-btn-sub" 
-                                style="background: linear-gradient(135deg, rgba(231,76,60,0.3) 0%, rgba(192,57,43,0.5) 100%); border:1px solid #e74c3c; color:#fff;"
-                                onclick="executeEquipAction('${bp.name}', 'unequip')">
-                            ❌ 卸下裝備
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    });
-
-    html += `</div></div>`;
-    workshopContainer.innerHTML = html;
-}
-
-function executeForgeEquipmentByName(bpName) {
-    if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
-    let blueprint = CRAFTING_BLUEPRINTS.find(b => b.name === bpName);
-    if (blueprint) {
-        executeForgeEquipment(blueprint);
-    }
-}
-
 function removeBagItem(index) {
     if (!currentRun.inventory || index < 0 || index >= currentRun.inventory.length) return;
     
@@ -1760,7 +1526,7 @@ function executeForgeEquipment(blueprint) {
         }
         if (typeof saveGameData === "function") saveGameData(); 
         if (typeof updateUI === "function") updateUI(); 
-        if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
+        if (currentVillageLocation === "WORKSHOP" && typeof renderVillageWorkshop === "function") renderVillageWorkshop();
     });
 }
 
@@ -1851,7 +1617,9 @@ function refineSpecificEquipment(equipName) {
     if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     if (typeof saveGameData === "function") saveGameData();
     if (typeof updateUI === "function") updateUI();
-    if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
+    if (currentVillageLocation === "WORKSHOP" && typeof renderVillageWorkshop === "function") {
+        renderVillageWorkshop();
+    }
 }
 
 function executeDismantle(equipName) {
@@ -1871,7 +1639,7 @@ function executeDismantle(equipName) {
     if (typeof addLog === "function") addLog(`♻️【拆解回收】你成功拆解了 [${equipName}]，獲得原料 ➔ ${refunded.join(", ")}。`, "perfect");
     if (typeof saveGameData === "function") saveGameData();
     if (typeof updateUI === "function") updateUI();
-    if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
+    if (currentVillageLocation === "WORKSHOP" && typeof renderVillageWorkshop === "function") renderVillageWorkshop();
 }
 
 function triggerVillageQte(type, targetData, successCallback) {
@@ -1944,7 +1712,7 @@ function executeEquipAction(equipName, actionType) {
     if (typeof resetCurrentRunData === "function") resetCurrentRunData(); 
     if (typeof saveGameData === "function") saveGameData(); 
     if (typeof updateUI === "function") updateUI(); 
-    if (typeof renderVillageWorkshop === "function") renderVillageWorkshop();
+    if (currentVillageLocation === "WORKSHOP" && typeof renderVillageWorkshop === "function") renderVillageWorkshop();
 }
 
 // --------------------------------------------------------------------------
@@ -2047,6 +1815,4 @@ if (typeof window !== "undefined") {
     window.openJobAdvancementModal = openJobAdvancementModal;
     window.closeJobAdvancementModal = closeJobAdvancementModal;
     window.executeAdvanceJob = executeAdvanceJob;
-    window.renderVillageWorkshop = renderVillageWorkshop;
-    window.executeForgeEquipmentByName = executeForgeEquipmentByName;
 }
