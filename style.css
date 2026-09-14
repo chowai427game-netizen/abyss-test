@@ -1,32 +1,54 @@
 /* ==========================================================================
    🎮 命運深淵：血脈傳承 (Abyss of Destiny: Blood & Heritage)
-   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v5.0 - 3A Edition)
-   ✨ 本次升級：3A 級重型槌擊/斬擊/極致魔法特效 + GPU 效能極致優化 + 雙欄無損相容
+   🎨 核心全功能無損完整樣式表 (100% Full Visual FX Master CSS v6.0 - 3A Professional Edition)
+   ✨ 跨團隊升級：UI/UX 設計 Token + GPU 零卡頓硬體加速 + 暗黑魔幻 3A 質感
    ========================================================================== */
 
-/* 🔤 0. 導入國際級電競與魔幻專用數字字體 */
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700;800;900&family=Russo+One&family=Orbitron:wght@800;900&display=swap');
+/* 🔤 0. 導入國際級電競與魔幻專用數字/標題字體 */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,700;0,800;0,900;1,700;1,900&family=Cinzel:wght@700;900&family=Orbitron:wght@800;900&family=Russo+One&display=swap');
 
 /* ==========================================================================
-   🔮 ZONE 1: 皇家核心主題變數與全域底色重置
+   🔮 ZONE 1: 皇家核心主題變數與 UI/UX 設計 Token
    ========================================================================== */
 :root {
-    --bg-main: #0a0a0d;
-    --panel-bg: rgba(22, 22, 27, 0.85);
+    /* 主題色系 Token */
+    --bg-main: #060609;
+    --bg-radial-center: #161622;
+    --panel-bg: rgba(18, 18, 26, 0.88);
+    --panel-bg-solid: #12121a;
     --panel-border: rgba(255, 255, 255, 0.08);
+    --panel-border-highlight: rgba(0, 255, 204, 0.25);
+    
+    /* 質感金屬與霓虹 Token */
     --gold-glow: #ffd700;
-    --neon-gold: #ffd700;
+    --gold-bright: #ffea70;
     --gold-dim: #b39700;
-    --text-main: #e3e3e6;
-    --text-muted: #8e8e93;
-    
-    --font-damage: 'Chakra Petch', 'Russo One', 'Orbitron', sans-serif;
-    
-    --clr-hp: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
+    --neon-cyan: #00ffcc;
+    --neon-blue: #00c6ff;
+    --neon-crimson: #ff2a4b;
+
+    /* 情況與稀有度 Token */
+    --clr-hp: linear-gradient(90deg, #ff3355 0%, #ff5233 100%);
     --clr-mp: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+    --clr-atb: linear-gradient(90deg, #f1c40f 0%, #ff9f43 50%, #ff6b6b 100%);
     --clr-swordsman: #ff4757;
     --clr-magician: #9b59b6;
     --clr-acolyte: #2ecc71;
+
+    /* 文字與字型 Token */
+    --text-main: #e8e8ec;
+    --text-muted: #8e8e98;
+    --text-gold: #ffd700;
+    --font-damage: 'Chakra Petch', 'Orbitron', 'Russo One', sans-serif;
+    --font-title: 'Cinzel', 'Chakra Petch', sans-serif;
+
+    /* 層級 (Z-Index) Token */
+    --z-base: 1;
+    --z-sticky: 900;
+    --z-drawer: 1000;
+    --z-modal: 99999;
+    --z-toast: 100010;
+    --z-floating: 100020;
 }
 
 *, *::before, *::after {
@@ -35,7 +57,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: radial-gradient(circle at 50% 30%, #1a1a24 0%, var(--bg-main) 70%);
+    background: radial-gradient(circle at 50% 25%, var(--bg-radial-center) 0%, var(--bg-main) 75%);
     color: var(--text-main);
     display: flex;
     justify-content: center;
@@ -44,6 +66,8 @@ body {
     margin: 0;
     padding: 20px 10px;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 /* ==========================================================================
@@ -52,42 +76,46 @@ body {
 #loading-overlay {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
-    background: radial-gradient(circle at 50% 50%, #111116 0%, #050507 100%);
-    z-index: 99999;
+    background: radial-gradient(circle at 50% 50%, #11111a 0%, #040406 100%);
+    z-index: var(--z-modal);
     display: flex; justify-content: center; align-items: center;
     transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
     opacity: 1; visibility: visible;
+    will-change: opacity;
 }
 
 #loading-overlay.fade-out {
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
 }
 
 .loading-box {
-    text-align: center; width: 90%; max-width: 380px; padding: 20px; box-sizing: border-box;
+    text-align: center; width: 90%; max-width: 380px; padding: 24px; box-sizing: border-box;
 }
 
 .magic-circle-loader {
     position: relative;
-    width: 70px; height: 70px;
-    border: 2px dashed rgba(255, 215, 0, 0.15);
+    width: 72px; height: 72px;
+    border: 2px dashed rgba(255, 215, 0, 0.2);
     border-top: 2px solid var(--gold-glow);
     border-bottom: 2px solid var(--gold-glow);
     border-radius: 50%;
     margin: 0 auto 25px auto;
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.2);
     animation: spinLoader 2.2s linear infinite;
+    will-change: transform;
 }
 
 .magic-circle-loader::after {
     content: "";
     position: absolute;
     top: 6px; left: 6px; right: 6px; bottom: 6px;
-    border: 1px dotted #00ffcc;
-    border-left: 2px solid #00ffcc;
+    border: 1px dotted rgba(0, 255, 204, 0.4);
+    border-left: 2px solid var(--neon-cyan);
     border-radius: 50%;
     animation: spinLoaderReverse 1.2s linear infinite;
+    will-change: transform;
 }
 
 @keyframes spinLoader {
@@ -97,12 +125,13 @@ body {
 
 @keyframes spinLoaderReverse {
     0% { transform: rotate(360deg); }
-    100% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
 }
 
 #loading-title {
-    font-size: 17px; color: #fff; letter-spacing: 2px; margin: 0 0 10px 0;
-    text-shadow: 0 0 8px rgba(255,215,0,0.4);
+    font-family: var(--font-title);
+    font-size: 18px; color: #fff; letter-spacing: 3px; margin: 0 0 10px 0;
+    text-shadow: 0 0 10px rgba(255,215,0,0.5);
 }
 
 #loading-flavor-text {
@@ -116,14 +145,16 @@ body {
 }
 
 .loading-bar-bg {
-    width: 100%; height: 4px; background: #1c1c1e; border-radius: 2px; overflow: hidden;
+    width: 100%; height: 5px; background: rgba(255, 255, 255, 0.05); border-radius: 3px; overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
 }
 
 #loading-bar-fill {
     height: 100%; width: 0%; 
     background: linear-gradient(90deg, #ff4b2b, var(--gold-glow));
-    box-shadow: 0 0 8px var(--gold-glow);
+    box-shadow: 0 0 10px var(--gold-glow);
     animation: fakeProgress 35s cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+    will-change: width;
 }
 
 @keyframes fakeProgress {
@@ -137,64 +168,68 @@ body {
 #loading-bar-fill.complete {
     width: 100% !important;
     animation: none !important;
-    transition: width 0.3s ease-out;
+    transition: width 0.3s cubic-bezier(0, 0, 0.2, 1);
 }
 
 /* ==========================================================================
-   🌅 ZONE 2: 封面歡迎與環境狀態監控模組
+   🌅 ZONE 2: 主容器與環境狀態監控模組
    ========================================================================== */
 .game-container {
     width: 100%;
     max-width: 480px;
     background: var(--panel-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 25px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 24px;
     border-radius: 20px;
     border: 1px solid var(--panel-border);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
-                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.12);
     overflow: hidden;
+    transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .game-container > h2 {
-    font-size: 14px;
+    font-family: var(--font-title);
+    font-size: 13px;
     letter-spacing: 4px;
     text-transform: uppercase;
     color: var(--text-muted);
     text-align: center;
-    margin: 0 0 10px 0;
+    margin: 0 0 12px 0;
 }
 
 .location-bar {
     text-align: center;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 10px;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 10px 14px;
     border-radius: 10px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     font-weight: 600;
     font-size: 13px;
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .dynamic-panel {
-    background: rgba(255, 255, 255, 0.01);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    padding: 18px;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 16px;
     border-radius: 14px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     width: 100%;
     max-width: 100%;
 }
 
 .panel-title {
+    font-family: var(--font-title);
     font-weight: bold;
     text-align: center;
     font-size: 13px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    margin-bottom: 15px;
+    margin-bottom: 14px;
     color: #fff;
 }
 
@@ -203,12 +238,12 @@ body {
 
 .select-game {
     width: 100%;
-    padding: 10px 14px;
+    padding: 12px 14px;
     font-size: 13px;
     font-weight: 600;
     color: var(--gold-glow);
-    background: rgba(12, 12, 18, 0.9);
-    border: 1px solid rgba(255, 215, 0, 0.3);
+    background: rgba(12, 12, 18, 0.95);
+    border: 1px solid rgba(255, 215, 0, 0.35);
     border-radius: 10px;
     outline: none;
     cursor: pointer;
@@ -220,13 +255,13 @@ body {
     background-repeat: no-repeat;
     background-position: right 10px center;
     background-size: 18px;
-    padding-right: 32px;
+    padding-right: 34px;
 }
 
 .select-game:hover, .select-game:focus {
     border-color: var(--gold-glow);
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
-    background-color: rgba(20, 20, 30, 0.95);
+    box-shadow: 0 0 14px rgba(255, 215, 0, 0.35);
+    background-color: rgba(20, 20, 30, 0.98);
 }
 
 .select-game option {
@@ -236,79 +271,81 @@ body {
 }
 
 .title-panel-style {
-    background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.08) 0%, rgba(0,0,0,0) 70%);
-    border: 1px solid rgba(255, 215, 0, 0.2) !important;
-    padding: 35px 20px !important;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.12) 0%, rgba(0,0,0,0) 70%);
+    border: 1px solid rgba(255, 215, 0, 0.25) !important;
+    padding: 32px 20px !important;
     text-align: center;
 }
 
 .game-main-title {
-    font-size: 42px;
+    font-family: var(--font-title);
+    font-size: 38px;
     font-weight: 900;
-    background: linear-gradient(180deg, #fff 30%, var(--gold-glow) 100%);
+    background: linear-gradient(180deg, #ffffff 20%, var(--gold-bright) 60%, var(--gold-dim) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0;
     padding: 0;
     letter-spacing: 2px;
     animation: titleGlow 3s infinite alternate ease-in-out;
+    will-change: filter;
 }
 
 .game-sub-title {
     font-size: 11px;
     color: var(--gold-dim);
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     text-transform: uppercase;
-    margin: 5px 0 25px 0;
-    opacity: 0.8;
+    margin: 6px 0 22px 0;
+    opacity: 0.85;
 }
 
 @keyframes titleGlow {
     0% { filter: drop-shadow(0 0 2px rgba(255,215,0,0.2)); }
-    100% { filter: drop-shadow(0 0 15px rgba(255,215,0,0.6)); }
+    100% { filter: drop-shadow(0 0 18px rgba(255,215,0,0.65)); }
 }
 
 .notice-container {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
-    padding: 15px;
+    padding: 14px;
     font-size: 12px;
     text-align: left;
     color: #babcbf;
-    line-height: 1.6;
+    line-height: 1.65;
 }
 
-.legacy-container { font-size: 12px; margin: 20px 0 10px 0; color: var(--text-muted); }
+.legacy-container { font-size: 12px; margin: 18px 0 10px 0; color: var(--text-muted); }
 
 .name-input {
-    width: 100%; padding: 14px; font-size: 16px; background: rgba(0, 0, 0, 0.5); color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; text-align: center;
-    margin-bottom: 20px; transition: all 0.3s;
+    width: 100%; padding: 14px; font-size: 15px; background: rgba(0, 0, 0, 0.5); color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; text-align: center;
+    margin-bottom: 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.name-input:focus { outline: none; border-color: var(--gold-glow); box-shadow: 0 0 12px rgba(255, 215, 0, 0.2); background: rgba(0, 0, 0, 0.7); }
+.name-input:focus { outline: none; border-color: var(--gold-glow); box-shadow: 0 0 14px rgba(255, 215, 0, 0.25); background: rgba(0, 0, 0, 0.75); }
 
-#env-alert-bar { text-align: center; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-bottom: 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); transition: all 0.4s ease; }
-.env-zone-normal { background: rgba(46, 213, 115, 0.1); color: #2ecc71; border: 1px solid rgba(46, 213, 115, 0.2); }
-.env-zone-fire { background: linear-gradient(90deg, rgba(231,76,60,0.2), rgba(120,40,31,0.4)); color: #ff4757; border: 1px solid #e74c3c; animation: envPulse 1s infinite alternate; }
-.env-zone-ice { background: linear-gradient(90deg, rgba(52,152,219,0.2), rgba(27,79,114,0.4)); color: #5dade2; border: 1px solid #3498db; }
-.env-zone-poison { background: linear-gradient(90deg, rgba(46,204,113,0.2), rgba(20,90,50,0.4)); color: #58d68d; border: 1px solid #27ae60; }
-.env-zone-void { background: linear-gradient(90deg, rgba(155,89,182,0.2), rgba(74,35,90,0.4)); color: #bb8fce; border: 1px solid #8e44ad; }
+#env-alert-bar { text-align: center; padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-bottom: 16px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); transition: all 0.4s ease; }
+.env-zone-normal { background: rgba(46, 213, 115, 0.1); color: #2ecc71; border: 1px solid rgba(46, 213, 115, 0.25); }
+.env-zone-fire { background: linear-gradient(90deg, rgba(231,76,60,0.22), rgba(120,40,31,0.45)); color: #ff4757; border: 1px solid #e74c3c; animation: envPulse 1s infinite alternate; }
+.env-zone-ice { background: linear-gradient(90deg, rgba(52,152,219,0.22), rgba(27,79,114,0.45)); color: #5dade2; border: 1px solid #3498db; }
+.env-zone-poison { background: linear-gradient(90deg, rgba(46,204,113,0.22), rgba(20,90,50,0.45)); color: #58d68d; border: 1px solid #27ae60; }
+.env-zone-void { background: linear-gradient(90deg, rgba(155,89,182,0.22), rgba(74,35,90,0.45)); color: #bb8fce; border: 1px solid #8e44ad; }
 
 @keyframes envPulse {
     0% { box-shadow: inset 0 0 5px rgba(231,76,60,0.5); transform: scale(1); }
-    100% { box-shadow: inset 0 0 15px rgba(231,76,60,0.8); transform: scale(1.01); }
+    100% { box-shadow: inset 0 0 16px rgba(231,76,60,0.85); transform: scale(1.008); }
 }
 
 /* ==========================================================================
    📊 ZONE 3: 狀態儀表、生命魔條與勇者面板
    ========================================================================== */
 .status-panel {
-    background: rgba(0, 0, 0, 0.3); padding: 16px; border-radius: 14px; margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.03); display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px;
+    background: rgba(0, 0, 0, 0.35); padding: 14px; border-radius: 14px; margin-bottom: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.04); display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
 }
 .status-item { 
-    font-size: 13px; color: #d1d1d6; display: flex; justify-content: space-between !important; 
+    font-size: 12px; color: #d1d1d6; display: flex; justify-content: space-between !important; 
     align-items: center !important; width: 100% !important;
     background: rgba(255, 255, 255, 0.02); padding: 6px 10px; border-radius: 6px;
 }
@@ -316,17 +353,19 @@ body {
 .status-item strong { color: #fff; }
 .full-row { grid-column: span 2; display: block; }
 
-.visual-bar-bg { position: relative; width: 100%; height: 6px; background: rgba(0, 0, 0, 0.6); border-radius: 3px; overflow: hidden; margin-top: 6px; border: 1px solid rgba(255, 255, 255, 0.05); }
+.visual-bar-bg { position: relative; width: 100%; height: 6px; background: rgba(0, 0, 0, 0.65); border-radius: 3px; overflow: hidden; margin-top: 6px; border: 1px solid rgba(255, 255, 255, 0.05); }
 
 .visual-bar-ghost {
     position: absolute; top: 0; left: 0; height: 100%; width: 100%;
     background: #ffffff; opacity: 0.75; border-radius: 3px;
-    transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1;
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1;
+    transform-origin: left center;
+    will-change: transform;
 }
 
-.visual-bar-fill { position: relative; z-index: 2; height: 100%; width: 100%; border-radius: 3px; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.hp-color { background: var(--clr-hp); box-shadow: 0 0 8px rgba(255,65,108,0.5); }
-.mp-color { background: var(--clr-mp); box-shadow: 0 0 8px rgba(0,198,255,0.5); }
+.visual-bar-fill { position: relative; z-index: 2; height: 100%; width: 100%; border-radius: 3px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: left center; will-change: transform; }
+.hp-color { background: var(--clr-hp); box-shadow: 0 0 10px rgba(255,65,108,0.6); }
+.mp-color { background: var(--clr-mp); box-shadow: 0 0 10px rgba(0,198,255,0.6); }
 
 .status-header-row {
     grid-column: span 2; display: flex; justify-content: space-between; align-items: center;
@@ -348,32 +387,32 @@ body {
 }
 
 .grid-cell {
-    background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(255, 255, 255, 0.03);
     border-radius: 6px; padding: 5px; font-size: 11px; text-align: center; color: #d1d1d6;
 }
 
 .char-details-folder {
     grid-column: span 2; border-radius: 8px; overflow: hidden;
-    background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s ease;
 }
 
 .char-details-folder[open] {
-    border-color: rgba(212, 175, 55, 0.3); box-shadow: 0 0 10px rgba(212, 175, 55, 0.05);
+    border-color: rgba(212, 175, 55, 0.35); box-shadow: 0 0 12px rgba(212, 175, 55, 0.08);
 }
 
 .char-details-folder summary {
     font-size: 11px; color: var(--gold-glow); padding: 8px; text-align: center;
     cursor: pointer; user-select: none; font-weight: bold; outline: none;
-    background: rgba(255, 255, 255, 0.01); list-style: none;
+    background: rgba(255, 255, 255, 0.015); list-style: none;
 }
 
 .char-details-folder summary::-webkit-details-marker { display: none; }
-.char-details-folder summary:hover { background: rgba(255, 255, 255, 0.03); }
+.char-details-folder summary:hover { background: rgba(255, 255, 255, 0.04); }
 
 .folder-content {
     padding: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex; flex-direction: column; gap: 8px; background: rgba(0, 0, 0, 0.3);
-    animation: folderExpand 0.2s ease-out;
+    display: flex; flex-direction: column; gap: 8px; background: rgba(0, 0, 0, 0.35);
+    animation: folderExpand 0.22s cubic-bezier(0, 0, 0.2, 1);
 }
 
 @keyframes folderExpand {
@@ -385,26 +424,26 @@ body {
 .folder-label { color: var(--text-muted); }
 
 /* ==========================================================================
-   🗺️ ZONE 4: 村莊分區導覽系統與加工公會介面
+   🗺️ ZONE 4: 村莊導覽與加工公會
    ========================================================================== */
 .village-nav-bar, .town-map-nav {
-    display: flex; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 4px; border-radius: 10px; margin-bottom: 15px;
+    display: flex; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 4px; border-radius: 10px; margin-bottom: 14px;
     border: 1px solid rgba(255, 255, 255, 0.03); overflow-x: auto; scrollbar-width: none;
     width: 100%;
 }
 .village-nav-bar::-webkit-scrollbar, .town-map-nav::-webkit-scrollbar { display: none; }
 
 .btn-nav-tab, .btn-map-node {
-    flex: 1; min-width: 80px; background: rgba(0, 0, 0, 0.3) !important; border: 1px solid rgba(255, 255, 255, 0.03) !important; 
-    color: var(--text-muted) !important; padding: 10px 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 7px; white-space: nowrap; transition: all 0.2s;
-    text-align: center;
+    flex: 1; min-width: 80px; min-height: 38px; background: rgba(0, 0, 0, 0.35) !important; border: 1px solid rgba(255, 255, 255, 0.04) !important; 
+    color: var(--text-muted) !important; padding: 8px 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 7px; white-space: nowrap; transition: all 0.2s;
+    text-align: center; display: inline-flex; align-items: center; justify-content: center;
 }
-.btn-nav-tab:hover, .btn-map-node:hover { color: #fff !important; background: rgba(255, 255, 255, 0.05) !important; }
+.btn-nav-tab:hover, .btn-map-node:hover { color: #fff !important; background: rgba(255, 255, 255, 0.06) !important; }
 
 .btn-nav-tab.active, .btn-map-node.active {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%) !important;
-    color: var(--gold-glow) !important; border: 1px solid rgba(255, 215, 0, 0.3) !important;
-    text-shadow: 0 0 6px rgba(255,215,0,0.5); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.22) 0%, rgba(255, 215, 0, 0.06) 100%) !important;
+    color: var(--gold-glow) !important; border: 1px solid rgba(255, 215, 0, 0.35) !important;
+    text-shadow: 0 0 6px rgba(255,215,0,0.5); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .v-sub-loc-panel { 
@@ -414,12 +453,12 @@ body {
 }
 @keyframes subLocFadeIn { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: translateY(0); } }
 
-.placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.01) 0%, rgba(0,0,0,0.4) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 30px 20px; text-align: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
-.placeholder-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #fff; letter-spacing: 1px; }
+.placeholder-card { background: linear-gradient(135deg, rgba(255,255,255,0.015) 0%, rgba(0,0,0,0.45) 100%); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 26px 18px; text-align: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); }
+.placeholder-card h3 { margin: 0 0 10px 0; font-size: 15px; color: #fff; letter-spacing: 1px; }
 
-.job-select-style { border-color: rgba(0, 206, 166, 0.15); background: linear-gradient(180deg, rgba(0,206,166,0.02) 0%, rgba(0,0,0,0) 100%); }
-.cooking-style { border-color: rgba(155, 89, 182, 0.15); background: linear-gradient(180deg, rgba(155, 89, 182, 0.02) 0%, rgba(0,0,0,0) 100%); }
-.reward-style { border: 1px solid var(--gold-glow); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
+.job-select-style { border-color: rgba(0, 206, 166, 0.2); background: linear-gradient(180deg, rgba(0,206,166,0.03) 0%, rgba(0,0,0,0) 100%); }
+.cooking-style { border-color: rgba(155, 89, 182, 0.2); background: linear-gradient(180deg, rgba(155, 89, 182, 0.03) 0%, rgba(0,0,0,0) 100%); }
+.reward-style { border: 1px solid var(--gold-glow); box-shadow: 0 0 20px rgba(255,215,0,0.12); }
 
 .guild-section-header {
     display: flex; justify-content: space-between; align-items: center;
@@ -428,33 +467,34 @@ body {
 
 .job-tier-badge {
     font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 12px;
-    background: rgba(155, 89, 182, 0.2); color: #dcd0ff; border: 1px solid rgba(155, 89, 182, 0.4);
+    background: rgba(155, 89, 182, 0.22); color: #dcd0ff; border: 1px solid rgba(155, 89, 182, 0.45);
 }
 
 .scrollable-panel-content {
     max-height: 380px; overflow-y: auto; padding-right: 6px; border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.03);
+    background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.03);
     display: flex; flex-direction: column; gap: 10px; padding: 12px; width: 100%;
 }
 
 .scrollable-panel-content::-webkit-scrollbar { width: 6px; }
 .scrollable-panel-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+.scrollable-panel-content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
 
 /* ==========================================================================
-   📜 ZONE 5: 戰鬥日誌與震屏效果系統
+   📜 ZONE 5: 戰鬥日誌與鏡頭震動
    ========================================================================== */
 .log-panel {
     height: 250px; overflow-y: auto; overflow-x: hidden;
     position: relative;
-    background: radial-gradient(circle at 50% 100%, rgba(15, 15, 22, 0.9) 0%, rgba(7, 7, 10, 0.98) 100%);
-    padding: 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.04);
+    background: radial-gradient(circle at 50% 100%, rgba(16, 16, 24, 0.92) 0%, rgba(6, 6, 10, 0.98) 100%);
+    padding: 14px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: inset 0 3px 15px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
-    margin-bottom: 20px; font-size: 13px; line-height: 1.65; scroll-behavior: smooth;
+    margin-bottom: 16px; font-size: 13px; line-height: 1.65; scroll-behavior: smooth;
 }
 
 .log-row-box {
     position: relative;
-    background: rgba(255, 255, 255, 0.01); border-radius: 8px; padding: 8px 12px; margin: 7px 0;
+    background: rgba(255, 255, 255, 0.015); border-radius: 8px; padding: 8px 12px; margin: 6px 0;
     border-left: 3px solid rgba(255, 255, 255, 0.15); color: #e3e3e6; border-top: 1px solid rgba(255, 255, 255, 0.02);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
     animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -463,79 +503,81 @@ body {
 }
 
 @keyframes logCinematicPop {
-    0% { transform: scale(0.93) translateX(-15px); opacity: 0; filter: brightness(2); }
-    100% { transform: scale(1) translateX(0); opacity: 1; filter: brightness(1); }
+    0% { transform: scale(0.93) translate3d(-15px, 0, 0); opacity: 0; filter: brightness(2); }
+    100% { transform: scale(1) translate3d(0, 0, 0); opacity: 1; filter: brightness(1); }
 }
 
 .log-perfect {
-    background: linear-gradient(90deg, rgba(46, 213, 115, 0.15) 0%, rgba(46, 213, 115, 0.02) 100%) !important;
+    background: linear-gradient(90deg, rgba(46, 213, 115, 0.18) 0%, rgba(46, 213, 115, 0.02) 100%) !important;
     border-left: 4px solid #2ecc71 !important; font-weight: 600; color: #ffffff !important;
-    box-shadow: inset 10px 0 15px rgba(46, 213, 115, 0.05), 0 4px 12px rgba(46, 213, 115, 0.08);
+    box-shadow: inset 10px 0 15px rgba(46, 213, 115, 0.05), 0 4px 12px rgba(46, 213, 115, 0.1);
     text-shadow: 0 0 6px rgba(46, 213, 115, 0.4);
 }
 
 .log-deal-dmg, .log-deal {
-    background: linear-gradient(90deg, rgba(40, 50, 70, 0.8) 0%, rgba(10, 15, 25, 0.3) 100%) !important;
+    background: linear-gradient(90deg, rgba(40, 50, 70, 0.85) 0%, rgba(10, 15, 25, 0.35) 100%) !important;
     border-left: 4px solid #a8b2c1 !important; color: #e2e8f0 !important;
     box-shadow: inset 3px 0 15px rgba(168, 178, 193, 0.15);
 }
 
 .log-skill-hit {
-    border-left: 4px solid var(--neon-gold) !important;
+    border-left: 4px solid var(--gold-glow) !important;
     background: linear-gradient(90deg, rgba(80, 60, 0, 0.85) 0%, rgba(30, 15, 0, 0.4) 100%) !important;
     color: #fff !important;
-    box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 10px rgba(255, 215, 0, 0.2);
+    box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.35), 0 0 10px rgba(255, 215, 0, 0.2);
     animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards, logPulseGold 2s infinite alternate !important;
 }
 
 @keyframes logPulseGold {
-    0% { box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.3), 0 0 5px rgba(255, 215, 0, 0.1); filter: brightness(1.4); }
-    100% { box-shadow: inset 4px 0 35px rgba(255, 215, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.4); border-left-color: #fff; filter: brightness(1); }
+    0% { box-shadow: inset 4px 0 20px rgba(255, 215, 0, 0.35), 0 0 5px rgba(255, 215, 0, 0.1); filter: brightness(1.3); }
+    100% { box-shadow: inset 4px 0 35px rgba(255, 215, 0, 0.65), 0 0 15px rgba(255, 215, 0, 0.45); border-left-color: #fff; filter: brightness(1); }
 }
 
 .log-miss {
-    background: linear-gradient(90deg, rgba(142, 142, 147, 0.12) 0%, rgba(0,0,0,0) 100%) !important;
+    background: linear-gradient(90deg, rgba(142, 142, 147, 0.14) 0%, rgba(0,0,0,0) 100%) !important;
     border-left: 3px solid #8e8e93 !important; color: #b0b0b8 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     animation: logCinematicPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards, logMissGlitch 0.35s ease-out forwards;
 }
 
 @keyframes logMissGlitch {
-    0% { transform: translateX(0); }
-    20% { transform: translateX(8px); }
-    40% { transform: translateX(-4px); }
-    100% { transform: translateX(0); }
+    0% { transform: translate3d(0, 0, 0); }
+    20% { transform: translate3d(8px, 0, 0); }
+    40% { transform: translate3d(-4px, 0, 0); }
+    100% { transform: translate3d(0, 0, 0); }
 }
 
 .log-take-dmg {
     border-left: 5px solid #ff3838 !important; color: #ff7675 !important; font-weight: bold;
-    background: linear-gradient(90deg, rgba(231, 76, 60, 0.25) 0%, rgba(200, 30, 30, 0.03) 100%) !important;
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.2), inset 0 0 8px rgba(231, 76, 60, 0.1);
+    background: linear-gradient(90deg, rgba(231, 76, 60, 0.28) 0%, rgba(200, 30, 30, 0.04) 100%) !important;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.25), inset 0 0 8px rgba(231, 76, 60, 0.12);
     text-shadow: 0 0 8px rgba(255, 56, 56, 0.6), 0 1px 2px #000;
     animation: logCinematicPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards, logDamageShake 0.38s ease-in-out forwards !important;
 }
 
 @keyframes logDamageShake {
-    0% { transform: translateX(0); filter: brightness(2); }
-    15% { transform: translateX(-12px) skewX(-3deg); }
-    30% { transform: translateX(9px) skewX(2deg); }
-    45% { transform: translateX(-6px); }
-    60% { transform: translateX(4px); }
-    100% { transform: translateX(0); filter: brightness(1); }
+    0% { transform: translate3d(0, 0, 0); filter: brightness(2); }
+    15% { transform: translate3d(-12px, 0, 0) skewX(-3deg); }
+    30% { transform: translate3d(9px, 0, 0) skewX(2deg); }
+    45% { transform: translate3d(-6px, 0, 0); }
+    60% { transform: translate3d(4px, 0, 0); }
+    100% { transform: translate3d(0, 0, 0); filter: brightness(1); }
 }
 
 .log-env-tick {
-    background: linear-gradient(90deg, rgba(155, 89, 182, 0.15) 0%, rgba(0,0,0,0) 100%) !important;
-    border-left: 4px solid #9b59b6 !important; color: #e8dbff !important; box-shadow: 0 2px 8px rgba(155, 89, 182, 0.1);
+    background: linear-gradient(90deg, rgba(155, 89, 182, 0.18) 0%, rgba(0,0,0,0) 100%) !important;
+    border-left: 4px solid #9b59b6 !important; color: #e8dbff !important; box-shadow: 0 2px 8px rgba(155, 89, 182, 0.15);
     animation: logCinematicPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ⚡ 3A 畫面震動類別 (可在 JS 發動大招時動態給予 .shake-heavy) */
+/* ⚡ 3A 畫面震動類別 */
 .shake-impact {
     animation: cameraShakeLight 0.25s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    will-change: transform;
 }
 
 .shake-heavy {
     animation: cameraShakeHeavy 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    will-change: transform;
 }
 
 @keyframes cameraShakeLight {
@@ -556,10 +598,10 @@ body {
 }
 
 /* ==========================================================================
-   💥 ZONE 6: 3A 級物理打擊（斬擊、重槌）與魔導視覺極限特效系統 (完全重構)
+   💥 ZONE 6: 3A 級打擊與魔導無視野視覺特效
    ========================================================================== */
 
-/* 🗡️ 1. 近戰與雙刀雙重斬擊 (Hyper 3A Blades) */
+/* 🗡️ 1. 斬擊 (Hyper 3A Blades) */
 .strike-slash, .strike-monster {
     display: inline-block; position: relative; color: #ffaaaa !important;
     font-weight: 900 !important; padding: 0 8px; letter-spacing: 1px;
@@ -575,11 +617,13 @@ body {
 }
 
 @keyframes monsterPunchShake {
-    0% { transform: translate(0, 0); } 20% { transform: translate(-5px, -2px) rotate(-1deg); }
-    40% { transform: translate(5px, 2px) rotate(1deg); } 60% { transform: translate(-3px, 1px); } 100% { transform: translate(0, 0); }
+    0% { transform: translate3d(0, 0, 0); } 
+    20% { transform: translate3d(-5px, -2px, 0) rotate(-1deg); }
+    40% { transform: translate3d(5px, 2px, 0) rotate(1deg); } 
+    60% { transform: translate3d(-3px, 1px, 0); } 
+    100% { transform: translate3d(0, 0, 0); }
 }
 
-/* 斬擊交叉刀光 1 */
 .strike-slash::before {
     content: ""; position: absolute; top: 50%; left: -30%; width: 160%; height: 3px;
     background: linear-gradient(90deg, transparent 0%, #ffffff 30%, #ff3838 70%, transparent 100%);
@@ -588,7 +632,6 @@ body {
     animation: hyperBladeSlash1 0.28s cubic-bezier(0.05, 0.85, 0.15, 1) forwards;
 }
 
-/* 斩擊交叉刀光 2 */
 .strike-slash::after {
     content: ""; position: absolute; top: 50%; left: -30%; width: 160%; height: 2px;
     background: linear-gradient(90deg, transparent 0%, #ffffff 40%, #ffd700 80%, transparent 100%);
@@ -598,18 +641,18 @@ body {
 }
 
 @keyframes hyperBladeSlash1 {
-    0% { transform: translateY(-50%) rotate(-28deg) scaleX(0) translateX(-30px); opacity: 0; }
-    40% { transform: translateY(-50%) rotate(-25deg) scaleX(1.4) translateX(0); opacity: 1; filter: brightness(2.5); }
-    100% { transform: translateY(-50%) rotate(-20deg) scaleX(0.8) translateX(40px); opacity: 0; filter: blur(4px); }
+    0% { transform: translateY(-50%) rotate(-28deg) scaleX(0) translate3d(-30px, 0, 0); opacity: 0; }
+    40% { transform: translateY(-50%) rotate(-25deg) scaleX(1.4) translate3d(0, 0, 0); opacity: 1; filter: brightness(2.5); }
+    100% { transform: translateY(-50%) rotate(-20deg) scaleX(0.8) translate3d(40px, 0, 0); opacity: 0; filter: blur(4px); }
 }
 
 @keyframes hyperBladeSlash2 {
-    0% { transform: translateY(-50%) rotate(38deg) scaleX(0) translateX(30px); opacity: 0; }
-    40% { transform: translateY(-50%) rotate(35deg) scaleX(1.3) translateX(0); opacity: 1; filter: brightness(2); }
-    100% { transform: translateY(-50%) rotate(30deg) scaleX(0.7) translateX(-40px); opacity: 0; filter: blur(3px); }
+    0% { transform: translateY(-50%) rotate(38deg) scaleX(0) translate3d(30px, 0, 0); opacity: 0; }
+    40% { transform: translateY(-50%) rotate(35deg) scaleX(1.3) translate3d(0, 0, 0); opacity: 1; filter: brightness(2); }
+    100% { transform: translateY(-50%) rotate(30deg) scaleX(0.7) translate3d(-40px, 0, 0); opacity: 0; filter: blur(3px); }
 }
 
-/* 🔨 2. 3A 級槌擊/重擊/重拳特效 (Blunt Impact & Shockwave) */
+/* 🔨 2. 槌擊/衝擊波 (Blunt Impact) */
 .strike-blunt, .strike-hammer {
     display: inline-block; position: relative; color: #ffbe76 !important;
     font-weight: 900 !important; padding: 0 10px; letter-spacing: 1px;
@@ -617,19 +660,17 @@ body {
     animation: bluntImpactShake 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-/* 槌擊金屬氣浪衝擊波 */
 .strike-blunt::before, .strike-hammer::before {
     content: ""; position: absolute; top: 50%; left: 50%; width: 40px; height: 40px;
     border: 3px solid #ffbe76; border-radius: 50%;
     box-shadow: 0 0 15px #e67e22, inset 0 0 10px #ffd700;
-    transform: translate(-50%, -50%) scale(0); opacity: 0; pointer-events: none; z-index: 4;
+    transform: translate3d(-50%, -50%, 0) scale(0); opacity: 0; pointer-events: none; z-index: 4;
     animation: radialShockwave 0.35s ease-out forwards;
 }
 
-/* 地面砸裂碎石粒子 */
 .strike-blunt::after, .strike-hammer::after {
     content: ""; position: absolute; bottom: -4px; left: 50%; width: 6px; height: 6px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translateX(-50%);
+    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translate3d(-50%, 0, 0);
     animation: rockDebrisParticles 0.4s ease-out forwards;
 }
 
@@ -641,9 +682,9 @@ body {
 }
 
 @keyframes radialShockwave {
-    0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; border-width: 5px; }
+    0% { transform: translate3d(-50%, -50%, 0) scale(0.2); opacity: 1; border-width: 5px; }
     50% { opacity: 0.8; }
-    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; border-width: 1px; filter: blur(2px); }
+    100% { transform: translate3d(-50%, -50%, 0) scale(2.5); opacity: 0; border-width: 1px; filter: blur(2px); }
 }
 
 @keyframes rockDebrisParticles {
@@ -655,7 +696,7 @@ body {
     }
 }
 
-/* 🔥 3. 烈焰爆裂與火系魔法 (Fire Stream & Spark Dust) */
+/* 🔥 3. 烈焰爆裂 */
 .skill-fire {
     background: linear-gradient(90deg, #ff3838, #ff9f43, #ffd700); 
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -671,7 +712,7 @@ body {
 .skill-fire::before {
     content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
     border-radius: 50%; background: #ffffff; pointer-events: none; z-index: 3;
-    transform: translate(-50%, -50%); animation: pureFireParticles 0.45s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
+    transform: translate3d(-50%, -50%, 0); animation: pureFireParticles 0.45s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
 }
 
 @keyframes fireLineGlow {
@@ -689,7 +730,7 @@ body {
     }
 }
 
-/* ❄️ 4. 極寒霜凍與冰系魔法 (Prismatic Crystal Rays & Frost Sparkles) */
+/* ❄️ 4. 極寒霜凍 */
 .skill-ice {
     background: linear-gradient(90deg, #00f2fe, #4facfe, #00d2d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     text-shadow: 0 0 15px rgba(0, 242, 254, 0.8) !important; font-weight: 900 !important; display: inline-block;
@@ -728,7 +769,7 @@ body {
     100% { opacity: 0; transform: scale(1.3); }
 }
 
-/* ⚡ 5. 雷霆電光與雷系魔法 (Jagged Lightning Arc) */
+/* ⚡ 5. 雷霆電光 */
 .skill-lightning {
     background: linear-gradient(90deg, #fdfc47, #24fe41, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     text-shadow: 0 0 18px rgba(253, 252, 71, 0.8) !important; font-weight: 900 !important; display: inline-block;
@@ -756,10 +797,10 @@ body {
 }
 
 @keyframes pureBoltStrike {
-    0% { opacity: 0; transform: translateY(-12px) scale(0.5); }
-    20% { opacity: 1; transform: translateY(0) scale(1.4); }
+    0% { opacity: 0; transform: translate3d(0, -12px, 0) scale(0.5); }
+    20% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.4); }
     40% { opacity: 0; }
-    60% { opacity: 1; transform: translateX(6px) scale(1); }
+    60% { opacity: 1; transform: translate3d(6px, 0, 0) scale(1); }
     80%, 100% { opacity: 0; }
 }
 
@@ -768,7 +809,7 @@ body {
     100% { opacity: 1; transform: scaleX(1.2); }
 }
 
-/* 🔮 6. 奧術星界與法術脈衝 (Arcane Rings & Cosmic Dust Stream) */
+/* 🔮 6. 奧術星界 */
 .skill-arcane {
     display: inline-block; position: relative; color: #e8dbff !important; font-weight: 900 !important;
     padding: 0 8px; text-shadow: 0 0 12px #a55eea, 0 0 25px #8854d0, 0 0 35px #4b7bec;
@@ -783,7 +824,7 @@ body {
 
 .skill-arcane::after {
     content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translate(-50%, -50%);
+    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translate3d(-50%, -50%, 0);
     animation: cosmicRayDust 0.5s ease-out forwards;
 }
 
@@ -802,7 +843,7 @@ body {
     }
 }
 
-/* ✨ 7. 神聖光束與聖光粒子 (Holy Pillars & Sacred Dust Waves) */
+/* ✨ 7. 神聖光束 */
 .skill-holy {
     background: linear-gradient(90deg, #fffacd, #ffffff, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     text-shadow: 0 0 25px rgba(255, 255, 255, 0.9) !important; font-weight: 900 !important; display: inline-block;
@@ -813,20 +854,20 @@ body {
     content: ""; position: absolute; top: -35px; left: 50%; width: 6px; height: 75px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 30%, #ffd700 70%, rgba(255, 215, 0, 0) 100%);
     box-shadow: 0 0 18px #ffd700, 0 0 35px #ffffff, 0 0 10px #2ecc71;
-    transform: translateX(-50%) scaleY(0); opacity: 0; pointer-events: none; z-index: 4;
+    transform: translate3d(-50%, 0, 0) scaleY(0); opacity: 0; pointer-events: none; z-index: 4;
     animation: holyBeamDrop 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
 
 .skill-holy::after {
     content: ""; position: absolute; bottom: 0; left: 50%; width: 3px; height: 3px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translateX(-50%);
+    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translate3d(-50%, 0, 0);
     animation: holyRisingParticles 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }
 
 @keyframes holyBeamDrop {
-    0% { transform: translateX(-50%) scaleY(0); opacity: 0; }
-    40% { transform: translateX(-50%) scaleY(1.3); opacity: 1; filter: brightness(2); }
-    100% { transform: translateX(-50%) scaleY(1); opacity: 0; filter: blur(4px); }
+    0% { transform: translate3d(-50%, 0, 0) scaleY(0); opacity: 0; }
+    40% { transform: translate3d(-50%, 0, 0) scaleY(1.3); opacity: 1; filter: brightness(2); }
+    100% { transform: translate3d(-50%, 0, 0) scaleY(1); opacity: 0; filter: blur(4px); }
 }
 
 @keyframes holyRisingParticles {
@@ -839,7 +880,7 @@ body {
     }
 }
 
-/* 🧪 8. 劇毒與出血 (Poison Corrosive Rays & Bleed Laser Lines) */
+/* 🧪 8. 劇毒與出血 */
 .skill-poison {
     background: linear-gradient(90deg, #2ecc71, #27ae60, #a18cd1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     text-shadow: 0 0 18px rgba(46, 204, 113, 0.8) !important; font-weight: 900 !important; display: inline-block; position: relative;
@@ -861,7 +902,7 @@ body {
     text-shadow: 0 0 10px #c0392b, 0 0 20px #ff3838;
 }
 
-/* 💥 9. 物理重擊與暴擊速度線 (Bash Lines & Speedline Radial Bursts) */
+/* 💥 9. 物理重擊與暴擊 */
 .skill-bash {
     display: inline-block; position: relative; color: #fff2a8 !important; font-weight: 900 !important; padding: 0 6px;
     text-shadow: 0 0 10px #ff9f43, 0 0 22px #ff5252; animation: bashImpactText 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -884,14 +925,14 @@ body {
         rgba(255, 215, 0, 0.8) 0deg 5deg,
         transparent 5deg 15deg
     );
-    border-radius: 50%; transform: translate(-50%, -50%) scale(0);
+    border-radius: 50%; transform: translate3d(-50%, -50%, 0) scale(0);
     z-index: -1; pointer-events: none; animation: speedlineBurst 0.35s ease-out forwards;
 }
 
 @keyframes speedlineBurst {
-    0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
-    60% { transform: translate(-50%, -50%) scale(1.4) rotate(45deg); opacity: 0.8; }
-    100% { transform: translate(-50%, -50%) scale(2.2) rotate(90deg); opacity: 0; filter: blur(2px); }
+    0% { transform: translate3d(-50%, -50%, 0) scale(0.2) rotate(0deg); opacity: 1; }
+    60% { transform: translate3d(-50%, -50%, 0) scale(1.4) rotate(45deg); opacity: 0.8; }
+    100% { transform: translate3d(-50%, -50%, 0) scale(2.2) rotate(90deg); opacity: 0; filter: blur(2px); }
 }
 
 @keyframes bashImpactText {
@@ -900,7 +941,7 @@ body {
     100% { transform: scale(1); filter: brightness(1.2); }
 }
 
-/* 💨 10. MISS 殘影與閃避線 */
+/* 💨 10. MISS 殘影 */
 .miss-effect {
     display: inline-block; position: relative; color: #d1d1d6 !important; font-weight: bold; font-style: italic; padding: 0 4px;
     text-shadow: 0 0 6px rgba(255, 255, 255, 0.6), 0 0 12px rgba(160, 160, 200, 0.4);
@@ -908,9 +949,9 @@ body {
 }
 
 @keyframes missGhostGlitch {
-    0% { transform: scale(0.6) translateX(-18px) skewX(-20deg); opacity: 0; filter: blur(4px); }
-    40% { transform: scale(1.3) translateX(6px) skewX(12deg); opacity: 1; filter: blur(0); }
-    100% { transform: scale(1) translateX(0) skewX(0); filter: blur(0); }
+    0% { transform: scale(0.6) translate3d(-18px, 0, 0) skewX(-20deg); opacity: 0; filter: blur(4px); }
+    40% { transform: scale(1.3) translate3d(6px, 0, 0) skewX(12deg); opacity: 1; filter: blur(0); }
+    100% { transform: scale(1) translate3d(0, 0, 0) skewX(0); filter: blur(0); }
 }
 
 /* 💚 11. 治癒光陣 */
@@ -928,19 +969,19 @@ body {
 .heal-effect::before {
     content: ""; position: absolute; bottom: -2px; left: 50%; width: 100%; height: 3px;
     background: linear-gradient(90deg, transparent, #2ecc71, #ffffff, #2ecc71, transparent);
-    box-shadow: 0 0 12px #2ecc71; transform: translateX(-50%); animation: healLightBeam 0.5s ease-out forwards;
+    box-shadow: 0 0 12px #2ecc71; transform: translate3d(-50%, 0, 0); animation: healLightBeam 0.5s ease-out forwards;
 }
 
 .heal-effect::after {
     content: ""; position: absolute; bottom: 0; left: 50%; width: 4px; height: 4px;
-    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translateX(-50%);
+    border-radius: 50%; background: #ffffff; pointer-events: none; transform: translate3d(-50%, 0, 0);
     animation: healDustRise 0.6s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
 }
 
 @keyframes healLightBeam {
-    0% { transform: translateX(-50%) scaleX(0.2); opacity: 0; }
-    50% { transform: translateX(-50%) scaleX(1.4); opacity: 1; box-shadow: 0 -6px 15px #2ecc71; }
-    100% { transform: translateX(-50%) scaleX(1); opacity: 0; }
+    0% { transform: translate3d(-50%, 0, 0) scaleX(0.2); opacity: 0; }
+    50% { transform: translate3d(-50%, 0, 0) scaleX(1.4); opacity: 1; box-shadow: 0 -6px 15px #2ecc71; }
+    100% { transform: translate3d(-50%, 0, 0) scaleX(1); opacity: 0; }
 }
 
 @keyframes healDustRise {
@@ -954,7 +995,7 @@ body {
 }
 
 /* ==========================================================================
-   💥 傷害數字 3A 純文字打擊感 (無外框 + 亮紅字 + 重黑立體描邊 + 3A 貝茲動態)
+   💥 ZONE 7: 傷害數字與加血/回魔彈字 (3A 視覺純淨描邊)
    ========================================================================== */
 
 /* 1. 傷害數字 */
@@ -962,39 +1003,38 @@ body {
 .log-panel .num-boss-strike,
 .num-p-dmg {
     display: inline-block !important;
-    font-family: var(--font-damage), 'Chakra Petch', sans-serif !important;
+    font-family: var(--font-damage), sans-serif !important;
     font-size: 16px !important;
     font-weight: 900 !important;
     font-style: italic !important;
-    color: #ff2a2a !important;            /* 鮮豔血紅色 */
-    background: transparent !important;   /* 移除背景色 */
-    border: none !important;              /* 移除外框 */
+    color: var(--neon-crimson) !important;
+    background: transparent !important;
+    border: none !important;
     box-shadow: none !important;
     padding: 0 4px !important;
     margin: 0 2px !important;
     vertical-align: middle !important;
     
-    /* 2. 重黑立體描邊 + 紅色發光影色 (3A立體感) */
     text-shadow: 
         2px 2px 0px #000, 
         -1px -1px 0px #000, 
         1px -1px 0px #000, 
         -1px 1px 0px #000, 
-        0 0 12px rgba(255, 42, 42, 0.9) !important;
+        0 0 12px rgba(255, 42, 75, 0.9) !important;
 
-    /* 3. 衝擊放大回彈動態 */
     animation: dmgPopImpact 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
     transform-origin: center center !important;
+    will-change: transform;
 }
 
 @keyframes dmgPopImpact {
     0% {
-        transform: scale(2.5) translateY(-4px);
+        transform: scale(2.4) translate3d(0, -4px, 0);
         filter: brightness(3);
         opacity: 0.6;
     }
     45% {
-        transform: scale(0.85) translateY(0);
+        transform: scale(0.85) translate3d(0, 0, 0);
         filter: brightness(1.5);
         opacity: 1;
     }
@@ -1008,19 +1048,15 @@ body {
     }
 }
 
-/* ==========================================================================
-   💚 加血回復動態特效 (綠字 + 黑色強烈陰影 + 「+」粒子向上飄散)
-   ========================================================================== */
-
-/* 1. 回復數字本體 */
+/* 2. 治癒數字本體 */
 .log-panel .num-h-heal,
 .num-h-heal {
     position: relative !important;
     display: inline-block !important;
-    font-family: var(--font-damage), 'Chakra Petch', sans-serif !important;
+    font-family: var(--font-damage), sans-serif !important;
     font-size: 15px !important;
     font-weight: 900 !important;
-    color: #2ecc71 !important;            /* 翠綠色字體 */
+    color: #2ecc71 !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -1036,9 +1072,10 @@ body {
         0 0 10px rgba(46, 204, 113, 0.8) !important;
 
     animation: healTextFloat 0.85s cubic-bezier(0.2, 0.8, 0.25, 1) forwards !important;
+    will-change: transform, opacity;
 }
 
-/* 2. 動態「+」號飄散粒子 */
+/* 3. 動態「+」號飄散粒子 */
 .log-panel .num-h-heal::before,
 .log-panel .num-h-heal::after {
     content: "+" !important;
@@ -1064,46 +1101,56 @@ body {
 }
 
 @keyframes healTextFloat {
-    0% { transform: translateY(8px) scale(0.7); opacity: 0; filter: brightness(1.8); }
-    30% { transform: translateY(-3px) scale(1.2); opacity: 1; }
-    65% { transform: translateY(-12px) scale(1); opacity: 0.9; }
-    100% { transform: translateY(-24px) scale(0.85); opacity: 0; filter: blur(1px); }
+    0% { transform: translate3d(0, 8px, 0) scale(0.7); opacity: 0; filter: brightness(1.8); }
+    30% { transform: translate3d(0, -3px, 0) scale(1.2); opacity: 1; }
+    65% { transform: translate3d(0, -12px, 0) scale(1); opacity: 0.9; }
+    100% { transform: translate3d(0, -24px, 0) scale(0.85); opacity: 0; filter: blur(1px); }
 }
 
 @keyframes plusParticleLeft {
-    0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+    0% { transform: translate3d(0, 0, 0) scale(0.4); opacity: 0; }
     35% { opacity: 1; }
-    100% { transform: translate(-14px, -26px) scale(1.4) rotate(-20deg); opacity: 0; }
+    100% { transform: translate3d(-14px, -26px, 0) scale(1.4) rotate(-20deg); opacity: 0; }
 }
 
 @keyframes plusParticleRight {
-    0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+    0% { transform: translate3d(0, 0, 0) scale(0.4); opacity: 0; }
     35% { opacity: 1; }
-    100% { transform: translate(14px, -30px) scale(1.5) rotate(25deg); opacity: 0; }
+    100% { transform: translate3d(14px, -30px, 0) scale(1.5) rotate(25deg); opacity: 0; }
 }
 
-/* 4. 回魔文字 */
+/* 4. 回魔數字 */
 .log-panel .num-m-dmg {
     display: inline-block !important;
     font-family: var(--font-damage), sans-serif !important;
     font-size: 14px !important;
     font-weight: 800 !important;
-    color: #00f2fe !important;
+    color: var(--neon-cyan) !important;
     background: transparent !important;
     border: none !important;
-    text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 8px rgba(0, 242, 254, 0.8) !important;
+    text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 8px rgba(0, 255, 204, 0.8) !important;
     animation: dmgPopImpact 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
 }
 
 /* ==========================================================================
-   🕹️ ZONE 7: 通用按鈕與控制矩陣
+   🕹️ ZONE 8: 通用按鈕與 Action Control 矩陣
    ========================================================================== */
 .btn-game { 
     color: #fff; border-radius: 10px; cursor: pointer; font-weight: bold; 
-    border: 1px solid rgba(255, 255, 255, 0.08); padding: 14px; font-size: 14px; 
-    background: linear-gradient(135deg, #1c1c24 0%, #111116 100%);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 4px 10px rgba(0, 0, 0, 0.4);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+    border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 14px; font-size: 13px; 
+    min-height: 42px; line-height: 1.2;
+    background: linear-gradient(135deg, #1f1f2a 0%, #121218 100%);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06), 0 4px 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1); 
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.btn-game:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 6px 15px rgba(0, 0, 0, 0.5);
+}
+.btn-game:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .btn-explore { 
@@ -1131,11 +1178,11 @@ body {
 .btn-rest:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
 
 /* ==========================================================================
-   🎭 ZONE 8: 戰偶紙娃娃系統
+   🎭 ZONE 9: 戰偶紙娃娃 (Paper Doll) 裝備模组
    ========================================================================== */
 .paper-doll-container {
     width: 100%; background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.03); margin-bottom: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.04); margin-bottom: 6px;
 }
 
 .doll-grid {
@@ -1146,58 +1193,61 @@ body {
 .doll-slot {
     background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px; height: 100%; display: flex; align-items: center; padding: 4px 6px;
-    transition: all 0.3s ease; min-width: 0;
+    transition: all 0.25s ease; min-width: 0;
 }
 
-.doll-slot:hover { background: rgba(255, 255, 255, 0.05); }
+.doll-slot:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.15); }
 
 .slot-inner { display: flex; align-items: center; gap: 5px; width: 100%; overflow: hidden; min-width: 0; }
-.slot-icon { font-size: 16px; background: rgba(0, 0, 0, 0.3); padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; }
+.slot-icon { font-size: 16px; background: rgba(0, 0, 0, 0.35); padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; }
 .slot-info { display: flex; flex-direction: column; overflow: hidden; text-align: left; flex: 1; min-width: 0; }
-.slot-label { font-size: 9px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
+.slot-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
 .slot-name { font-size: 11px; color: #ffffff; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; width: 100%; }
 
-.weapon-slot { border-color: rgba(231, 76, 60, 0.15); box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.05); }
-.armor-slot { border-color: rgba(52, 152, 219, 0.15); box-shadow: inset 0 0 8px rgba(52, 152, 219, 0.05); }
+.weapon-slot { border-color: rgba(231, 76, 60, 0.2); box-shadow: inset 0 0 8px rgba(231, 76, 60, 0.06); }
+.armor-slot { border-color: rgba(52, 152, 219, 0.2); box-shadow: inset 0 0 8px rgba(52, 152, 219, 0.06); }
 
-.accessory-slot { grid-column: span 3; height: 38px; border-color: rgba(155, 89, 182, 0.15); box-shadow: inset 0 0 8px rgba(155, 89, 182, 0.05); }
+.accessory-slot { grid-column: span 3; height: 38px; border-color: rgba(155, 89, 182, 0.2); box-shadow: inset 0 0 8px rgba(155, 89, 182, 0.06); }
 .accessory-slot .slot-inner { flex-direction: row; justify-content: flex-start; gap: 8px; }
 
 .doll-silhouette { position: relative; grid-row: span 1; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.silhouette-core { font-size: 26px; color: rgba(255, 255, 255, 0.12); z-index: 2; animation: hologramPulse 2s infinite ease-in-out; }
-.hologram-ring { position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 1px dashed rgba(0, 255, 255, 0.15); animation: rotateHologram 12s linear infinite; z-index: 1; }
+.silhouette-core { font-size: 26px; color: rgba(255, 255, 255, 0.15); z-index: 2; animation: hologramPulse 2s infinite ease-in-out; }
+.hologram-ring { position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 1px dashed rgba(0, 255, 204, 0.2); animation: rotateHologram 12s linear infinite; z-index: 1; will-change: transform; }
 
 @keyframes rotateHologram { 100% { transform: rotate(360deg); } }
+@keyframes hologramPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
 
 .doll-silhouette::after {
     content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 2px;
-    background: linear-gradient(90deg, transparent 0%, #00ffcc 50%, transparent 100%);
-    box-shadow: 0 0 8px #00ffcc, 0 0 15px #00ffcc; opacity: 0.7;
-    animation: laserScanMove 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, var(--neon-cyan) 50%, transparent 100%);
+    box-shadow: 0 0 8px var(--neon-cyan), 0 0 15px var(--neon-cyan); opacity: 0.7;
+    animation: laserScanMoveGPU 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; pointer-events: none;
+    will-change: transform;
 }
 
-@keyframes laserScanMove {
-    0% { top: 5%; opacity: 0.2; }
+@keyframes laserScanMoveGPU {
+    0% { transform: translate3d(0, 2px, 0); opacity: 0.2; }
     50% { opacity: 1; }
-    100% { top: 95%; opacity: 0.2; }
+    100% { transform: translate3d(0, 58px, 0); opacity: 0.2; }
 }
 
 /* ==========================================================================
-   🧭 ZONE 9: 戰術抽屜與 ATB 平滑線性過渡
+   🧭 ZONE 10: 戰術抽屜與 ATB 線性動態
    ========================================================================== */
 .log-wrapper {
     position: relative; width: 100%; height: 260px; margin-top: 8px;
-    overflow: hidden; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(10, 10, 15, 0.4);
+    overflow: hidden; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(10, 10, 15, 0.45);
 }
 
 .tactics-drawer {
     position: absolute; top: 0; right: 0; bottom: 0; width: 160px;
     background: rgba(15, 15, 22, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-left: 1px solid rgba(255, 255, 255, 0.1); z-index: 10; display: flex;
-    transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border-left: 1px solid rgba(255, 255, 255, 0.1); z-index: var(--z-drawer); display: flex;
+    transform: translate3d(100%, 0, 0); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
 }
 
-.tactics-drawer.expanded { transform: translateX(0); box-shadow: -10px 0 25px rgba(0, 0, 0, 0.8); }
+.tactics-drawer.expanded { transform: translate3d(0, 0, 0); box-shadow: -10px 0 25px rgba(0, 0, 0, 0.8); }
 
 .drawer-trigger-tab {
     position: absolute; left: -32px; top: 15px; width: 32px; padding: 10px 4px;
@@ -1209,7 +1259,7 @@ body {
 .drawer-trigger-tab:hover { background: rgba(212, 175, 55, 0.25); color: #fff; }
 .tactics-drawer.expanded .drawer-trigger-tab { background: rgba(231, 76, 60, 0.15); border-color: rgba(231, 76, 60, 0.3); color: #ff4757; }
 
-.trigger-icon { font-size: 13px; animation: rotateGear 6s linear infinite; }
+.trigger-icon { font-size: 13px; animation: rotateGear 6s linear infinite; will-change: transform; }
 @keyframes rotateGear { 100% { transform: rotate(360deg); } }
 
 .trigger-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 9px; font-weight: bold; letter-spacing: 1px; }
@@ -1219,12 +1269,12 @@ body {
 .tactics-options-container { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
 
 .btn-tactic-option {
-    background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 6px; padding: 6px 8px; text-align: left; cursor: pointer; transition: all 0.2s;
     display: flex; flex-direction: column; outline: none;
 }
 
-.btn-tactic-option:hover { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.1); }
+.btn-tactic-option:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.12); }
 .btn-tactic-option .tactic-title { font-size: 11px; font-weight: bold; color: #bbb; }
 .btn-tactic-option .tactic-desc { font-size: 8px; color: #666; margin-top: 2px; line-height: 1.2; }
 
@@ -1237,11 +1287,13 @@ body {
 #tactic-btn-OFFENSIVE.active .tactic-desc { color: #ff8f83 !important; }
 
 .atb-color {
-    background: linear-gradient(90deg, #f1c40f 0%, #ff9f43 50%, #ff6b6b 100%) !important;
+    background: var(--clr-atb) !important;
     background-size: 200% 100% !important;
     box-shadow: 0 0 12px rgba(255, 159, 67, 0.9) !important;
-    border-radius: 4px !important; transition: width 0.25s linear !important; 
+    border-radius: 4px !important; transition: transform 0.25s linear !important; 
     animation: atbFlowLine 1s linear infinite !important;
+    transform-origin: left center;
+    will-change: transform;
 }
 
 @keyframes atbFlowLine {
@@ -1250,12 +1302,12 @@ body {
 }
 
 /* ==========================================================================
-   🏆 ZONE 10: Boss 勝利、QTE 彈窗、素材不足彈窗與 360° 轉盤開鎖
+   🏆 ZONE 11: Boss 勝利、QTE 彈窗、素材不足與 360° 轉盤開鎖
    ========================================================================== */
 .log-victory-badge {
-    background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(0, 0, 0, 0.4) 80%) !important;
-    border-left: 4px solid #ffd700 !important; border-right: 1px solid rgba(212, 175, 55, 0.1);
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.24) 0%, rgba(0, 0, 0, 0.45) 80%) !important;
+    border-left: 4px solid #ffd700 !important; border-right: 1px solid rgba(212, 175, 55, 0.15);
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     animation: goldPopVictory 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
@@ -1265,15 +1317,15 @@ body {
 }
 
 @keyframes goldPopVictory {
-    0% { transform: scale(0.96) translateY(10px); filter: brightness(2); opacity: 0; }
-    60% { transform: scale(1.02) translateY(-2px); filter: brightness(1.3); }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
+    0% { transform: scale(0.96) translate3d(0, 10px, 0); filter: brightness(2); opacity: 0; }
+    60% { transform: scale(1.02) translate3d(0, -2px, 0); filter: brightness(1.3); }
+    100% { transform: scale(1) translate3d(0, 0, 0); opacity: 1; }
 }
 
 #boss-victory-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: radial-gradient(circle at 50% 45%, rgba(26, 20, 5, 0.98) 0%, #050402 100%);
-    z-index: 100000; display: flex; justify-content: center; align-items: center;
+    z-index: var(--z-modal); display: flex; justify-content: center; align-items: center;
     overflow: hidden; opacity: 0; animation: overlayFadeIn 0.5s ease-out forwards;
 }
 
@@ -1283,6 +1335,7 @@ body {
     position: absolute; width: 130%; height: 130%;
     background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.08) 0%, transparent 65%);
     animation: cloudPulse 6s ease-in-out infinite alternate; pointer-events: none;
+    will-change: transform;
 }
 
 @keyframes cloudPulse {
@@ -1292,10 +1345,11 @@ body {
 
 .victory-crystal-container {
     text-align: center; width: 90%; max-width: 520px; padding: 40px 30px; border-radius: 24px;
-    background: rgba(15, 13, 10, 0.65); border: 1px solid rgba(212, 175, 55, 0.25);
-    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(212, 175, 55, 0.05), 0 0 40px rgba(212, 175, 55, 0.1);
+    background: rgba(15, 13, 10, 0.68); border: 1px solid rgba(212, 175, 55, 0.3);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(212, 175, 55, 0.05), 0 0 40px rgba(212, 175, 55, 0.12);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     transform: scale(0.7); opacity: 0; animation: crystalZoomUp 0.6s cubic-bezier(0.15, 0.85, 0.35, 1.1) 0.15s forwards;
+    will-change: transform, opacity;
 }
 
 @keyframes crystalZoomUp {
@@ -1308,11 +1362,11 @@ body {
     animation: crownFloat 2s ease-in-out infinite;
 }
 
-@keyframes crownFloat { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-6px) scale(1.05); } 100% { transform: translateY(0) scale(1); } }
+@keyframes crownFloat { 0% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(0, -6px, 0) scale(1.05); } 100% { transform: translate3d(0, 0, 0) scale(1); } }
 
 .victory-grand-title {
-    font-family: 'Georgia', serif; font-size: 48px; font-weight: 900;
-    letter-spacing: 12px; margin: 0; padding-left: 12px;
+    font-family: var(--font-title); font-size: 46px; font-weight: 900;
+    letter-spacing: 10px; margin: 0; padding-left: 10px;
     background: linear-gradient(180deg, #ffffff 0%, #fff4cc 30%, #ffd700 70%, #b39200 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
 }
@@ -1338,26 +1392,28 @@ body {
 #qte-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: radial-gradient(circle at 50% 50%, rgba(10, 10, 15, 0.96) 0%, rgba(5, 5, 7, 0.99) 100%);
-    z-index: 100002; display: flex; justify-content: center; align-items: center; opacity: 1; transition: all 0.3s ease;
+    z-index: var(--z-modal); display: flex; justify-content: center; align-items: center; opacity: 1; transition: all 0.3s ease;
 }
 
 .qte-box {
-    background: rgba(20, 20, 27, 0.95); border: 2px solid var(--gold-glow);
-    box-shadow: 0 0 45px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.7);
-    padding: 35px 25px; border-radius: 20px; text-align: center; width: 90%; max-width: 340px;
+    background: rgba(20, 20, 27, 0.96); border: 2px solid var(--gold-glow);
+    box-shadow: 0 0 45px rgba(255, 215, 0, 0.35), inset 0 0 20px rgba(0, 0, 0, 0.7);
+    padding: 32px 24px; border-radius: 20px; text-align: center; width: 90%; max-width: 340px;
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: qteZoomIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 @keyframes qteZoomIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-#qte-skill-name { font-size: 15px; color: #fff; margin: 0 0 25px 0; line-height: 1.6; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+#qte-skill-name { font-size: 15px; color: #fff; margin: 0 0 22px 0; line-height: 1.6; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
 
 #qte-tap-btn {
     background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important; border: 1px solid #2ecc71 !important;
     color: #fff !important; font-size: 18px !important; font-weight: 900 !important; padding: 16px !important;
-    border-radius: 50px !important; cursor: pointer; width: 100%; display: block; margin-bottom: 25px;
+    border-radius: 50px !important; cursor: pointer; width: 100%; display: block; margin-bottom: 22px;
     box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); text-shadow: 0 1px 2px rgba(0,0,0,0.6); transition: all 0.15s ease;
+    min-height: 52px;
 }
+#qte-tap-btn:active { transform: scale(0.96); }
 
 .qte-timer-bg {
     width: 100%; height: 16px; background: #121214; border-radius: 8px; overflow: hidden; position: relative;
@@ -1374,7 +1430,9 @@ body {
 
 #qte-timer-fill {
     height: 100%; width: 0%; background: linear-gradient(90deg, #3498db 0%, #f1c40f 64%, #2ecc71 75%, #e74c3c 100%);
-    box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); position: absolute; top: 0; left: 0; z-index: 1; transition: width 0.025s linear;
+    box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); position: absolute; top: 0; left: 0; z-index: 1; transition: transform 0.025s linear;
+    transform-origin: left center;
+    will-change: transform;
 }
 
 /* 🔑 360° 轉盤開鎖 */
@@ -1383,7 +1441,7 @@ body {
 .lockpick-dial {
     position: relative; width: 200px; height: 200px; margin: 0 auto 15px auto;
     border-radius: 50%; background: radial-gradient(circle, #1a1a24 0%, #08080c 100%);
-    border: 4px solid rgba(255, 215, 0, 0.3); box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5);
+    border: 4px solid rgba(255, 215, 0, 0.35); box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5);
     touch-action: none; cursor: grab; user-select: none;
 }
 .lockpick-dial:active { cursor: grabbing; }
@@ -1396,30 +1454,31 @@ body {
 .lockpick-needle {
     position: absolute; top: 50%; left: 50%; width: 4px; height: 80px;
     background: linear-gradient(180deg, #ffd700 0%, #ffffff 100%); box-shadow: 0 0 8px #ffd700;
-    border-radius: 2px; transform-origin: 50% 0%; transform: translate(-50%, 0) rotate(0deg); pointer-events: none;
+    border-radius: 2px; transform-origin: 50% 0%; transform: translate3d(-50%, 0, 0) rotate(0deg); pointer-events: none;
+    will-change: transform;
 }
 
 .lockpick-core {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    position: absolute; top: 50%; left: 50%; transform: translate3d(-50%, -50%, 0);
     width: 50px; height: 50px; border-radius: 50%; background: #111116; border: 2px solid var(--gold-glow);
     display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); pointer-events: none;
 }
 
 .lockpick-dial.in-sweet-spot {
-    border-color: #00ffcc !important; box-shadow: 0 0 25px rgba(0, 255, 204, 0.6), inset 0 0 15px rgba(0, 255, 204, 0.3);
+    border-color: var(--neon-cyan) !important; box-shadow: 0 0 25px rgba(0, 255, 204, 0.6), inset 0 0 15px rgba(0, 255, 204, 0.3);
 }
 
-.lockpick-dial.in-sweet-spot .lockpick-core { border-color: #00ffcc; box-shadow: 0 0 15px #00ffcc; }
+.lockpick-dial.in-sweet-spot .lockpick-core { border-color: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
 
 .lockpick-progress-bg { width: 100%; height: 10px; background: rgba(0, 0, 0, 0.6); border-radius: 5px; overflow: hidden; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.1); }
-.lockpick-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f1c40f 0%, #00ffcc 100%); box-shadow: 0 0 10px #00ffcc; transition: width 0.1s linear; }
+.lockpick-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f1c40f 0%, var(--neon-cyan) 100%); box-shadow: 0 0 10px var(--neon-cyan); transition: transform 0.1s linear; transform-origin: left center; will-change: transform; }
 .lockpick-hint { font-size: 11px; color: #aaa; margin-bottom: 12px; min-height: 16px; }
 
-/* ⚠️ 素材與資源不足專屬 Modal 彈窗 */
+/* ⚠️ 素材不足 Modal 彈窗 */
 #mat-alert-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    z-index: 100005; display: flex; justify-content: center; align-items: center;
+    z-index: var(--z-modal); display: flex; justify-content: center; align-items: center;
     opacity: 0; visibility: hidden; transition: all 0.25s ease-out;
 }
 #mat-alert-overlay.active { opacity: 1; visibility: visible; }
@@ -1433,8 +1492,8 @@ body {
 #mat-alert-overlay.active .mat-alert-box { transform: scale(1); }
 
 .mat-alert-header { font-size: 16px; font-weight: 900; color: #ff4757; margin-bottom: 12px; letter-spacing: 1px; }
-.mat-alert-content { font-size: 13px; color: #d1d1d6; line-height: 1.6; margin-bottom: 20px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
-.mat-alert-btn { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border: 1px solid #ff6b6b; color: #fff; width: 100%; padding: 12px; font-weight: bold; border-radius: 10px; cursor: pointer; }
+.mat-alert-content { font-size: 13px; color: #d1d1d6; line-height: 1.65; margin-bottom: 20px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+.mat-alert-btn { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border: 1px solid #ff6b6b; color: #fff; width: 100%; padding: 12px; font-weight: bold; border-radius: 10px; cursor: pointer; min-height: 44px; }
 
 /* ==========================================================================
    🚀 ZONE 12: 戰鬥投射物系統 (Pure Laser Projectiles)
@@ -1443,6 +1502,7 @@ body {
     position: absolute; bottom: 20px; left: 10px; width: 30px; height: 30px;
     z-index: 99; pointer-events: none; display: flex; align-items: center; justify-content: center;
     animation: flyToLogTarget 0.42s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
+    will-change: transform, opacity;
 }
 
 .proj-fire .fx-core {
@@ -1484,25 +1544,25 @@ body {
 }
 
 @keyframes flyToLogTarget {
-    0% { transform: translate(0, 0) scale(0.4) rotate(-20deg); opacity: 0; }
-    20% { opacity: 1; transform: translate(40px, -20px) scale(1.1) rotate(-10deg); }
-    80% { opacity: 1; transform: translate(180px, -60px) scale(1) rotate(15deg); }
-    100% { opacity: 0; transform: translate(220px, -80px) scale(1.8) rotate(25deg); filter: brightness(2); }
+    0% { transform: translate3d(0, 0, 0) scale(0.4) rotate(-20deg); opacity: 0; }
+    20% { opacity: 1; transform: translate3d(40px, -20px, 0) scale(1.1) rotate(-10deg); }
+    80% { opacity: 1; transform: translate3d(180px, -60px, 0) scale(1) rotate(15deg); }
+    100% { opacity: 0; transform: translate3d(220px, -80px, 0) scale(1.8) rotate(25deg); filter: brightness(2); }
 }
 
 /* ==========================================================================
-   📦 ZONE 11: 容器滾動條、Toast、Floating Card 與 RWD 響應式雙軌
+   📦 ZONE 13: Toast, Floating Card 與 RWD 雙軌/行動端優化
    ========================================================================== */
 #toast-container {
-    position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
-    z-index: 100010; display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: 90%; max-width: 320px;
+    position: fixed; top: 25px; left: 50%; transform: translate3d(-50%, 0, 0);
+    z-index: var(--z-toast); display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: 90%; max-width: 320px;
 }
 
 .toast-item {
-    background: rgba(20, 20, 28, 0.92); border: 1px solid rgba(255, 215, 0, 0.4);
+    background: rgba(20, 20, 28, 0.94); border: 1px solid rgba(255, 215, 0, 0.4);
     color: #ffffff; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px); opacity: 0; transform: translateY(-15px) scale(0.95);
+    backdrop-filter: blur(8px); opacity: 0; transform: translate3d(0, -15px, 0) scale(0.95);
     animation: toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
@@ -1510,30 +1570,30 @@ body {
 .toast-item.toast-warn { border-color: rgba(231, 76, 60, 0.6); }
 .toast-item.toast-fade-out { animation: toastOut 0.25s ease-in forwards; }
 
-@keyframes toastIn { to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes toastOut { to { opacity: 0; transform: translateY(-10px) scale(0.9); } }
+@keyframes toastIn { to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes toastOut { to { opacity: 0; transform: translate3d(0, -10px, 0) scale(0.9); } }
 
 /* Floating Card */
 #floating-item-card {
-    position: fixed; z-index: 100020; width: 220px; background: rgba(14, 14, 20, 0.96);
+    position: fixed; z-index: var(--z-floating); width: 220px; background: rgba(14, 14, 20, 0.96);
     border: 1px solid var(--gold-glow); border-radius: 10px; padding: 12px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.15);
     backdrop-filter: blur(10px); pointer-events: none; opacity: 0; visibility: hidden;
-    transition: opacity 0.15s ease-out, transform 0.15s ease-out; transform: translateY(5px);
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out; transform: translate3d(0, 5px, 0);
 }
-#floating-item-card.active { opacity: 1; visibility: visible; transform: translateY(0); }
+#floating-item-card.active { opacity: 1; visibility: visible; transform: translate3d(0, 0, 0); }
 
 /* Warehouse & Pill Box */
 .warehouse-pill-box {
     display: flex; flex-wrap: wrap; gap: 6px; max-height: 90px; overflow-y: auto; padding: 6px;
-    background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 4px;
+    background: rgba(0, 0, 0, 0.35); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 4px;
 }
 
 .warehouse-pill {
     background: #232334; border: 1px solid #3d3d5c; color: #e0e0e0; padding: 3px 9px;
     border-radius: 12px; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center;
 }
-.warehouse-pill .count { color: #ffd700; font-weight: bold; margin-left: 4px; }
+.warehouse-pill .count { color: var(--gold-glow); font-weight: bold; margin-left: 4px; }
 
 #blueprints-container, #recipes-container {
     max-height: 480px; overflow-y: auto; padding-right: 8px; border-radius: 8px;
@@ -1563,10 +1623,10 @@ body {
     .left-layout-column { order: 2; }
     .right-layout-column { order: 1; }
     .action-panel {
-        position: sticky; bottom: 10px; z-index: 999;
-        background: rgba(10, 10, 15, 0.95) !important; backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.1) !important; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.8) !important;
-        border-radius: 12px; padding: 10px !important;
+        position: sticky; bottom: 10px; z-index: var(--z-sticky);
+        background: rgba(10, 10, 15, 0.95) !important; backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 255, 204, 0.25) !important; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.8) !important;
+        border-radius: 14px; padding: 10px !important;
     }
 }
 
@@ -1577,17 +1637,17 @@ body {
     }
 }
 
-/* 通用 Helper */
+/* Helper Class */
 .hidden-element { display: none !important; }
 .full-width { width: 100% !important; }
 .full-size { width: 100% !important; height: 100% !important; }
 .margin-top-sm { margin-top: 6px !important; }
 .margin-top-md { margin-top: 12px !important; }
-.text-gold { color: #ffd700; }
-.text-cyan { color: #00ffcc; }
+.text-gold { color: var(--gold-glow); }
+.text-cyan { color: var(--neon-cyan); }
 
 /* ==========================================================================
-   🖼️ 全局 Modal 彈窗隱藏與置中修復
+   🖼️ ZONE 14: 全局 Modal 彈窗與排版修復
    ========================================================================== */
 .modal-backdrop {
     position: fixed !important;
@@ -1595,13 +1655,13 @@ body {
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(5, 7, 12, 0.82) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
+    background: rgba(5, 7, 12, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
     display: none;
     justify-content: center !important;
     align-items: center !important;
-    z-index: 99999 !important;
+    z-index: var(--z-modal) !important;
     padding: 16px !important;
     box-sizing: border-box !important;
     margin: 0 !important;
@@ -1636,19 +1696,16 @@ body {
 }
 
 @keyframes modalPopIn {
-    0% { opacity: 0; transform: scale(0.88) translateY(10px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
+    0% { opacity: 0; transform: scale(0.88) translate3d(0, 10px, 0); }
+    100% { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
 }
 
-/* ==========================================================================
-   🛠️ 畫面視覺修復 (Action Panel Card & Clean Damage Text)
-   ========================================================================== */
 .action-panel, 
 #action-panel-box {
     background: rgba(18, 22, 32, 0.85) !important;
-    border: 1px solid rgba(0, 255, 204, 0.2) !important;
+    border: 1px solid rgba(0, 255, 204, 0.25) !important;
     border-radius: 12px !important;
-    padding: 12px !important;
+    padding: 10px 12px !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.05) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
@@ -1660,12 +1717,12 @@ body {
 .action-btn-group {
     display: flex !important;
     flex-direction: column !important;
-    gap: 8px !important;
+    gap: 6px !important;
     width: 100% !important;
 }
 
 /* ==========================================================================
-   🎒 背包緊湊化與手機版高度瘦身修復
+   🎒 ZONE 15: 背包網格瘦身與手機端觸控極致優化
    ========================================================================== */
 #bag-slots-container,
 .bag-grid-3col {
@@ -1678,11 +1735,11 @@ body {
 }
 
 .bag-slot {
-    background: rgba(0, 0, 0, 0.4) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
     border: 1px dashed rgba(255, 255, 255, 0.15) !important;
     border-radius: 6px !important;
-    min-height: 32px !important;
-    height: 32px !important;
+    min-height: 34px !important;
+    height: 34px !important;
     padding: 2px 4px !important;
     font-size: 11px !important;
     color: #888888 !important;
@@ -1701,26 +1758,16 @@ body {
 .bag-slot:not(:empty):not(:contains("空位")) {
     background: rgba(255, 215, 0, 0.12) !important;
     border: 1px solid rgba(255, 215, 0, 0.5) !important;
-    color: #ffd700 !important;
+    color: var(--gold-glow) !important;
     font-weight: bold !important;
     box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.15) !important;
     cursor: pointer !important;
 }
 
-.action-panel,
-#action-panel-box {
-    padding: 8px 10px !important;
-    margin-top: 8px !important;
-}
-
-.action-btn-group {
-    gap: 6px !important;
-}
-
 .action-btn-group .btn-game {
     padding: 8px 10px !important;
     font-size: 12px !important;
-    min-height: 36px !important;
+    min-height: 38px !important;
     line-height: 1.2 !important;
 }
 
@@ -1742,21 +1789,19 @@ body {
     }
 
     .bag-slot {
-        height: 30px !important;
-        min-height: 30px !important;
+        height: 32px !important;
+        min-height: 32px !important;
         font-size: 10px !important;
     }
 
     .btn-game {
-        padding: 6px 8px !important;
+        padding: 8px !important;
         font-size: 12px !important;
-        min-height: 34px !important;
+        min-height: 36px !important;
     }
 }
 
-/* ==========================================================================
-   🎛️ 下拉式整合戰術面板
-   ========================================================================== */
+/* 🎛️ 下拉式整合戰術面板 */
 .action-selector-wrapper {
     display: flex;
     flex-direction: column;
@@ -1766,17 +1811,18 @@ body {
 
 .action-dropdown {
     width: 100% !important;
-    padding: 12px 14px !important;
+    padding: 10px 14px !important;
     font-size: 13px !important;
     font-weight: bold !important;
     background: rgba(12, 12, 18, 0.95) !important;
-    border: 1px solid rgba(0, 255, 204, 0.3) !important;
+    border: 1px solid rgba(0, 255, 204, 0.35) !important;
     border-radius: 10px !important;
-    color: #00ffcc !important;
+    color: var(--neon-cyan) !important;
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.8) !important;
+    min-height: 42px;
 }
 
 .action-dropdown:focus {
-    border-color: #00ffcc !important;
+    border-color: var(--neon-cyan) !important;
     box-shadow: 0 0 12px rgba(0, 255, 204, 0.4) !important;
 }
