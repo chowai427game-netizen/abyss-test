@@ -1,5 +1,5 @@
 // ==========================================================================
-// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Zero-Gap Hyper-Compact Edition v5.1)
+// 📺 ui.js：介面控制、選單渲染與數據同步核心 (UI/UX Hyper-Polished Master Edition v4.8 Mobile RWD Standard)
 // ==========================================================================
 
 // 🌐 1. 全域狀態變數宣告
@@ -198,7 +198,7 @@ function showMaterialAlert(missingDetails, title = "⚠️ 所需材料 / 金幣
     if (titleEl) titleEl.innerText = title;
     if (bodyEl) {
         if (Array.isArray(missingDetails)) {
-            bodyEl.innerHTML = missingDetails.map(item => `<div style="margin-bottom: 2px;">• ${item}</div>`).join('');
+            bodyEl.innerHTML = missingDetails.map(item => `<div style="margin-bottom: 4px;">• ${item}</div>`).join('');
         } else {
             bodyEl.innerHTML = missingDetails;
         }
@@ -264,12 +264,12 @@ function showFloatingCard(e, title, type, desc, stats = "") {
     }
 
     card.innerHTML = `
-        <div style="font-weight: bold; font-size: 12px; color: var(--gold-glow, #ffd700); margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-weight: bold; font-size: 13px; color: var(--gold-glow, #ffd700); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
             <span>${title}</span>
-            <span style="font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(255,255,255,0.08); color: #aaa;">${type}</span>
+            <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #aaa;">${type}</span>
         </div>
-        <div style="font-size: 10px; color: #d1d1d6; line-height: 1.4; margin-bottom: 4px;">${desc}</div>
-        ${stats ? `<div style="font-size: 9px; color: #00ffcc; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 3px; margin-top: 3px;">${stats}</div>` : ''}
+        <div style="font-size: 11px; color: #d1d1d6; line-height: 1.5; margin-bottom: 6px;">${desc}</div>
+        ${stats ? `<div style="font-size: 10px; color: #00ffcc; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 5px; margin-top: 5px;">${stats}</div>` : ''}
     `;
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -342,8 +342,8 @@ function renderStatusBadges(containerEl, effectsMap) {
         const badge = document.createElement('div');
         badge.className = `status-badge ${isBuff ? 'buff' : 'debuff'}`;
         badge.style.cssText = `
-            display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px;
-            border-radius: 10px; font-size: 9px; font-weight: bold; margin-right: 3px; margin-bottom: 2px;
+            display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;
+            border-radius: 12px; font-size: 10px; font-weight: bold; margin-right: 4px; margin-bottom: 4px;
             background: ${isBuff ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)'};
             border: 1px solid ${isBuff ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)'};
             color: ${isBuff ? '#2ecc71' : '#ff4757'}; cursor: pointer;
@@ -448,14 +448,14 @@ function updateActionPanelUI() {
 
     actionBox.innerHTML = "";
     actionBox.style.display = "flex";
-    actionBox.style.gap = "6px";
+    actionBox.style.gap = "8px";
     actionBox.style.width = "100%";
 
     if (gameState === "VILLAGE") {
         const btnEnter = document.createElement('button');
         btnEnter.id = "btn-main-action";
         btnEnter.className = "btn-game btn-explore full-width";
-        btnEnter.style.cssText = "flex: 1; padding: 10px; font-size: 13px; font-weight: bold;";
+        btnEnter.style.cssText = "flex: 1; padding: 12px; font-size: 13px; font-weight: bold;";
         btnEnter.innerHTML = `🔮 進入地下城 (B${typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1}F)`;
         btnEnter.onclick = () => { if (typeof startNextFloor === "function") startNextFloor(); };
         actionBox.appendChild(btnEnter);
@@ -466,7 +466,7 @@ function updateActionPanelUI() {
         const btnTactics = document.createElement('button');
         btnTactics.id = "btn-main-action";
         btnTactics.className = "btn-game btn-rerun";
-        btnTactics.style.cssText = "flex: 2; padding: 8px; font-size: 11px; font-weight: bold;";
+        btnTactics.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         const isAuto = typeof autoBattleActive !== "undefined" && autoBattleActive;
         btnTactics.innerHTML = isAuto ? '⏸️ 暫停戰術' : '⚡ 戰術策略';
         btnTactics.onclick = () => {
@@ -481,7 +481,7 @@ function updateActionPanelUI() {
         const btnFlee = document.createElement('button');
         btnFlee.id = "btn-secondary-action";
         btnFlee.className = "btn-game btn-rest";
-        btnFlee.style.cssText = "flex: 1; padding: 8px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #c0392b, #7f8c8d) !important;";
+        btnFlee.style.cssText = "flex: 1; padding: 10px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #c0392b, #7f8c8d) !important;";
         btnFlee.innerHTML = "🏃 回到村莊";
         btnFlee.onclick = () => { if (typeof returnToVillage === "function") returnToVillage(); };
 
@@ -497,7 +497,7 @@ function updateActionPanelUI() {
         const btnNext = document.createElement('button');
         btnNext.id = "btn-main-action";
         btnNext.className = "btn-game btn-explore";
-        btnNext.style.cssText = "flex: 2; padding: 8px; font-size: 11px; font-weight: bold;";
+        btnNext.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
         btnNext.innerHTML = `⚔️ 進入下層 (B${nextF}F)`;
         btnNext.onclick = () => { if (typeof startNextFloor === "function") startNextFloor(); };
         actionBox.appendChild(btnNext);
@@ -505,7 +505,7 @@ function updateActionPanelUI() {
         const btnRerun = document.createElement('button');
         btnRerun.id = "btn-rerun-action";
         btnRerun.className = "btn-game btn-rerun";
-        btnRerun.style.cssText = "flex: 1.5; padding: 8px; font-size: 10px; font-weight: bold;";
+        btnRerun.style.cssText = "flex: 1.5; padding: 10px; font-size: 11px; font-weight: bold;";
         btnRerun.innerHTML = `🔄 重巡此層 (B${currentF}F)`;
         btnRerun.onclick = () => { if (typeof rerunCurrentFloor === "function") rerunCurrentFloor(); };
         actionBox.appendChild(btnRerun);
@@ -513,7 +513,7 @@ function updateActionPanelUI() {
         const btnReturn = document.createElement('button');
         btnReturn.id = "btn-secondary-action";
         btnReturn.className = "btn-game btn-rest";
-        btnReturn.style.cssText = "flex: 1; padding: 8px; font-size: 10px; font-weight: bold;";
+        btnReturn.style.cssText = "flex: 1; padding: 10px; font-size: 11px; font-weight: bold;";
         btnReturn.innerHTML = "⛺ 回到村莊";
         btnReturn.onclick = () => { if (typeof returnToVillage === "function") returnToVillage(); };
         actionBox.appendChild(btnReturn);
@@ -577,10 +577,10 @@ function renderBlessingRewardCards(customChoices = null) {
     ];
 
     rewardBox.innerHTML = `
-        <div style="font-size: 12px; font-weight: bold; color: #ffd700; text-align: center; margin-bottom: 6px; letter-spacing: 1px;">
-            ✨ 抉擇靈魂賜福 ✨
+        <div style="font-size: 13px; font-weight: bold; color: #ffd700; text-align: center; margin-bottom: 10px; letter-spacing: 1px;">
+            ✨ 抉擇靈魂賜福（請選擇一項） ✨
         </div>
-        <div id="blessing-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; width: 100%;"></div>
+        <div id="blessing-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; width: 100%;"></div>
     `;
 
     const grid = document.getElementById('blessing-cards-grid');
@@ -591,30 +591,43 @@ function renderBlessingRewardCards(customChoices = null) {
         card.style.cssText = `
             background: radial-gradient(circle at 50% 0%, rgba(255, 215, 0, 0.15) 0%, rgba(20, 25, 35, 0.95) 100%);
             border: 1px solid rgba(255, 215, 0, 0.5);
-            border-radius: 8px; padding: 8px 6px; text-align: center; cursor: pointer;
-            transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            display: flex; flex-direction: column; justify-content: space-between;
+            border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; flex-direction: column; justify-content: space-between;
         `;
 
         card.innerHTML = `
             <div>
-                <div style="font-size: 18px; margin-bottom: 2px;">${choice.icon}</div>
-                <div style="font-size: 11px; font-weight: bold; color: #ffd700; margin-bottom: 2px;">${choice.title}</div>
-                <div style="font-size: 9px; color: #00ffcc; margin-bottom: 4px;">[${choice.type}]</div>
-                <div style="font-size: 9px; color: #ddd; line-height: 1.2; margin-bottom: 4px;">${choice.desc}</div>
+                <div style="font-size: 22px; margin-bottom: 4px;">${choice.icon}</div>
+                <div style="font-size: 12px; font-weight: bold; color: #ffd700; margin-bottom: 2px;">${choice.title}</div>
+                <div style="font-size: 9px; color: #00ffcc; margin-bottom: 6px;">[${choice.type}]</div>
+                <div style="font-size: 10px; color: #ddd; line-height: 1.3; margin-bottom: 6px;">${choice.desc}</div>
             </div>
-            <div style="font-size: 9px; font-weight: bold; color: #2ecc71; background: rgba(46, 204, 113, 0.1); padding: 2px; border-radius: 3px; border: 1px solid rgba(46, 204, 113, 0.3);">
+            <div style="font-size: 10px; font-weight: bold; color: #2ecc71; background: rgba(46, 204, 113, 0.1); padding: 3px; border-radius: 4px; border: 1px solid rgba(46, 204, 113, 0.3);">
                 ${choice.stats}
             </div>
         `;
 
         card.onclick = () => selectBlessingChoice(choice);
+
+        card.onmouseenter = () => {
+            card.style.transform = "translateY(-4px)";
+            card.style.borderColor = "#00ffcc";
+            card.style.boxShadow = "0 6px 18px rgba(0,255,204,0.3)";
+        };
+        card.onmouseleave = () => {
+            card.style.transform = "none";
+            card.style.borderColor = "rgba(255, 215, 0, 0.5)";
+            card.style.boxShadow = "0 4px 12px rgba(0,0,0,0.4)";
+        };
+
         grid.appendChild(card);
     });
 
     rewardBox.style.display = "block";
 
     if (typeof autoBattleActive !== "undefined" && autoBattleActive) {
+        showToast("🤖 自動戰術啟動中：1.5 秒後自動挑選賜福...", "info");
         autoSelectBlessingTimer = setTimeout(() => {
             selectBlessingChoice(defaultChoices[0]);
         }, 1500);
@@ -752,11 +765,11 @@ function getEquipmentStatDiff(blueprint) {
 
         const label = nameMap[statKey] || statKey;
         if (diff > 0) {
-            diffParts.push(`${label} +${newFinal} <span style="color:#2ecc71; font-weight:bold;">(+${diff})</span>`);
+            diffParts.push(`${label} +${newFinal} <span style="color:#2ecc71; font-weight:bold;">(🟢 +${diff})</span>`);
         } else if (diff < 0) {
-            diffParts.push(`${label} +${newFinal} <span style="color:#ff4757; font-weight:bold;">(${diff})</span>`);
+            diffParts.push(`${label} +${newFinal} <span style="color:#ff4757; font-weight:bold;">(🔴 ${diff})</span>`);
         } else {
-            diffParts.push(`${label} +${newFinal}`);
+            diffParts.push(`${label} +${newFinal} <span style="color:#8e8e93;">(=)</span>`);
         }
     }
 
@@ -793,7 +806,7 @@ function syncCharacterDataUi() {
     const folderSummary = DOM.get('char-folder-summary');
     if (folderSummary) {
         folderSummary.innerHTML = pts > 0 
-            ? `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold;">[✨ ${pts} 點數待分配]</span>`
+            ? `🔍 展開角色面板 <span style="color: #00ffcc; font-weight: bold; text-shadow: 0 0 6px rgba(0,255,204,0.5);">[✨ ${pts} 點數待分配]</span>`
             : `🔍 展開查看 戰偶裝備、配點與詳細數值`;
     }
 
@@ -818,17 +831,17 @@ function syncCharacterDataUi() {
             cell.style.cssText = `
                 background: rgba(255, 255, 255, 0.03);
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 4px; padding: 3px 6px;
+                border-radius: 6px; padding: 5px 8px;
                 display: flex; justify-content: space-between; align-items: center;
                 cursor: pointer; transition: all 0.2s ease;
             `;
 
             cell.innerHTML = `
                 <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 10px; color: #ddd; font-weight: 600;">${s.name} <b style="color: #00ffcc;">${val}</b></span>
+                    <span style="font-size: 11px; color: #ddd; font-weight: 600;">${s.name} <b style="color: #00ffcc;">${val}</b></span>
                 </div>
                 <button class="btn-game" 
-                    style="padding: 1px 6px; font-size: 10px; min-width: 20px; height: 18px; line-height: 1; font-weight: bold; background: ${hasPoints ? 'linear-gradient(135deg, #16a085, #0a5c4c)' : 'rgba(255,255,255,0.05)'};"
+                    style="padding: 2px 8px; font-size: 11px; min-width: 24px; height: 22px; line-height: 1; font-weight: bold; background: ${hasPoints ? 'linear-gradient(135deg, #16a085, #0a5c4c)' : 'rgba(255,255,255,0.05)'};"
                     ${hasPoints ? "" : "disabled"} 
                     onclick="event.stopPropagation(); allocateStatPoint('${s.key}')">+</button>
             `;
@@ -931,7 +944,7 @@ function syncCharacterDataUi() {
         else if (invLen === maxBag - 1) capClass = "text-warn";
 
         if (gameState === "VILLAGE" && invLen > 0) {
-            capTextEl.innerHTML = `<span class="${capClass}">🎒 ${invLen} / ${maxBag}</span> <button class="btn-game btn-rest" style="padding: 1px 6px; font-size: 9px; margin-left: 4px;" onclick="executeDepositAllBagItems()">📦 一鍵全存</button>`;
+            capTextEl.innerHTML = `<span class="${capClass}">🎒 ${invLen} / ${maxBag}</span> <button class="btn-game btn-rest" style="padding: 2px 8px; font-size: 10px; margin-left: 6px;" onclick="executeDepositAllBagItems()">📦 一鍵全存</button>`;
         } else {
             capTextEl.innerHTML = `<span class="${capClass}">🎒 ${invLen} / ${maxBag}</span>`;
         }
@@ -946,13 +959,14 @@ function syncCharacterDataUi() {
             const item = currentRun.inventory[i];
             const slot = document.createElement('div');
             slot.style.cssText = `
-                height: 28px;
+                height: 34px;
                 border: 1px ${item ? "solid rgba(255,215,0,0.5)" : "dashed rgba(255,255,255,0.15)"};
                 background: ${item ? "rgba(255,215,0,0.08)" : "rgba(0,0,0,0.2)"};
-                border-radius: 4px; display: flex; align-items: center; justify-content: center;
-                font-size: 10px; cursor: ${item ? "pointer" : "default"}; position: relative;
-                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px;
+                border-radius: 6px; display: flex; align-items: center; justify-content: center;
+                font-size: 11px; cursor: ${item ? "pointer" : "default"}; position: relative;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px;
                 color: ${item ? "#ffd700" : "#666"};
+                box-shadow: ${item ? "0 2px 6px rgba(0,0,0,0.3)" : "none"};
                 transition: all 0.2s ease;
             `;
 
@@ -987,7 +1001,7 @@ function syncCharacterDataUi() {
                     return { title: item, type: typeStr, desc: desc, stats: statsStr };
                 });
             } else {
-                slot.innerHTML = `<span style="color:#444; font-size:9px;">空位</span>`;
+                slot.innerHTML = `<span style="color:#444; font-size:10px;">空位</span>`;
             }
             bagContainer.appendChild(slot);
         }
@@ -1209,7 +1223,7 @@ function formatSkillEffectText(s, lv, playerRun) {
     return parts.length > 0 ? parts.join(" | ") : "特殊效果觸發";
 }
 
-// 🏛️ 冒險者公會渲染 (Zero-Gap 精簡)
+// 🏛️ 冒險者公會渲染
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
     if (!container || typeof SKILLS_DATABASE === "undefined") return;
@@ -1222,14 +1236,14 @@ function renderVillageGuild() {
         const advBanner = document.createElement('div');
         advBanner.style.cssText = `
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.3));
-            border: 1px solid #ffd700; border-radius: 6px; padding: 6px; margin-bottom: 4px;
-            text-align: center; width: 100%;
+            border: 2px solid #ffd700; border-radius: 10px; padding: 10px; margin-bottom: 10px;
+            text-align: center; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25); width: 100%;
         `;
         advBanner.innerHTML = `
-            <div style="font-size: 11px; font-weight: bold; color: #ffd700;">
+            <div style="font-size: 13px; font-weight: bold; color: #ffd700; margin-bottom: 2px;">
                 🌟【血脈突破】具備資格進行皇家二轉突破儀式！
             </div>
-            <button class="btn-game btn-rerun" style="padding: 2px 8px; font-size: 10px; font-weight: bold; margin-top: 2px;" onclick="if(typeof openJobAdvancementModal === 'function') openJobAdvancementModal(); else showToast('二轉系統載入中...', 'info');">
+            <button class="btn-game btn-rerun" style="padding: 4px 12px; font-size: 11px; font-weight: bold; margin-top: 4px;" onclick="if(typeof openJobAdvancementModal === 'function') openJobAdvancementModal(); else showToast('二轉系統載入中...', 'info');">
                 🏇✨ 開啟二轉突破選擇
             </button>
         `;
@@ -1241,9 +1255,9 @@ function renderVillageGuild() {
     jobSkills.forEach(s => {
         const row = document.createElement('div');
         row.style.cssText = `
-            background: rgba(0,0,0,0.3); padding: 3px 6px; border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.05); margin-bottom: 2px; width: 100%;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+            background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px; width: 100%;
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s;
         `;
 
         const currentLv = (accountMeta.skills && accountMeta.skills[s.name]) || (currentRun.skills && currentRun.skills[s.name]) || 0;
@@ -1264,18 +1278,18 @@ function renderVillageGuild() {
         const reqMatText = reqMatTextArr.join(", ");
 
         let btnDisabled = isMaxLevel || !hasLevel || !hasGold || !hasMats;
-        const skillTypeTag = s.type === "passive" ? `<span style="color:#00ffcc; font-size:9px;">[被動]</span>` : `<span style="color:#ff9f43; font-size:9px;">[MP:${s.mp}]</span>`;
+        const skillTypeTag = s.type === "passive" ? `<span style="color:#00ffcc; font-size:10px;">[被動]</span>` : `<span style="color:#ff9f43; font-size:10px;">[MP:${s.mp}]</span>`;
 
         row.innerHTML = `
             <div>
-                <strong style="color: #ffd700; font-size: 11px;">${skillTypeTag} ${s.name}</strong>
-                <span style="color: #8e8e93; font-size: 9px; margin-left: 4px;">Lv.${currentLv} / 10</span>
+                <strong style="color: #ffd700; font-size: 12px;">${skillTypeTag} ${s.name}</strong>
+                <span style="color: #8e8e93; font-size: 10px; margin-left: 6px;">Lv.${currentLv} / 10</span>
             </div>
         `;
 
         const btnLearn = document.createElement('button');
         btnLearn.className = "btn-game btn-explore";
-        btnLearn.style.cssText = "padding: 2px 6px; font-size: 9px; font-weight: bold;";
+        btnLearn.style.cssText = "padding: 3px 8px; font-size: 10px; font-weight: bold;";
         btnLearn.innerText = isMaxLevel ? "滿級" : `升級 (${goldCost}G)`;
         btnLearn.disabled = btnDisabled;
         btnLearn.onclick = (e) => { 
@@ -1301,19 +1315,20 @@ function renderVillageGuild() {
 
     const resetSection = document.createElement('div');
     resetSection.style.cssText = `
-        margin-top: 4px; padding: 4px 6px; background: rgba(0, 0, 0, 0.25);
-        border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 6px; width: 100%;
+        margin-top: 10px; padding: 8px 10px; background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; width: 100%;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
     `;
     resetSection.innerHTML = `
-        <div style="font-size: 10px; font-weight: bold; color: #ffd700; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-            ⚖️ 命運洗禮
+        <div style="font-size: 11px; font-weight: bold; color: #ffd700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+            ⚖️ 命運洗禮 (洗點與轉職)
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-            <button class="btn-game btn-rerun" style="padding: 4px; font-size: 10px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important; display: flex; align-items: center; justify-content: center; gap: 2px;" onclick="if(typeof executeResetStats === 'function') executeResetStats(); else showToast('洗點模組載入中...', 'info');">
-                <span>🧹 洗點 (300G)</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="btn-game btn-rerun" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof executeResetStats === 'function') executeResetStats(); else showToast('洗點模組載入中...', 'info');">
+                <span>🧹 重洗屬性點</span> <span style="font-size: 9px; opacity: 0.85;">(300G)</span>
             </button>
-            <button class="btn-game btn-explore" style="padding: 4px; font-size: 10px; font-weight: bold; background: linear-gradient(135deg, #16a085, #0a5c4c) !important; display: flex; align-items: center; justify-content: center; gap: 2px;" onclick="if(typeof triggerReselectJobUI === 'function') triggerReselectJobUI(); else showToast('轉職模組載入中...', 'info');">
-                <span>🔄 轉職 (1,000G)</span>
+            <button class="btn-game btn-explore" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #16a085, #0a5c4c) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof triggerReselectJobUI === 'function') triggerReselectJobUI(); else showToast('轉職模組載入中...', 'info');">
+                <span>🔄 重選職業</span> <span style="font-size: 9px; opacity: 0.85;">(1,000G)</span>
             </button>
         </div>
     `;
@@ -1329,7 +1344,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     if (!containerEl) return;
     const filterRow = document.createElement('div');
     filterRow.className = "warehouse-filter-row";
-    filterRow.style.cssText = "display: flex; gap: 4px; margin-bottom: 2px; flex-wrap: wrap;";
+    filterRow.style.cssText = "display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;";
 
     const tags = [
         { key: "all", label: "🌐 全部" },
@@ -1341,7 +1356,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     tags.forEach(t => {
         const btn = document.createElement('button');
         btn.className = `btn-game ${activeWarehouseFilter === t.key ? 'btn-rerun' : ''}`;
-        btn.style.cssText = "padding: 2px 6px; font-size: 9px; font-weight: 600;";
+        btn.style.cssText = "padding: 3px 8px; font-size: 10px; font-weight: 600;";
         btn.innerText = t.label;
         btn.onclick = () => {
             activeWarehouseFilter = t.key;
@@ -1353,7 +1368,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange) {
     containerEl.appendChild(filterRow);
 }
 
-// 🍳 皇家料理屋渲染 (無重複標題 + Zero-Gap 微縮版)
+// 🍳 皇家料理屋渲染
 function renderVillageCookingWorkshop() {
     const wBox = DOM.get('kitchen-warehouse-display');
     if (wBox) {
@@ -1387,7 +1402,7 @@ function renderVillageCookingWorkshop() {
             rawMatContainer.className = "warehouse-pill-box";
 
             if (rawMaterials.length === 0) {
-                rawMatContainer.innerHTML = `<span style="color:#888; font-size:10px;">無符合條件的食材</span>`;
+                rawMatContainer.innerHTML = `<span style="color:#888; font-size:11px;">無符合條件的食材</span>`;
             } else {
                 rawMaterials.forEach(m => {
                     const pill = document.createElement('span');
@@ -1401,20 +1416,20 @@ function renderVillageCookingWorkshop() {
 
         if (activeWarehouseFilter !== "mat" && cookedDishes.length > 0) {
             const dishesGrid = document.createElement('div');
-            dishesGrid.style.cssText = "display: flex; flex-direction: column; gap: 2px; margin-top: 2px;";
+            dishesGrid.style.cssText = "display: flex; flex-direction: column; gap: 4px; margin-top: 4px;";
 
             cookedDishes.forEach(d => {
                 const dishRow = document.createElement('div');
                 dishRow.style.cssText = `
                     display: flex; justify-content: space-between; align-items: center;
                     background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2);
-                    border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer;
+                    border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;
                 `;
                 dishRow.innerHTML = `<span>🍱 <strong>${d.name}</strong> (x${d.qty})</span>`;
 
                 const btnWithdraw = document.createElement('button');
                 btnWithdraw.className = "btn-game btn-explore";
-                btnWithdraw.style.cssText = "padding: 1px 5px; font-size: 9px; font-weight: bold;";
+                btnWithdraw.style.cssText = "padding: 2px 6px; font-size: 10px; font-weight: bold;";
                 btnWithdraw.innerText = "🎒 取出 1 個";
                 btnWithdraw.onclick = (e) => { e.stopPropagation(); executeWithdrawFoodFromWarehouse(d.name); };
 
@@ -1439,9 +1454,9 @@ function renderVillageCookingWorkshop() {
     rContainer.innerHTML = "";
 
     const selectorControl = document.createElement('div');
-    selectorControl.style.cssText = "margin-bottom: 4px; width: 100%;";
+    selectorControl.style.cssText = "margin-bottom: 8px; width: 100%;";
     selectorControl.innerHTML = `
-        <select class="select-game" style="padding: 4px 8px; font-size: 11px;" onchange="changeCookingTab(this.value)">
+        <select class="select-game" onchange="changeCookingTab(this.value)">
             <option value="1-10" ${activeCookingRange === "1-10" ? "selected" : ""}>📜 深淵階層 B1F ~ B10F 食譜</option>
             <option value="11-20" ${activeCookingRange === "11-20" ? "selected" : ""}>📜 深淵階層 B11F ~ B20F 食譜</option>
             <option value="21-30" ${activeCookingRange === "21-30" ? "selected" : ""}>📜 深淵階層 B21F ~ B30F 食譜</option>
@@ -1457,18 +1472,18 @@ function renderVillageCookingWorkshop() {
     filteredRecipes.forEach(recipe => {
         const row = document.createElement('div');
         row.style.cssText = `
-            background: rgba(0,0,0,0.25); padding: 3px 6px; border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.03); margin-bottom: 2px; width: 100%;
+            background: rgba(0,0,0,0.25); padding: 5px 8px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.03); margin-bottom: 4px; width: 100%;
             display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         `;
 
         const ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
 
-        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:11px;">${recipe.name}</strong></div>`;
+        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:12px;">${recipe.name}</strong></div>`;
 
         const btnCook = document.createElement('button');
         btnCook.className = "btn-game btn-cook";
-        btnCook.style.cssText = "padding: 2px 6px; font-size: 9px;";
+        btnCook.style.cssText = "padding: 3px 8px; font-size: 10px;";
         btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 進食 Buff" : "🍳 烹飪存倉";
         btnCook.onclick = (e) => { 
             e.stopPropagation(); 
@@ -1488,7 +1503,7 @@ function renderVillageCookingWorkshop() {
     });
 }
 
-// 🛠️ 魔導加工所渲染 (無重複標題 + Zero-Gap 微縮版)
+// 🛠️ 魔導加工所渲染（重構：全平台/手機端 Responsive Card Layout 上下分層）
 function renderVillageWorkshop() {
     const wBox = DOM.get('workshop-warehouse-display');
     if (wBox) {
@@ -1516,7 +1531,7 @@ function renderVillageWorkshop() {
         pillBox.className = "warehouse-pill-box";
 
         if (itemsList.length === 0) {
-            pillBox.innerHTML = `<span style="color:#888; font-size:10px;">無符合條件的物品</span>`;
+            pillBox.innerHTML = `<span style="color:#888; font-size:11px;">無符合條件的物品</span>`;
         } else {
             itemsList.forEach(item => {
                 const pill = document.createElement('span');
@@ -1533,22 +1548,22 @@ function renderVillageWorkshop() {
     bContainer.innerHTML = "";
 
     const selectorWrapper = document.createElement('div');
-    selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 4px; width: 100%;";
+    selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; width: 100%;";
     selectorWrapper.innerHTML = `
-        <select class="select-game" style="padding: 4px 8px; font-size: 11px;" onchange="changeCraftingCat(this.value)">
-            <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部類別</option>
-            <option value="weapon" ${activeCraftingCategory === "weapon" ? "selected" : ""}>🗡️ 武器</option>
-            <option value="armor" ${activeCraftingCategory === "armor" ? "selected" : ""}>👕 防具</option>
-            <option value="accessory" ${activeCraftingCategory === "accessory" ? "selected" : ""}>💍 飾品</option>
+        <select class="select-game" onchange="changeCraftingCat(this.value)">
+            <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部神裝類別</option>
+            <option value="weapon" ${activeCraftingCategory === "weapon" ? "selected" : ""}>🗡️ 武器裝備</option>
+            <option value="armor" ${activeCraftingCategory === "armor" ? "selected" : ""}>👕 防具裝備</option>
+            <option value="accessory" ${activeCraftingCategory === "accessory" ? "selected" : ""}>💍 飾品裝備</option>
         </select>
-        <select class="select-game" style="padding: 4px 8px; font-size: 11px;" onchange="changeCraftingLvl(this.value)">
-            <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 B1F ~ B10F</option>
-            <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 B11F ~ B20F</option>
-            <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 B21F ~ B30F</option>
-            <option value="31-40" ${activeCraftingLvlRange === "31-40" ? "selected" : ""}>📜 B31F ~ B40F</option>
-            <option value="41-50" ${activeCraftingLvlRange === "41-50" ? "selected" : ""}>📜 B41F ~ B50F</option>
-            <option value="51-60" ${activeCraftingLvlRange === "51-60" ? "selected" : ""}>📜 B51F ~ B60F</option>
-            <option value="legendary" ${activeCraftingLvlRange === "legendary" ? "selected" : ""}>🌟 傳說藍圖</option>
+        <select class="select-game" onchange="changeCraftingLvl(this.value)">
+            <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 階層 B1F ~ B10F</option>
+            <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 階層 B11F ~ B20F</option>
+            <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 階層 B21F ~ B30F</option>
+            <option value="31-40" ${activeCraftingLvlRange === "31-40" ? "selected" : ""}>📜 階層 B31F ~ B40F</option>
+            <option value="41-50" ${activeCraftingLvlRange === "41-50" ? "selected" : ""}>📜 階層 B41F ~ B50F</option>
+            <option value="51-60" ${activeCraftingLvlRange === "51-60" ? "selected" : ""}>📜 階層 B51F ~ B60F</option>
+            <option value="legendary" ${activeCraftingLvlRange === "legendary" ? "selected" : ""}>🌟 傳說神裝藍圖</option>
         </select>
     `;
     bContainer.appendChild(selectorWrapper);
@@ -1571,9 +1586,9 @@ function renderVillageWorkshop() {
 
     if (filteredBlueprints.length === 0) {
         const emptyTip = document.createElement('div');
-        emptyTip.style.cssText = "color: #777; font-size: 10px; text-align: center; padding: 10px;";
+        emptyTip.style.cssText = "color: #777; font-size: 11px; text-align: center; padding: 15px;";
         emptyTip.innerText = activeCraftingLvlRange === "legendary" 
-            ? "🔒 尚未解鎖任何傳說藍圖。請前往地下黑市採購！" 
+            ? "🔒 尚未解鎖任何傳說藍圖。請前往地下黑市進行尋寶採購！" 
             : "📜 該分頁目前暫無可打造裝備。";
         bContainer.appendChild(emptyTip);
         return;
@@ -1584,10 +1599,11 @@ function renderVillageWorkshop() {
         row.className = "workshop-blueprint-card";
         row.style.cssText = `
             background: ${blueprint.isLegendary ? 'radial-gradient(circle at 0% 0%, rgba(230, 126, 34, 0.2) 0%, rgba(20, 15, 10, 0.85) 100%)' : 'rgba(15, 18, 25, 0.75)'}; 
-            padding: 5px 8px; border-radius: 6px;
+            padding: 8px 10px; border-radius: 8px;
             border: 1px solid ${blueprint.isLegendary ? 'rgba(230, 126, 34, 0.6)' : 'rgba(255,255,255,0.08)'}; 
-            margin-bottom: 3px; text-align: left;
-            width: 100%; display: flex; flex-direction: column; gap: 4px; cursor: pointer;
+            margin-bottom: 6px; text-align: left;
+            width: 100%; display: flex; flex-direction: column; gap: 6px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s ease;
             box-sizing: border-box;
         `;
 
@@ -1596,27 +1612,27 @@ function renderVillageWorkshop() {
         const statDiffHtml = getEquipmentStatDiff(blueprint);
         const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
 
-        const skillTag = blueprint.skill ? `<span style="font-size:9px; color:#00ffcc; background:rgba(0,255,204,0.1); padding:1px 4px; border-radius:3px; border:1px solid rgba(0,255,204,0.3); margin-left:4px;">✨ [${blueprint.skill.name}]</span>` : "";
+        const skillTag = blueprint.skill ? `<span style="font-size:10px; color:#00ffcc; background:rgba(0,255,204,0.1); padding:1px 5px; border-radius:4px; border:1px solid rgba(0,255,204,0.3); margin-left:6px;">✨ [${blueprint.skill.name}]</span>` : "";
 
-        // 上層：裝備資訊
+        // 上層：裝備資訊與標籤
         const infoDiv = document.createElement('div');
-        infoDiv.style.cssText = "display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 2px;";
+        infoDiv.style.cssText = "display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 4px;";
         infoDiv.innerHTML = `
             <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 2px;">
-                <strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:11px; font-weight:bold;">${blueprint.name}${refineBadge}</strong>
+                <strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:13px; font-weight:bold;">${blueprint.name}${refineBadge}</strong>
                 ${skillTag}
             </div>
-            <span style="font-size: 9px; color: #8e8e93; background: rgba(255,255,255,0.05); padding: 1px 4px; border-radius: 3px;">${blueprint.type.toUpperCase()}</span>
+            <span style="font-size: 10px; color: #8e8e93; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${blueprint.type.toUpperCase()}</span>
         `;
         row.appendChild(infoDiv);
 
-        // 下層：操作按鈕
+        // 下層：操作按鈕欄位（RWD 自適應防擠壓）
         const btnGroup = document.createElement('div');
-        btnGroup.style.cssText = "display: flex; gap: 4px; width: 100%; flex-wrap: wrap; justify-content: flex-end; align-items: center; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 4px; margin-top: 1px;";
+        btnGroup.style.cssText = "display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: flex-end; align-items: center; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;";
 
         const btnForge = document.createElement('button');
         btnForge.className = "btn-game btn-explore";
-        btnForge.style.cssText = "padding: 2px 6px; font-size: 9px; font-weight: bold; flex: 1; min-width: 50px; text-align: center;";
+        btnForge.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
         btnForge.innerHTML = "🔨 打造";
         btnForge.onclick = (e) => { e.stopPropagation(); if (typeof executeForgeEquipment === "function") executeForgeEquipment(blueprint); };
         btnGroup.appendChild(btnForge);
@@ -1631,7 +1647,7 @@ function renderVillageWorkshop() {
 
             const btnRefine = document.createElement('button');
             btnRefine.className = "btn-game btn-rerun";
-            btnRefine.style.cssText = `padding: 2px 6px; font-size: 9px; font-weight: bold; flex: 1.2; min-width: 75px; text-align: center; background: ${hasEnoughGold ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' : 'rgba(255,255,255,0.1)'} !important;`;
+            btnRefine.style.cssText = `padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1.2; min-width: 90px; text-align: center; background: ${hasEnoughGold ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' : 'rgba(255,255,255,0.1)'} !important;`;
             btnRefine.innerHTML = `✨ 強化 +${itemRefineLvl + 1} (${refineGoldCost}G)`;
             if (!hasEnoughGold) {
                 btnRefine.style.opacity = "0.65";
@@ -1655,14 +1671,14 @@ function renderVillageWorkshop() {
         if (isEquipped) {
             const btnUnequip = document.createElement('button');
             btnUnequip.className = "btn-game btn-rest"; 
-            btnUnequip.style.cssText = "padding: 2px 6px; font-size: 9px; font-weight: bold; flex: 1; min-width: 50px; text-align: center;";
+            btnUnequip.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
             btnUnequip.innerHTML = "❌ 卸下";
             btnUnequip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "unequip"); };
             btnGroup.appendChild(btnUnequip);
         } else if (hasInWarehouse) {
             const btnEquip = document.createElement('button');
             btnEquip.className = "btn-game btn-rerun"; 
-            btnEquip.style.cssText = "padding: 2px 6px; font-size: 9px; font-weight: bold; flex: 1; min-width: 50px; text-align: center;";
+            btnEquip.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
             btnEquip.innerHTML = "⚡ 穿戴";
             btnEquip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "equip"); };
             btnGroup.appendChild(btnEquip);
@@ -1769,20 +1785,20 @@ function openChestInspectionModal(chestName = "遠古石縫寶箱", difficulty =
 
     overlay.innerHTML = `
         <div class="modal-card">
-            <h3 id="chest-inspect-title" class="modal-title-cyan" style="font-size: 15px; color: #00ffcc; margin-bottom: 6px;">
+            <h3 id="chest-inspect-title" class="modal-title-cyan" style="font-size: 16px; color: #00ffcc; margin-bottom: 8px;">
                 📦 發現 ${cleanChestName}
             </h3>
-            <p id="chest-inspect-desc" class="modal-subtitle" style="font-size: 11px; color: #aaa; margin-bottom: 10px; line-height: 1.3;">
+            <p id="chest-inspect-desc" class="modal-subtitle" style="font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4;">
                 此寶箱掛有高階鎖芯，需要精細開鎖（難度：<strong style="color:#ffd700;">${difficulty.toUpperCase()}</strong>）。
             </p>
             <div class="chest-action-grid">
-                <button class="btn-game btn-explore" style="padding: 8px; font-size: 11px; font-weight: bold;" onclick="confirmStartLockpick()">
+                <button class="btn-game btn-explore" style="padding: 10px; font-size: 12px; font-weight: bold;" onclick="confirmStartLockpick()">
                     🔓 嘗試精細開鎖 (QTE)
                 </button>
-                <button class="btn-game btn-rerun" style="padding: 8px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="executeForceOpenChest()">
+                <button class="btn-game btn-rerun" style="padding: 10px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="executeForceOpenChest()">
                     🔨 強行撬開 (50% 毀損率)
                 </button>
-                <button class="btn-game btn-rest" style="padding: 6px; font-size: 10px;" onclick="closeChestInspectModal()">
+                <button class="btn-game btn-rest" style="padding: 8px; font-size: 11px;" onclick="closeChestInspectModal()">
                     🏃 暫時離開
                 </button>
             </div>
@@ -2101,43 +2117,44 @@ function renderVillageSquare() {
     if (!squareContainer) return;
 
     squareContainer.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
             
             <div style="
                 background: radial-gradient(circle at 0% 0%, rgba(230, 126, 34, 0.2) 0%, rgba(20, 15, 10, 0.95) 100%); 
-                border: 1px solid rgba(230, 126, 34, 0.4); border-radius: 8px; padding: 8px; 
+                border: 1px solid rgba(230, 126, 34, 0.4); border-radius: 12px; padding: 14px; 
                 display: flex; justify-content: space-between; align-items: center;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             ">
                 <div>
-                    <div style="font-size: 12px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</div>
-                    <div style="font-size: 10px; color: #aaa;">素材採購、傳說藍圖與倉庫變賣。</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #e67e22; letter-spacing: 0.5px;">⚖️ 地下黑市交易所</div>
+                    <div style="font-size: 11px; color: #aaa; margin-top: 3px;">提供稀有素材採購、傳說藍圖與倉庫變賣服務。</div>
                 </div>
-                <button class="btn-game btn-rerun" style="padding: 4px 10px; font-size: 10px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="openBlackMarketModal('buy')">
-                    🛒 交易選單
+                <button class="btn-game btn-rerun" style="padding: 6px 14px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="openBlackMarketModal('buy')">
+                    🛒 進入交易選單
                 </button>
             </div>
 
-            <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid rgba(41, 128, 185, 0.3); border-radius: 8px; padding: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-size: 11px; font-weight: bold; color: #3498db;">💬 冒險者廣場頻道</span>
-                    <span style="font-size: 9px; color: #00ffcc; font-weight: bold; background: rgba(0,255,204,0.1); padding: 1px 6px; border-radius: 8px; border: 1px solid rgba(0,255,204,0.3);">
-                        🟢 線上: <span id="square-online-count">${currentOnlineCount}</span> 人
+            <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid rgba(41, 128, 185, 0.3); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 13px; font-weight: bold; color: #3498db;">💬 冒險者廣場頻道</span>
+                    <span style="font-size: 11px; color: #00ffcc; font-weight: bold; background: rgba(0,255,204,0.1); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(0,255,204,0.3);">
+                        🟢 線上勇者: <span id="square-online-count">${currentOnlineCount}</span> 人
                     </span>
                 </div>
                 
                 <div id="square-chat-box" style="
-                    height: 110px; overflow-y: auto; background: rgba(0,0,0,0.4); 
-                    border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; 
-                    padding: 6px; font-size: 10px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;
+                    height: 130px; overflow-y: auto; background: rgba(0,0,0,0.4); 
+                    border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; 
+                    padding: 8px; font-size: 11px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;
                 ">
                 </div>
 
-                <div style="display: flex; gap: 4px;">
+                <div style="display: flex; gap: 6px;">
                     <input type="text" id="square-chat-input" placeholder="輸入發言內容..." maxlength="40" style="
                         flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(52, 152, 219, 0.4); 
-                        border-radius: 4px; color: #fff; padding: 4px 8px; font-size: 10px; outline: none;
+                        border-radius: 6px; color: #fff; padding: 6px 10px; font-size: 11px; outline: none;
                     " onkeypress="if(event.key === 'Enter') sendSquareChatMessage()">
-                    <button class="btn-game btn-explore" style="padding: 4px 10px; font-size: 10px;" onclick="sendSquareChatMessage()">
+                    <button class="btn-game btn-explore" style="padding: 6px 12px; font-size: 11px;" onclick="sendSquareChatMessage()">
                         發送
                     </button>
                 </div>
@@ -2160,7 +2177,7 @@ function openBlackMarketModal(tab = "buy") {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             display: flex; justify-content: center; align-items: center;
-            z-index: 9999; padding: 10px; box-sizing: border-box;
+            z-index: 9999; padding: 15px; box-sizing: border-box;
         `;
         document.body.appendChild(overlay);
     }
@@ -2212,42 +2229,42 @@ function renderBlackMarketModalContent() {
 
     overlay.innerHTML = `
         <div style="
-            background: rgba(24, 21, 18, 0.98); border: 2px solid #d35400; border-radius: 12px;
-            width: 100%; max-width: 380px; max-height: 85vh; display: flex; flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8); overflow: hidden;
+            background: rgba(24, 21, 18, 0.98); border: 2px solid #d35400; border-radius: 16px;
+            width: 100%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(211, 84, 0, 0.3); overflow: hidden;
         ">
-            <div style="background: rgba(37, 26, 20, 0.95); padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
+            <div style="background: rgba(37, 26, 20, 0.95); padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-size: 13px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</span>
-                    <span style="font-size: 9px; color: #888; margin-top: 1px;">⏳ 距離下次補貨: <span id="bm-refresh-timer" style="color:#00ffcc; font-weight:bold;">00:00:00</span></span>
+                    <span style="font-size: 14px; font-weight: bold; color: #e67e22;">⚖️ 地下黑市交易所</span>
+                    <span style="font-size: 10px; color: #888; margin-top: 2px;">⏳ 距離下次補貨: <span id="bm-refresh-timer" style="color:#00ffcc; font-weight:bold;">00:00:00</span></span>
                 </div>
-                <span style="font-size: 11px; color: #ffd700; font-weight: bold;">🪙 現金: ${playerGold} G</span>
+                <span style="font-size: 12px; color: #ffd700; font-weight: bold;">🪙 現金: ${playerGold} G</span>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <button style="
-                    padding: 8px; border: none; background: ${activeBlackMarketTab === 'buy' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
-                    color: ${activeBlackMarketTab === 'buy' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 11px; cursor: pointer;
-                    border-bottom: 2px solid ${activeBlackMarketTab === 'buy' ? '#e67e22' : 'transparent'};
+                    padding: 10px; border: none; background: ${activeBlackMarketTab === 'buy' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
+                    color: ${activeBlackMarketTab === 'buy' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 12px; cursor: pointer;
+                    border-bottom: 2px solid ${activeBlackMarketTab === 'buy' ? '#e67e22' : 'transparent'}; transition: all 0.2s;
                 " onclick="switchBlackMarketTab('buy')">🛒 採購黑市物資 (限額 3 件)</button>
 
                 <button style="
-                    padding: 8px; border: none; background: ${activeBlackMarketTab === 'sell' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
-                    color: ${activeBlackMarketTab === 'sell' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 11px; cursor: pointer;
-                    border-bottom: 2px solid ${activeBlackMarketTab === 'sell' ? '#e67e22' : 'transparent'};
+                    padding: 10px; border: none; background: ${activeBlackMarketTab === 'sell' ? 'rgba(230, 126, 34, 0.25)' : 'transparent'};
+                    color: ${activeBlackMarketTab === 'sell' ? '#e67e22' : '#888'}; font-weight: bold; font-size: 12px; cursor: pointer;
+                    border-bottom: 2px solid ${activeBlackMarketTab === 'sell' ? '#e67e22' : 'transparent'}; transition: all 0.2s;
                 " onclick="switchBlackMarketTab('sell')">💰 變賣倉庫物資</button>
             </div>
 
-            <div id="black-market-modal-list" style="padding: 8px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 180px;">
+            <div id="black-market-modal-list" style="padding: 12px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 220px;">
             </div>
 
-            <div style="padding: 8px; background: rgba(37, 26, 20, 0.95); border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
+            <div style="padding: 12px; background: rgba(37, 26, 20, 0.95); border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
                 ${activeBlackMarketTab === 'sell' ? `
-                    <button class="btn-game btn-rerun" style="padding: 4px 10px; font-size: 10px; background: #c0392b !important;" onclick="executeSellAllJunkMaterials(); renderBlackMarketModalContent();">
+                    <button class="btn-game btn-rerun" style="padding: 6px 12px; font-size: 11px; background: #c0392b !important;" onclick="executeSellAllJunkMaterials(); renderBlackMarketModalContent();">
                         🧹 一鍵清掃雜物
                     </button>
                 ` : `<span></span>`}
-                <button class="btn-game btn-rest" style="padding: 4px 12px; font-size: 10px;" onclick="closeBlackMarketModal()">關閉選單</button>
+                <button class="btn-game btn-rest" style="padding: 6px 16px; font-size: 11px;" onclick="closeBlackMarketModal()">關閉選單</button>
             </div>
         </div>
     `;
@@ -2262,22 +2279,22 @@ function renderBlackMarketModalContent() {
             row.style.cssText = `
                 display: flex; justify-content: space-between; align-items: center;
                 background: ${item.isLegendary ? 'rgba(230, 126, 34, 0.15)' : 'rgba(255,255,255,0.03)'}; 
-                padding: 6px 8px; border-radius: 6px;
+                padding: 10px; border-radius: 8px;
                 border: 1px solid ${item.isLegendary ? '#e67e22' : 'rgba(255,255,255,0.05)'};
             `;
 
             const nameColor = item.isLegendary ? "#f39c12" : "#fff";
 
             row.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 1px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
                     <div>
-                        <strong style="color: ${nameColor}; font-size: 11px;">${item.name}</strong>
-                        <span style="font-size: 9px; color: #ff9f43; margin-left: 2px;">[${item.type}]</span>
+                        <strong style="color: ${nameColor}; font-size: 12px;">${item.name}</strong>
+                        <span style="font-size: 10px; color: #ff9f43; margin-left: 4px;">[${item.type}]</span>
                     </div>
-                    <span style="font-size: 9px; color: #aaa;">${item.desc}</span>
+                    <span style="font-size: 10px; color: #aaa;">${item.desc}</span>
                 </div>
                 <button class="btn-game ${item.bought ? 'btn-rest' : 'btn-explore'}" 
-                    style="padding: 3px 8px; font-size: 10px; white-space: nowrap;" 
+                    style="padding: 5px 10px; font-size: 11px; white-space: nowrap;" 
                     ${canAfford ? "" : "disabled"} 
                     onclick="executeBuyBlackMarketItem(${item.idx})">
                     ${item.bought ? "❌ 已售罄" : `🪙 ${item.price} G`}
@@ -2302,25 +2319,25 @@ function renderBlackMarketModalContent() {
             const row = document.createElement('div');
             row.style.cssText = `
                 display: flex; justify-content: space-between; align-items: center;
-                background: rgba(255,255,255,0.03); padding: 5px 8px; border-radius: 6px;
+                background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;
                 border: 1px solid rgba(255,255,255,0.05);
             `;
             row.innerHTML = `
                 <div>
-                    <span style="font-size: 11px; color: #fff;">${itemName}</span>
-                    <span style="font-size: 10px; color: #ffd700; font-weight: bold;"> x${qty}</span>
-                    <div style="font-size: 9px; color: #888;">收購價: ${unitPrice} G</div>
+                    <span style="font-size: 12px; color: #fff;">${itemName}</span>
+                    <span style="font-size: 11px; color: #ffd700; font-weight: bold;"> x${qty}</span>
+                    <div style="font-size: 10px; color: #888;">收購單價: ${unitPrice} G</div>
                 </div>
-                <div style="display: flex; gap: 3px;">
-                    <button class="btn-game" style="padding: 2px 6px; font-size: 9px;" onclick="executeSellWarehouseItem('${itemName}', 1); renderBlackMarketModalContent();">賣 1 個</button>
-                    <button class="btn-game btn-rest" style="padding: 2px 6px; font-size: 9px;" onclick="executeSellWarehouseItem('${itemName}', ${qty}); renderBlackMarketModalContent();">全賣</button>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-game" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', 1); renderBlackMarketModalContent();">賣 1 個</button>
+                    <button class="btn-game btn-rest" style="padding: 4px 8px; font-size: 10px;" onclick="executeSellWarehouseItem('${itemName}', ${qty}); renderBlackMarketModalContent();">全賣</button>
                 </div>
             `;
             listEl.appendChild(row);
         }
 
         if (!hasItems) {
-            listEl.innerHTML = `<div style="color:#666; font-size:11px; text-align:center; padding: 20px;">📦 倉庫目前空空如也，沒有可賣出的物資。</div>`;
+            listEl.innerHTML = `<div style="color:#666; font-size:12px; text-align:center; padding: 30px;">📦 倉庫目前空空如也，沒有可賣出的物資。</div>`;
         }
     }
 }
@@ -2400,11 +2417,11 @@ function renderSquareChatBox() {
     const chatBox = document.getElementById('square-chat-box');
     if (!chatBox) return;
 
-    let html = `<div style="color: #7f8c8d; font-style: italic; margin-bottom: 2px;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
+    let html = `<div style="color: #7f8c8d; font-style: italic; margin-bottom: 4px;">[系統] 歡迎來到中央廣場！在此可以與線上勇者交流。</div>`;
     localChatHistory.forEach(item => {
         const safeName = escapeHTML(item.name);
         const safeMsg = escapeHTML(item.msg);
-        html += `<div style="line-height: 1.3; margin-bottom: 1px;"><strong style="color:#00ffcc;">[${safeName}]</strong>: <span style="color:#eee;">${safeMsg}</span></div>`;
+        html += `<div style="line-height: 1.4; margin-bottom: 2px;"><strong style="color:#00ffcc;">[${safeName}]</strong>: <span style="color:#eee;">${safeMsg}</span></div>`;
     });
 
     chatBox.innerHTML = html;
