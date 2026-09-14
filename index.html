@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#060609">
+    <meta name="theme-color" content="#0a0d14">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
@@ -228,7 +228,7 @@
                 </details>
             </section>
             
-            <!-- 🕹️ 3. 全局動作按鈕區 -->
+            <!-- 🕹️ 3. 全局動作按鈕區 (預設隱藏，由 ui.js 根據遊戲狀態完全接管動態渲染) -->
             <div id="action-panel-box" class="action-panel" style="display: none;"></div>
 
         </aside>
@@ -253,6 +253,7 @@
                     </div>
                 </div>
 
+                <!-- 🏛️ 冒險者公會 HTML 結構 (由 ui.js renderVillageGuild 動態注入技能與洗點/轉職按鈕) -->
                 <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
                     <div class="dynamic-panel cooking-style guild-theme-bg">
                         <div class="panel-title text-purple-title">🏛️ 皇家冒險者公會</div>
@@ -272,6 +273,7 @@
                     </div>
                 </div>
 
+                <!-- 💬 中央廣場 (動態載入聊天室與黑市) -->
                 <div id="v-loc-square" class="v-sub-loc-panel" style="display: none;">
                     <div class="notice-container">💬 正在連接中央交流廣場與黑市地下回收站...</div>
                 </div>
@@ -285,7 +287,7 @@
                 </div>
             </div>
 
-            <!-- 🧭 5. 肉鴿分支路線抉擇面板 -->
+            <!-- 🧭 5. 肉鴿分支路線抉擇面板 (Rogue-like Route Map Choices) -->
             <section class="dynamic-panel reward-style full-width" id="route-panel-box" style="display: none;">
                 <div class="panel-title text-gold" id="route-title-text">🧭 命運抉擇：選擇前進分支路線 🧭</div>
                 <div class="flex-layout" id="route-choices-container"></div>
@@ -419,16 +421,22 @@
     </div>
 </div>
 
-<!-- 📜 核心腳本載入鏈 (嚴格依序載入) -->
+<!-- ========================================================================== -->
+<!-- 📜 核心腳本加載鏈 (嚴格依賴順序載入) -->
+<!-- ========================================================================== -->
+
+<!-- 1. 靜態資料庫群 (優先載入) -->
 <script src="jobdata.js"></script>
 <script src="itemdata.js"></script>
 <script src="monsterdata.js"></script>
 <script src="environmentdata.js"></script>
 <script src="eventdata.js"></script>
 
+<!-- 2. 核心計算與存檔引擎 -->
 <script src="statengine.js"></script>
 <script src="state.js"></script>
 
+<!-- 3. UI 渲染與主遊戲邏輯控制 -->
 <script src="ui.js"></script>
 <script src="game.js"></script>
 
