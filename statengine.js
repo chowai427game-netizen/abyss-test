@@ -88,6 +88,8 @@
         current.vampRate = 0;
         current.doubleStrike = 0;
 
+        const bossTalentBonuses = acc.bossTalentBonuses || { maxHp: 0, spd: 0, critChance: 0 };
+
         // 職業攻防基礎公式
         if (job === "archer" || job === "hunter" || job === "bard_dancer") {
             current.atk = 15 + dexBonusAtk + Math.floor(s.STR * 0.5);
@@ -134,6 +136,10 @@
                 }
             }
         }
+
+        current.maxHp += Number(bossTalentBonuses.maxHp) || 0;
+        current.spd += Number(bossTalentBonuses.spd) || 0;
+        current.critChance = Math.min(80, (current.critChance || 0) + (Number(bossTalentBonuses.critChance) || 0));
 
         // 💖【關鍵修復】若是村莊狀態或加點後，直接補滿當前 HP / MP 至最新上限
         if (typeof gameState !== "undefined" && gameState === "VILLAGE") {

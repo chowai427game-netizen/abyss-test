@@ -1016,6 +1016,8 @@ function resolveAbyssEvent() {
     const rewardBox = document.getElementById('reward-panel-box');
     if (rewardBox) rewardBox.style.display = "none";
 
+    addExperience(rewardExp);
+
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
     if (mainBtn) {
@@ -1097,6 +1099,8 @@ function resolveRestNodeDone() {
 
     gameState = "ENCOUNTER_RESOLVED";
     
+    addExperience(rewardExp);
+
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
     if (mainBtn) {
@@ -1470,6 +1474,8 @@ function executeDungeonVictorySequence() {
         if (rewardBox) rewardBox.innerHTML = "";
     }
 
+    addExperience(rewardExp);
+
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
     if (mainBtn) {
@@ -1482,8 +1488,6 @@ function executeDungeonVictorySequence() {
         rerunBtn.style.display = "block";
     }
 
-    addExperience(rewardExp);
-    
     if (typeof updateUI === "function") updateUI();
 }
 
@@ -1519,11 +1523,20 @@ function triggerBossTalentReward() {
     if (typeof addLog === "function") addLog(`👑🌟【Boss 史詩突破】你征服了 B${dungeonFloor}F 領主，獲得永久血脈天賦覺醒選擇！`, "perfect");
     const talents = ["👑 不滅巨魔血脈 (MaxHP +100)", "⚡ 狂暴神經反射 (SPD +5)", "🩸 殘虐撕裂本能 (CRIT +5%)"];
     const chosen = talents[Math.floor(Math.random() * talents.length)];
-    
-    if (chosen.includes("MaxHP")) { currentRun.maxHp += 100; currentRun.hp += 100; }
-    else if (chosen.includes("SPD")) { currentRun.spd += 5; }
-    else if (chosen.includes("CRIT")) { currentRun.critChance += 5; }
 
+    if (!accountMeta.bossTalentBonuses) {
+        accountMeta.bossTalentBonuses = { maxHp: 0, spd: 0, critChance: 0 };
+    }
+
+    if (chosen.includes("MaxHP")) {
+        accountMeta.bossTalentBonuses.maxHp += 100;
+    } else if (chosen.includes("SPD")) {
+        accountMeta.bossTalentBonuses.spd += 5;
+    } else if (chosen.includes("CRIT")) {
+        accountMeta.bossTalentBonuses.critChance += 5;
+    }
+
+    if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     if (typeof addLog === "function") addLog(`✨ 天賦自動覺醒：<strong>${chosen}</strong>！`, "perfect");
 }
 
@@ -1930,11 +1943,19 @@ function refineSpecificEquipment(equipName) {
 
 function executeDismantle(equipName) {
     if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
-    let b = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(equipName) : CRAFTING_BLUEPRINTS.find(x => x.name === equipName); 
+    let b = typeof getItemBlueprintByName === "function" ? getItemBlueprintByName(equipName) : CRAFTING_BLUEPRINTS.find(x => x.name === equipName);
     if (!b) return;
 
-    if (accountMeta.warehouse[equipName]) accountMeta.warehouse[equipName]--;
-    
+    const equippedSlot = Object.keys(accountMeta.equipment || {}).find(slot => accountMeta.equipment[slot] === equipName);
+    if (equippedSlot) {
+        if (typeof addLog === "function") addLog(`⚠️【拆解失敗】請先卸下已裝備的 <strong>[${equipName}]</strong> 再進行拆解。`, "warn");
+        return;
+    }
+
+    if (!accountMeta.warehouse || !accountMeta.warehouse[equipName]) return;
+    accountMeta.warehouse[equipName]--;
+    if (accountMeta.warehouse[equipName] <= 0) delete accountMeta.warehouse[equipName];
+
     let refunded = [];
     for (let ing in b.ingredients) {
         let refundQty = Math.ceil(b.ingredients[ing] * 0.5);

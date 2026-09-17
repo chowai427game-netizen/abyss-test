@@ -28,6 +28,7 @@ function createDefaultAccountMeta(name, pin) {
         job: "swordsman",
         skills: {},
         warehouse: {},
+        bossTalentBonuses: { maxHp: 0, spd: 0, critChance: 0 },
         equipment: { weapon: null, armor: null, accessory: null },
         equipmentStars: { weapon: 0, armor: 0, accessory: 0 },
         itemRefines: {},
@@ -285,6 +286,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
     if (!accountMeta.equipment) accountMeta.equipment = { weapon: null, armor: null, accessory: null };
     if (!accountMeta.equipmentStars) accountMeta.equipmentStars = { weapon: 0, armor: 0, accessory: 0 };
     if (!accountMeta.warehouse) accountMeta.warehouse = {};
+    if (!accountMeta.bossTalentBonuses) accountMeta.bossTalentBonuses = { maxHp: 0, spd: 0, critChance: 0 };
     if (!accountMeta.skills) accountMeta.skills = {};
     if (!accountMeta.itemRefines) accountMeta.itemRefines = {};
 
