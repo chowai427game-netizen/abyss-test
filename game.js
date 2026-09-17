@@ -1016,7 +1016,7 @@ function resolveAbyssEvent() {
     const rewardBox = document.getElementById('reward-panel-box');
     if (rewardBox) rewardBox.style.display = "none";
 
-    addExperience(rewardExp);
+    addExperience(rewardExperience);
 
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
@@ -1099,7 +1099,7 @@ function resolveRestNodeDone() {
 
     gameState = "ENCOUNTER_RESOLVED";
     
-    addExperience(rewardExp);
+    addExperience(rewardExperience);
 
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
@@ -1444,11 +1444,11 @@ function executeDungeonVictorySequence() {
 
     let multiplier = isBossFloor ? 3.0 : (isElite ? 1.8 : 1.0);
     let rewardG = Math.floor((15 + Math.floor(dungeonFloor * 1.5)) * multiplier);
-    let rewardExp = Math.floor((12 + dungeonFloor * 2) * multiplier);
+    let rewardExperience = Math.floor((12 + dungeonFloor * 2) * multiplier);
 
     currentRun.gold += rewardG; 
     let victoryTag = isElite ? `💀 精英討伐成功！` : (isBossFloor ? `👑 領主討伐成功！` : `⚔️ 戰鬥勝利！`);
-    if (typeof addLog === "function") addLog(`${victoryTag} <span class="gold-victory-text">VICTORY!</span> 獲得金幣 +${rewardG} G，經驗值 +${rewardExp}。`, "victory-badge");
+    if (typeof addLog === "function") addLog(`${victoryTag} <span class="gold-victory-text">VICTORY!</span> 獲得金幣 +${rewardG} G，經驗值 +${rewardExperience}。`, "victory-badge");
     
     let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" ? MONSTER_DROPS[activeMonster?.name.replace("💀 精英・", "")] : null);
     if (dropItemName) {
@@ -1474,7 +1474,7 @@ function executeDungeonVictorySequence() {
         if (rewardBox) rewardBox.innerHTML = "";
     }
 
-    addExperience(rewardExp);
+    addExperience(rewardExperience);
 
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
@@ -1520,7 +1520,7 @@ function triggerBossVictoryModal(bossName) {
 }
 
 function triggerBossTalentReward() {
-    if (typeof addLog === "function") addLog(`👑🌟【Boss 史詩突破】你征服了 B${dungeonFloor}F 領主，獲得永久血脈天賦覺醒選擇！`, "perfect");
+    if (typeof addLog === "function") addLog(`👑🌟【Boss 史詩突破】你征服了 B${dungeonFloor}F 領主，獲得一次隨機的永久血脈天賦覺醒！`, "perfect");
     const talents = ["👑 不滅巨魔血脈 (MaxHP +100)", "⚡ 狂暴神經反射 (SPD +5)", "🩸 殘虐撕裂本能 (CRIT +5%)"];
     const chosen = talents[Math.floor(Math.random() * talents.length)];
 

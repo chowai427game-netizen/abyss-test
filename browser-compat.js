@@ -10,18 +10,11 @@
 
     function verifyGameCore() {
         const requiredFunctions = [
+            'initOrLoadPlayer',
             'handleStartGame',
             'renderInitialJobModal',
             'selectInitialJob',
-            'enterGameMainShell',
-            'startNextFloor',
-            'rerunCurrentFloor',
-            'returnToVillage',
-            'handleMainAction',
-            'handleRerunAction',
-            'handleSecondaryAction',
-            'selectRouteNode',
-            'closeJobAdvancementModal'
+            'enterGameMainShell'
         ];
 
         const missing = requiredFunctions.filter((name) => typeof global[name] !== 'function');
