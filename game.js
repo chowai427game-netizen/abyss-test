@@ -4,6 +4,9 @@
 
 let combatTickerTimer = null; 
 let combatRoundCounter = 1;     
+let bossVictoryUnlockTimer = null;
+let bossVictoryAutoCloseTimer = null;
+let bossVictoryCloseHandler = null;
 
 let playerAtb = 0;
 let monsterAtb = 0;
@@ -1489,18 +1492,27 @@ function triggerBossVictoryModal(bossName) {
     const nameEl = document.getElementById('victory-boss-name');
     if (!overlay) return;
     if (nameEl) nameEl.innerText = bossName || "LEGENDARY BOSS DEFEATED";
+
+    if (bossVictoryUnlockTimer) clearTimeout(bossVictoryUnlockTimer);
+    if (bossVictoryAutoCloseTimer) clearTimeout(bossVictoryAutoCloseTimer);
+    if (bossVictoryCloseHandler) {
+        overlay.removeEventListener('click', bossVictoryCloseHandler);
+    }
     overlay.style.display = 'flex';
-    
-    const closeHandler = () => {
+
+    bossVictoryCloseHandler = () => {
         overlay.style.display = 'none';
-        overlay.removeEventListener('click', closeHandler);
+        overlay.removeEventListener('click', bossVictoryCloseHandler);
+        bossVictoryUnlockTimer = null;
+        bossVictoryAutoCloseTimer = null;
+        bossVictoryCloseHandler = null;
     };
 
-    setTimeout(() => {
-        overlay.addEventListener('click', closeHandler);
+    bossVictoryUnlockTimer = setTimeout(() => {
+        overlay.addEventListener('click', bossVictoryCloseHandler);
     }, 800);
 
-    setTimeout(closeHandler, 5000);
+    bossVictoryAutoCloseTimer = setTimeout(bossVictoryCloseHandler, 5000);
 }
 
 function triggerBossTalentReward() {
@@ -1543,16 +1555,15 @@ function addExperience(amount) {
 }
 
 function checkLevelUpAndTriggerSelect() {
-    if (accountMeta.exp >= accountMeta.nextExp) {
+    while (accountMeta.exp >= accountMeta.nextExp) {
+        accountMeta.exp -= accountMeta.nextExp;
         accountMeta.lv = (accountMeta.lv || 1) + 1;
-        currentRun.lv = accountMeta.lv; 
-        accountMeta.statPoints = (accountMeta.statPoints || 0) + 3; 
-        
-        accountMeta.exp = 0;
-        currentRun.exp = 0;
-        
+        currentRun.lv = accountMeta.lv;
+        accountMeta.statPoints = (accountMeta.statPoints || 0) + 3;
+
         accountMeta.nextExp = Math.floor(accountMeta.nextExp * 1.4);
         currentRun.nextExp = accountMeta.nextExp;
+        currentRun.exp = accountMeta.exp;
 
         if (typeof addLog === "function") addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 3 點能力點數！`, "perfect");
     }
