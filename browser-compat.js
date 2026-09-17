@@ -1,49 +1,56 @@
 // ============================================================================
-// browser-compat.js - GitHub Pages bootstrap and diagnostics
+// browser-compat.js - safe bootstrap for GitHub Pages
 // ============================================================================
 (function (global) {
-    function showBootError(message) {
+    const uiMessage = "遊戲核心尚未載入，請重新整理頁面或恢復完整 game.js。";
+
+    function showBootMessage(message) {
         console.error(message);
-        const box = document.getElementById('legacy-box');
-        if (box) box.textContent = message;
+        const legacyBox = document.getElementById('legacy-box');
+        if (legacyBox) legacyBox.textContent = message;
     }
 
-    // game.js currently does not parse/load in the deployed build. Keep the
-    // form callable so the page reports the real bootstrap problem instead of
-    // throwing "handleStartGame is not defined" from an inline handler.
-    if (typeof global.handleStartGame !== 'function') {
-        global.handleStartGame = async function handleStartGame() {
-            if (typeof global.initOrLoadPlayer !== 'function') {
-                showBootError('遊戲核心載入失敗：game.js 無法執行，請恢復完整 game.js 後再試。');
-                return;
-            }
+    function ensureFallbacks() {
+        if (typeof global.handleStartGame !== 'function') {
+            global.handleStartGame = function handleStartGameFallback() {
+                showBootMessage('handleStartGame is unavailable because game.js did not load.');
+            };
+        }
 
-            const name = document.getElementById('player-name-input')?.value || '';
-            const pin = document.getElementById('player-pin-input')?.value || '';
-            try {
-                const result = await global.initOrLoadPlayer(name, pin);
-                if (!result || !result.success) return;
-                if (result.isNewUser && typeof global.renderInitialJobModal === 'function') {
-                    global.renderInitialJobModal(false);
-                } else if (typeof global.enterGameMainShell === 'function') {
-                    global.enterGameMainShell();
-                } else {
-                    showBootError('登入成功，但遊戲核心尚未載入：請恢復完整 game.js。');
-                }
-            } catch (error) {
-                console.error('Game bootstrap failed:', error);
-                showBootError('遊戲核心啟動失敗，請查看 Console 並恢復完整 game.js。');
+        const safeNames = [
+            'clearAllLegacySaves',
+            'hideMaterialAlert',
+            'switchVillageLocation',
+            'toggleTacticsDrawer',
+            'selectTactic',
+            'closeJobAdvancementModal'
+        ];
+
+        safeNames.forEach((name) => {
+            if (typeof global[name] !== 'function') {
+                global[name] = function fallbackNoop() {
+                    console.warn(`${name} is unavailable because the core game script did not load.`);
+                };
             }
-        };
+        });
     }
+
+    ensureFallbacks();
 
     global.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('login-form');
         if (!form || form.dataset.bound === 'true') return;
         form.dataset.bound = 'true';
+
         form.addEventListener('submit', function (event) {
             event.preventDefault();
-            global.handleStartGame();
+
+            if (typeof global.handleStartGame === 'function') {
+                global.handleStartGame();
+                return;
+            }
+
+            showBootMessage(uiMessage);
         });
     });
 })(window);
