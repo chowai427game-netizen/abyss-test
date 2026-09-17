@@ -28,6 +28,7 @@ function createDefaultAccountMeta(name, pin) {
         job: "swordsman",
         skills: {},
         warehouse: {},
+        bossTalentBonuses: { maxHp: 0, spd: 0, critChance: 0 },
         equipment: { weapon: null, armor: null, accessory: null },
         equipmentStars: { weapon: 0, armor: 0, accessory: 0 },
         itemRefines: {},
@@ -250,7 +251,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
         }
 
     } catch (err) {
-        console.warn("網絡連線逾時或失敗，切換至離線存檔驗證。");
+        console.info("雲端驗證逾時或失敗，已切換至本地存檔驗證；這不是遊戲核心載入錯誤。", err);
         const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
         const encodedPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${targetName}`);
         const localPin = encodedPin ? decodePin(encodedPin) : null;
@@ -285,6 +286,7 @@ async function initOrLoadPlayer(inputName, inputPin) {
     if (!accountMeta.equipment) accountMeta.equipment = { weapon: null, armor: null, accessory: null };
     if (!accountMeta.equipmentStars) accountMeta.equipmentStars = { weapon: 0, armor: 0, accessory: 0 };
     if (!accountMeta.warehouse) accountMeta.warehouse = {};
+    if (!accountMeta.bossTalentBonuses) accountMeta.bossTalentBonuses = { maxHp: 0, spd: 0, critChance: 0 };
     if (!accountMeta.skills) accountMeta.skills = {};
     if (!accountMeta.itemRefines) accountMeta.itemRefines = {};
 
@@ -374,7 +376,7 @@ async function executeCloudSave() {
         });
         clearTimeout(timeoutId);
     } catch (error) {
-        console.warn("雲端同步異常或連線逾時，數據已安全暫存於本地快取。");
+        console.info("雲端同步異常或連線逾時，數據已安全暫存於本地快取，可繼續離線遊玩。", error);
     } finally {
         clearTimeout(timeoutId);
         isSavingToCloud = false;
@@ -416,4 +418,18 @@ function clearAllLegacySaves() {
         notifyUser("🧹 已清空所有本地舊快取存檔！頁面將重置。", "info");
         setTimeout(() => location.reload(), 1000);
     }
+}
+
+
+if (typeof window !== "undefined") {
+    window.createDefaultAccountMeta = createDefaultAccountMeta;
+    window.resetRunState = resetRunState;
+    window.notifyUser = notifyUser;
+    window.checkPlayerNameLive = checkPlayerNameLive;
+    window.initOrLoadPlayer = initOrLoadPlayer;
+    window.saveGameData = saveGameData;
+    window.executeCloudSave = executeCloudSave;
+    window.exportSaveJSON = exportSaveJSON;
+    window.importSaveJSON = importSaveJSON;
+    window.clearAllLegacySaves = clearAllLegacySaves;
 }
