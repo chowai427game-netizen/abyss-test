@@ -23,9 +23,9 @@
         showBootError(`遊戲核心載入不完整：缺少 ${missing.join(', ')}，請恢復完整 game.js。`);
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', verifyGameCore, { once: true });
-    } else {
+    if (document.readyState === 'complete') {
         verifyGameCore();
+    } else {
+        global.addEventListener('load', verifyGameCore, { once: true });
     }
 })(window);

@@ -1016,8 +1016,6 @@ function resolveAbyssEvent() {
     const rewardBox = document.getElementById('reward-panel-box');
     if (rewardBox) rewardBox.style.display = "none";
 
-    addExperience(rewardExperience);
-
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
     if (mainBtn) {
@@ -1099,8 +1097,6 @@ function resolveRestNodeDone() {
 
     gameState = "ENCOUNTER_RESOLVED";
     
-    addExperience(rewardExperience);
-
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
     if (mainBtn) {
@@ -2028,7 +2024,10 @@ function executeEquipAction(equipName, actionType) {
             let old = accountMeta.equipment[slot]; 
             accountMeta.warehouse[old] = (accountMeta.warehouse[old] || 0) + 1; 
         }
-        if (accountMeta.warehouse[equipName]) accountMeta.warehouse[equipName]--; 
+        if (accountMeta.warehouse[equipName]) {
+            accountMeta.warehouse[equipName]--;
+            if (accountMeta.warehouse[equipName] <= 0) delete accountMeta.warehouse[equipName];
+        }
         if (!accountMeta.equipment) accountMeta.equipment = {};
         accountMeta.equipment[slot] = equipName;
     } else {
