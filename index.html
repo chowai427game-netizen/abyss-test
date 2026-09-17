@@ -91,8 +91,8 @@
 
         <div id="legacy-box" class="legacy-container">請輸入名字與 6 位數字 PIN 碼以檢驗血脈...</div>
 
-        <!-- 登入表單：避免 inline handler，改為事件綁定 -->
-        <form id="login-form" class="login-form-group">
+        <!-- 登入表單：支援原生 Enter 鍵提交 -->
+        <form id="login-form" class="login-form-group" onsubmit="event.preventDefault(); handleStartGame();">
             <input 
                 type="text" 
                 id="player-name-input" 
@@ -130,7 +130,7 @@
         
         <!-- ⬅️ 左側直欄 -->
         <aside class="left-layout-column">
-            
+             
             <!-- 📊 2. 勇者狀態數據面板 -->
             <section class="status-panel" id="status-panel-box" style="display: none;">
                 <div class="status-header-row">
@@ -139,7 +139,7 @@
                     <span>📈 <strong id="p-lv">1</strong> <span class="text-muted-sm">Lv</span></span>
                     <span class="text-green-sm">🟩 <span id="p-exp-text">0/30</span></span>
                 </div>
-
+                
                 <div class="bars-container-row">
                     <div class="mini-bar-box">
                         <div class="flex-space text-sm"><span>❤️ HP</span> <strong><span id="p-hp">100</span>/<span id="p-maxhp">100</span></strong></div>
@@ -227,7 +227,7 @@
                     </div>
                 </details>
             </section>
-            
+             
             <!-- 🕹️ 3. 全局動作按鈕區 (預設隱藏，由 ui.js 根據遊戲狀態完全接管動態渲染) -->
             <div id="action-panel-box" class="action-panel" style="display: none;"></div>
 
@@ -235,7 +235,7 @@
 
         <!-- ➡️ 右側直欄 -->
         <section class="right-layout-column">
-            
+             
             <!-- ⛺ 4. 地表村莊專用分流面板 -->
             <div id="village-panel-box" class="full-width" style="display: none;">
                 <nav class="village-nav-bar" aria-label="村莊區域導覽">
@@ -330,7 +330,7 @@
             <!-- 📜 8. 戰鬥日誌打印台 + 🧭 側拉式戰術抽屜 -->
             <section class="log-wrapper" id="log-wrapper-box" style="display: none;">
                 <div class="log-panel full-size" id="log-box" aria-live="polite" aria-atomic="false"></div>
-                
+                 
                 <div class="tactics-drawer" id="tactics-drawer-box">
                     <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn" aria-label="切換戰術面板">
                         <span class="trigger-icon">⚙️</span>
@@ -438,33 +438,8 @@
 
 <!-- 3. UI 渲染與主遊戲邏輯控制 -->
 <script src="ui.js"></script>
-<script src="game.js"></script>
 <script src="browser-compat.js"></script>
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('login-form');
-    if (!loginForm) return;
-
-    loginForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const runner = typeof window.handleStartGame === 'function'
-            ? window.handleStartGame
-            : (typeof handleStartGame === 'function' ? handleStartGame : null);
-
-        if (runner) {
-            runner();
-            return;
-        }
-
-        const legacyBox = document.getElementById('legacy-box');
-        if (legacyBox) {
-            legacyBox.textContent = '遊戲核心尚未載入，請重新整理頁面或檢查 JavaScript 檔案。';
-        }
-        console.error('handleStartGame is not available on the page.');
-    });
-});
-</script>
+<script src="game.js"></script>
 
 </body>
 </html>
