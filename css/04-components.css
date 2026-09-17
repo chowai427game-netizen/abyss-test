@@ -1,0 +1,88 @@
+/* ==========================================================================
+   安全重構第一階段：元件兼容覆蓋層
+   只覆蓋核心按鈕/輸入/Modal/面板，不複製 legacy style.css 全量內容。
+   ========================================================================== */
+
+body {
+    background: var(--abyss-color-bg);
+    color: var(--abyss-color-text);
+}
+
+.dynamic-panel,
+.modal-card,
+.mat-alert-box,
+.placeholder-card,
+.status-panel,
+.action-panel {
+    border-radius: var(--abyss-radius-md);
+    box-shadow: var(--abyss-shadow-sm);
+}
+
+.modal-card,
+.mat-alert-box {
+    background: linear-gradient(180deg, var(--abyss-color-surface) 0%, var(--abyss-color-surface-strong) 100%);
+    border: 1px solid var(--abyss-color-border);
+}
+
+.btn-game,
+.btn-nav-tab,
+.mat-alert-btn,
+.btn-text-muted,
+button,
+input,
+select,
+textarea {
+    min-height: var(--abyss-touch-target);
+}
+
+.btn-game,
+.btn-nav-tab,
+.mat-alert-btn,
+#start-game-btn {
+    border-radius: var(--abyss-radius-sm);
+    box-shadow: var(--abyss-shadow-sm);
+}
+
+.btn-game,
+.btn-nav-tab,
+.mat-alert-btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-game:hover,
+.btn-nav-tab:hover,
+.mat-alert-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--abyss-shadow-md);
+}
+
+.name-input,
+#player-name-input,
+#player-pin-input {
+    border-radius: var(--abyss-radius-sm);
+    border: 1px solid var(--abyss-color-border);
+    background: rgba(10, 15, 25, 0.88);
+    color: var(--abyss-color-text);
+    padding-inline: var(--abyss-space-3);
+}
+
+.name-input::placeholder,
+#player-name-input::placeholder,
+#player-pin-input::placeholder {
+    color: var(--abyss-color-text-muted);
+}
+
+.name-input:focus-visible,
+#player-name-input:focus-visible,
+#player-pin-input:focus-visible,
+.btn-game:focus-visible,
+.btn-nav-tab:focus-visible,
+.mat-alert-btn:focus-visible,
+.btn-text-muted:focus-visible {
+    outline: 2px solid var(--abyss-color-accent-strong);
+    outline-offset: 2px;
+}
+
+.job-selection-list > * + * {
+    margin-top: var(--abyss-space-2);
+}

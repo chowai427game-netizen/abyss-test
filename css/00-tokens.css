@@ -1,0 +1,30 @@
+/* ==========================================================================
+   安全重構第一階段：設計 Token 基線
+   保留 legacy style.css；此檔只提供核心 token 供後續新層逐步覆蓋。
+   ========================================================================== */
+
+:root {
+    --abyss-color-bg: #0a0d14;
+    --abyss-color-surface: rgba(15, 23, 42, 0.92);
+    --abyss-color-surface-strong: rgba(8, 12, 20, 0.96);
+    --abyss-color-border: rgba(0, 255, 204, 0.26);
+    --abyss-color-border-strong: rgba(255, 215, 0, 0.42);
+    --abyss-color-text: #f8fafc;
+    --abyss-color-text-muted: #cbd5e1;
+    --abyss-color-accent: #00ffcc;
+    --abyss-color-accent-strong: #14f1ff;
+    --abyss-color-gold: #ffd700;
+    --abyss-color-danger: #ff6b6b;
+    --abyss-color-shadow: rgba(0, 0, 0, 0.45);
+    --abyss-space-1: 4px;
+    --abyss-space-2: 8px;
+    --abyss-space-3: 12px;
+    --abyss-space-4: 16px;
+    --abyss-space-5: 20px;
+    --abyss-radius-sm: 8px;
+    --abyss-radius-md: 12px;
+    --abyss-radius-lg: 16px;
+    --abyss-shadow-sm: 0 4px 12px var(--abyss-color-shadow);
+    --abyss-shadow-md: 0 10px 24px var(--abyss-color-shadow);
+    --abyss-touch-target: 44px;
+}
