@@ -1,46 +1,49 @@
 // ============================================================================
-// 🧩 browser-compat.js：GitHub Pages inline-handler compatibility bridge
+// browser-compat.js - GitHub Pages bootstrap and diagnostics
 // ============================================================================
-// Classic <script> files may define functions in the global lexical scope but
-// inline HTML handlers resolve through window. Expose the public entry points
-// explicitly so form/button handlers work consistently on GitHub Pages.
-(function exposeBrowserApi(global) {
-    const expose = (name) => {
-        try {
-            if (typeof global[name] !== "function" && typeof window !== "undefined" && typeof window[name] === "function") {
-                global[name] = window[name];
-            }
-        } catch (error) {
-            console.warn(`Unable to expose ${name}:`, error);
-        }
-    };
-
-    // handleStartGame is required by index.html#login-form onsubmit.
-    // It may already be exported by game.js in newer builds.
-    if (typeof global.handleStartGame !== "function") {
-        try {
-            if (typeof handleStartGame === "function") {
-                global.handleStartGame = handleStartGame;
-            }
-        } catch (error) {
-            console.error("handleStartGame is not available. Check game.js loading.", error);
-        }
+(function (global) {
+    function showBootError(message) {
+        console.error(message);
+        const box = document.getElementById('legacy-box');
+        if (box) box.textContent = message;
     }
 
-    [
-        "handleStartGame",
-        "clearAllLegacySaves",
-        "hideMaterialAlert",
-        "switchVillageLocation",
-        "toggleTacticsDrawer",
-        "selectTactic"
-    ].forEach(expose);
+    // game.js currently does not parse/load in the deployed build. Keep the
+    // form callable so the page reports the real bootstrap problem instead of
+    // throwing "handleStartGame is not defined" from an inline handler.
+    if (typeof global.handleStartGame !== 'function') {
+        global.handleStartGame = async function handleStartGame() {
+            if (typeof global.initOrLoadPlayer !== 'function') {
+                showBootError('遊戲核心載入失敗：game.js 無法執行，請恢復完整 game.js 後再試。');
+                return;
+            }
 
-    if (typeof global.handleStartGame !== "function") {
-        global.handleStartGame = function handleStartGameUnavailable() {
-            console.error("handleStartGame is unavailable because game.js did not load.");
-            const message = document.getElementById("legacy-box");
-            if (message) message.textContent = "遊戲核心未能載入，請重新整理頁面或檢查 GitHub Pages 的 JavaScript 檔案。";
+            const name = document.getElementById('player-name-input')?.value || '';
+            const pin = document.getElementById('player-pin-input')?.value || '';
+            try {
+                const result = await global.initOrLoadPlayer(name, pin);
+                if (!result || !result.success) return;
+                if (result.isNewUser && typeof global.renderInitialJobModal === 'function') {
+                    global.renderInitialJobModal(false);
+                } else if (typeof global.enterGameMainShell === 'function') {
+                    global.enterGameMainShell();
+                } else {
+                    showBootError('登入成功，但遊戲核心尚未載入：請恢復完整 game.js。');
+                }
+            } catch (error) {
+                console.error('Game bootstrap failed:', error);
+                showBootError('遊戲核心啟動失敗，請查看 Console 並恢復完整 game.js。');
+            }
         };
     }
+
+    global.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('login-form');
+        if (!form || form.dataset.bound === 'true') return;
+        form.dataset.bound = 'true';
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            global.handleStartGame();
+        });
+    });
 })(window);
