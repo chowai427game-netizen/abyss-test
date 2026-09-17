@@ -1446,7 +1446,8 @@ function executeDungeonVictorySequence() {
     let victoryTag = isElite ? `💀 精英討伐成功！` : (isBossFloor ? `👑 領主討伐成功！` : `⚔️ 戰鬥勝利！`);
     if (typeof addLog === "function") addLog(`${victoryTag} <span class="gold-victory-text">VICTORY!</span> 獲得金幣 +${rewardG} G，經驗值 +${rewardExperience}。`, "victory-badge");
     
-    let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" ? MONSTER_DROPS[activeMonster?.name.replace("💀 精英・", "")] : null);
+    const defeatedMonsterName = activeMonster?.name ? activeMonster.name.replace("💀 精英・", "") : null;
+    let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" && defeatedMonsterName ? MONSTER_DROPS[defeatedMonsterName] : null);
     if (dropItemName) {
         let msg = safePushToInventory(currentRun, accountMeta, dropItemName);
         if (typeof addLog === "function") addLog(msg, "perfect");
@@ -1467,7 +1468,11 @@ function executeDungeonVictorySequence() {
         triggerBossTalentReward();
     } else {
         const rewardBox = document.getElementById('reward-panel-box');
-        if (rewardBox) rewardBox.innerHTML = "";
+        const rewardContainer = document.getElementById('reward-choices-container');
+        const rewardTitle = document.getElementById('reward-title-text');
+        if (rewardContainer) rewardContainer.innerHTML = "";
+        if (rewardTitle) rewardTitle.innerText = "";
+        if (rewardBox) rewardBox.style.display = "none";
     }
 
     addExperience(rewardExperience);
