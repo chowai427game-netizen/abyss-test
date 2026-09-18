@@ -27,4 +27,12 @@
     --abyss-shadow-sm: 0 4px 12px var(--abyss-color-shadow);
     --abyss-shadow-md: 0 10px 24px var(--abyss-color-shadow);
     --abyss-touch-target: 44px;
+    --vfx-hit-color: #ffb347;
+    --vfx-crit-color: #ffd700;
+    --vfx-heal-color: #57f287;
+    --vfx-shield-color: #70f0ff;
+    --vfx-miss-color: #d1d5db;
+    --vfx-boss-color: #c084fc;
+    --vfx-duration-fast: 420ms;
+    --vfx-duration-slow: 880ms;
 }

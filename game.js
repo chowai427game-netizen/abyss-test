@@ -66,25 +66,137 @@ function applyDamageWithShield(target, rawDamage) {
 // --------------------------------------------------------------------------
 // 💥 戰場特效與多投射物連發機制
 // --------------------------------------------------------------------------
-function triggerProjectileFX(type = 'arcane', count = 1) {
-    const logContainer = document.getElementById('log-box');
-    if (!logContainer) return;
+const VFX_LAYER_ID = "vfx-layer";
+const VFX_LIMIT_DEFAULT = 24;
+let projectileBurstGuardUntil = 0;
 
-    const maxCount = Math.min(count, 10); 
-    
-    for (let i = 0; i < maxCount; i++) {
-        setTimeout(() => {
-            const proj = document.createElement('div');
-            proj.className = `projectile-entity proj-${type}`;
-            proj.style.pointerEvents = 'none';
-            proj.innerHTML = `<div class="fx-core"></div>`;
-            logContainer.appendChild(proj);
+function prefersReducedMotion() {
+    return !!(typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
 
-            setTimeout(() => {
-                if (proj && proj.parentNode) proj.remove();
-            }, 450);
-        }, i * 65);
+function ensureVfxLayer() {
+    if (typeof document === "undefined" || !document.body) return null;
+    let layer = document.getElementById(VFX_LAYER_ID);
+    if (!layer) {
+        layer = document.createElement("div");
+        layer.id = VFX_LAYER_ID;
+        layer.className = "vfx-layer";
+        layer.setAttribute("aria-hidden", "true");
+        layer.style.pointerEvents = "none";
+        document.body.appendChild(layer);
     }
+    return layer;
+}
+
+function clampVfxPercent(value, fallback) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return fallback;
+    return Math.min(92, Math.max(8, num));
+}
+
+function resolveVfxPosition(options = {}) {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+        return { x: 50, y: 45 };
+    }
+    if (Number.isFinite(options.x) || Number.isFinite(options.y)) {
+        return {
+            x: clampVfxPercent(options.x, 50),
+            y: clampVfxPercent(options.y, 45)
+        };
+    }
+
+    const anchorMap = {
+        monster: "monster-status-card",
+        player: "status-panel-box",
+        log: "log-wrapper-box"
+    };
+    const targetId = anchorMap[options.anchor] || "monster-status-card";
+    const anchorEl = document.getElementById(targetId);
+
+    if (!anchorEl || typeof anchorEl.getBoundingClientRect !== "function") {
+        return { x: 50, y: options.anchor === "player" ? 38 : 46 };
+    }
+
+    const rect = anchorEl.getBoundingClientRect();
+    const width = Math.max(1, window.innerWidth || 1);
+    const height = Math.max(1, window.innerHeight || 1);
+
+    return {
+        x: clampVfxPercent((rect.left + rect.width * 0.5) / width * 100, 50),
+        y: clampVfxPercent((rect.top + rect.height * 0.45) / height * 100, 45)
+    };
+}
+
+function spawnVfx(type, options = {}) {
+    if (!type) return null;
+    const layer = ensureVfxLayer();
+    if (!layer) return null;
+
+    const reducedMotion = prefersReducedMotion();
+    const maxActive = reducedMotion ? 12 : (options.maxActive || VFX_LIMIT_DEFAULT);
+    while (layer.childElementCount >= maxActive && layer.firstElementChild) {
+        layer.firstElementChild.remove();
+    }
+
+    const pos = resolveVfxPosition(options);
+    const effectCount = Math.max(1, Math.min(options.count || 1, reducedMotion ? 2 : 4));
+    const duration = Math.max(120, Math.min(options.duration || (reducedMotion ? 180 : 460), 1400));
+    const particleCount = Math.max(0, Math.min(options.particleCount ?? (reducedMotion ? 0 : 3), reducedMotion ? 0 : 6));
+    const variantClass = options.variant ? ` vfx-variant-${String(options.variant).replace(/[^a-z0-9_-]/gi, "-")}` : "";
+
+    for (let i = 0; i < effectCount; i++) {
+        setTimeout(() => {
+            const node = document.createElement("div");
+            node.className = `vfx-effect vfx-${type}${variantClass}`;
+            node.setAttribute("aria-hidden", "true");
+            if (options.text) node.setAttribute("data-vfx-text", options.text);
+            node.style.setProperty("--vfx-x", `${clampVfxPercent(pos.x + (Math.random() - 0.5) * 6, pos.x)}%`);
+            node.style.setProperty("--vfx-y", `${clampVfxPercent(pos.y + (Math.random() - 0.5) * 6, pos.y)}%`);
+            node.style.setProperty("--vfx-duration", `${duration}ms`);
+
+            for (let p = 0; p < particleCount; p++) {
+                const particle = document.createElement("span");
+                particle.className = "vfx-particle";
+                particle.style.setProperty("--particle-angle", `${Math.floor((360 / Math.max(1, particleCount)) * p)}deg`);
+                node.appendChild(particle);
+            }
+
+            layer.appendChild(node);
+            setTimeout(() => {
+                if (node.parentNode) node.remove();
+            }, duration + 90);
+        }, i * 55);
+    }
+
+    return true;
+}
+
+function clearVfxLayer() {
+    const layer = typeof document !== "undefined" ? document.getElementById(VFX_LAYER_ID) : null;
+    if (!layer) return;
+    layer.innerHTML = "";
+}
+
+if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") clearVfxLayer();
+    });
+}
+
+function triggerProjectileFX(type = 'arcane', count = 1) {
+    const now = Date.now();
+    if (now < projectileBurstGuardUntil) return;
+    projectileBurstGuardUntil = now + 90;
+
+    const reducedMotion = prefersReducedMotion();
+    const maxCount = Math.min(Math.max(1, count), reducedMotion ? 2 : 6);
+    spawnVfx("hit", {
+        anchor: "monster",
+        count: maxCount,
+        duration: reducedMotion ? 160 : 320,
+        particleCount: reducedMotion ? 0 : 1,
+        variant: `projectile-${type}`
+    });
 }
 
 function detectProjectileType(skillName, job) {
@@ -446,6 +558,7 @@ function executeAutoBattleAiTurn() {
         const healAmount = Math.floor(currentRun.maxHp * (0.18 + skLv * 0.08));
         currentRun.mp -= 20;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healAmount);
+        spawnVfx("heal", { anchor: "player", text: `+${healAmount} HP` });
         if (typeof addLog === "function") {
             addLog(`✨ 智能 AI 自動觸發 <span class="skill-holy">【治癒術 Lv.${skLv}】</span> 回復 <span class="heal-effect">+${healAmount} HP</span>！`, "perfect");
         }
@@ -474,9 +587,12 @@ function executeAutoBattleAiTurn() {
                     let dmgRes = typeof calculateDamage === "function" ? calculateDamage(eff.dmg, monsterDef, true, (isMagicJob || eff.isMagic)) : { damage: eff.dmg, isMiss: false };
 
                     if (dmgRes.isMiss) {
+                        spawnVfx("miss", { anchor: "monster", text: "MISS" });
                         if (typeof addLog === "function") addLog(`💨 狂暴發動 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
                     } else {
                         let res = applyDamageWithShield(activeMonster, dmgRes.damage);
+                        if (res.absorbed > 0) spawnVfx("shield", { anchor: "monster", text: `-${res.absorbed}` });
+                        spawnVfx(dmgRes.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${res.actualHpDmg}` });
                         let shieldText = res.absorbed > 0 ? `🛡️ 護盾吸收 ${res.absorbed} | ` : "";
                         if (typeof addLog === "function") {
                             addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> ${shieldText}<span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>`, "skill-hit");
@@ -754,6 +870,8 @@ function applyRouteNodeSpecialEffects(node) {
         const healMp = Math.floor(currentRun.maxMp * 0.2);
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healHp);
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + healMp);
+        spawnVfx("heal", { anchor: "player", text: `+${healHp} HP` });
+        spawnVfx("heal", { anchor: "player", text: `+${healMp} MP`, variant: "mana" });
         if (typeof addLog === "function") {
             addLog(`✨【淨化小堂】你撿起失落的護符，HP +${healHp}、MP +${healMp}，心神稍微安定。`, "perfect");
         }
@@ -1062,6 +1180,8 @@ function executeRestShopNode() {
             let mpGain = Math.floor(currentRun.maxMp * 0.5);
             currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
             currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
+            spawnVfx("heal", { anchor: "player", text: `+${hpGain} HP` });
+            spawnVfx("heal", { anchor: "player", text: `+${mpGain} MP`, variant: "mana" });
             if (typeof addLog === "function") addLog(`⛺【靈魂滋養】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
             resolveRestNodeDone();
         };
@@ -1085,6 +1205,8 @@ function executeRestShopNode() {
         let mpGain = Math.floor(currentRun.maxMp * 0.5);
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
+        spawnVfx("heal", { anchor: "player", text: `+${hpGain} HP` });
+        spawnVfx("heal", { anchor: "player", text: `+${mpGain} MP`, variant: "mana" });
         if (typeof addLog === "function") addLog(`⛺【靈魂滋養 (自動備援)】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
         resolveRestNodeDone();
         return;
@@ -1121,6 +1243,7 @@ function resolveRestNodeDone() {
 function startNodeCombat(nodeType) {
     try {
         if (combatTickerTimer) clearInterval(combatTickerTimer);
+        clearVfxLayer();
 
         const monsterCard = document.getElementById('monster-status-card');
         if (monsterCard) monsterCard.style.display = "grid";
@@ -1169,6 +1292,7 @@ function startNodeCombat(nodeType) {
                 isBoss: true, 
                 fixedDrop: bossMeta.dropItem 
             };
+            spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: prefersReducedMotion() ? 0 : 4 });
             if (typeof addLog === "function") addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
             let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
@@ -1302,18 +1426,22 @@ function executePlayerActionTick() {
 
                 if (eff.shieldGain) {
                     currentRun.shield = (currentRun.shield || 0) + eff.shieldGain;
+                    spawnVfx("shield", { anchor: "player", text: `+${eff.shieldGain}` });
                     if (typeof addLog === "function") addLog(`🛡️ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，成功加載晶體護盾 <span style="color:#00ffcc; font-weight:bold;">+${eff.shieldGain} Shield</span>！`, "perfect");
                 }
 
                 if (eff.healPercent || eff.healAmount) {
                     let healVal = eff.healAmount || Math.floor((currentRun.maxHp || 100) * eff.healPercent);
                     currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+                    spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
                     if (typeof addLog === "function") addLog(`✨ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
                 }
 
                 if (eff.explodePoison && activeMonster.poisonStacks > 0) {
                     let explodeDmg = eff.dmg + (activeMonster.poisonStacks * 70);
                     let res = applyDamageWithShield(activeMonster, explodeDmg);
+                    if (res.absorbed > 0) spawnVfx("shield", { anchor: "monster", text: `-${res.absorbed}` });
+                    spawnVfx("hit", { anchor: "monster", text: `-${res.actualHpDmg}`, particleCount: prefersReducedMotion() ? 0 : 4 });
                     if (typeof addLog === "function") addLog(`🧪💥 引爆全部 <span class="skill-poison">${activeMonster.poisonStacks} 層劇毒</span>！對 <span class="strike-slash">[${activeMonster.name}]</span> 造成核爆級真傷 <span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>！`, "skill-hit");
                     activeMonster.poisonStacks = 0;
                 }
@@ -1337,15 +1465,20 @@ function executePlayerActionTick() {
                     }
 
                     if (dmgRes.isMiss) {
+                        spawnVfx("miss", { anchor: "monster", text: "MISS" });
                         if (typeof addLog === "function") addLog(`💨 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
                     } else {
                         let totalActualDmg = 0;
+                        let totalShieldAbsorb = 0;
 
                         for (let h = 0; h < hitCount; h++) {
                             let singleHitDmg = Math.max(1, Math.floor(dmgRes.damage / hitCount));
                             let res = applyDamageWithShield(activeMonster, singleHitDmg);
                             totalActualDmg += res.actualHpDmg;
+                            totalShieldAbsorb += res.absorbed;
                         }
+                        if (totalShieldAbsorb > 0) spawnVfx("shield", { anchor: "monster", text: `-${totalShieldAbsorb}` });
+                        spawnVfx(dmgRes.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${totalActualDmg}` });
 
                         let numClass = (isMagicJob || eff.isMagic) ? "num-m-dmg" : "num-p-dmg";
                         let critTag = dmgRes.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
@@ -1377,9 +1510,12 @@ function executePlayerActionTick() {
         let dmgRes = typeof calculateDamage === "function" ? calculateDamage(baseAtkPower, monsterDef, true, isMagicJob) : { damage: baseAtkPower, isMiss: false };
         
         if (dmgRes.isMiss) {
+            spawnVfx("miss", { anchor: "monster", text: "MISS" });
             if (typeof addLog === "function") addLog(`💨 揮砍被魔物 <span class="miss-effect">[MISS 閃過]</span> 了！<span class="num-popup num-miss">MISS</span>`, "miss");
         } else {
             let res = applyDamageWithShield(activeMonster, dmgRes.damage);
+            if (res.absorbed > 0) spawnVfx("shield", { anchor: "monster", text: `-${res.absorbed}` });
+            spawnVfx(dmgRes.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${res.actualHpDmg}` });
             let numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
             let critText = dmgRes.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
             
@@ -1416,11 +1552,14 @@ function executeMonsterActionTick() {
     let dmgRes = typeof calculateDamage === "function" ? calculateDamage(monsterAtk, playerDef, false, false) : { damage: monsterAtk, isMiss: false };
     
     if (dmgRes.isMiss) {
+        spawnVfx("miss", { anchor: "player", text: "MISS" });
         if (typeof addLog === "function") addLog(`💨 勇者身形閃爍，成功 <span class="miss-effect">[MISS 閃過]</span> 了魔物的猛攻！<span class="num-popup num-miss">MISS</span>`, "miss");
         return;
     }
 
     let res = applyDamageWithShield(currentRun, dmgRes.damage);
+    if (res.absorbed > 0) spawnVfx("shield", { anchor: "player", text: `-${res.absorbed}` });
+    if (res.actualHpDmg > 0) spawnVfx("hit", { anchor: "player", text: `-${res.actualHpDmg}`, variant: "damage" });
     let shieldMsg = res.absorbed > 0 ? `🛡️ 護盾吸收了 ${res.absorbed} 點傷害！` : "";
 
     if (typeof addLog === "function") {
@@ -1462,6 +1601,11 @@ function executeDungeonVictorySequence() {
     }
 
     const defeatedBossName = activeMonster?.name || "深淵領主";
+    if (isBossFloor) {
+        spawnVfx("boss-defeat", { anchor: "monster", duration: 1200, particleCount: prefersReducedMotion() ? 0 : 5 });
+    } else {
+        spawnVfx("hit", { anchor: "monster", variant: "defeat", duration: 520, particleCount: prefersReducedMotion() ? 0 : 3 });
+    }
     activeMonster = null;
     gameState = "ENCOUNTER_RESOLVED";
 
@@ -1544,6 +1688,7 @@ function triggerBossTalentReward() {
 }
 
 function executeDungeonDefeatSequence() {
+    clearVfxLayer();
     let lostExp = Math.floor((accountMeta.exp || 0) * 0.3);
     accountMeta.exp = Math.max(0, (accountMeta.exp || 0) - lostExp);
     currentRun.exp = accountMeta.exp;
@@ -1709,21 +1854,25 @@ function executeUseDungeonItem(itemName, index) {
     if (itemName.includes("厚牛巨堡") || itemName.includes("料理") || itemName.includes("牛扒") || itemName.includes("炸薯")) {
         let healVal = Math.floor(currentRun.maxHp * 0.5);
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+        spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
         if (typeof addLog === "function") addLog(`🌭 熱量充能！血量大幅度回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
     }
     else if (itemName.includes("烤野豬肉") || itemName.includes("初級治癒")) {
         let healVal = 60;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+        spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
         if (typeof addLog === "function") addLog(`🥩 生命回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
     }
     else if (itemName.includes("強效魔藥") || itemName.includes("壁虎乾")) {
         let healVal = 180;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
+        spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
         if (typeof addLog === "function") addLog(`🧪 強效滋補！生命回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
     }
     else if (itemName.includes("回魔劑") || itemName.includes("瓊漿")) {
         let mpVal = 80;
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpVal);
+        spawnVfx("heal", { anchor: "player", text: `+${mpVal} MP`, variant: "mana" });
         if (typeof addLog === "function") addLog(`🍷 魔力泉湧！回復 <span class="heal-effect">+${mpVal} MP</span>！`, "perfect");
     }
     else if (itemName.includes("永凍刨冰")) {
@@ -1742,11 +1891,13 @@ function executeUseDungeonItem(itemName, index) {
     else if (itemName.includes("未知物體")) {
         let dmg = currentEnvironment === "POISON" ? 30 : 15;
         currentRun.hp = Math.max(1, currentRun.hp - dmg);
+        spawnVfx("hit", { anchor: "player", text: `-${dmg}`, variant: "damage" });
         if (typeof addLog === "function") addLog(`🪨 焦黑物體反噬扣血！扣減 ${dmg} HP！`, "take");
     }
     else {
         let genericHeal = 40;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + genericHeal);
+        spawnVfx("heal", { anchor: "player", text: `+${genericHeal} HP` });
         if (typeof addLog === "function") addLog(`🍙 食用物資，回復 <span class="heal-effect">+${genericHeal} HP</span>。`, "perfect");
     }
     
@@ -2131,6 +2282,7 @@ function executeAdvanceJob(newJobId) {
 // 🌐 全域 API 顯式掛載
 // --------------------------------------------------------------------------
 if (typeof window !== "undefined") {
+    window.spawnVfx = spawnVfx;
     window.handleStartGame = handleStartGame;
     window.renderInitialJobModal = renderInitialJobModal;
     window.selectInitialJob = selectInitialJob;
