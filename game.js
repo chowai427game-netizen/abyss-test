@@ -133,19 +133,26 @@ function spawnVfx(type, options = {}) {
     if (!layer) return null;
 
     const reducedMotion = prefersReducedMotion();
-    const maxActive = reducedMotion ? 12 : (options.maxActive || VFX_LIMIT_DEFAULT);
+    const maxActive = reducedMotion ? 12 : (options.maxActive ?? VFX_LIMIT_DEFAULT);
     while (layer.childElementCount >= maxActive && layer.firstElementChild) {
         layer.firstElementChild.remove();
     }
 
     const pos = resolveVfxPosition(options);
     const effectCount = Math.max(1, Math.min(options.count || 1, reducedMotion ? 2 : 4));
-    const duration = Math.max(120, Math.min(options.duration || (reducedMotion ? 180 : 460), 1400));
+    const duration = Math.max(120, Math.min(options.duration ?? (reducedMotion ? 180 : 460), 1400));
     const particleCount = Math.max(0, Math.min(options.particleCount ?? (reducedMotion ? 0 : 3), reducedMotion ? 0 : 6));
     const variantClass = options.variant ? ` vfx-variant-${String(options.variant).replace(/[^a-z0-9_-]/gi, "-")}` : "";
 
     for (let i = 0; i < effectCount; i++) {
         setTimeout(() => {
+            if (typeof document === "undefined" || !document.body || typeof document.createElement !== "function") return;
+            const latestMaxActive = prefersReducedMotion() ? 12 : (options.maxActive ?? VFX_LIMIT_DEFAULT);
+            while (layer.childElementCount >= latestMaxActive && layer.firstElementChild) {
+                layer.firstElementChild.remove();
+            }
+            if (!layer.isConnected) return;
+
             const node = document.createElement("div");
             node.className = `vfx-effect vfx-${type}${variantClass}`;
             node.setAttribute("aria-hidden", "true");
@@ -1263,6 +1270,7 @@ function startNodeCombat(nodeType) {
         
         const isBossNode = (nodeType === "BOSS" || dungeonFloor % 10 === 0);
         const isEliteNode = (nodeType === "ELITE");
+        let shouldSpawnBossEntryVfx = false;
 
         if (isBossNode) {
             let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { 
@@ -1292,7 +1300,7 @@ function startNodeCombat(nodeType) {
                 isBoss: true, 
                 fixedDrop: bossMeta.dropItem 
             };
-            spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: prefersReducedMotion() ? 0 : 4 });
+            shouldSpawnBossEntryVfx = true;
             if (typeof addLog === "function") addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
             let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
@@ -1331,6 +1339,11 @@ function startNodeCombat(nodeType) {
         }
         
         if (typeof updateUI === "function") updateUI();
+        if (shouldSpawnBossEntryVfx) {
+            setTimeout(() => {
+                spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: prefersReducedMotion() ? 0 : 4 });
+            }, 0);
+        }
 
         playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
 
@@ -1578,6 +1591,16 @@ function executeMonsterActionTick() {
 function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
     let isElite = activeMonster?.isElite || false;
+    const defeatedWasBoss = !!activeMonster?.isBoss;
+    const monsterCard = typeof document !== "undefined" ? document.getElementById("monster-status-card") : null;
+    const defeatVfxPosition = { x: 50, y: 46 };
+    if (monsterCard && typeof window !== "undefined" && typeof monsterCard.getBoundingClientRect === "function") {
+        const rect = monsterCard.getBoundingClientRect();
+        const width = Math.max(1, window.innerWidth || 1);
+        const height = Math.max(1, window.innerHeight || 1);
+        defeatVfxPosition.x = clampVfxPercent((rect.left + rect.width * 0.5) / width * 100, 50);
+        defeatVfxPosition.y = clampVfxPercent((rect.top + rect.height * 0.45) / height * 100, 46);
+    }
 
     let multiplier = isBossFloor ? 3.0 : (isElite ? 1.8 : 1.0);
     let rewardG = Math.floor((15 + Math.floor(dungeonFloor * 1.5)) * multiplier);
@@ -1601,10 +1624,10 @@ function executeDungeonVictorySequence() {
     }
 
     const defeatedBossName = activeMonster?.name || "深淵領主";
-    if (isBossFloor) {
-        spawnVfx("boss-defeat", { anchor: "monster", duration: 1200, particleCount: prefersReducedMotion() ? 0 : 5 });
+    if (defeatedWasBoss) {
+        spawnVfx("boss-defeat", { ...defeatVfxPosition, duration: 1200, particleCount: prefersReducedMotion() ? 0 : 5 });
     } else {
-        spawnVfx("hit", { anchor: "monster", variant: "defeat", duration: 520, particleCount: prefersReducedMotion() ? 0 : 3 });
+        spawnVfx("hit", { ...defeatVfxPosition, variant: "defeat", duration: 520, particleCount: prefersReducedMotion() ? 0 : 3 });
     }
     activeMonster = null;
     gameState = "ENCOUNTER_RESOLVED";

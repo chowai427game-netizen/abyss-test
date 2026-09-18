@@ -89,11 +89,13 @@ textarea {
 
 .vfx-layer {
     position: fixed;
-    inset:
+    inset: 0;
+    padding:
         env(safe-area-inset-top, 0px)
         env(safe-area-inset-right, 0px)
         env(safe-area-inset-bottom, 0px)
         env(safe-area-inset-left, 0px);
+    box-sizing: border-box;
     width: auto;
     height: auto;
     max-width: 100vw;
@@ -208,6 +210,12 @@ textarea {
     100% { opacity: 0; transform: translate(-50%, -72%) scale(1.35); }
 }
 
+@keyframes vfxFadeStill {
+    0% { opacity: 0; }
+    40% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
 @media (max-width: 480px) {
     .vfx-effect {
         width: clamp(44px, 16vw, 90px);
@@ -217,8 +225,9 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
     .vfx-effect {
+        animation-name: vfxFadeStill !important;
         animation-duration: 140ms !important;
-        transform: translate(-50%, -50%) scale(0.95);
+        transform: translate(-50%, -50%) !important;
     }
     .vfx-particle {
         display: none;
