@@ -1,0 +1,40 @@
+/* ==========================================================================
+   安全重構第一階段：手機/RWD 兼容覆蓋層
+   只處理核心觸控尺寸與窄螢幕排版，不重寫既有大版面 CSS。
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .game-container {
+        padding-inline: var(--abyss-space-2);
+    }
+
+    .game-layout-split,
+    .left-layout-column,
+    .right-layout-column,
+    .village-nav-bar {
+        gap: var(--abyss-space-2);
+    }
+
+    .btn-game,
+    .btn-nav-tab,
+    .mat-alert-btn,
+    .name-input,
+    #player-name-input,
+    #player-pin-input {
+        min-height: var(--abyss-touch-target);
+        font-size: 16px;
+    }
+
+    .village-nav-bar {
+        flex-wrap: wrap;
+    }
+
+    .village-nav-bar > * {
+        flex: 1 1 calc(50% - var(--abyss-space-2));
+    }
+
+    .modal-card,
+    .mat-alert-box {
+        width: min(100%, 560px);
+    }
+}

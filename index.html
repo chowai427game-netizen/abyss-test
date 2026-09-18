@@ -17,6 +17,11 @@
     <!-- 引入 Socket.io 瀏覽器前端套件 -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
     <link rel="stylesheet" href="style.css">
+    <!-- 安全重構第一階段：保留 legacy style.css，以下新層只做兼容覆蓋 -->
+    <link rel="stylesheet" href="css/00-tokens.css">
+    <link rel="stylesheet" href="css/04-components.css">
+    <link rel="stylesheet" href="css/10-responsive.css">
+    <link rel="stylesheet" href="css/11-accessibility.css">
 </head>
 <body>
 
@@ -431,6 +436,7 @@
 <script src="monsterdata.js"></script>
 <script src="environmentdata.js"></script>
 <script src="eventdata.js"></script>
+<script src="data/data-schema.js"></script>
 
 <!-- 2. 核心計算與存檔引擎 -->
 <script src="statengine.js"></script>

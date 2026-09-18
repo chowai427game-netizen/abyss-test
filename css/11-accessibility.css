@@ -1,0 +1,20 @@
+/* ==========================================================================
+   安全重構第一階段：可及性覆蓋層
+   加入 reduced-motion 與鍵盤焦點強化，避免破壞既有動效與 UI。
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+:focus-visible {
+    outline: 2px solid var(--abyss-color-gold);
+    outline-offset: 2px;
+}

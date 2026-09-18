@@ -140,9 +140,11 @@ async function handleStartGame() {
 
 function bindLoginFormSubmit() {
     const form = document.getElementById('login-form');
-    if (!form || form.dataset.startGameBound === "true") return;
+    if (!form || form.dataset.startGameBound === "true" || window.__ABYSS_LOGIN_SUBMIT_BOUND__) return;
 
+    form.removeAttribute('onsubmit');
     form.dataset.startGameBound = "true";
+    window.__ABYSS_LOGIN_SUBMIT_BOUND__ = true;
     form.addEventListener('submit', (event) => {
         event.preventDefault();
         handleStartGame();
