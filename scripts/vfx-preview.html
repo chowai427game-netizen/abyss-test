@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VFX Preview｜Abyss of Destiny</title>
+    <link rel="stylesheet" href="../css/00-tokens.css">
+    <link rel="stylesheet" href="../css/04-components.css">
+    <style>
+        body { min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; background: #0a0d14; color: #e5e7eb; font: 15px system-ui, sans-serif; }
+        main { max-width: 760px; margin: 0 auto; }
+        h1 { font-size: 1.4rem; }
+        .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+        button { padding: 9px 12px; border: 1px solid #64748b; border-radius: 8px; background: #182231; color: inherit; cursor: pointer; }
+        .anchors { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-top: 36px; }
+        .anchor { min-height: 72px; padding: 14px; border: 1px dashed #64748b; border-radius: 8px; }
+        #monster-status-card { grid-column: 2; }
+        #log-wrapper-box { grid-column: 1 / -1; }
+        .note { color: #aab4c3; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>獨立 VFX 預覽</h1>
+        <p class="note">只載入正式 VFX 模組及特效 CSS；不載入遊戲狀態、登入或存檔程式。</p>
+        <div class="controls">
+            <button type="button" onclick="spawnVfx('hit', { anchor: 'monster', text: '-24' })">普通命中</button>
+            <button type="button" onclick="spawnVfx('crit', { anchor: 'monster', text: '-48' })">暴擊</button>
+            <button type="button" onclick="spawnVfx('heal', { anchor: 'player', text: '+32 HP' })">HP 治療</button>
+            <button type="button" onclick="spawnVfx('heal', { anchor: 'player', text: '+12 MP', variant: 'mana' })">MP 治療</button>
+            <button type="button" onclick="spawnVfx('shield', { anchor: 'player', text: '-8' })">護盾</button>
+            <button type="button" onclick="spawnVfx('miss', { anchor: 'monster', text: 'MISS' })">MISS</button>
+            <button type="button" onclick="triggerProjectileFX('fire', 6)">投射物連發</button>
+            <button type="button" onclick="spawnVfx('boss-entry', { anchor: 'monster', duration: 900, particleCount: 4 })">Boss 登場</button>
+            <button type="button" onclick="spawnVfx('boss-defeat', { anchor: 'monster', duration: 1200, particleCount: 5 })">Boss 擊敗</button>
+            <button type="button" onclick="clearVfxLayer()">清除</button>
+        </div>
+        <div class="anchors">
+            <div class="anchor" id="status-panel-box">玩家定位錨點</div>
+            <div class="anchor" id="monster-status-card">魔物定位錨點</div>
+            <div class="anchor" id="log-wrapper-box">紀錄定位錨點</div>
+        </div>
+    </main>
+    <script src="../vfx.js"></script>
+</body>
+</html>
