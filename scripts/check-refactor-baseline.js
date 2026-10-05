@@ -16,6 +16,7 @@ const requiredFiles = [
     "css/11-accessibility.css",
     "data/data-schema.js",
     "index.html",
+    "vfx.js",
     "game.js"
 ];
 
@@ -32,6 +33,7 @@ requiredFiles.forEach((relativePath) => {
 
 const indexHtml = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
 const gameJs = fs.readFileSync(path.join(repoRoot, "game.js"), "utf8");
+const vfxJs = fs.readFileSync(path.join(repoRoot, "vfx.js"), "utf8");
 
 const orderedIndexSnippets = [
     'href="style.css"',
@@ -45,6 +47,7 @@ const orderedIndexSnippets = [
     'src="environmentdata.js"',
     'src="eventdata.js"',
     'src="data/data-schema.js"',
+    'src="vfx.js"',
     'src="statengine.js"',
     'src="state.js"',
     'src="ui.js"',
@@ -77,5 +80,7 @@ assert(!/onsubmit\s*=/.test(indexHtml), "index.html should not use inline onsubm
 ].forEach((snippet) => {
     assert(gameJs.includes(snippet), `game.js is missing expected window API export: ${snippet}`);
 });
+
+assert(vfxJs.includes("global.spawnVfx = spawnVfx;"), "vfx.js is missing the legacy window.spawnVfx API.");
 
 console.log("✅ Refactor baseline checks passed.");
