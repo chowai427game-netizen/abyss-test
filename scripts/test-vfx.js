@@ -347,7 +347,11 @@ function runLifecycleTests() {
 
     const hiddenPage = createEnvironment();
     hiddenPage.context.spawnVfx("hit", { count: 3 });
+    hiddenPage.advanceBy(0);
+    assert.equal(effects(hiddenPage).length, 1);
     hiddenPage.setHidden(true);
+    assert.equal(effects(hiddenPage).length, 0);
+    assert.equal(hiddenPage.timers.size, 0);
     hiddenPage.context.spawnVfx("heal");
     hiddenPage.advanceBy(1000);
     assert.equal(effects(hiddenPage).length, 0);

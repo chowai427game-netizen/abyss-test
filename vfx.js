@@ -143,6 +143,12 @@ let projectileBurstGuardUntil = 0;
         if (layer) layer.innerHTML = "";
     }
 
+    if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") clearVfxLayer();
+        });
+    }
+
     function scheduleVfx(callback, delay = 0) {
         if (typeof callback !== "function") return false;
         return scheduleTrackedVfx(callback, Math.max(0, Number(delay) || 0)) !== null;
