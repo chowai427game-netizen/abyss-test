@@ -6,41 +6,317 @@
     <title>VFX Preview｜Abyss of Destiny</title>
     <link rel="stylesheet" href="../css/00-tokens.css">
     <link rel="stylesheet" href="../css/04-components.css">
+    <link rel="stylesheet" href="../css/11-accessibility.css">
     <style>
-        body { min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; background: #0a0d14; color: #e5e7eb; font: 15px system-ui, sans-serif; }
-        main { max-width: 760px; margin: 0 auto; }
-        h1 { font-size: 1.4rem; }
-        .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
-        button { padding: 9px 12px; border: 1px solid #64748b; border-radius: 8px; background: #182231; color: inherit; cursor: pointer; }
-        .anchors { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-top: 36px; }
-        .anchor { min-height: 72px; padding: 14px; border: 1px dashed #64748b; border-radius: 8px; }
-        #monster-status-card { grid-column: 2; }
+        body { min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; background: #0a0d14; color: #e5e7eb; font: 15px/1.5 system-ui, sans-serif; }
+        main { max-width: 1080px; margin: 0 auto; }
+        h1 { font-size: 1.5rem; }
+        h2 { margin: 0 0 12px; font-size: 1.1rem; }
+        .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+        button, select { padding: 9px 12px; border: 1px solid #64748b; border-radius: 8px; background: #182231; color: inherit; font: inherit; }
+        button { cursor: pointer; }
+        button:disabled, select:disabled { opacity: .5; cursor: default; }
+        :focus-visible { outline: 3px solid #93c5fd; outline-offset: 3px; }
+        label { display: inline-flex; align-items: center; gap: 8px; }
+        input[type="checkbox"] { width: 20px; height: 20px; }
+        .anchors { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin: 24px 0; }
+        .anchor { min-height: 72px; padding: 14px; border: 1px dashed #64748b; border-radius: 8px; box-sizing: border-box; }
+        .anchors.shifted { padding-left: 10%; }
+        #monster-status-card, #missing-anchor { grid-column: 2; }
         #log-wrapper-box { grid-column: 1 / -1; }
-        .note { color: #aab4c3; }
+        #missing-anchor { color: #aab4c3; }
+        .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        section { min-width: 0; padding: 16px; border: 1px solid #334155; border-radius: 10px; }
+        .note { color: #b8c3d3; }
+        pre { margin: 0; padding: 12px; max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #111827; border-radius: 6px; font-size: 13px; }
+        .scroll-space { min-height: 65vh; display: grid; align-content: center; text-align: center; }
+        @media (max-width: 640px) {
+            body { padding: 14px; }
+            .panels { grid-template-columns: 1fr; }
+            .anchors { gap: 8px; }
+            .anchor { padding: 10px; }
+            label { flex-wrap: wrap; }
+        }
     </style>
 </head>
 <body>
     <main>
         <h1>獨立 VFX 預覽</h1>
-        <p class="note">只載入正式 VFX 模組及特效 CSS；不載入遊戲狀態、登入或存檔程式。</p>
-        <div class="controls">
-            <button type="button" onclick="spawnVfx('hit', { anchor: 'monster', text: '-24' })">普通命中</button>
-            <button type="button" onclick="spawnVfx('crit', { anchor: 'monster', text: '-48' })">暴擊</button>
-            <button type="button" onclick="spawnVfx('heal', { anchor: 'player', text: '+32 HP' })">HP 治療</button>
-            <button type="button" onclick="spawnVfx('heal', { anchor: 'player', text: '+12 MP', variant: 'mana' })">MP 治療</button>
-            <button type="button" onclick="spawnVfx('shield', { anchor: 'player', text: '-8' })">護盾</button>
-            <button type="button" onclick="spawnVfx('miss', { anchor: 'monster', text: 'MISS' })">MISS</button>
-            <button type="button" onclick="triggerProjectileFX('fire', 6)">投射物連發</button>
-            <button type="button" onclick="spawnVfx('boss-entry', { anchor: 'monster', duration: 900, particleCount: 4 })">Boss 登場</button>
-            <button type="button" onclick="spawnVfx('boss-defeat', { anchor: 'monster', duration: 1200, particleCount: 5 })">Boss 擊敗</button>
-            <button type="button" onclick="clearVfxLayer()">清除</button>
+        <p class="note">只載入正式 vfx.js 及特效 CSS；無遊戲狀態、登入、後端或玩家存檔。設定只留在此頁記憶體，不寫入儲存空間。</p>
+        <section aria-labelledby="settings-title">
+            <h2 id="settings-title">呈現設定</h2>
+            <div class="controls">
+                <label for="mode">模式
+                    <select id="mode" data-session-control>
+                        <option value="legacy" selected>Legacy（預設）</option>
+                        <option value="enhanced">Enhanced</option>
+                    </select>
+                </label>
+                <label for="quality">品質
+                    <select id="quality" data-session-control>
+                        <option value="low">Low</option>
+                        <option value="standard" selected>Standard（預設）</option>
+                        <option value="high">High</option>
+                    </select>
+                </label>
+                <label for="reduce-motion"><input type="checkbox" id="reduce-motion" data-session-control>減少動態</label>
+            </div>
+            <p class="note" id="motion-note">系統的減少動態偏好一律優先；取消勾選不會覆寫系統設定。</p>
+            <div class="controls">
+                <button type="button" id="clear">清除特效 / 待處理工作</button>
+                <button type="button" id="teardown">離開預覽（teardown）</button>
+                <button type="button" id="reenter">重新進入預覽</button>
+            </div>
+            <p id="session-status">預覽已啟用。</p>
+        </section>
+        <div class="anchors" id="anchors">
+            <div class="anchor" id="status-panel-box">玩家定位錨點<br>HP / MP / 護盾</div>
+            <div class="anchor" id="monster-status-card">魔物定位錨點<br>命中 / 暴擊 / MISS</div>
+            <div class="anchor" id="log-wrapper-box">紀錄定位錨點（僅示意，不記錄遊戲資料）</div>
         </div>
-        <div class="anchors">
-            <div class="anchor" id="status-panel-box">玩家定位錨點</div>
-            <div class="anchor" id="monster-status-card">魔物定位錨點</div>
-            <div class="anchor" id="log-wrapper-box">紀錄定位錨點</div>
+        <div class="panels">
+            <section aria-labelledby="basic-title">
+                <h2 id="basic-title">基本特效及原有示範</h2>
+                <div class="controls">
+                    <button type="button" data-demo="hit" data-session-control>普通命中</button>
+                    <button type="button" data-demo="crit" data-session-control>暴擊</button>
+                    <button type="button" data-demo="miss" data-session-control>MISS</button>
+                    <button type="button" data-demo="cast" data-session-control>施法 Cast</button>
+                    <button type="button" data-demo="hp" data-session-control>HP 治療</button>
+                    <button type="button" data-demo="mp" data-session-control>MP 治療</button>
+                    <button type="button" data-demo="shield" data-session-control>護盾</button>
+                    <button type="button" data-demo="results" data-session-control>HP / MP / 護盾同時結果</button>
+                    <button type="button" data-demo="projectiles" data-session-control>投射物連發</button>
+                    <button type="button" data-demo="boss-entry" data-session-control>Boss 登場</button>
+                    <button type="button" data-demo="boss-defeat" data-session-control>Boss 擊敗</button>
+                </div>
+            </section>
+            <section aria-labelledby="shape-title">
+                <h2 id="shape-title">元素與形狀</h2>
+                <div class="controls">
+                    <button type="button" data-variant="fire" data-session-control>火焰 Fire</button>
+                    <button type="button" data-variant="ice" data-session-control>冰晶 Ice</button>
+                    <button type="button" data-variant="lightning" data-session-control>閃電 Lightning</button>
+                    <button type="button" data-variant="holy" data-session-control>聖光 Holy</button>
+                    <button type="button" data-variant="slash" data-session-control>斬擊 Slash</button>
+                    <button type="button" data-variant="arrow" data-session-control>箭矢 Arrow</button>
+                    <button type="button" data-variant="arcane" data-session-control>奧術 Arcane</button>
+                    <button type="button" data-variant="poison" data-session-control>毒 Poison</button>
+                </div>
+                <p class="note">切換 Enhanced 比較形狀；Legacy 保留原有呈現。所有按鈕使用同一正式 renderer。</p>
+            </section>
+            <section aria-labelledby="compare-title">
+                <h2 id="compare-title">相同工作量比較 / 有界壓力</h2>
+                <div class="controls">
+                    <button type="button" id="workload" data-session-control>重播相同代表工作量</button>
+                    <button type="button" id="toggle-replay" data-session-control>切換 Legacy / Enhanced 並重播</button>
+                    <button type="button" id="six-hit" data-session-control>六次實際命中（×6）</button>
+                    <button type="button" id="stress" data-session-control>壓力：100 requests × count 4 × particles 6</button>
+                </div>
+                <p class="note">比較會先清除前次特效，保持品質與動態設定不變。六次實際命中以 resolvedCount: 6 傳遞；視覺 burst 仍受上限控制。壓力測試只提交一次固定 100 筆，不會持續產生工作。</p>
+                <p id="workload-status">尚未執行比較。</p>
+            </section>
+            <section aria-labelledby="position-title">
+                <h2 id="position-title">定位 / 移除目標</h2>
+                <div class="controls">
+                    <button type="button" id="position-demo" data-session-control>同時 Snapshot / Follow</button>
+                    <button type="button" id="scroll-demo" data-session-control>示範並捲動 180px</button>
+                    <button type="button" id="move-anchor" data-session-control>移動錨點（重排）</button>
+                    <button type="button" id="remove-anchor" data-session-control>移除魔物錨點（檢查凍結）</button>
+                    <button type="button" id="restore-anchor" data-session-control>還原魔物錨點</button>
+                </div>
+                <p class="note">先開始定位示範，再捲動、調整視窗寬度或移除目標。Snapshot 保持原畫面位置；Follow 跟隨錨點，目標移除後凍結最後位置。動畫生命週期仍有上限；可重播。減少動態模式下效果更短。</p>
+            </section>
+            <section aria-labelledby="diagnostics-title">
+                <h2 id="diagnostics-title">即時診斷（每 500ms，非 live region）</h2>
+                <p class="note">顯示正式 API 的 active / queued / dropped 等計數及上限；隱藏頁面不輪詢，teardown 停止更新。</p>
+                <pre id="diagnostics" aria-label="VFX diagnostics">等待 renderer…</pre>
+            </section>
+            <section aria-labelledby="registry-title">
+                <h2 id="registry-title">正式設定 / 效果登錄表</h2>
+                <pre id="registry" aria-label="VFX settings and registered effects"></pre>
+            </section>
+        </div>
+        <div class="scroll-space">
+            <p class="note">此區保留捲動空間，方便驗證定位。</p>
+            <div><button type="button" id="back-top">回到錨點</button></div>
         </div>
     </main>
+    <script>window.VFX_PREVIEW = true;</script>
     <script src="../vfx.js"></script>
+    <script>
+        (() => {
+            "use strict";
+            const byId = (id) => document.getElementById(id);
+            const mode = byId("mode");
+            const quality = byId("quality");
+            const reduceMotion = byId("reduce-motion");
+            const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+            const monster = byId("monster-status-card");
+            const missingAnchor = document.createElement("div");
+            missingAnchor.id = "missing-anchor";
+            missingAnchor.className = "anchor";
+            missingAnchor.textContent = "魔物錨點已移除；Follow 應凍結於最後有效位置。";
+            let active = false;
+            let diagnosticsTimer = null;
+
+            function updateDiagnostics() {
+                if (!active || document.visibilityState === "hidden") return;
+                byId("diagnostics").textContent = JSON.stringify(getVfxDiagnostics(), null, 2);
+                byId("registry").textContent = JSON.stringify({
+                    settings: getVfxSettings(),
+                    effects: VFX_EFFECTS
+                }, null, 2);
+            }
+
+            function applySettings() {
+                setVfxSettings({
+                    style: mode.value,
+                    quality: quality.value,
+                    reduceMotion: reduceMotion.checked
+                }, { persist: false });
+                byId("motion-note").textContent = motionQuery.matches
+                    ? "系統減少動態：啟用（優先於此頁核取方塊）。"
+                    : "系統減少動態：未啟用；可使用核取方塊。系統偏好一律優先。";
+                updateDiagnostics();
+            }
+
+            function restoreAnchor() {
+                if (missingAnchor.isConnected) missingAnchor.replaceWith(monster);
+            }
+
+            function clear() {
+                clearVfxLayer();
+                updateDiagnostics();
+            }
+
+            function enter() {
+                clearVfxLayer();
+                restoreAnchor();
+                active = true;
+                document.querySelectorAll("[data-session-control]").forEach((control) => {
+                    control.disabled = false;
+                });
+                applySettings();
+                if (diagnosticsTimer !== null) window.clearInterval(diagnosticsTimer);
+                diagnosticsTimer = window.setInterval(updateDiagnostics, 500);
+                byId("session-status").textContent = "預覽已啟用；設定不持久化。";
+                byId("teardown").disabled = false;
+            }
+
+            function leave() {
+                active = false;
+                if (diagnosticsTimer !== null) window.clearInterval(diagnosticsTimer);
+                diagnosticsTimer = null;
+                clearVfxLayer();
+                document.querySelectorAll("[data-session-control]").forEach((control) => {
+                    control.disabled = true;
+                });
+                byId("diagnostics").textContent = JSON.stringify(getVfxDiagnostics(), null, 2);
+                byId("session-status").textContent = "預覽已離開；特效及待處理工作已清除，診斷輪詢已停止。";
+                byId("teardown").disabled = true;
+            }
+
+            function resultDemo() {
+                spawnVfx("heal", { anchor: "player", text: "+32 HP", variant: "holy" });
+                spawnVfx("heal", { anchor: "player", text: "+12 MP", variant: "mana" });
+                spawnVfx("shield", { anchor: "player", text: "護盾 -8" });
+            }
+
+            const demos = {
+                hit: () => spawnVfx("hit", { anchor: "monster", text: "-24" }),
+                crit: () => spawnVfx("crit", { anchor: "monster", text: "-48" }),
+                miss: () => spawnVfx("miss", { anchor: "monster", text: "MISS" }),
+                cast: () => spawnVfx("cast", { anchor: "player", variant: "arcane" }),
+                hp: () => spawnVfx("heal", { anchor: "player", text: "+32 HP" }),
+                mp: () => spawnVfx("heal", { anchor: "player", text: "+12 MP", variant: "mana" }),
+                shield: () => spawnVfx("shield", { anchor: "player", text: "-8" }),
+                results: resultDemo,
+                projectiles: () => triggerProjectileFX("fire", 6),
+                "boss-entry": () => spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: 4 }),
+                "boss-defeat": () => spawnVfx("boss-defeat", { anchor: "monster", duration: 1200, particleCount: 5 })
+            };
+
+            const variants = ["fire", "ice", "lightning", "holy", "slash", "arrow", "arcane", "poison"];
+            const workload = [
+                ["cast", { anchor: "player", variant: "arcane" }],
+                ...variants.map((variant) => ["hit", { anchor: "monster", variant, count: 1, particleCount: 3 }]),
+                ["crit", { anchor: "monster", text: "-48" }],
+                ["miss", { anchor: "monster", text: "MISS" }],
+                ["heal", { anchor: "player", text: "+32 HP", variant: "holy" }],
+                ["heal", { anchor: "player", text: "+12 MP", variant: "mana" }],
+                ["shield", { anchor: "player", text: "護盾 -8" }]
+            ];
+
+            function replay() {
+                clear();
+                workload.forEach(([type, options]) => spawnVfx(type, { ...options }));
+                byId("workload-status").textContent = `${mode.value} / ${quality.value}：重播同一組 ${workload.length} 筆請求。`;
+                updateDiagnostics();
+            }
+
+            function positioningDemo() {
+                clear();
+                spawnVfx("hit", { anchor: "monster", positionMode: "snapshot", text: "SNAPSHOT", variant: "ice", duration: 1400, particleCount: 0 });
+                spawnVfx("shield", { anchor: "monster", positionMode: "follow", text: "FOLLOW", variant: "holy", duration: 1400, particleCount: 0 });
+            }
+
+            [mode, quality, reduceMotion].forEach((control) => control.addEventListener("change", applySettings));
+            document.querySelectorAll("[data-demo]").forEach((button) => {
+                button.addEventListener("click", () => { demos[button.dataset.demo](); updateDiagnostics(); });
+            });
+            document.querySelectorAll("[data-variant]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    spawnVfx("hit", { anchor: "monster", variant: button.dataset.variant, text: button.dataset.variant.toUpperCase() });
+                    updateDiagnostics();
+                });
+            });
+            byId("clear").addEventListener("click", clear);
+            byId("teardown").addEventListener("click", leave);
+            byId("reenter").addEventListener("click", enter);
+            byId("workload").addEventListener("click", replay);
+            byId("toggle-replay").addEventListener("click", () => {
+                mode.value = mode.value === "legacy" ? "enhanced" : "legacy";
+                applySettings();
+                replay();
+            });
+            byId("six-hit").addEventListener("click", () => {
+                clear();
+                spawnVfx("hit", { anchor: "monster", count: 6, resolvedCount: 6, particleCount: 6, variant: "slash", text: "-144" });
+                byId("workload-status").textContent = "實際命中 ×6；resolvedCount: 6，視覺 count: 6 由 renderer 截限。";
+                updateDiagnostics();
+            });
+            byId("stress").addEventListener("click", () => {
+                clear();
+                for (let index = 0; index < 100; index++) {
+                    spawnVfx(index % 5 === 0 ? "crit" : "hit", {
+                        anchor: index % 2 === 0 ? "monster" : "player",
+                        variant: variants[index % variants.length],
+                        text: "-24",
+                        count: 4,
+                        particleCount: 6
+                    });
+                }
+                byId("workload-status").textContent = `${mode.value}：已提交固定 100 requests × count 4 × particles 6；由正式上限控制。`;
+                updateDiagnostics();
+            });
+            byId("position-demo").addEventListener("click", positioningDemo);
+            byId("scroll-demo").addEventListener("click", () => {
+                positioningDemo();
+                window.scrollBy({ top: 180, behavior: "instant" });
+            });
+            byId("move-anchor").addEventListener("click", () => byId("anchors").classList.toggle("shifted"));
+            byId("remove-anchor").addEventListener("click", () => {
+                if (monster.isConnected) monster.replaceWith(missingAnchor);
+            });
+            byId("restore-anchor").addEventListener("click", restoreAnchor);
+            byId("back-top").addEventListener("click", () => byId("anchors").scrollIntoView({ behavior: "instant", block: "center" }));
+            if (typeof motionQuery.addEventListener === "function") motionQuery.addEventListener("change", applySettings);
+            document.addEventListener("visibilitychange", updateDiagnostics);
+            window.addEventListener("pagehide", leave);
+            window.addEventListener("pageshow", () => { if (!active) enter(); });
+            enter();
+        })();
+    </script>
 </body>
 </html>

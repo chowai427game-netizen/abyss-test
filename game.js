@@ -401,10 +401,12 @@ function executeAutoBattleAiTurn() {
         const skLv = currentRun.skills["治癒術"];
         const healAmount = Math.floor(currentRun.maxHp * (0.18 + skLv * 0.08));
         currentRun.mp -= 20;
+        const hpBefore = currentRun.hp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healAmount);
-        spawnVfx("heal", { anchor: "player", text: `+${healAmount} HP` });
+        const healedHp = currentRun.hp - hpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
         if (typeof addLog === "function") {
-            addLog(`✨ 智能 AI 自動觸發 <span class="skill-holy">【治癒術 Lv.${skLv}】</span> 回復 <span class="heal-effect">+${healAmount} HP</span>！`, "perfect");
+            addLog(`✨ 智能 AI 自動觸發 <span class="skill-holy">【治癒術 Lv.${skLv}】</span> 回復 <span class="heal-effect">+${healedHp} HP</span>！`, "perfect");
         }
         return true;
     }
@@ -424,8 +426,8 @@ function executeAutoBattleAiTurn() {
                 
                 if (eff.dmg && activeMonster && activeMonster.hp > 0) {
                     currentRun.mp -= sMeta.mp;
-                    triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job));
-                    let fxClass = detectSkillCssClass(sMeta.name);
+                    triggerProjectileFX(detectProjectileType(sMeta, currentRun.job));
+                    let fxClass = detectSkillCssClass(sMeta);
 
                     let monsterDef = (isMagicJob || eff.isMagic) ? (activeMonster.mdef || 0) : (activeMonster.def || 0);
                     let dmgRes = typeof calculateDamage === "function" ? calculateDamage(eff.dmg, monsterDef, true, (isMagicJob || eff.isMagic)) : { damage: eff.dmg, isMiss: false };
@@ -436,7 +438,7 @@ function executeAutoBattleAiTurn() {
                     } else {
                         let res = applyDamageWithShield(activeMonster, dmgRes.damage);
                         if (res.absorbed > 0) spawnVfx("shield", { anchor: "monster", text: `-${res.absorbed}` });
-                        spawnVfx(dmgRes.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${res.actualHpDmg}` });
+                        spawnVfx(dmgRes.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${res.actualHpDmg}`, variant: detectProjectileType(sMeta, currentRun.job) });
                         let shieldText = res.absorbed > 0 ? `🛡️ 護盾吸收 ${res.absorbed} | ` : "";
                         if (typeof addLog === "function") {
                             addLog(`🔥 AI 狂暴指令！施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span> 重創 <span class="strike-slash">[${activeMonster.name}]</span> ${shieldText}<span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>`, "skill-hit");
@@ -712,12 +714,16 @@ function applyRouteNodeSpecialEffects(node) {
     if (node.variant === "sanctum") {
         const healHp = Math.floor(currentRun.maxHp * 0.18);
         const healMp = Math.floor(currentRun.maxMp * 0.2);
+        const hpBefore = currentRun.hp;
+        const mpBefore = currentRun.mp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healHp);
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + healMp);
-        spawnVfx("heal", { anchor: "player", text: `+${healHp} HP` });
-        spawnVfx("heal", { anchor: "player", text: `+${healMp} MP`, variant: "mana" });
+        const healedHp = currentRun.hp - hpBefore;
+        const healedMp = currentRun.mp - mpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+        spawnVfx("heal", { anchor: "player", text: `+${healedMp} MP`, variant: "mana" });
         if (typeof addLog === "function") {
-            addLog(`✨【淨化小堂】你撿起失落的護符，HP +${healHp}、MP +${healMp}，心神稍微安定。`, "perfect");
+            addLog(`✨【淨化小堂】你撿起失落的護符，HP +${healedHp}、MP +${healedMp}，心神稍微安定。`, "perfect");
         }
         triggerExtra = true;
     }
@@ -1022,11 +1028,15 @@ function executeRestShopNode() {
         healChoice.onclick = () => {
             let hpGain = Math.floor(currentRun.maxHp * 0.5);
             let mpGain = Math.floor(currentRun.maxMp * 0.5);
+            const hpBefore = currentRun.hp;
+            const mpBefore = currentRun.mp;
             currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
             currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
-            spawnVfx("heal", { anchor: "player", text: `+${hpGain} HP` });
-            spawnVfx("heal", { anchor: "player", text: `+${mpGain} MP`, variant: "mana" });
-            if (typeof addLog === "function") addLog(`⛺【靈魂滋養】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
+            const healedHp = currentRun.hp - hpBefore;
+            const healedMp = currentRun.mp - mpBefore;
+            spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+            spawnVfx("heal", { anchor: "player", text: `+${healedMp} MP`, variant: "mana" });
+            if (typeof addLog === "function") addLog(`⛺【靈魂滋養】沐浴在泉水中，回復 <span class="heal-effect">+${healedHp} HP</span> 與 <span class="heal-effect">+${healedMp} MP</span>！`, "perfect");
             resolveRestNodeDone();
         };
 
@@ -1047,11 +1057,15 @@ function executeRestShopNode() {
         // 🛡️ 備援機制：如果畫面沒有 reward-choices-container DOM 節點，直接進行回復並流轉，絕不卡死
         let hpGain = Math.floor(currentRun.maxHp * 0.5);
         let mpGain = Math.floor(currentRun.maxMp * 0.5);
+        const hpBefore = currentRun.hp;
+        const mpBefore = currentRun.mp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + hpGain);
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpGain);
-        spawnVfx("heal", { anchor: "player", text: `+${hpGain} HP` });
-        spawnVfx("heal", { anchor: "player", text: `+${mpGain} MP`, variant: "mana" });
-        if (typeof addLog === "function") addLog(`⛺【靈魂滋養 (自動備援)】沐浴在泉水中，回復 <span class="heal-effect">+${hpGain} HP</span> 與 <span class="heal-effect">+${mpGain} MP</span>！`, "perfect");
+        const healedHp = currentRun.hp - hpBefore;
+        const healedMp = currentRun.mp - mpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+        spawnVfx("heal", { anchor: "player", text: `+${healedMp} MP`, variant: "mana" });
+        if (typeof addLog === "function") addLog(`⛺【靈魂滋養 (自動備援)】沐浴在泉水中，回復 <span class="heal-effect">+${healedHp} HP</span> 與 <span class="heal-effect">+${healedMp} MP</span>！`, "perfect");
         resolveRestNodeDone();
         return;
     }
@@ -1271,8 +1285,8 @@ function executePlayerActionTick() {
                 let eff = sMeta.run(skLv, baseAtkPower, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
                 let hitCount = eff.hitCount || (eff.isTripleHit ? 3 : (eff.isDoubleHit ? 2 : 1));
                 
-                triggerProjectileFX(detectProjectileType(sMeta.name, currentRun.job), hitCount);
-                let fxClass = detectSkillCssClass(sMeta.name);
+                triggerProjectileFX(detectProjectileType(sMeta, currentRun.job), hitCount);
+                let fxClass = detectSkillCssClass(sMeta);
 
                 if (eff.shieldGain) {
                     currentRun.shield = (currentRun.shield || 0) + eff.shieldGain;
@@ -1282,16 +1296,18 @@ function executePlayerActionTick() {
 
                 if (eff.healPercent || eff.healAmount) {
                     let healVal = eff.healAmount || Math.floor((currentRun.maxHp || 100) * eff.healPercent);
+                    const hpBefore = currentRun.hp;
                     currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
-                    spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
-                    if (typeof addLog === "function") addLog(`✨ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+                    const healedHp = currentRun.hp - hpBefore;
+                    spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+                    if (typeof addLog === "function") addLog(`✨ 施展 <span class="${fxClass}">【${sMeta.name} Lv.${skLv}】</span>，回復 <span class="heal-effect">+${healedHp} HP</span>！`, "perfect");
                 }
 
                 if (eff.explodePoison && activeMonster.poisonStacks > 0) {
                     let explodeDmg = eff.dmg + (activeMonster.poisonStacks * 70);
                     let res = applyDamageWithShield(activeMonster, explodeDmg);
                     if (res.absorbed > 0) spawnVfx("shield", { anchor: "monster", text: `-${res.absorbed}` });
-                    spawnVfx("hit", { anchor: "monster", text: `-${res.actualHpDmg}`, particleCount: prefersReducedMotion() ? 0 : 4 });
+                    spawnVfx("hit", { anchor: "monster", text: `-${res.actualHpDmg}`, variant: "poison", particleCount: prefersReducedMotion() ? 0 : 4 });
                     if (typeof addLog === "function") addLog(`🧪💥 引爆全部 <span class="skill-poison">${activeMonster.poisonStacks} 層劇毒</span>！對 <span class="strike-slash">[${activeMonster.name}]</span> 造成核爆級真傷 <span class="num-popup num-p-dmg">-${res.actualHpDmg} HP</span>！`, "skill-hit");
                     activeMonster.poisonStacks = 0;
                 }
@@ -1328,7 +1344,7 @@ function executePlayerActionTick() {
                             totalShieldAbsorb += res.absorbed;
                         }
                         if (totalShieldAbsorb > 0) spawnVfx("shield", { anchor: "monster", text: `-${totalShieldAbsorb}` });
-                        spawnVfx(dmgRes.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${totalActualDmg}` });
+                        spawnVfx(dmgRes.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${totalActualDmg}`, resolvedCount: hitCount, variant: detectProjectileType(sMeta, currentRun.job) });
 
                         let numClass = (isMagicJob || eff.isMagic) ? "num-m-dmg" : "num-p-dmg";
                         let critTag = dmgRes.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
@@ -1429,15 +1445,7 @@ function executeDungeonVictorySequence() {
     let isBossFloor = (dungeonFloor % 10 === 0);
     let isElite = activeMonster?.isElite || false;
     const defeatedWasBoss = !!activeMonster?.isBoss;
-    const monsterCard = typeof document !== "undefined" ? document.getElementById("monster-status-card") : null;
-    const defeatVfxPosition = { x: 50, y: 46 };
-    if (monsterCard && typeof window !== "undefined" && typeof monsterCard.getBoundingClientRect === "function") {
-        const rect = monsterCard.getBoundingClientRect();
-        const width = Math.max(1, window.innerWidth || 1);
-        const height = Math.max(1, window.innerHeight || 1);
-        defeatVfxPosition.x = clampVfxPercent((rect.left + rect.width * 0.5) / width * 100, 50);
-        defeatVfxPosition.y = clampVfxPercent((rect.top + rect.height * 0.45) / height * 100, 46);
-    }
+    const defeatVfxPosition = resolveVfxPosition({ anchor: "monster" });
 
     let multiplier = isBossFloor ? 3.0 : (isElite ? 1.8 : 1.0);
     let rewardG = Math.floor((15 + Math.floor(dungeonFloor * 1.5)) * multiplier);
@@ -1462,9 +1470,9 @@ function executeDungeonVictorySequence() {
 
     const defeatedBossName = activeMonster?.name || "深淵領主";
     if (defeatedWasBoss) {
-        spawnVfx("boss-defeat", { ...defeatVfxPosition, duration: 1200, particleCount: prefersReducedMotion() ? 0 : 5 });
+        spawnVfx("boss-defeat", { ...defeatVfxPosition, positionMode: "snapshot", duration: 1200, particleCount: prefersReducedMotion() ? 0 : 5 });
     } else {
-        spawnVfx("hit", { ...defeatVfxPosition, variant: "defeat", duration: 520, particleCount: prefersReducedMotion() ? 0 : 3 });
+        spawnVfx("hit", { ...defeatVfxPosition, positionMode: "snapshot", variant: "defeat", duration: 520, particleCount: prefersReducedMotion() ? 0 : 3 });
     }
     activeMonster = null;
     gameState = "ENCOUNTER_RESOLVED";
@@ -1716,27 +1724,35 @@ function executeUseDungeonItem(itemName, index) {
     
     if (itemName.includes("厚牛巨堡") || itemName.includes("料理") || itemName.includes("牛扒") || itemName.includes("炸薯")) {
         let healVal = Math.floor(currentRun.maxHp * 0.5);
+        const hpBefore = currentRun.hp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
-        spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
-        if (typeof addLog === "function") addLog(`🌭 熱量充能！血量大幅度回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+        const healedHp = currentRun.hp - hpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+        if (typeof addLog === "function") addLog(`🌭 熱量充能！血量大幅度回復 <span class="heal-effect">+${healedHp} HP</span>！`, "perfect");
     }
     else if (itemName.includes("烤野豬肉") || itemName.includes("初級治癒")) {
         let healVal = 60;
+        const hpBefore = currentRun.hp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
-        spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
-        if (typeof addLog === "function") addLog(`🥩 生命回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+        const healedHp = currentRun.hp - hpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+        if (typeof addLog === "function") addLog(`🥩 生命回復 <span class="heal-effect">+${healedHp} HP</span>！`, "perfect");
     }
     else if (itemName.includes("強效魔藥") || itemName.includes("壁虎乾")) {
         let healVal = 180;
+        const hpBefore = currentRun.hp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);
-        spawnVfx("heal", { anchor: "player", text: `+${healVal} HP` });
-        if (typeof addLog === "function") addLog(`🧪 強效滋補！生命回復 <span class="heal-effect">+${healVal} HP</span>！`, "perfect");
+        const healedHp = currentRun.hp - hpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+        if (typeof addLog === "function") addLog(`🧪 強效滋補！生命回復 <span class="heal-effect">+${healedHp} HP</span>！`, "perfect");
     }
     else if (itemName.includes("回魔劑") || itemName.includes("瓊漿")) {
         let mpVal = 80;
+        const mpBefore = currentRun.mp;
         currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + mpVal);
-        spawnVfx("heal", { anchor: "player", text: `+${mpVal} MP`, variant: "mana" });
-        if (typeof addLog === "function") addLog(`🍷 魔力泉湧！回復 <span class="heal-effect">+${mpVal} MP</span>！`, "perfect");
+        const healedMp = currentRun.mp - mpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedMp} MP`, variant: "mana" });
+        if (typeof addLog === "function") addLog(`🍷 魔力泉湧！回復 <span class="heal-effect">+${healedMp} MP</span>！`, "perfect");
     }
     else if (itemName.includes("永凍刨冰")) {
         activeMonster.freezeTurns = (activeMonster.freezeTurns || 0) + 2;
@@ -1753,15 +1769,19 @@ function executeUseDungeonItem(itemName, index) {
     }
     else if (itemName.includes("未知物體")) {
         let dmg = currentEnvironment === "POISON" ? 30 : 15;
+        const hpBefore = currentRun.hp;
         currentRun.hp = Math.max(1, currentRun.hp - dmg);
-        spawnVfx("hit", { anchor: "player", text: `-${dmg}`, variant: "damage" });
-        if (typeof addLog === "function") addLog(`🪨 焦黑物體反噬扣血！扣減 ${dmg} HP！`, "take");
+        const lostHp = hpBefore - currentRun.hp;
+        spawnVfx("hit", { anchor: "player", text: `-${lostHp}`, variant: "damage" });
+        if (typeof addLog === "function") addLog(`🪨 焦黑物體反噬扣血！扣減 ${lostHp} HP！`, "take");
     }
     else {
         let genericHeal = 40;
+        const hpBefore = currentRun.hp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + genericHeal);
-        spawnVfx("heal", { anchor: "player", text: `+${genericHeal} HP` });
-        if (typeof addLog === "function") addLog(`🍙 食用物資，回復 <span class="heal-effect">+${genericHeal} HP</span>。`, "perfect");
+        const healedHp = currentRun.hp - hpBefore;
+        spawnVfx("heal", { anchor: "player", text: `+${healedHp} HP` });
+        if (typeof addLog === "function") addLog(`🍙 食用物資，回復 <span class="heal-effect">+${healedHp} HP</span>。`, "perfect");
     }
     
     currentRun.inventory.splice(index, 1);

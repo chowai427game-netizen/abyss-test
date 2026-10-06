@@ -10,6 +10,21 @@ const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時
 let loginLoadingInterval = null;
 let autoSelectBlessingTimer = null; // 自動戰鬥代選定時器
 
+(function bindVfxSettings() {
+    if (typeof getVfxSettings !== "function" || typeof setVfxSettings !== "function") return;
+    const style = document.getElementById("vfx-style");
+    const quality = document.getElementById("vfx-quality");
+    const motion = document.getElementById("vfx-reduce-motion");
+    if (!style || !quality || !motion) return;
+    const settings = getVfxSettings();
+    style.value = settings.style;
+    quality.value = settings.quality;
+    motion.checked = settings.reduceMotion;
+    style.addEventListener("change", () => setVfxSettings({ style: style.value }));
+    quality.addEventListener("change", () => setVfxSettings({ quality: quality.value }));
+    motion.addEventListener("change", () => setVfxSettings({ reduceMotion: motion.checked }));
+})();
+
 // 🛡️ XSS 資安防禦：HTML 特殊字元轉義函式
 function escapeHTML(str) {
     if (!str) return "";

@@ -81,6 +81,22 @@
         <h2>Abyss of Destiny</h2>
         <div class="location-bar" id="location-text">🔮 命運的起點</div>
         <div id="env-alert-bar" class="env-zone-normal" style="display: none;">✨ 當前環境力場：重力與空間表現穩定</div>
+        <details class="vfx-settings">
+            <summary>特效設定（只影響畫面）</summary>
+            <label for="vfx-style">風格</label>
+            <select id="vfx-style">
+                <option value="legacy">舊式（預設）</option>
+                <option value="enhanced">增強形狀</option>
+            </select>
+            <label for="vfx-quality">畫質</label>
+            <select id="vfx-quality">
+                <option value="low">低</option>
+                <option value="standard" selected>標準（預設）</option>
+                <option value="high">高</option>
+            </select>
+            <label><input id="vfx-reduce-motion" type="checkbox"> 額外減少動態</label>
+            <small>只儲存在本機；系統「減少動態」永遠優先。低畫質仍保留結果文字。</small>
+        </details>
     </header>
 
     <!-- 📢 1. 封面主頁面 (TITLE) -->
