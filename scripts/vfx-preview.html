@@ -19,11 +19,12 @@
         .note { color: #aab4c3; }
     </style>
 </head>
-<body>
+<body data-vfx-preview="true">
     <main>
         <h1>獨立 VFX 預覽</h1>
         <p class="note">只載入正式 VFX 模組及特效 CSS；不載入遊戲狀態、登入或存檔程式。</p>
         <div class="controls">
+            <button type="button" onclick="triggerProjectileFX('fire', 6, { projectileType: 'fire', shape: 'fire-burst' })">施放／投射裝飾（非命中）</button>
             <button type="button" onclick="spawnVfx('hit', { anchor: 'monster', text: '-24' })">普通命中</button>
             <button type="button" onclick="spawnVfx('crit', { anchor: 'monster', text: '-48' })">暴擊</button>
             <button type="button" onclick="spawnVfx('heal', { anchor: 'player', text: '+32 HP' })">HP 治療</button>
@@ -33,14 +34,80 @@
             <button type="button" onclick="triggerProjectileFX('fire', 6)">投射物連發</button>
             <button type="button" onclick="spawnVfx('boss-entry', { anchor: 'monster', duration: 900, particleCount: 4 })">Boss 登場</button>
             <button type="button" onclick="spawnVfx('boss-defeat', { anchor: 'monster', duration: 1200, particleCount: 5 })">Boss 擊敗</button>
+            <button type="button" onclick="spawnVfx('hit', { anchor: 'monster', text: '-120 ×6 HP', shape: 'slash' })">多段合併結果 ×6</button>
+            <button type="button" onclick="spawnVfx('hit', { anchor: 'monster', text: '-12', positionMode: 'follow-anchor' })">跟隨目標</button>
+            <button type="button" onclick="spawnVfx('hit', { anchor: 'monster', text: '-12', positionMode: 'snapshot-impact' })">固定命中位置</button>
+            <button type="button" onclick="previewOverlap()">重疊／多結果</button>
+            <button type="button" onclick="previewStress()">壓力測試</button>
+            <button type="button" onclick="showVfxDiagnostics()">更新診斷</button>
+            <button type="button" onclick="toggleMonsterAnchor()">隱藏／顯示敵方錨點</button>
             <button type="button" onclick="clearVfxLayer()">清除</button>
         </div>
+        <fieldset class="vfx-preference-controls">
+            <legend>預覽設定（只在記憶體生效）</legend>
+            <label for="vfx-profile-setting">視覺風格</label>
+            <select id="vfx-profile-setting">
+                <option value="legacy">傳統（預設）</option>
+                <option value="enhanced">增強形狀</option>
+            </select>
+            <label for="vfx-quality-setting">特效品質</label>
+            <select id="vfx-quality-setting">
+                <option value="low">低</option>
+                <option value="standard">標準（預設）</option>
+                <option value="high">高</option>
+            </select>
+            <label class="vfx-motion-option" for="vfx-reduce-motion-setting">
+                <input id="vfx-reduce-motion-setting" type="checkbox">
+                額外減少動畫（亦尊重系統設定）
+            </label>
+        </fieldset>
+        <output id="vfx-diagnostics" aria-live="polite">診斷：尚未更新</output>
         <div class="anchors">
             <div class="anchor" id="status-panel-box">玩家定位錨點</div>
             <div class="anchor" id="monster-status-card">魔物定位錨點</div>
             <div class="anchor" id="log-wrapper-box">紀錄定位錨點</div>
         </div>
+        <section class="anchors" aria-label="增強形狀示例">
+            <div class="anchor" onclick="spawnVfx('hit', { x: 25, y: 70, text: '-8', shape: 'slash' })">斬擊弧線（點擊）</div>
+            <div class="anchor" onclick="spawnVfx('hit', { x: 75, y: 70, text: '-8', projectileType: 'fire' })">火焰爆散（點擊）</div>
+            <div class="anchor" onclick="spawnVfx('hit', { x: 25, y: 85, text: '-8', projectileType: 'ice' })">冰晶碎片（點擊）</div>
+            <div class="anchor" onclick="spawnVfx('hit', { x: 75, y: 85, text: '-8', projectileType: 'lightning' })">雷電折線（點擊）</div>
+            <div class="anchor" onclick="spawnVfx('heal', { x: 25, y: 92, text: '+8 HP' })">上升治療光點（點擊）</div>
+            <div class="anchor" onclick="spawnVfx('shield', { x: 75, y: 92, text: '+8' })">護盾環（點擊）</div>
+        </section>
+        <p style="height: 40vh" aria-hidden="true"></p>
     </main>
+    <script>
+        function previewOverlap() {
+            spawnVfx("hit", { anchor: "monster", text: "-10 HP" });
+            spawnVfx("crit", { anchor: "monster", text: "-24 HP", priority: 100 });
+            spawnVfx("shield", { anchor: "monster", text: "-6 Shield" });
+            spawnVfx("heal", { anchor: "player", text: "+8 HP" });
+            spawnVfx("heal", { anchor: "player", text: "+4 MP", variant: "mana" });
+        }
+        function previewStress() {
+            for (let i = 0; i < 100; i++) {
+                spawnVfx(i % 10 === 0 ? "crit" : "hit", {
+                    anchor: i % 2 ? "monster" : "player",
+                    count: i % 5 ? 2 : 99,
+                    particleCount: i % 3 ? 3 : 99,
+                    priority: i % 10 === 0 ? 100 : 40,
+                    text: i % 7 === 0 ? `-${i} ×6 HP` : ""
+                });
+            }
+            showVfxDiagnostics();
+        }
+        function showVfxDiagnostics() {
+            const stats = getVfxDiagnostics();
+            document.getElementById("vfx-diagnostics").textContent =
+                `active ${stats.active}／particles ${stats.particles}／queued ${stats.queued}／labels ${stats.labels}+${stats.queuedLabels}／dropped ${stats.dropped}／timers ${stats.timers}`;
+        }
+        function toggleMonsterAnchor() {
+            const anchor = document.getElementById("monster-status-card");
+            anchor.hidden = !anchor.hidden;
+            anchor.style.display = anchor.hidden ? "none" : "block";
+        }
+    </script>
     <script src="../vfx.js"></script>
 </body>
 </html>
