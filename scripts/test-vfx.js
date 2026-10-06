@@ -15,12 +15,18 @@ class FakeElement {
         this.parentNode = null;
         this.attributes = new Map();
         this.properties = new Map();
+        this.dataset = {};
+        this.listeners = new Map();
         this.style = {
             pointerEvents: "",
+            display: "",
+            visibility: "",
             setProperty: (name, value) => this.properties.set(name, value)
         };
         this.id = "";
         this.className = "";
+        this.textContent = "";
+        this.hidden = false;
         this.rect = null;
     }
 
@@ -53,6 +59,15 @@ class FakeElement {
         return this.attributes.get(name) ?? null;
     }
 
+    addEventListener(type, listener) {
+        if (!this.listeners.has(type)) this.listeners.set(type, []);
+        this.listeners.get(type).push(listener);
+    }
+
+    dispatchEvent(type) {
+        for (const listener of this.listeners.get(type) || []) listener({ target: this });
+    }
+
     appendChild(child) {
         child.parentNode = this;
         child.ownerDocument = this.ownerDocument;
@@ -72,15 +87,18 @@ class FakeElement {
     }
 }
 
-function createEnvironment({ reducedMotion = false } = {}) {
+function createEnvironment({ reducedMotion = false, storage = null, preview = false, settingsControls = false } = {}) {
+    let systemReducedMotion = reducedMotion;
     let now = 0;
     let nextTimerId = 1;
     const timers = new Map();
     const listeners = new Map();
+    const windowListeners = new Map();
     const body = new FakeElement("body");
     const document = {
         body,
         visibilityState: "visible",
+        readyState: "complete",
         createElement(tagName) {
             const element = new FakeElement(tagName);
             element.ownerDocument = document;
@@ -100,8 +118,27 @@ function createEnvironment({ reducedMotion = false } = {}) {
         addEventListener(type, listener) {
             if (!listeners.has(type)) listeners.set(type, []);
             listeners.get(type).push(listener);
+        },
+        removeEventListener(type, listener) {
+            listeners.set(type, (listeners.get(type) || []).filter((item) => item !== listener));
         }
     };
+    if (preview) body.setAttribute("data-vfx-preview", "true");
+    const controls = {};
+    if (settingsControls) {
+        for (const [key, tagName, id, value] of [
+            ["profile", "select", "vfx-profile-setting", "legacy"],
+            ["quality", "select", "vfx-quality-setting", "standard"],
+            ["reduceMotion", "input", "vfx-reduce-motion-setting", false]
+        ]) {
+            const control = new FakeElement(tagName);
+            control.id = id;
+            if (key === "reduceMotion") control.checked = value;
+            else control.value = value;
+            body.appendChild(control);
+            controls[key] = control;
+        }
+    }
     body.ownerDocument = document;
 
     function setTimeoutMock(callback, delay = 0) {
@@ -134,12 +171,20 @@ function createEnvironment({ reducedMotion = false } = {}) {
         setTimeout: setTimeoutMock,
         clearTimeout: clearTimeoutMock,
         Math: Object.assign(Object.create(Math), { random: () => 0.5 }),
-        console
+        console,
+        localStorage: storage || undefined,
+        addEventListener(type, listener) {
+            if (!windowListeners.has(type)) windowListeners.set(type, []);
+            windowListeners.get(type).push(listener);
+        },
+        removeEventListener(type, listener) {
+            windowListeners.set(type, (windowListeners.get(type) || []).filter((item) => item !== listener));
+        }
     };
     context.window = context;
     context.innerWidth = 1000;
     context.innerHeight = 500;
-    context.matchMedia = (query) => ({ matches: reducedMotion && query === "(prefers-reduced-motion: reduce)" });
+    context.matchMedia = (query) => ({ matches: systemReducedMotion && query === "(prefers-reduced-motion: reduce)" });
     vm.createContext(context);
     vm.runInContext(fs.readFileSync(path.join(repoRoot, "vfx.js"), "utf8"), context, { filename: "vfx.js" });
 
@@ -148,7 +193,15 @@ function createEnvironment({ reducedMotion = false } = {}) {
         document,
         timers,
         listeners,
+        windowListeners,
+        controls,
         advanceBy,
+        dispatchWindowEvent(type) {
+            for (const listener of windowListeners.get(type) || []) listener();
+        },
+        setSystemReducedMotion(value) {
+            systemReducedMotion = value;
+        },
         setHidden(hidden) {
             document.visibilityState = hidden ? "hidden" : "visible";
             for (const listener of listeners.get("visibilitychange") || []) listener();
@@ -158,6 +211,10 @@ function createEnvironment({ reducedMotion = false } = {}) {
 
 function effects(env) {
     return env.document.getElementById("vfx-layer")?.children || [];
+}
+
+function labels(env) {
+    return env.document.getElementById("vfx-label-layer")?.children || [];
 }
 
 function assertPosition(actual, expected) {
@@ -187,8 +244,8 @@ function runLegacyCharacterization() {
     assert.equal(node.className, "vfx-effect vfx-hit");
     assert.equal(node.getAttribute("aria-hidden"), "true");
     assert.equal(node.getAttribute("data-vfx-text"), null);
-    assert.equal(node.properties.get("--vfx-x"), "50%");
-    assert.equal(node.properties.get("--vfx-y"), "46%");
+    assert.equal(node.properties.get("--vfx-x"), "53%");
+    assert.equal(node.properties.get("--vfx-y"), "43%");
     assert.equal(node.properties.get("--vfx-duration"), "460ms");
     assert.equal(node.children.length, 3);
     assert.deepEqual(node.children.map((particle) => particle.properties.get("--particle-angle")), ["0deg", "120deg", "240deg"]);
@@ -261,7 +318,7 @@ function runLegacyCharacterization() {
         projectile.advanceBy(55);
     }
     assert.equal(effects(projectile).length, 4);
-    assert.equal(effects(projectile)[0].className, "vfx-effect vfx-hit vfx-variant-projectile-fire");
+    assert.equal(effects(projectile)[0].className, "vfx-effect vfx-cast vfx-variant-projectile-fire");
 
     const reduced = createEnvironment({ reducedMotion: true });
     assert.equal(reduced.context.prefersReducedMotion(), true);
@@ -343,6 +400,8 @@ function runLifecycleTests() {
     assert.equal(effects(newScene).length, 1);
     assert.equal(effects(newScene)[0].className, "vfx-effect vfx-heal");
     newScene.advanceBy(1000);
+    assert.equal(labels(newScene).length, 1, "result text remains independently visible after its decoration ends");
+    newScene.advanceBy(50);
     assert.equal(newScene.timers.size, 0);
 
     const hiddenPage = createEnvironment();
@@ -476,6 +535,308 @@ function runStaticIntegrationChecks() {
     assert.match(styles, /\.vfx-variant-projectile-fire/);
 }
 
+function runRoundTwoVfxTests() {
+    const registry = createEnvironment();
+    assert.equal(registry.context.getVfxSettings().profile, "legacy");
+    assert.equal(registry.context.getVfxSettings().quality, "standard");
+    assert.equal(registry.context.VFX_DEFINITIONS.hit.duration, 460);
+    assert.equal(registry.context.VFX_DEFINITIONS.hit.priority, 60);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(registry.context.resolveSkillVfx({ name: "冰霜箭" }, "magician"))),
+        { projectileType: "ice", shape: "ice-shards" }
+    );
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(registry.context.resolveSkillVfx({
+            name: "火箭術",
+            vfxMetadata: { projectileType: "ice", shape: "slash" }
+        }, "magician"))),
+        { projectileType: "ice", shape: "slash" }
+    );
+
+    const rng = createEnvironment();
+    let randomCalls = 0;
+    rng.context.Math.random = () => { randomCalls++; return 0.25; };
+    rng.context.spawnVfx("hit");
+    rng.advanceBy(0);
+    assert.equal(randomCalls, 0, "VFX placement must not consume gameplay Math.random state");
+    rng.context.Math.random();
+    assert.equal(randomCalls, 1, "the next gameplay roll remains available to gameplay");
+
+    const outcomes = [];
+    for (const profile of ["legacy", "enhanced", "disabled"]) {
+        const env = createEnvironment();
+        let randomDraws = 0;
+        env.context.setInterval = () => 1;
+        env.context.clearInterval = () => {};
+        env.context.Math.random = () => { randomDraws++; return 0.25; };
+        vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), env.context, { filename: "game.js" });
+        env.context.currentRun = {
+            hp: 100, maxHp: 100, mp: 100, maxMp: 100, job: "tester", atk: 20,
+            skills: { "測試連擊": 1 }, shield: 0, inventory: []
+        };
+        env.context.activeMonster = { name: "Test", hp: 100, maxHp: 100, def: 0, mdef: 0, shield: 0 };
+        env.context.gameState = "BATTLE";
+        env.context.activeTactic = "MANUAL";
+        env.context.SKILLS_DATABASE = {
+            tester: [{ name: "測試連擊", type: "active", mp: 0, run: () => ({ dmg: 12, hitCount: 3 }) }]
+        };
+        env.context.calculateDamage = (damage) => ({ damage, isMiss: false, isCrit: false });
+        env.context.addLog = () => {};
+        env.context.SKILLS_DATABASE.tester[0].vfxMetadata = { projectileType: "fire", shape: "fire-burst" };
+        if (profile === "disabled") env.document.visibilityState = "hidden";
+        else env.context.setVfxSettings({ profile, quality: profile === "enhanced" ? "high" : "low" });
+        env.context.executePlayerActionTick();
+        outcomes.push({
+            hp: env.context.currentRun.hp,
+            mp: env.context.currentRun.mp,
+            monsterHp: env.context.activeMonster.hp,
+            randomDraws
+        });
+    }
+    assert.deepEqual(outcomes, [
+        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 1 },
+        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 1 },
+        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 1 }
+    ], "controlled game action outcomes remain the same across VFX profiles and hidden-renderer mode");
+
+    const castImpact = createEnvironment();
+    castImpact.context.triggerProjectileFX("fire", 6);
+    castImpact.advanceBy(55 * 3);
+    assert.equal(effects(castImpact).length, 4);
+    assert.match(effects(castImpact)[0].className, /vfx-cast/);
+    assert.doesNotMatch(effects(castImpact)[0].className, /vfx-hit/);
+    castImpact.context.spawnVfx("miss", { anchor: "monster", text: "MISS" });
+    castImpact.advanceBy(0);
+    assert.ok(labels(castImpact).some((label) => label.textContent === "MISS"));
+    assert.equal(castImpact.context.getVfxDiagnostics().active, 5, "MISS feedback is separate from cast decoration");
+
+    const resultText = createEnvironment();
+    resultText.context.spawnVfx("hit", { text: "-120 ×6 HP", count: 99 });
+    resultText.advanceBy(0);
+    assert.equal(labels(resultText).length, 1);
+    assert.equal(labels(resultText)[0].textContent, "-120 ×6 HP");
+    assert.equal(labels(resultText)[0].getAttribute("data-label-kind"), "damage");
+    assert.equal(effects(resultText)[0].getAttribute("data-vfx-text"), "-120 ×6 HP");
+
+    const cappedHeal = createEnvironment();
+    cappedHeal.context.setInterval = () => 1;
+    cappedHeal.context.clearInterval = () => {};
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), cappedHeal.context, { filename: "game.js" });
+    cappedHeal.context.currentRun = {
+        hp: 95, maxHp: 100, mp: 80, maxMp: 100, job: "tester", atk: 20,
+        skills: { "測試治癒": 1 }, inventory: []
+    };
+    cappedHeal.context.activeMonster = { name: "Test", hp: 100, maxHp: 100, def: 0, mdef: 0, shield: 0 };
+    cappedHeal.context.gameState = "BATTLE";
+    cappedHeal.context.SKILLS_DATABASE = {
+        tester: [{ name: "測試治癒", type: "active", mp: 0, run: () => ({ healAmount: 20 }) }]
+    };
+    cappedHeal.context.Math.random = () => 0.25;
+    cappedHeal.context.addLog = () => {};
+    cappedHeal.context.executePlayerActionTick();
+    assert.equal(cappedHeal.context.currentRun.hp, 100, "the original capped HP calculation is unchanged");
+    cappedHeal.advanceBy(0);
+    assert.ok(labels(cappedHeal).some((label) => label.textContent === "+5 HP"), "the result reports actual capped healing");
+
+    const cappedMp = createEnvironment();
+    cappedMp.context.setInterval = () => 1;
+    cappedMp.context.clearInterval = () => {};
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), cappedMp.context, { filename: "game.js" });
+    cappedMp.context.currentRun = {
+        hp: 100, maxHp: 100, mp: 95, maxMp: 100, job: "tester", inventory: ["回魔劑"]
+    };
+    cappedMp.context.activeMonster = { name: "Test", hp: 100 };
+    cappedMp.context.gameState = "BATTLE";
+    cappedMp.context.addLog = () => {};
+    cappedMp.context.executeUseDungeonItem("回魔劑", 0);
+    cappedMp.advanceBy(0);
+    assert.equal(cappedMp.context.currentRun.mp, 100);
+    assert.ok(labels(cappedMp).some((label) => label.textContent === "+5 MP"));
+
+    const bounded = createEnvironment();
+    bounded.context.spawnVfx("hit", { count: Infinity, duration: Infinity, particleCount: Infinity, maxActive: Infinity });
+    bounded.advanceBy(0);
+    assert.equal(effects(bounded).length, 1, "Infinity burst count falls back to one");
+    assert.equal(effects(bounded)[0].properties.get("--vfx-duration"), "460ms");
+    assert.equal(effects(bounded)[0].children.length, 3);
+    bounded.context.clearVfxLayer();
+    bounded.context.spawnVfx("hit", { count: -100, duration: -100, particleCount: -100, maxActive: -100 });
+    bounded.advanceBy(0);
+    assert.equal(effects(bounded).length, 1);
+    assert.equal(effects(bounded)[0].properties.get("--vfx-duration"), "120ms");
+    assert.equal(effects(bounded)[0].children.length, 0);
+
+    const low = createEnvironment();
+    low.context.setVfxSettings({ quality: "low" });
+    low.context.spawnVfx("hit", { count: 99, particleCount: 99 });
+    low.advanceBy(55);
+    assert.equal(low.context.getVfxDiagnostics().active, 2);
+    assert.equal(low.context.getVfxDiagnostics().particles, 0);
+    const high = createEnvironment();
+    high.context.setVfxSettings({ quality: "high" });
+    high.context.spawnVfx("hit", { count: 99, particleCount: 99 });
+    high.advanceBy(55 * 3);
+    assert.equal(high.context.getVfxDiagnostics().active, 4);
+    assert.ok(high.context.getVfxDiagnostics().particles <= 96);
+
+    const systemMotion = createEnvironment();
+    systemMotion.context.setVfxSettings({ profile: "enhanced", quality: "high" });
+    systemMotion.setSystemReducedMotion(true);
+    systemMotion.context.spawnVfx("heal", { count: 99, particleCount: 99 });
+    systemMotion.advanceBy(55);
+    assert.equal(systemMotion.context.getVfxSettings().effectiveReducedMotion, true);
+    assert.equal(systemMotion.context.getVfxDiagnostics().active, 2);
+    assert.equal(systemMotion.context.getVfxDiagnostics().particles, 0);
+    assert.equal(systemMotion.context.setVfxSettings({ quality: "invalid", profile: "invalid", reduceMotion: "yes" }).quality, "high");
+    systemMotion.context.setVfxSettings({ reduceMotion: true });
+    systemMotion.setSystemReducedMotion(false);
+    assert.equal(systemMotion.context.getVfxSettings().effectiveReducedMotion, true);
+
+    const storageValues = new Map([["abyss-test:vfx-preferences", JSON.stringify({ profile: "enhanced", quality: "low", reduceMotion: true })]]);
+    const persistentStorage = {
+        getItem: (key) => storageValues.get(key) || null,
+        setItem: (key, value) => storageValues.set(key, value)
+    };
+    const persisted = createEnvironment({ storage: persistentStorage });
+    assert.equal(persisted.context.getVfxSettings().profile, "enhanced");
+    persisted.context.setVfxSettings({ quality: "high" });
+    assert.equal(JSON.parse(storageValues.get("abyss-test:vfx-preferences")).quality, "high");
+    const blockedStorage = createEnvironment({
+        storage: { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } }
+    });
+    assert.equal(blockedStorage.context.getVfxSettings().profile, "legacy");
+    assert.doesNotThrow(() => blockedStorage.context.setVfxSettings({ profile: "enhanced" }));
+    let previewWrites = 0;
+    const previewStorage = createEnvironment({
+        preview: true,
+        storage: { getItem: () => null, setItem() { previewWrites++; } }
+    });
+    previewStorage.context.setVfxSettings({ profile: "enhanced" });
+    assert.equal(previewWrites, 0, "the isolated preview keeps preferences in memory");
+    const accessibleControls = createEnvironment({ settingsControls: true });
+    assert.equal(accessibleControls.controls.profile.value, "legacy");
+    accessibleControls.controls.profile.value = "enhanced";
+    accessibleControls.controls.profile.dispatchEvent("change");
+    accessibleControls.controls.quality.value = "low";
+    accessibleControls.controls.quality.dispatchEvent("change");
+    accessibleControls.controls.reduceMotion.checked = true;
+    accessibleControls.controls.reduceMotion.dispatchEvent("change");
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(accessibleControls.context.getVfxSettings())),
+        {
+            profile: "enhanced", quality: "low", reduceMotion: true,
+            systemReducedMotion: false, effectiveReducedMotion: true
+        }
+    );
+
+    const lanes = createEnvironment();
+    for (let i = 0; i < 50; i++) {
+        lanes.context.spawnVfx(i % 8 === 0 ? "crit" : "hit", {
+            text: `-${i} HP`,
+            priority: i % 8 === 0 ? 100 : 40,
+            count: 2
+        });
+    }
+    assert.ok(lanes.context.getVfxDiagnostics().queued <= 32);
+    assert.ok(lanes.context.getVfxDiagnostics().labels <= 8);
+    assert.ok(lanes.context.getVfxDiagnostics().queuedLabels <= 24);
+    assert.ok(lanes.context.getVfxDiagnostics().timers <= 160);
+    assert.ok(lanes.context.getVfxDiagnostics().dropped > 0);
+    assert.equal(new Set(labels(lanes).map((label) => label.properties.get("--vfx-label-lane"))).size, 8);
+    lanes.advanceBy(0);
+    assert.ok(lanes.context.getVfxDiagnostics().active <= 24);
+    assert.ok(lanes.context.getVfxDiagnostics().particles <= 96);
+    const stressMetrics = lanes.context.getVfxDiagnostics();
+    console.log(`VFX stress (50 spawns × up to 2 decorations): active=${stressMetrics.active}, particles=${stressMetrics.particles}, queued=${stressMetrics.queued}, labels=${stressMetrics.labels}+${stressMetrics.queuedLabels}, dropped=${stressMetrics.dropped}, timers=${stressMetrics.timers}`);
+    lanes.context.clearVfxLayer();
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(lanes.context.getVfxDiagnostics())),
+        { active: 0, particles: 0, queued: 0, labels: 0, queuedLabels: 0, dropped: lanes.context.getVfxDiagnostics().dropped, timers: 0, followListeners: 0 }
+    );
+
+    const priority = createEnvironment();
+    priority.context.spawnVfx("cast", { maxActive: 1, priority: 10 });
+    priority.advanceBy(0);
+    priority.context.spawnVfx("crit", { maxActive: 1, text: "-4" });
+    priority.advanceBy(0);
+    assert.equal(effects(priority).length, 1);
+    assert.match(effects(priority)[0].className, /vfx-crit/);
+    assert.equal(priority.context.getVfxDiagnostics().timers, 2, "evicted effects cancel their own expiration timer");
+
+    const essentialLabels = createEnvironment();
+    for (const [type, text] of [["hit", "-1 HP"], ["crit", "-2 HP"], ["miss", "MISS"]]) {
+        essentialLabels.context.spawnVfx(type, { maxActive: 1, text });
+    }
+    essentialLabels.advanceBy(0);
+    assert.equal(essentialLabels.context.getVfxDiagnostics().active, 1);
+    assert.deepEqual(labels(essentialLabels).map((label) => label.textContent), ["-1 HP", "-2 HP", "MISS"]);
+    essentialLabels.context.clearVfxLayer();
+    assert.equal(essentialLabels.timers.size, 0);
+
+    const variedLanes = createEnvironment();
+    variedLanes.context.spawnVfx("hit", { text: "long", labelDuration: 1800 });
+    for (let i = 0; i < 8; i++) variedLanes.context.spawnVfx("hit", { text: `short ${i}`, labelDuration: 400 });
+    variedLanes.advanceBy(0);
+    assert.equal(new Set(labels(variedLanes).map((label) => label.properties.get("--vfx-label-lane"))).size, 8);
+    variedLanes.advanceBy(400);
+    assert.equal(labels(variedLanes).length, 2);
+    assert.equal(new Set(labels(variedLanes).map((label) => label.properties.get("--vfx-label-lane"))).size, 2);
+    variedLanes.context.clearVfxLayer();
+    assert.equal(variedLanes.timers.size, 0);
+
+    const positions = createEnvironment();
+    const target = positions.document.createElement("div");
+    target.id = "moving-target";
+    target.rect = { left: 100, top: 50, width: 200, height: 100 };
+    positions.document.body.appendChild(target);
+    positions.context.spawnVfx("hit", { anchorId: "moving-target", positionMode: "follow-anchor" });
+    positions.advanceBy(0);
+    const followed = effects(positions)[0];
+    assert.equal(followed.properties.get("--vfx-x"), "23%");
+    assert.equal(positions.context.getVfxDiagnostics().followListeners, 3);
+    target.rect = { left: 300, top: 100, width: 200, height: 100 };
+    positions.dispatchWindowEvent("scroll");
+    assert.equal(followed.properties.get("--vfx-x"), "40%");
+    const capturedY = followed.properties.get("--vfx-y");
+    target.style.display = "none";
+    target.rect = { left: 600, top: 300, width: 100, height: 60 };
+    positions.dispatchWindowEvent("resize");
+    assert.equal(followed.properties.get("--vfx-y"), capturedY, "hidden targets preserve the last captured position");
+    target.remove();
+    positions.dispatchWindowEvent("orientationchange");
+    assert.equal(followed.properties.get("--vfx-x"), "40%", "a disconnected target keeps its last captured position");
+    assert.equal(positions.context.getVfxDiagnostics().followListeners, 0);
+    positions.context.clearVfxLayer();
+    assert.equal(positions.timers.size, 0);
+    assert.equal(positions.windowListeners.get("scroll").length, 0);
+    assert.equal(positions.windowListeners.get("resize").length, 0);
+    assert.equal(positions.windowListeners.get("orientationchange").length, 0);
+
+    const snapshot = createEnvironment();
+    const snapshotTarget = snapshot.document.createElement("div");
+    snapshotTarget.id = "moving-target";
+    snapshotTarget.rect = { left: 100, top: 50, width: 200, height: 100 };
+    snapshot.document.body.appendChild(snapshotTarget);
+    snapshot.context.spawnVfx("hit", { anchorId: "moving-target", positionMode: "snapshot-impact" });
+    snapshot.advanceBy(0);
+    const snapshotNode = effects(snapshot)[0];
+    snapshotTarget.rect = { left: 500, top: 200, width: 100, height: 100 };
+    snapshot.dispatchWindowEvent("scroll");
+    assert.equal(snapshotNode.properties.get("--vfx-x"), "23%");
+    assert.equal(snapshot.context.getVfxDiagnostics().followListeners, 0);
+    snapshotTarget.hidden = true;
+    assertPosition(snapshot.context.resolveVfxPosition({ anchorId: "moving-target", anchor: "player" }), { x: 50, y: 38 });
+
+    const settingsCss = fs.readFileSync(path.join(repoRoot, "css/04-components.css"), "utf8");
+    const game = fs.readFileSync(path.join(repoRoot, "game.js"), "utf8");
+    const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
+    assert.match(settingsCss, /\.vfx-shape-ice-shards/);
+    assert.match(settingsCss, /data-vfx-reduced-motion/);
+    assert.match(html, /vfx-profile-setting/);
+    assert.match(game, /const hitLabel = `-\$\{totalActualDmg\}\$\{hitCount > 1 \? ` ×\$\{hitCount\}` : ""\} HP`/);
+    assert.doesNotMatch(fs.readFileSync(path.join(repoRoot, "vfx.js"), "utf8"), /Math\.random\s*\(/);
+}
+
 require("node:child_process").execFileSync(process.execPath, [
     path.join(repoRoot, "scripts/check-refactor-baseline.js")
 ], { stdio: "inherit" });
@@ -483,4 +844,5 @@ runLegacyCharacterization();
 runLifecycleTests();
 runSceneTransitionTests();
 runStaticIntegrationChecks();
-console.log("✅ VFX characterization, lifecycle, scene-transition, and integration tests passed.");
+runRoundTwoVfxTests();
+console.log("✅ VFX characterization, lifecycle, scene-transition, round-two settings/budget/position, and integration tests passed.");
