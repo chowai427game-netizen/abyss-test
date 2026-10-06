@@ -112,7 +112,7 @@ Browser 使用 Linux headless **Chromium 154**，1280×900／375×812、DPR 1。
 - [第二輪 legacy（預設）](vfx-round2-legacy.png)
 - [第二輪 enhanced（可選）](vfx-round2-enhanced.png)
 
-初次環境沒有 CJK 字型，截圖中文字為方框，不能當中文易讀性 PASS。已安裝 **environment-only** Noto CJK 字型（不加入 production dependencies），Chromium 平台字型證據確認 **Noto Sans CJK TC** 真實 glyph，244 個頁面中文字元均有 glyph。三張提交截圖於 **2026-10-06 03:43:27–31Z** 重新捕捉，不保留方框版作最後證據。玩家主觀閱讀與實體手機仍需使用者過目。
+初次環境沒有 CJK 字型，截圖中文字為方框，不能當中文易讀性 PASS。已安裝 **environment-only** Noto CJK 字型（不加入 production dependencies），Chromium 平台字型證據確認 **Noto Sans CJK TC** 真實 glyph，244 個頁面中文字元均有 glyph。三張提交截圖於 **2026-10-06** 重新捕捉；最後 legacy／enhanced refresh 沿用同一工作量及 frozen production hashes，不保留方框版作最後證據。玩家主觀閱讀與實體手機仍需使用者過目。
 
 最後驗證 production hashes：`vfx.js` SHA-256 `e2b2358c33e534c1a3e1543db190f884eeca9e93970e82726347995846b56318`；components CSS `fab42f47d8081095a206d0fed29f1597e6663bc1dcae65b313b9ad79b5efd9e7`。沒有 production lint/build 工具或依賴遷移；原兩個 Node scripts 與現有 Chromium 用於驗證。臨時 browser profiles／中間資料已清理，只提交三張指定 PNG。
 
