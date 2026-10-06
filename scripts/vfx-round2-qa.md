@@ -36,7 +36,7 @@
 | high | 32 | 128 | 4／6 |
 | 任一 quality + reduce | 最多 12 | 0 | 2／0 |
 
-所有 profile 共用：最多 48 queued decoration spawns、32 external VFX callbacks、12 active labels（每 anchor 最多 4 lanes）、36 queued labels。數值 options 不能提高上限；diagnostics 只保留固定數量的 counters，唔存無限事件歷史。visibility／motion／resize 各固定一個 module-lifetime listener，唔會逐次 spawn 註冊；clear 後集合清空，不保留舊場景節點。follow updater 只喺有 active followers 時運行，clear／到期／eviction 會取消。無位置可放的結果用單一 500ms retry，最多四次／2 秒後丟棄，唔會擱置永久 backlog。
+所有 profile 共用：最多 48 queued decoration spawns、32 external VFX callbacks、12 active labels（每 anchor 最多 4 lanes）、36 queued labels。數值 options 不能提高上限；diagnostics 只保留固定數量的 counters，唔存無限事件歷史。visibility／motion／resize 各固定一個 module-lifetime listener，唔會逐次 spawn 註冊；clear 後集合清空，不保留舊場景節點。follow updater 只喺有 active followers 時運行，clear／到期／eviction 會取消。零 active 且無位置可放時，用單一 500ms retry，最多四次／2 秒後丟棄，唔會擱置永久 backlog；正常 lane 滿額則等現有 label 到期再播放有界 queue。
 
 **刻意呈現改變：** 施放由爆光改 tracer（包括 MISS 前的 cast）；文字不再重複印在每個 burst／被 decoration eviction 刪去；labels 顯示種類及 ×N；所有既有 VFX heal 路徑的 labels／logs 改實際增量（滿血／滿魔顯示 +0，不改補量）。物品「未知物體」的最低 1 HP clamp 同樣只修顯示 delta。死亡 snapshot 共用安全定位 helper。新的硬預算可能捨棄裝飾／飽和 labels，現有 HP／MP UI 及 combat log 仍為權威保底；沒有新增 accessibility live region。
 
@@ -49,7 +49,7 @@
 - OFFENSIVE AI 技能分支原本只有一次 damage application，沒有一般技能的 multi-hit loop；本輪照舊，不將技能 metadata／視覺 count 當成額外傷害指令。
 - 治療／護盾技能的既有施放呼叫改 tracer；治療、盾量由原 state 邏輯決定。劇毒／燃燒等原 log-only 路徑維持 log-only，沒有借此擴大戰鬥修改。
 
-**RNG 限制：** VFX 使用私有 presentation RNG，唔再抽取 global `Math.random`。控制測試只比較本輪各 profile／停用 renderer 的相同 gameplay draws／結果；移除舊 renderer 隨機抽取會改歷史 interleaving，**不宣稱與舊版本全局 random sequence 或整局結果完全相同**。沒有改 gameplay RNG implementation。
+**RNG 限制：** VFX 使用私有 presentation RNG，唔再抽取 global `Math.random`。控制測試比較本輪各 profile／停用 renderer 的相同 gameplay draws／結果，另在兩版本皆停用 rendering 時比較舊／新 game 函式；移除舊 renderer 隨機抽取會改歷史 interleaving，**不宣稱與舊版本開啟 VFX 的全局 random sequence 或整局結果完全相同**。沒有改 gameplay RNG implementation。
 
 ## 改動檔案
 
@@ -77,7 +77,9 @@
 | `node --check vfx.js`、`game.js`、`ui.js`、`scripts/test-vfx.js`；preview inline scripts compile；`git diff --check`（含 staged） | **PASS** |
 | 桌面／375px 隔離 Chromium preview、profile／quality／motion／scroll／resize／clear-reentry | **PASS**：36 組 matrix、4 組定位、20 次 lifecycle；最後長文字／CJK refresh 見下 |
 | read-only code review | **PASS**：兩項有效回歸已修正，最終無剩餘 high-confidence finding |
-| 最終 CodeQL／secret scan | 待提交後驗證／提交前掃描 |
+| 提交後 CodeQL security scan | **PASS**：JavaScript 0 alerts |
+| 提交前 secret scan（全部 11 個新增／修改檔案，含截圖） | **PASS**：沒有 secrets |
+| `parallel_validation` 自動 code-review 子工具 | **NOT RUN**：設定的 `claude-sonnet-4.6` model 不在 registry；工具標頭雖顯示 Success，內文實際表示 unavailable，不能當自動審查 PASS。上述獨立 read-only review 已完成，但不冒充該工具成功 |
 | physical mobile、完整 authenticated gameplay、真實背景分頁／省電 throttling、玩家主觀易讀性 | **NOT RUN** |
 | 實際 GPU／FPS／長時間遊戲效能 | **NOT RUN**；harness／預覽 workload 不等於遊戲 FPS |
 
@@ -96,13 +98,13 @@
 
 | renderer | elapsed（ms） | peak decorations + labels | peak particles | peak timers | global Math.random draws |
 |---|---:|---:|---:|---:|---:|
-| 第一輪 | 141.36 | 24 + 0 | 144 | 1600 | 3200 |
-| 第二輪 legacy | 13.53 | 24 + 12 | 96 | 60 | 0 |
-| 第二輪 enhanced | 8.15 | 24 + 12 | 96 | 60 | 0 |
+| 第一輪 | 139.87 | 24 + 0 | 144 | 1600 | 3200 |
+| 第二輪 legacy | 13.48 | 24 + 12 | 96 | 60 | 0 |
+| 第二輪 enhanced | 8.50 | 24 + 12 | 96 | 60 | 0 |
 
 這是 scheduler／fake DOM 的單次 diagnostic，不是 renderer painting、GPU 或 FPS benchmark；時間受主機及 harness 排程演算法影響，無 timing gate。新硬預算實際減少要處理的工作，**不是相同顯示粒子量的繪製速度比較**，不能宣傳為遊戲倍速提升。主要可驗證收益係 timers／particles／queues 的上限；沒有以此引入 pooling 或新 renderer。
 
-Browser 使用 Linux headless **Chromium 154**，1280×900／375×812、DPR 1。36 組 = 2 viewports × 2 styles × 3 qualities × normal／user-reduce／system-reduce。零 runtime exceptions、Storage calls／水平 overflow；snapshot／follow、scroll／resize、移除凍結／還原與重入已執行。Production settings 的獨立 inert CSS fixture 亦測 wrap／2px keyboard focus（不是 authenticated game UI）。
+Browser 使用 Linux headless **Chromium 154**，1280×900／375×812、DPR 1。36 組 = 2 viewports × 2 styles × 3 qualities × normal／user-reduce／system-reduce。零 runtime exceptions、Storage calls／水平 overflow；snapshot／follow、scroll／resize、移除凍結／還原與重入已執行。Production settings 的獨立 inert CSS fixture 亦測 wrap／2px keyboard focus（不是 authenticated game UI）。最後使用實際中文字型再測 24 組 corner cases（x/y 8／92、長中文文字、同位置跨 anchors）；四 lanes／八同位置 labels 均無 overlap／clipping。另 12 個不 respawn 的 label resize flows／48 stages，desktop→narrow→short→restore 均 PASS：短視窗四 active／四 queued，還原後八 active／零 queued；清除後零 timers。375×200 無足夠位置 probe 依然有界；薄 cast 桌面 58×5px／窄版 28×5px。
 
 截圖只係隔離 preview，唔係實戰。相同五筆合成結果：fire HIT −24、ice CRIT −48、HP +32、MP +12、shield −8，各 duration 1400ms、3 particles，約 70ms 時捕捉，normal motion／standard。原版 renderer 來自 `6bfef005`：
 
@@ -110,7 +112,9 @@ Browser 使用 Linux headless **Chromium 154**，1280×900／375×812、DPR 1。
 - [第二輪 legacy（預設）](vfx-round2-legacy.png)
 - [第二輪 enhanced（可選）](vfx-round2-enhanced.png)
 
-初次環境沒有 CJK 字型，截圖中文字為方框，不能當中文易讀性 PASS。已安裝 **environment-only** Noto CJK 字型（不加入 production dependencies），Chromium 平台字型證據確認 **Noto Sans CJK TC** 真實 glyph；最後截圖 refresh／實際長文字邊界結果待 browser 最終回報。玩家主觀閱讀與實體手機仍需使用者過目。
+初次環境沒有 CJK 字型，截圖中文字為方框，不能當中文易讀性 PASS。已安裝 **environment-only** Noto CJK 字型（不加入 production dependencies），Chromium 平台字型證據確認 **Noto Sans CJK TC** 真實 glyph，244 個頁面中文字元均有 glyph。三張提交截圖於 **2026-10-06 03:43:27–31Z** 重新捕捉，不保留方框版作最後證據。玩家主觀閱讀與實體手機仍需使用者過目。
+
+最後驗證 production hashes：`vfx.js` SHA-256 `e2b2358c33e534c1a3e1543db190f884eeca9e93970e82726347995846b56318`；components CSS `fab42f47d8081095a206d0fed29f1597e6663bc1dcae65b313b9ad79b5efd9e7`。沒有 production lint/build 工具或依賴遷移；原兩個 Node scripts 與現有 Chromium 用於驗證。臨時 browser profiles／中間資料已清理，只提交三張指定 PNG。
 
 ## 匿名交叉評議／決策
 
