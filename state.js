@@ -5,10 +5,12 @@
 const SERVER_URL = "https://rpg-backend-fjvg.onrender.com";
 const MAX_BAG_SIZE = 6;
 const CURRENT_SAVE_VERSION = 2; // 存檔結構版本號
+const LOCAL_PIN_HASH_ITERATIONS = 100000;
 
 // 節流與防抖計時器
 let saveDebounceTimer = null;
 let isSavingToCloud = false;
+let cloudSaveFailureNotified = false;
 
 /**
  * 建立預設帳號資料結構 (含版本號與防禦性預設值)
@@ -31,6 +33,8 @@ function createDefaultAccountMeta(name, pin) {
         bossTalentBonuses: { maxHp: 0, spd: 0, critChance: 0 },
         equipment: { weapon: null, armor: null, accessory: null },
         equipmentStars: { weapon: 0, armor: 0, accessory: 0 },
+        claimedBossFloors: [],
+        campaignCleared: false,
         itemRefines: {},
         lastSavedAt: Date.now()
     };
@@ -112,14 +116,71 @@ function notifyUser(msg, type = "info") {
     }
 }
 
-/**
- * 本地 PIN 碼混淆與解混淆 (防止明文洩漏)
- */
-function encodePin(pin) {
-    try { return btoa(`ABYSS_SALT_${pin}`); } catch(e) { return pin; }
+function bytesToHex(bytes) {
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-function decodePin(encoded) {
-    try { return atob(encoded).replace('ABYSS_SALT_', ''); } catch(e) { return encoded; }
+
+async function deriveLocalPinHash(pin, saltHex) {
+    const cryptoApi = window.crypto;
+    if (!cryptoApi?.subtle || typeof TextEncoder === "undefined") {
+        throw new Error("Secure local PIN verification is unavailable.");
+    }
+
+    const salt = Uint8Array.from(saltHex.match(/.{2}/g) || [], (byte) => parseInt(byte, 16));
+    const key = await cryptoApi.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(pin),
+        "PBKDF2",
+        false,
+        ["deriveBits"]
+    );
+    const bits = await cryptoApi.subtle.deriveBits({
+        name: "PBKDF2",
+        salt,
+        iterations: LOCAL_PIN_HASH_ITERATIONS,
+        hash: "SHA-256"
+    }, key, 256);
+    return bytesToHex(new Uint8Array(bits));
+}
+
+async function storeLocalPinProof(name, pin) {
+    const cryptoApi = window.crypto;
+    if (!cryptoApi?.getRandomValues) throw new Error("Secure local PIN verification is unavailable.");
+
+    const saltBytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    const salt = bytesToHex(saltBytes);
+    const hash = await deriveLocalPinHash(pin, salt);
+    localStorage.setItem(`ABYSS_DESTINY_PIN_SALT_${name}`, salt);
+    localStorage.setItem(`ABYSS_DESTINY_PIN_HASH_${name}`, hash);
+    localStorage.removeItem(`ABYSS_DESTINY_PIN_${name}`);
+}
+
+async function verifyLocalPin(name, pin, legacyPin = null) {
+    const salt = localStorage.getItem(`ABYSS_DESTINY_PIN_SALT_${name}`);
+    const expectedHash = localStorage.getItem(`ABYSS_DESTINY_PIN_HASH_${name}`);
+
+    if (salt && expectedHash) {
+        return (await deriveLocalPinHash(pin, salt)) === expectedHash;
+    }
+
+    const encodedLegacyPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${name}`);
+    let savedLegacyPin = legacyPin;
+    if (encodedLegacyPin) {
+        try {
+            savedLegacyPin = atob(encodedLegacyPin).replace("ABYSS_SALT_", "");
+        } catch (error) {
+            savedLegacyPin = encodedLegacyPin;
+        }
+    }
+    if (savedLegacyPin === null || savedLegacyPin === undefined || savedLegacyPin !== pin) return false;
+
+    await storeLocalPinProof(name, pin);
+    return true;
+}
+
+function getAccountSnapshotWithoutPin() {
+    const { pin, ...snapshot } = accountMeta;
+    return snapshot;
 }
 
 /**
@@ -154,15 +215,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     const loadingBarFill = document.getElementById('loading-bar-fill');
     const loadingFlavorText = document.getElementById('loading-flavor-text');
     const inputNameEl = document.getElementById('player-name-input');
-    const inputPinEl = document.getElementById('player-pin-input');
-
     const lastActiveUser = localStorage.getItem("ABYSS_DESTINY_LAST_USER");
     if (lastActiveUser && inputNameEl) {
         inputNameEl.value = lastActiveUser;
-        const encodedPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${lastActiveUser}`);
-        if (encodedPin && inputPinEl) {
-            inputPinEl.value = decodePin(encodedPin);
-        }
         checkPlayerNameLive();
     }
 
@@ -249,28 +304,40 @@ async function initOrLoadPlayer(inputName, inputPin) {
             accountMeta.name = targetName;
             accountMeta.pin = targetPin;
         }
+        try {
+            await storeLocalPinProof(targetName, targetPin);
+        } catch (error) {
+            console.warn("Secure local PIN verification could not be prepared.", error);
+        }
 
     } catch (err) {
         console.info("雲端驗證逾時或失敗，已切換至本地存檔驗證；這不是遊戲核心載入錯誤。", err);
         const localData = localStorage.getItem(`ABYSS_DESTINY_SAVE_${targetName}`);
-        const encodedPin = localStorage.getItem(`ABYSS_DESTINY_PIN_${targetName}`);
-        const localPin = encodedPin ? decodePin(encodedPin) : null;
-
-        if (localData && localPin && localPin !== targetPin) {
-            if (typeof hideLoginLoadingOverlay === "function") hideLoginLoadingOverlay();
-            notifyUser("🔐 本地 PIN 碼驗證失敗！", "warn");
-            return { success: false, isNewUser: false };
-        }
-
         if (localData) {
             try {
                 const parsed = JSON.parse(localData);
+                if (!await verifyLocalPin(targetName, targetPin, parsed.pin)) {
+                    notifyUser("🔐 本地 PIN 碼驗證失敗！", "warn");
+                    return { success: false, isNewUser: false };
+                }
                 accountMeta = Object.assign(createDefaultAccountMeta(targetName, targetPin), parsed);
+                accountMeta.pin = targetPin;
             } catch(e) {
-                accountMeta = createDefaultAccountMeta(targetName, targetPin);
-                isNewUser = true;
+                if (e instanceof SyntaxError) {
+                    accountMeta = createDefaultAccountMeta(targetName, targetPin);
+                    isNewUser = true;
+                } else {
+                    notifyUser("⚠️ 無法安全驗證本地 PIN，請連線後再試。", "warn");
+                    return { success: false, isNewUser: false };
+                }
             }
         } else {
+            try {
+                await storeLocalPinProof(targetName, targetPin);
+            } catch (error) {
+                notifyUser("⚠️ 無法安全建立離線帳號，請使用 HTTPS 或連線後再試。", "warn");
+                return { success: false, isNewUser: false };
+            }
             accountMeta = createDefaultAccountMeta(targetName, targetPin);
             isNewUser = true;
         }
@@ -287,6 +354,8 @@ async function initOrLoadPlayer(inputName, inputPin) {
     if (!accountMeta.equipmentStars) accountMeta.equipmentStars = { weapon: 0, armor: 0, accessory: 0 };
     if (!accountMeta.warehouse) accountMeta.warehouse = {};
     if (!accountMeta.bossTalentBonuses) accountMeta.bossTalentBonuses = { maxHp: 0, spd: 0, critChance: 0 };
+    if (!Array.isArray(accountMeta.claimedBossFloors)) accountMeta.claimedBossFloors = [];
+    if (typeof accountMeta.campaignCleared !== "boolean") accountMeta.campaignCleared = false;
     if (!accountMeta.skills) accountMeta.skills = {};
     if (!accountMeta.itemRefines) accountMeta.itemRefines = {};
 
@@ -299,7 +368,6 @@ async function initOrLoadPlayer(inputName, inputPin) {
     if (accountMeta.nextExp !== undefined) currentRun.nextExp = accountMeta.nextExp;
 
     localStorage.setItem("ABYSS_DESTINY_LAST_USER", targetName);
-    localStorage.setItem(`ABYSS_DESTINY_PIN_${targetName}`, encodePin(targetPin));
 
     if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     await saveGameData(true); // 登入成功強制立刻存檔一次
@@ -333,8 +401,7 @@ async function saveGameData(immediate = false) {
     const charKey = `ABYSS_DESTINY_SAVE_${accountMeta.name}`;
 
     try {
-        localStorage.setItem(charKey, JSON.stringify(accountMeta));
-        localStorage.setItem(`ABYSS_DESTINY_PIN_${accountMeta.name}`, encodePin(accountMeta.pin));
+        localStorage.setItem(charKey, JSON.stringify(getAccountSnapshotWithoutPin()));
         localStorage.setItem("ABYSS_DESTINY_LAST_USER", accountMeta.name);
     } catch (e) {
         console.error("LocalStorage 寫入失敗:", e);
@@ -364,19 +431,25 @@ async function executeCloudSave() {
         const payload = {
             name: accountMeta.name,
             pin: accountMeta.pin,
-            activeChar: accountMeta,
+            activeChar: getAccountSnapshotWithoutPin(),
             timestamp: accountMeta.lastSavedAt
         };
 
-        await fetch(`${SERVER_URL}/api/active/save`, {
+        const response = await fetch(`${SERVER_URL}/api/active/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
             signal: controller.signal
         });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         clearTimeout(timeoutId);
+        cloudSaveFailureNotified = false;
     } catch (error) {
         console.info("雲端同步異常或連線逾時，數據已安全暫存於本地快取，可繼續離線遊玩。", error);
+        if (!cloudSaveFailureNotified) {
+            notifyUser("⚠️ 雲端存檔失敗；本機進度已保留，連線恢復後會再同步。", "warn");
+            cloudSaveFailureNotified = true;
+        }
     } finally {
         clearTimeout(timeoutId);
         isSavingToCloud = false;
@@ -388,7 +461,7 @@ async function executeCloudSave() {
  */
 function exportSaveJSON() {
     if (!accountMeta) return "";
-    return JSON.stringify(accountMeta, null, 2);
+    return JSON.stringify(getAccountSnapshotWithoutPin(), null, 2);
 }
 
 /**
@@ -399,6 +472,7 @@ function importSaveJSON(jsonString) {
         const parsed = JSON.parse(jsonString);
         if (parsed && parsed.name && parsed.pin) {
             accountMeta = Object.assign(createDefaultAccountMeta(parsed.name, parsed.pin), parsed);
+            accountMeta.pin = parsed.pin;
             saveGameData(true);
             notifyUser("✨ 存檔匯入成功！", "success");
             return true;

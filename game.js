@@ -1488,9 +1488,10 @@ function executeDungeonVictorySequence() {
     activeMonster = null;
     gameState = "ENCOUNTER_RESOLVED";
 
+    const isCampaignFinale = defeatedWasBoss && dungeonFloor === 60;
     if (isBossFloor) {
-        triggerBossVictoryModal(defeatedBossName);
-        triggerBossTalentReward();
+        if (!isCampaignFinale) triggerBossVictoryModal(defeatedBossName);
+        triggerBossTalentReward(dungeonFloor);
     } else {
         const rewardBox = document.getElementById('reward-panel-box');
         const rewardContainer = document.getElementById('reward-choices-container');
@@ -1501,6 +1502,12 @@ function executeDungeonVictorySequence() {
     }
 
     addExperience(rewardExperience);
+    if (isCampaignFinale) {
+        gameState = "ENDING";
+        accountMeta.campaignCleared = true;
+        showCampaignEndingModal();
+        if (typeof saveGameData === "function") saveGameData();
+    }
 
     const mainBtn = document.getElementById('btn-main-action');
     const rerunBtn = document.getElementById('btn-rerun-action');
@@ -1545,10 +1552,17 @@ function triggerBossVictoryModal(bossName) {
     bossVictoryAutoCloseTimer = setTimeout(bossVictoryCloseHandler, 5000);
 }
 
-function triggerBossTalentReward() {
+function triggerBossTalentReward(floor = dungeonFloor) {
+    if (!Array.isArray(accountMeta.claimedBossFloors)) accountMeta.claimedBossFloors = [];
+    if (accountMeta.claimedBossFloors.includes(floor)) {
+        if (typeof addLog === "function") addLog(`✨ B${floor}F 的永久天賦已領取過；本次重巡不會重複發放。`, "perfect");
+        return false;
+    }
+
     if (typeof addLog === "function") addLog(`👑🌟【Boss 史詩突破】你征服了 B${dungeonFloor}F 領主，獲得一次隨機的永久血脈天賦覺醒！`, "perfect");
     const talents = ["👑 不滅巨魔血脈 (MaxHP +100)", "⚡ 狂暴神經反射 (SPD +5)", "🩸 殘虐撕裂本能 (CRIT +5%)"];
     const chosen = talents[Math.floor(Math.random() * talents.length)];
+    accountMeta.claimedBossFloors.push(floor);
 
     if (!accountMeta.bossTalentBonuses) {
         accountMeta.bossTalentBonuses = { maxHp: 0, spd: 0, critChance: 0 };
@@ -1564,6 +1578,23 @@ function triggerBossTalentReward() {
 
     if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     if (typeof addLog === "function") addLog(`✨ 天賦自動覺醒：<strong>${chosen}</strong>！`, "perfect");
+    return true;
+}
+
+function showCampaignEndingModal() {
+    const overlay = document.getElementById("game-ending-overlay");
+    if (!overlay) return;
+    overlay.style.display = "flex";
+    overlay.setAttribute("aria-hidden", "false");
+}
+
+function closeCampaignEndingModal() {
+    const overlay = document.getElementById("game-ending-overlay");
+    if (overlay) {
+        overlay.style.display = "none";
+        overlay.setAttribute("aria-hidden", "true");
+    }
+    handleSecondaryAction();
 }
 
 function executeDungeonDefeatSequence() {

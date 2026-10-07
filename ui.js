@@ -462,6 +462,19 @@ function updateActionPanelUI() {
         return;
     }
 
+    if (gameState === "ENDING") {
+        const btnReturn = document.createElement('button');
+        btnReturn.id = "btn-secondary-action";
+        btnReturn.className = "btn-game btn-rest full-width";
+        btnReturn.innerText = "⛺ 返回村莊";
+        btnReturn.onclick = () => {
+            if (typeof closeCampaignEndingModal === "function") closeCampaignEndingModal();
+            else if (typeof returnToVillage === "function") returnToVillage();
+        };
+        actionBox.appendChild(btnReturn);
+        return;
+    }
+
     if (gameState === "BATTLE") {
         const btnTactics = document.createElement('button');
         btnTactics.id = "btn-main-action";
@@ -1100,6 +1113,20 @@ function updateUI() {
         syncCharacterDataUi();
         updateActionPanelUI();
         return; 
+    }
+
+    if (gameState === "ENDING") {
+        if (titleBox) titleBox.style.display = "none";
+        if (statusBox) statusBox.style.display = "grid";
+        if (actionBox) actionBox.style.display = "flex";
+        if (villageBox) villageBox.style.display = "none";
+        if (rewardBox) rewardBox.style.display = "none";
+        if (logWrapper) logWrapper.style.display = "block";
+        if (envBar) envBar.style.display = "none";
+        if (autoBtn) autoBtn.style.display = "none";
+        syncCharacterDataUi();
+        updateActionPanelUI();
+        return;
     }
     
     if (titleBox) titleBox.style.display = "none";
