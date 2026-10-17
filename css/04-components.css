@@ -400,3 +400,63 @@ body[data-vfx-reduced-motion="true"] .vfx-result-label {
 body[data-vfx-reduced-motion="true"] .vfx-particle {
     display: none;
 }
+
+/* 登入頁：存檔重置是次要操作，不與主要旅程按鈕競爭 */
+#title-box .login-form-group + .margin-top-md {
+    text-align: center;
+}
+
+#title-box .btn-text-muted {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    min-height: var(--abyss-touch-target, 44px);
+    padding: 10px 16px;
+    border: 1px solid rgba(203, 213, 225, 0.28);
+    border-radius: var(--abyss-radius-sm, 8px);
+    background-color: rgba(148, 163, 184, 0.06);
+    color: var(--abyss-color-text-muted, #cbd5e1);
+    box-shadow: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+    white-space: normal;
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+}
+
+#title-box .btn-text-muted:hover:not(:disabled) {
+    background-color: rgba(148, 163, 184, 0.12);
+    border-color: rgba(255, 215, 0, 0.42);
+    color: var(--abyss-color-text, #f8fafc);
+    transform: translateY(-1px);
+}
+
+#title-box .btn-text-muted:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+#title-box .btn-text-muted:focus-visible {
+    outline: 2px solid var(--abyss-color-accent-strong, #14f1ff);
+    outline-offset: 2px;
+}
+
+#title-box .btn-text-muted:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #title-box .btn-text-muted {
+        transition: none;
+    }
+}
