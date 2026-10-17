@@ -30,9 +30,9 @@
 
         const legacyBox = document.getElementById('legacy-box');
         if (legacyBox) {
-            legacyBox.textContent = '登入成功，但遊戲核心尚未載入：請恢復完整 game.js。';
+            legacyBox.textContent = '登入成功，但遊戲核心尚未載入：請確認 js/game.js 已正常載入。';
         }
-        console.error('game.js did not bootstrap required game entrypoints.');
+        console.error('js/game.js did not bootstrap required game entrypoints.');
     });
 
     ensureWindowFunction('renderInitialJobModal', function renderInitialJobModal(shouldReset = false) {

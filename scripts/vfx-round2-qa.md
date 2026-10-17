@@ -1,5 +1,7 @@
 # VFX 第二輪改善：QA／過目報告
 
+> 後續目錄整理後，VFX 與遊戲模組現位於 `js/vfx.js`、`js/game.js`；歷史記錄中的舊根路徑指同一模組。
+
 ## 結論
 
 第二輪 roadmap **#3–#9 已按批准範圍完成**。舊式 VFX 仍是預設；新增增強形狀及品質／動態設定均可選。沒有改動傷害、命中機率、hit count、回合節奏、治療狀態計算、獎勵、存檔格式或後端。
@@ -10,7 +12,7 @@
 
 | 項目 | 狀態與驗收摘要 |
 |---|---|
-| **#3 資料化定義** | **完成。**`vfx.js` 集中管理種類、時長、形狀、顏色、粒子及優先級；`vfxMetadata`／`vfx` 可覆蓋技能投射物類型與形狀，未提供時沿用舊技能名稱／職業偵測。保留原有公開 helpers、`spawnVfx`、`triggerProjectileFX` 及 classic script 載入方式。 |
+| **#3 資料化定義** | **完成。**`js/vfx.js` 集中管理種類、時長、形狀、顏色、粒子及優先級；`vfxMetadata`／`vfx` 可覆蓋技能投射物類型與形狀，未提供時沿用舊技能名稱／職業偵測。保留原有公開 helpers、`spawnVfx`、`triggerProjectileFX` 及 classic script 載入方式。 |
 | **#4 施放／命中／結果** | **完成。**投射物走 `vfx-cast`；命中／暴擊只由既有確認命中的戰鬥分支觸發；MISS 不觸發命中裝飾。合併顯示仍附實際 `×N`。VFX 不計算傷害、不改回合、不發獎勵。 |
 | **#5 結果文字** | **完成。**HP、MP、護盾、MISS、暴擊分色以外亦有不同符號／邊框。結果標籤與裝飾圖層分離，採固定垂直 lanes；最多 8 個顯示、24 個排隊，超出時保留優先級較高者。HP／MP 治療顯示套用上限後的實際增量；遊戲日誌仍作備援。結果層 `aria-hidden`，不新增 live announcement。 |
 | **#6 位置模式** | **完成。**支援 `follow-anchor` 與 `snapshot-impact`；未指定時保持舊快照／明確 x/y／fallback 行為。跟隨效果共用最多三個 scroll／resize／orientation listener；目標隱藏時留在最後位置，脫離 DOM 時解除追蹤並保留捕捉座標。清場、分頁隱藏及效果移除會清理 listeners／timers。 |
@@ -26,8 +28,8 @@
 
 ## 變更檔案
 
-- `vfx.js`：定義 registry、兩種位置模式、獨立結果標籤、樣式／品質偏好、有界預算及診斷；保留第一輪生命週期保護。
-- `game.js`：只整合技能 metadata、施放裝飾、multi-hit 文字及實際 HP／MP 回復提示；不改計算方式。
+- `js/vfx.js`：定義 registry、兩種位置模式、獨立結果標籤、樣式／品質偏好、有界預算及診斷；保留第一輪生命週期保護。
+- `js/game.js`：只整合技能 metadata、施放裝飾、multi-hit 文字及實際 HP／MP 回復提示；不改計算方式。
 - `css/04-components.css`：結果標籤、偏好控制、cast 與可選增強形狀；尊重 reduced motion。
 - `index.html`：在既有戰術抽屜加入可存取的 VFX 設定。
 - `scripts/test-vfx.js`：擴充零依賴 fake DOM/timer 測試、場景回歸、受控戰鬥／RNG、設定／預算／定位／清理案例。
@@ -41,7 +43,7 @@
 |---|---|
 | 修改前 `node scripts/check-refactor-baseline.js` | **PASS** |
 | 修改前 `node scripts/test-vfx.js` | **PASS** |
-| `node --check vfx.js && node --check game.js && node --check scripts/test-vfx.js` | **PASS** |
+| `node --check js/vfx.js && node --check js/game.js && node --check scripts/test-vfx.js` | **PASS** |
 | `node scripts/check-refactor-baseline.js` | **PASS** |
 | `node scripts/test-vfx.js` | **PASS**：legacy API／預設、資料 registry／技能 fallback、cast／MISS、multi-hit、治療封頂、標籤 lanes／queues、品質／動態、storage error、budget／priority eviction、scroll／resize／orientation、hidden／disconnected target、scene/lifecycle cleanup。 |
 | Controlled game-action comparison | **PASS（stubbed）**：同一個確定性三段技能，在 legacy、enhanced/high、hidden renderer 三種模式均為 HP 100、MP 100、敵 HP 88，且均只抽取 1 次 gameplay RNG。不是完整遊戲測試。 |

@@ -186,7 +186,7 @@ function createEnvironment({ reducedMotion = false, storage = null, preview = fa
     context.innerHeight = 500;
     context.matchMedia = (query) => ({ matches: systemReducedMotion && query === "(prefers-reduced-motion: reduce)" });
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync(path.join(repoRoot, "vfx.js"), "utf8"), context, { filename: "vfx.js" });
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/vfx.js"), "utf8"), context, { filename: "js/vfx.js" });
 
     return {
         context,
@@ -434,7 +434,7 @@ function runSceneTransitionTests() {
     const env = createEnvironment();
     env.context.setInterval = () => 1;
     env.context.clearInterval = () => {};
-    vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), env.context, { filename: "game.js" });
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), env.context, { filename: "js/game.js" });
     env.context.currentRun = { hp: 80, mp: 25, inventory: [], currentNodes: [] };
     env.context.accountMeta = { exp: 20, maxFloor: 1, warehouse: {} };
     env.context.dungeonFloor = 2;
@@ -525,10 +525,10 @@ function runSceneTransitionTests() {
 
 function runStaticIntegrationChecks() {
     const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
-    const game = fs.readFileSync(path.join(repoRoot, "game.js"), "utf8");
+    const game = fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8");
     const styles = fs.readFileSync(path.join(repoRoot, "css/04-components.css"), "utf8");
-    assert.ok(html.indexOf('src="vfx.js"') < html.indexOf('src="ui.js"'));
-    assert.ok(html.indexOf('src="vfx.js"') < html.indexOf('src="game.js"'));
+    assert.ok(html.indexOf('src="js/vfx.js"') < html.indexOf('src="js/ui.js"'));
+    assert.ok(html.indexOf('src="js/vfx.js"') < html.indexOf('src="js/game.js"'));
     assert.match(game, /scheduleVfx\(\(\) => \{\s*spawnVfx\("boss-entry"/);
     assert.doesNotMatch(game, /setTimeout\(\(\) => \{\s*spawnVfx\("boss-entry"/);
     assert.match(styles, /\.vfx-layer\s*\{[^}]*z-index:\s*120/s);
@@ -569,7 +569,7 @@ function runRoundTwoVfxTests() {
         env.context.setInterval = () => 1;
         env.context.clearInterval = () => {};
         env.context.Math.random = () => { randomDraws++; return 0.25; };
-        vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), env.context, { filename: "game.js" });
+        vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), env.context, { filename: "js/game.js" });
         env.context.currentRun = {
             hp: 100, maxHp: 100, mp: 100, maxMp: 100, job: "tester", atk: 20,
             skills: { "測試連擊": 1 }, shield: 0, inventory: []
@@ -621,7 +621,7 @@ function runRoundTwoVfxTests() {
     const cappedHeal = createEnvironment();
     cappedHeal.context.setInterval = () => 1;
     cappedHeal.context.clearInterval = () => {};
-    vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), cappedHeal.context, { filename: "game.js" });
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), cappedHeal.context, { filename: "js/game.js" });
     cappedHeal.context.currentRun = {
         hp: 95, maxHp: 100, mp: 80, maxMp: 100, job: "tester", atk: 20,
         skills: { "測試治癒": 1 }, inventory: []
@@ -641,7 +641,7 @@ function runRoundTwoVfxTests() {
     const cappedMp = createEnvironment();
     cappedMp.context.setInterval = () => 1;
     cappedMp.context.clearInterval = () => {};
-    vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), cappedMp.context, { filename: "game.js" });
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), cappedMp.context, { filename: "js/game.js" });
     cappedMp.context.currentRun = {
         hp: 100, maxHp: 100, mp: 95, maxMp: 100, job: "tester", inventory: ["回魔劑"]
     };
@@ -828,13 +828,13 @@ function runRoundTwoVfxTests() {
     assertPosition(snapshot.context.resolveVfxPosition({ anchorId: "moving-target", anchor: "player" }), { x: 50, y: 38 });
 
     const settingsCss = fs.readFileSync(path.join(repoRoot, "css/04-components.css"), "utf8");
-    const game = fs.readFileSync(path.join(repoRoot, "game.js"), "utf8");
+    const game = fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8");
     const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
     assert.match(settingsCss, /\.vfx-shape-ice-shards/);
     assert.match(settingsCss, /data-vfx-reduced-motion/);
     assert.match(html, /vfx-profile-setting/);
     assert.match(game, /const hitLabel = `-\$\{totalActualDmg\}\$\{hitCount > 1 \? ` ×\$\{hitCount\}` : ""\} HP`/);
-    assert.doesNotMatch(fs.readFileSync(path.join(repoRoot, "vfx.js"), "utf8"), /Math\.random\s*\(/);
+    assert.doesNotMatch(fs.readFileSync(path.join(repoRoot, "js/vfx.js"), "utf8"), /Math\.random\s*\(/);
 }
 
 require("node:child_process").execFileSync(process.execPath, [

@@ -20,7 +20,7 @@
         const missing = requiredFunctions.filter((name) => typeof global[name] !== 'function');
         if (missing.length === 0) return;
 
-        showBootError(`遊戲核心載入不完整：缺少 ${missing.join(', ')}，請恢復完整 game.js。`);
+        showBootError(`遊戲核心載入不完整：缺少 ${missing.join(', ')}，請確認 js/game.js 已正常載入。`);
     }
 
     if (document.readyState === 'complete') {

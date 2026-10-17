@@ -45,7 +45,7 @@ function createStateContext({ storage = createStorage(), fetch } = {}) {
         showToast(message) { messages.push(message); }
     };
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync(path.join(repoRoot, "state.js"), "utf8"), context);
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/state.js"), "utf8"), context);
     return { context, storage, messages };
 }
 
@@ -97,7 +97,7 @@ function createGameContext() {
         switchVillageLocation() {}
     };
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync(path.join(repoRoot, "game.js"), "utf8"), context);
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), context);
     vm.runInContext(`
         accountMeta = {
             name: "QA",

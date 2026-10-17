@@ -16,8 +16,8 @@
 
     <!-- 引入 Socket.io 瀏覽器前端套件 -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
-    <link rel="stylesheet" href="style.css">
-    <!-- 安全重構第一階段：保留 legacy style.css，以下新層只做兼容覆蓋 -->
+    <link rel="stylesheet" href="css/01-legacy.css">
+    <!-- Legacy 基礎樣式後載入 token 與相容覆蓋層 -->
     <link rel="stylesheet" href="css/00-tokens.css">
     <link rel="stylesheet" href="css/04-components.css">
     <link rel="stylesheet" href="css/10-responsive.css">
@@ -460,22 +460,22 @@
 <!-- ========================================================================== -->
 
 <!-- 1. 靜態資料庫群 (優先載入) -->
-<script src="jobdata.js"></script>
-<script src="itemdata.js"></script>
-<script src="monsterdata.js"></script>
-<script src="environmentdata.js"></script>
-<script src="eventdata.js"></script>
-<script src="data/data-schema.js"></script>
-<script src="vfx.js"></script>
+<script defer src="data/jobdata.js"></script>
+<script defer src="data/itemdata.js"></script>
+<script defer src="data/monsterdata.js"></script>
+<script defer src="data/environmentdata.js"></script>
+<script defer src="data/eventdata.js"></script>
+<script defer src="data/data-schema.js"></script>
+<script defer src="js/vfx.js"></script>
 
 <!-- 2. 核心計算與存檔引擎 -->
-<script src="statengine.js"></script>
-<script src="state.js"></script>
+<script defer src="js/statengine.js"></script>
+<script defer src="js/state.js"></script>
 
 <!-- 3. UI 渲染與主遊戲邏輯控制 -->
-<script src="ui.js"></script>
-<script src="game.js"></script>
-<script src="browser-compat.js"></script>
+<script defer src="js/ui.js"></script>
+<script defer src="js/game.js"></script>
+<script defer src="js/browser-compat.js"></script>
 
 </body>
 </html>

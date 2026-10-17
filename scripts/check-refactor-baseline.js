@@ -10,14 +10,20 @@ const path = require("path");
 const repoRoot = path.resolve(__dirname, "..");
 
 const requiredFiles = [
+    "css/01-legacy.css",
     "css/00-tokens.css",
     "css/04-components.css",
     "css/10-responsive.css",
     "css/11-accessibility.css",
+    "data/jobdata.js",
+    "data/itemdata.js",
+    "data/monsterdata.js",
+    "data/environmentdata.js",
+    "data/eventdata.js",
     "data/data-schema.js",
     "index.html",
-    "vfx.js",
-    "game.js"
+    "js/vfx.js",
+    "js/game.js"
 ];
 
 function assert(condition, message) {
@@ -32,27 +38,27 @@ requiredFiles.forEach((relativePath) => {
 });
 
 const indexHtml = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
-const gameJs = fs.readFileSync(path.join(repoRoot, "game.js"), "utf8");
-const vfxJs = fs.readFileSync(path.join(repoRoot, "vfx.js"), "utf8");
+const gameJs = fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8");
+const vfxJs = fs.readFileSync(path.join(repoRoot, "js/vfx.js"), "utf8");
 
 const orderedIndexSnippets = [
-    'href="style.css"',
+    'href="css/01-legacy.css"',
     'href="css/00-tokens.css"',
     'href="css/04-components.css"',
     'href="css/10-responsive.css"',
     'href="css/11-accessibility.css"',
-    'src="jobdata.js"',
-    'src="itemdata.js"',
-    'src="monsterdata.js"',
-    'src="environmentdata.js"',
-    'src="eventdata.js"',
+    'src="data/jobdata.js"',
+    'src="data/itemdata.js"',
+    'src="data/monsterdata.js"',
+    'src="data/environmentdata.js"',
+    'src="data/eventdata.js"',
     'src="data/data-schema.js"',
-    'src="vfx.js"',
-    'src="statengine.js"',
-    'src="state.js"',
-    'src="ui.js"',
-    'src="game.js"',
-    'src="browser-compat.js"'
+    'src="js/vfx.js"',
+    'src="js/statengine.js"',
+    'src="js/state.js"',
+    'src="js/ui.js"',
+    'src="js/game.js"',
+    'src="js/browser-compat.js"'
 ];
 
 let previousPosition = -1;
@@ -62,6 +68,22 @@ orderedIndexSnippets.forEach((snippet) => {
     assert(position > previousPosition, `index.html load order is incorrect near: ${snippet}`);
     previousPosition = position;
 });
+
+const assetReferences = [...indexHtml.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"[^>]*>/gi)]
+    .map((match) => match[1])
+    .filter((reference) => !/^https?:\/\//i.test(reference) && !/^data:/i.test(reference));
+assetReferences.forEach((reference) => {
+    assert(!reference.startsWith("/"), `GitHub Pages assets must use relative paths: ${reference}`);
+    const localPath = reference.split(/[?#]/, 1)[0];
+    assert(fs.existsSync(path.join(repoRoot, localPath)), `Missing local asset referenced by index.html: ${reference}`);
+});
+
+const scriptTags = [...indexHtml.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*>/gi)];
+const localScriptTags = scriptTags.filter(([, source]) => !/^https?:\/\//i.test(source));
+assert(localScriptTags.every(([tag]) => /\bdefer\b/i.test(tag)), "All local scripts must defer to preserve ordered initialization after HTML parsing.");
+const socketScriptIndex = scriptTags.findIndex(([, source]) => source.includes("cdn.socket.io"));
+const uiScriptIndex = scriptTags.findIndex(([, source]) => source === "js/ui.js");
+assert(socketScriptIndex >= 0 && uiScriptIndex > socketScriptIndex, "Socket.IO must appear before UI initialization.");
 
 assert(!/onsubmit\s*=/.test(indexHtml), "index.html should not use inline onsubmit.");
 

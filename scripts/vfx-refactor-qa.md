@@ -1,10 +1,12 @@
 # 第一輪安全 VFX 重構：QA／過目摘要
 
+> 後續目錄整理後，VFX 與遊戲模組現位於 `js/vfx.js`、`js/game.js`；下方歷史說明中未加目錄的檔名，指當時根目錄中的同一模組。
+
 ## 修改範圍
 
-- `vfx.js`：抽出既有 VFX helper、效果建立及投射物 helper；加入 tracked timeout、場景世代及 visibility 防護。
-- `game.js`：將 Boss 登場的零延遲 callback 改由 VFX scheduler 管理；在推進離場、重跑、撤退及戰敗時清除舊場景 VFX。
-- `index.html`：於 UI／遊戲腳本前載入 `vfx.js`。
+- `js/vfx.js`：抽出既有 VFX helper、效果建立及投射物 helper；加入 tracked timeout、場景世代及 visibility 防護。
+- `js/game.js`：將 Boss 登場的零延遲 callback 改由 VFX scheduler 管理；在推進離場、重跑、撤退及戰敗時清除舊場景 VFX。
+- `index.html`：於 UI／遊戲腳本前載入 `js/vfx.js`。
 - `scripts/check-refactor-baseline.js`：保留原檢查並驗證 VFX 載入順序和 `window.spawnVfx`。
 - `scripts/test-vfx.js`：新增零依賴的 DOM／timer characterization、lifecycle 及實際場景函式測試。
 - `scripts/vfx-preview.html`：獨立、手動開啟的特效預覽頁，只使用正式 VFX 模組及 CSS。
@@ -38,7 +40,7 @@
 | 修改前基線：`node scripts/check-refactor-baseline.js` | **PASS**（修改前） |
 | `node scripts/check-refactor-baseline.js` | **PASS** |
 | `node scripts/test-vfx.js` | **PASS**：legacy 特徵、定位／fallback、效果數量／時間／cap、reduced motion、清場、hidden／visible、Boss entry／defeat 和遊戲場景轉換 |
-| `node --check vfx.js && node --check game.js && node --check scripts/test-vfx.js` | **PASS** |
+| `node --check js/vfx.js && node --check js/game.js && node --check scripts/test-vfx.js` | **PASS** |
 | `git diff --check` | **PASS** |
 | Chromium headless 預覽 | **PASS**：預覽可渲染；375×812 窄版 smoke 的普通／reduced-motion 結果分別為 `pass-normal`、`pass-reduced` |
 | 遊戲完整登入／實戰、手機實機、真實分頁切換與效能量度 | **NOT RUN** |
