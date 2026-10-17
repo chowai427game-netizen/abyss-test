@@ -460,3 +460,56 @@ body[data-vfx-reduced-motion="true"] .vfx-particle {
         transition: none;
     }
 }
+
+
+/* 戰鬥暫停與策略抽屜分工，按鈕以暗金表示可操作狀態。 */
+#tactics-drawer-box .combat-pause-control {
+    width: 100%;
+    min-height: 42px;
+    margin: 0 0 5px;
+    padding: 9px 12px;
+    border: 1px solid rgba(229, 200, 117, 0.4);
+    border-radius: 9px;
+    background: linear-gradient(135deg, rgba(229, 200, 117, 0.16), rgba(24, 22, 19, 0.92));
+    color: #f0ddaa;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+#tactics-drawer-box .combat-pause-control:hover:not(:disabled) {
+    border-color: rgba(229, 200, 117, 0.75);
+    background: rgba(229, 200, 117, 0.22);
+}
+
+#tactics-drawer-box .combat-pause-control[aria-pressed="true"] {
+    border-color: rgba(93, 196, 157, 0.55);
+    background: rgba(39, 125, 93, 0.2);
+    color: #a8efd2;
+}
+
+#tactics-drawer-box .combat-pause-control:focus-visible {
+    outline: 2px solid var(--abyss-color-accent-strong, #e5c875);
+    outline-offset: 2px;
+}
+
+#tactics-drawer-box .combat-pause-control:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+#tactics-drawer-box .combat-pause-status {
+    min-height: 16px;
+    margin: 0 0 9px;
+    color: #9a999b;
+    font-size: 10px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #tactics-drawer-box .combat-pause-control { transition: none; }
+}

@@ -73,7 +73,7 @@ let currentRun = {
     inventory: [],
     qteBuffDuration: 0,
     qteBuffTurns: 0,
-    tactic: "MANUAL"
+    tactic: "BALANCED"
 };
 
 let dungeonFloor = 0;

@@ -28,4 +28,4 @@ node scripts/test-vfx.js
 find . -maxdepth 3 -type f -name '*.js' -not -path './.git/*' -print0 | sort -z | xargs -0 -n1 node --check
 ```
 
-`node scripts/test-vfx.js` 也會執行基線檢查。可用 `python3 -m http.server 4173` 以瀏覽器開啟 `http://127.0.0.1:4173/abyss-test/index.html`（從倉庫上一層啟動服務時），或直接以 HTTPS 檢查部署頁。只測開機時，不要輸入真實帳號 PIN、清除存檔或執行會推進進度的遊戲操作。
+`node scripts/test-vfx.js` 也會執行基線檢查，並涵蓋戰術策略選擇、MP 保留規則、共用技能效果與戰鬥暫停／恢復計時器。可用 `python3 -m http.server 4173` 以瀏覽器開啟 `http://127.0.0.1:4173/abyss-test/index.html`（從倉庫上一層啟動服務時），或直接以 HTTPS 檢查部署頁。只測開機時，不要輸入真實帳號 PIN、清除存檔或執行會推進進度的遊戲操作。

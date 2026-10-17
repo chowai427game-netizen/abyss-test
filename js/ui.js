@@ -480,14 +480,21 @@ function updateActionPanelUI() {
         btnTactics.id = "btn-main-action";
         btnTactics.className = "btn-game btn-rerun";
         btnTactics.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
-        const isAuto = typeof autoBattleActive !== "undefined" && autoBattleActive;
-        btnTactics.innerHTML = isAuto ? '⏸️ 暫停戰術' : '⚡ 戰術策略';
+        btnTactics.innerHTML = '⚙️ 戰術策略';
+        btnTactics.setAttribute('aria-controls', 'tactics-drawer-box');
+        const tacticsDrawer = DOM.get('tactics-drawer-box');
+        const drawerExpanded = Boolean(tacticsDrawer && tacticsDrawer.classList && tacticsDrawer.classList.contains && tacticsDrawer.classList.contains('expanded'));
+        btnTactics.setAttribute('aria-expanded', String(drawerExpanded));
         btnTactics.onclick = () => {
             const drawer = DOM.get('tactics-drawer-box');
             if (drawer) {
-                drawer.classList.toggle('expanded');
-            } else if (typeof toggleAutoBattle === "function") {
-                toggleAutoBattle();
+                if (typeof toggleTacticsDrawer === "function") toggleTacticsDrawer();
+                else {
+                    const expanded = drawer.classList.toggle('expanded');
+                    btnTactics.setAttribute('aria-expanded', String(expanded));
+                    const trigger = DOM.get('tactic-trigger-btn');
+                    if (trigger) trigger.setAttribute('aria-expanded', String(expanded));
+                }
             }
         };
 
@@ -1108,7 +1115,9 @@ function updateUI() {
         
         const drawer = DOM.get('tactics-drawer-box');
         if (drawer) drawer.classList.remove('expanded');
-        
+        const drawerTrigger = DOM.get('tactic-trigger-btn');
+        if (drawerTrigger) drawerTrigger.setAttribute('aria-expanded', 'false');
+
         initSwipeNavigation();
         syncCharacterDataUi();
         updateActionPanelUI();

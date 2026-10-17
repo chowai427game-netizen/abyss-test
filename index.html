@@ -337,24 +337,28 @@
                 <div class="log-panel full-size" id="log-box" aria-live="polite" aria-atomic="false"></div>
                  
                 <div class="tactics-drawer" id="tactics-drawer-box">
-                    <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn" aria-label="切換戰術面板">
+                    <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn" aria-label="切換戰術面板" aria-controls="tactics-drawer-box" aria-expanded="false">
                         <span class="trigger-icon">⚙️</span>
                         <span class="trigger-text">戰術指令</span>
                     </button>
                     <div class="drawer-panel-content">
                         <div class="drawer-header">🎯 即時陣法變革</div>
+                        <button id="combat-pause-btn" class="combat-pause-control" type="button" onclick="toggleCombatPause()" aria-pressed="false" aria-label="暫停自動戰鬥">
+                            ⏸️ 暫停戰鬥
+                        </button>
+                        <div id="combat-pause-status" class="combat-pause-status" aria-live="polite">自動戰鬥運作中</div>
                         <div class="tactics-options-container">
-                            <button id="tactic-btn-MANUAL" class="btn-tactic-option active" type="button" onclick="selectTactic('MANUAL')">
-                                <span class="tactic-title">🎮 手動看戲</span>
-                                <span class="tactic-desc">只使用基本物理揮砍，不消耗任何 MP</span>
+                            <button id="tactic-btn-MANUAL" class="btn-tactic-option" type="button" onclick="selectTactic('MANUAL')" aria-pressed="false">
+                                <span class="tactic-title">🪓 自動普攻</span>
+                                <span class="tactic-desc">每次行動只用基本攻擊，不施放技能、不消耗 MP</span>
                             </button>
-                            <button id="tactic-btn-BALANCED" class="btn-tactic-option" type="button" onclick="selectTactic('BALANCED')">
+                            <button id="tactic-btn-BALANCED" class="btn-tactic-option active" type="button" onclick="selectTactic('BALANCED')" aria-pressed="true">
                                 <span class="tactic-title">⚖️ 均衡防禦</span>
-                                <span class="tactic-desc">自愈技能優先，保留 30% MP 作急救防禦</span>
+                                <span class="tactic-desc">生命低於 60% 優先治療；攻擊技能保留至少 30% 最大 MP，危急時用補給</span>
                             </button>
-                            <button id="tactic-btn-OFFENSIVE" class="btn-tactic-option" type="button" onclick="selectTactic('OFFENSIVE')">
+                            <button id="tactic-btn-OFFENSIVE" class="btn-tactic-option" type="button" onclick="selectTactic('OFFENSIVE')" aria-pressed="false">
                                 <span class="tactic-title">⚔️ 狂暴強擊</span>
-                                <span class="tactic-desc">大招全開，忽視治療，爆發最強火力</span>
+                                <span class="tactic-desc">優先施放可用攻擊技能；不自動治療或用補給，MP 不足時改用基本攻擊</span>
                             </button>
                         </div>
                         <fieldset class="vfx-preference-controls">

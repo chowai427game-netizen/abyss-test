@@ -529,6 +529,11 @@ function runStaticIntegrationChecks() {
     const styles = fs.readFileSync(path.join(repoRoot, "css/04-components.css"), "utf8");
     assert.ok(html.indexOf('src="js/vfx.js"') < html.indexOf('src="js/ui.js"'));
     assert.ok(html.indexOf('src="js/vfx.js"') < html.indexOf('src="js/game.js"'));
+    assert.match(html, /id="combat-pause-btn"[^>]*onclick="toggleCombatPause\(\)"/);
+    assert.match(game, /function toggleCombatPause\(/);
+    assert.match(game, /function startCombatTicker\(/);
+    assert.match(game, /function executeActiveSkill\(/);
+    assert.match(styles, /#tactics-drawer-box \.combat-pause-control/);
     assert.match(game, /scheduleVfx\(\(\) => \{\s*spawnVfx\("boss-entry"/);
     assert.doesNotMatch(game, /setTimeout\(\(\) => \{\s*spawnVfx\("boss-entry"/);
     assert.match(styles, /\.vfx-layer\s*\{[^}]*z-index:\s*120/s);
@@ -576,7 +581,7 @@ function runRoundTwoVfxTests() {
         };
         env.context.activeMonster = { name: "Test", hp: 100, maxHp: 100, def: 0, mdef: 0, shield: 0 };
         env.context.gameState = "BATTLE";
-        env.context.activeTactic = "MANUAL";
+        vm.runInContext('activeTactic = "OFFENSIVE"', env.context);
         env.context.SKILLS_DATABASE = {
             tester: [{ name: "測試連擊", type: "active", mp: 0, run: () => ({ dmg: 12, hitCount: 3 }) }]
         };
@@ -594,9 +599,9 @@ function runRoundTwoVfxTests() {
         });
     }
     assert.deepEqual(outcomes, [
-        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 1 },
-        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 1 },
-        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 1 }
+        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 0 },
+        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 0 },
+        { hp: 100, mp: 100, monsterHp: 88, randomDraws: 0 }
     ], "controlled game action outcomes remain the same across VFX profiles and hidden-renderer mode");
 
     const castImpact = createEnvironment();
@@ -633,7 +638,7 @@ function runRoundTwoVfxTests() {
     };
     cappedHeal.context.Math.random = () => 0.25;
     cappedHeal.context.addLog = () => {};
-    cappedHeal.context.executePlayerActionTick();
+    cappedHeal.context.executeActiveSkill(cappedHeal.context.SKILLS_DATABASE.tester[0], 1, { healAmount: 20 });
     assert.equal(cappedHeal.context.currentRun.hp, 100, "the original capped HP calculation is unchanged");
     cappedHeal.advanceBy(0);
     assert.ok(labels(cappedHeal).some((label) => label.textContent === "+5 HP"), "the result reports actual capped healing");
@@ -833,8 +838,148 @@ function runRoundTwoVfxTests() {
     assert.match(settingsCss, /\.vfx-shape-ice-shards/);
     assert.match(settingsCss, /data-vfx-reduced-motion/);
     assert.match(html, /vfx-profile-setting/);
-    assert.match(game, /const hitLabel = `-\$\{totalActualDmg\}\$\{hitCount > 1 \? ` ×\$\{hitCount\}` : ""\} HP`/);
+    assert.match(game, /const hitLabel = `-\$\{totalDamage\}\$\{hitCount > 1 \? ` ×\$\{hitCount\}` : ""\} HP`/);
     assert.doesNotMatch(fs.readFileSync(path.join(repoRoot, "js/vfx.js"), "utf8"), /Math\.random\s*\(/);
+}
+
+function runCombatTacticsAndPauseTests() {
+    const gameSource = fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8");
+
+    function createCombatFixture({ hp = 100, maxHp = 100, mp = 100, maxMp = 100, tactic = "BALANCED", skills = [], inventory = [], monsterHp = 1000, monsterDef = 0 } = {}) {
+        const env = createEnvironment();
+        const intervals = new Map();
+        let nextIntervalId = 1;
+        const damageCalls = [];
+        const logs = [];
+
+        env.context.setInterval = (callback, delay) => {
+            const id = nextIntervalId++;
+            intervals.set(id, { callback, delay });
+            return id;
+        };
+        env.context.clearInterval = (id) => intervals.delete(id);
+        vm.runInContext(gameSource, env.context, { filename: "js/game.js" });
+
+        env.context.currentRun = {
+            hp, maxHp, mp, maxMp, job: "tester", atk: 10, matk: 10, spd: 20,
+            skills: Object.fromEntries(skills.map((skill) => [skill.name, 1])),
+            shield: 0, inventory: [...inventory], poisonStacks: 0, burnStacks: 0, tactic
+        };
+        env.context.activeMonster = {
+            name: "測試魔物", hp: monsterHp, maxHp: monsterHp, atk: 10, def: monsterDef, mdef: monsterDef,
+            spd: 15, shield: 0, poisonStacks: 0, burnStacks: 0, freezeTurns: 0, stunTurns: 0
+        };
+        env.context.gameState = "BATTLE";
+        vm.runInContext(`activeTactic = ${JSON.stringify(tactic)}`, env.context);
+        env.context.getAllSkillsForJob = () => skills;
+        env.context.calculateDamage = (damage, defense) => {
+            damageCalls.push({ damage, defense });
+            return { damage, isMiss: false, isCrit: false };
+        };
+        env.context.spawnVfx = () => {};
+        env.context.triggerProjectileFX = () => {};
+        env.context.resolveSkillVfx = () => ({ projectileType: "slash" });
+        env.context.detectSkillCssClass = () => "skill-test";
+        env.context.addLog = (message) => logs.push(String(message));
+        env.context.updateUI = () => {};
+        env.context.executeUseDungeonItem = (item, index) => {
+            env.context.usedDungeonItem = { item, index };
+        };
+        return { env, context: env.context, intervals, damageCalls, logs };
+    }
+
+    const manual = createCombatFixture({ tactic: "MANUAL", skills: [{ name: "昂貴技能", type: "active", mp: 0, run: () => ({ dmg: 500 }) }] });
+    manual.context.executePlayerActionTick();
+    assert.equal(manual.context.currentRun.mp, 100, "manual/basic stance does not spend MP");
+    assert.equal(manual.context.activeMonster.hp, 990, "manual/basic stance performs a basic attack instead of a skill");
+
+    const reservedMp = createCombatFixture({
+        mp: 50, maxMp: 100, tactic: "BALANCED",
+        skills: [{ name: "耗魔斬", type: "active", mp: 25, run: () => ({ dmg: 200 }) }]
+    });
+    reservedMp.context.executePlayerActionTick();
+    assert.equal(reservedMp.context.currentRun.mp, 50, "balanced stance keeps the 30% maximum-MP reserve for attacks");
+    assert.equal(reservedMp.context.activeMonster.hp, 990, "balanced stance falls back to basic damage when spending MP would break its reserve");
+
+    const balancedHeal = createCombatFixture({
+        hp: 40, mp: 30, tactic: "BALANCED",
+        skills: [
+            { name: "治癒術", type: "active", mp: 20, run: () => ({ healAmount: 50 }) },
+            { name: "重斬", type: "active", mp: 10, run: () => ({ dmg: 150 }) }
+        ]
+    });
+    balancedHeal.context.executePlayerActionTick();
+    assert.equal(balancedHeal.context.currentRun.hp, 90, "balanced stance heals first below 60% HP");
+    assert.equal(balancedHeal.context.currentRun.mp, 10);
+    assert.equal(balancedHeal.context.activeMonster.hp, 1000, "the healing decision does not also execute an attack");
+
+    const offensive = createCombatFixture({
+        hp: 20, mp: 60, tactic: "OFFENSIVE",
+        skills: [
+            { name: "治癒術", type: "active", mp: 20, run: () => ({ healAmount: 50 }) },
+            { name: "狂暴重擊", type: "active", mp: 40, run: () => ({ dmg: 40 }) }
+        ]
+    });
+    offensive.context.executePlayerActionTick();
+    assert.equal(offensive.context.currentRun.hp, 20, "offensive stance does not cast a healing skill");
+    assert.equal(offensive.context.currentRun.mp, 20);
+    assert.equal(offensive.context.activeMonster.hp, 960, "offensive stance chooses an available attack skill");
+
+    const unifiedSkill = createCombatFixture({
+        mp: 100, maxMp: 100, tactic: "OFFENSIVE", monsterHp: 1000, monsterDef: 20,
+        skills: [{ name: "穿甲連擊", type: "active", mp: 40, run: () => ({ dmg: 100, hitCount: 2, pierceArmor: 0.5, forceCrit: true, poisonStacks: 2 }) }]
+    });
+    unifiedSkill.context.executePlayerActionTick();
+    assert.equal(unifiedSkill.damageCalls[0].defense, 10, "the shared resolver applies armor penetration");
+    assert.equal(unifiedSkill.context.activeMonster.hp, 850, "the shared resolver applies forced critical damage across multiple hits");
+    assert.equal(unifiedSkill.context.activeMonster.poisonStacks, 2, "the shared resolver applies the skill's poison status");
+    assert.equal(unifiedSkill.context.currentRun.mp, 60);
+    assert.ok(unifiedSkill.logs.some((message) => message.includes("暴擊")), "the shared resolver logs the critical hit");
+
+    const paused = createCombatFixture({ tactic: "MANUAL" });
+    const pauseButton = paused.env.document.createElement("button");
+    pauseButton.id = "combat-pause-btn";
+    paused.env.document.body.appendChild(pauseButton);
+    const pauseStatus = paused.env.document.createElement("div");
+    pauseStatus.id = "combat-pause-status";
+    paused.env.document.body.appendChild(pauseStatus);
+
+    paused.context.currentRun.tactic = "BALANCED";
+    vm.runInContext('activeTactic = "MANUAL"', paused.context);
+    paused.context.dungeonFloor = 1;
+    paused.context.REGULAR_MONSTERS_POOL = [{
+        name: "測試入口魔物", minFloor: 1, maxFloor: 5, baseHp: 100, hpScale: 5,
+        baseAtk: 5, atkScale: 1, baseDef: 1, baseSpd: 15
+    }];
+    paused.context.startNodeCombat("NORMAL");
+    assert.equal(vm.runInContext("activeTactic", paused.context), "BALANCED", "combat entry restores the current run's selected tactic");
+    assert.equal(paused.intervals.size, 1, "combat starts with exactly one interval");
+    const firstTicker = [...paused.intervals.values()][0];
+    firstTicker.callback();
+    const getPlayerAtb = () => vm.runInContext("playerAtb", paused.context);
+    const atbBeforePause = getPlayerAtb();
+    assert.ok(atbBeforePause > 0);
+
+    assert.equal(paused.context.toggleCombatPause(), true);
+    assert.equal(vm.runInContext("combatPaused", paused.context), true);
+    assert.equal(paused.intervals.size, 0, "pausing clears the combat interval");
+    assert.equal(pauseButton.textContent, "▶️ 恢復戰鬥");
+    assert.match(pauseStatus.textContent, /已暫停/);
+    firstTicker.callback();
+    assert.equal(getPlayerAtb(), atbBeforePause, "a stale tick cannot advance ATB while paused");
+
+    assert.equal(paused.context.toggleCombatPause(), true);
+    assert.equal(vm.runInContext("combatPaused", paused.context), false);
+    assert.equal(paused.intervals.size, 1, "resuming creates exactly one new combat interval");
+    assert.equal(getPlayerAtb(), atbBeforePause, "resuming preserves the current ATB instead of resetting it");
+    [...paused.intervals.values()][0].callback();
+    assert.ok(getPlayerAtb() > atbBeforePause, "ATB advances again after resuming");
+
+    paused.context.gameState = "VILLAGE";
+    paused.context.stopCombatTicker();
+    assert.equal(paused.intervals.size, 0);
+    assert.equal(pauseButton.disabled, true, "pause is disabled outside battle");
+    assert.equal(paused.context.toggleCombatPause(), false, "the pause control cannot start a battle from town");
 }
 
 require("node:child_process").execFileSync(process.execPath, [
@@ -845,4 +990,5 @@ runLifecycleTests();
 runSceneTransitionTests();
 runStaticIntegrationChecks();
 runRoundTwoVfxTests();
-console.log("✅ VFX characterization, lifecycle, scene-transition, round-two settings/budget/position, and integration tests passed.");
+runCombatTacticsAndPauseTests();
+console.log("✅ VFX, combat tactics, shared skill effects, and pause/resume regression tests passed.");
