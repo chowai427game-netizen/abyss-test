@@ -70,6 +70,11 @@ assert.notEqual(tierTwoFirst.def, tierTwoFirst.mdef, "monster magic defense rema
 const spawned = vm.runInContext('spawnMonsterForFloor(21)', context);
 assert.equal(spawned.hp, 380, "the first floor of a zone starts at its base HP");
 assert.ok(Number.isFinite(spawned.hit) && Number.isFinite(spawned.flee) && Number.isFinite(spawned.perfectDodge));
+const magicMonster = vm.runInContext('generateMonsterInstance(REGULAR_MONSTERS_POOL.find(m => m.name.includes("魔導書")), 21)', context);
+assert.equal(magicMonster.attackType, "magic", "caster monster attack type survives scaling");
+assert.equal(vm.runInContext('spawnMonsterForFloor(20).attackType', context), "magic", "caster boss attack type survives spawning");
+assert.equal(vm.runInContext('spawnMonsterForFloor(20).shield', context), 100, "shielded bosses expose their barrier to the combat engine");
+assert.equal(vm.runInContext('spawnMonsterForFloor(10).shield', context), 0, "unshielded bosses keep zero shield");
 
 // Every boss must exceed the strongest regular monster on the preceding floor.
 for (const bossFloor of [10, 20, 30, 40, 50, 60]) {
@@ -112,6 +117,8 @@ assert.equal(damage.isCrit, true, "wizard magic can critically hit");
 
 const gameSource = fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8");
 assert.match(gameSource, /spawnMonsterForFloor\(dungeonFloor\)/, "the live battle path must use the shared monster generator");
+assert.match(gameSource, /shield:\s*bossMeta\.baseShield\s*\|\|\s*0/, "the live boss object must keep its generated barrier");
+assert.match(gameSource, /attackType:\s*bossMeta\.attackType\s*\|\|\s*"physical"/, "the live boss object must keep its attack type");
 assert.doesNotMatch(gameSource, /baseHp\s*\+\s*dungeonFloor\s*\*\s*\(rollSeed\.hpScale/, "absolute-floor monster scaling must not return");
 
 console.log("✅ Monster scaling, boss tuning, hit/defense, job traits, and shared damage balance tests passed.");

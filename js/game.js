@@ -514,7 +514,7 @@ function getCombatSkillCandidates() {
         const mpCost = Math.max(0, Number(skillMeta.mp) || 0);
         if (skillLevel <= 0 || (Number(currentRun.mp) || 0) < mpCost) return candidates;
         try {
-            const effect = skillMeta.run(skillLevel, baseAttack, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
+            const effect = skillMeta.run(skillLevel, baseAttack, currentRun.maxMp, currentRun.hp, currentRun.maxHp, currentRun);
             if (effect && typeof effect === "object") candidates.push({ skillMeta, skillLevel, mpCost, effect, order });
         } catch (error) {
             if (typeof console !== "undefined" && console.warn) console.warn(`技能 ${skillMeta.name} 無法解析`, error);
@@ -528,7 +528,22 @@ function isHealingSkillEffect(effect) {
 }
 
 function isDamagingSkillEffect(effect) {
-    return Boolean(effect && Number(effect.dmg) > 0);
+    return Boolean(effect && (Number(effect.dmg) > 0 || Number(effect.physicalDmg) > 0 || Number(effect.magicDmg) > 0));
+}
+
+function applySkillForcedCritical(result, effect, jobTraits) {
+    if (!result || result.isMiss || !effect?.forceCrit) return result;
+    const traitBonus = Number(jobTraits?.critDamageBonus) || 0;
+    const skillBonus = Math.max(0, Number(effect.critDamageBonus) || 0);
+    const normalMultiplier = Math.max(1, 1.5 + traitBonus);
+    const skillMultiplier = normalMultiplier + skillBonus;
+    if (!result.isCrit) {
+        result.isCrit = true;
+        result.damage = Math.floor(Number(result.damage) * skillMultiplier);
+    } else if (skillBonus > 0) {
+        result.damage = Math.floor(Number(result.damage) * skillMultiplier / normalMultiplier);
+    }
+    return result;
 }
 
 function getActiveCombatBuff(key) {
@@ -546,7 +561,7 @@ function tickCombatBuffs() {
 
 function isCombatUtilitySkillEffect(effect) {
     return Boolean(effect && (
-        Number(effect.blockBuff) > 0 || Number(effect.dodgeBuff) > 0 || Number(effect.spdBuff) > 0 ||
+        Number(effect.blockBuff) > 0 || Number(effect.mdefBuff) > 0 || Number(effect.dodgeBuff) > 0 || Number(effect.spdBuff) > 0 ||
         Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0 ||
         Number(effect.bossDmgCut) > 0 || Number(effect.thornsFire) > 0 || effect.guaranteedCritNext
     ));
@@ -559,6 +574,7 @@ function isUsefulCombatUtilitySkill(candidate) {
     if ((Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0 || effect.guaranteedCritNext) && used[candidate.skillMeta.id]) return false;
     if (Number(effect.bossDmgCut) > 0 && (!activeMonster?.isBoss || Number(currentRun.bossDmgCut) > 0)) return false;
     if (Number(effect.blockBuff) > 0 && getActiveCombatBuff("blockBuff") > 0) return false;
+    if (Number(effect.mdefBuff) > 0 && getActiveCombatBuff("mdefBuff") > 0) return false;
     if (Number(effect.dodgeBuff) > 0 && getActiveCombatBuff("dodgeBuff") > 0) return false;
     if (Number(effect.spdBuff) > 0 && getActiveCombatBuff("spdBuff") > 0) return false;
     if (Number(effect.thornsFire) > 0 && getActiveCombatBuff("thornsFire") > 0) return false;
@@ -614,13 +630,16 @@ function chooseAutoBattleAction() {
         const attackSkill = [...candidates].reverse().find((candidate) =>
             isDamagingSkillEffect(candidate.effect) &&
             !isHealingSkillEffect(candidate.effect) &&
+            (!candidate.effect.explodePoison || Number(activeMonster.poisonStacks) > 0) &&
+            (!candidate.effect.consumeAllMp || activeMonster.isBoss || (Number(activeMonster.hp) / Math.max(1, Number(activeMonster.maxHp) || 1)) <= 0.35) &&
             currentRun.mp - candidate.mpCost >= reserveMp
         );
         return attackSkill ? { type: "skill", candidate: attackSkill } : { type: "basic" };
     }
 
     const offensiveSkill = [...candidates].reverse().find((candidate) =>
-        isDamagingSkillEffect(candidate.effect) && !isHealingSkillEffect(candidate.effect)
+        isDamagingSkillEffect(candidate.effect) && !isHealingSkillEffect(candidate.effect) &&
+        (!candidate.effect.explodePoison || Number(activeMonster.poisonStacks) > 0)
     );
     if (offensiveSkill) return { type: "skill", candidate: offensiveSkill };
     const utilitySkill = candidates.find(isUsefulCombatUtilitySkill);
@@ -656,7 +675,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
     let effect = preparedEffect ? { ...preparedEffect } : null;
     if (!effect) {
         try {
-            effect = skillMeta.run(skillLevel, baseAttack, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
+            effect = skillMeta.run(skillLevel, baseAttack, currentRun.maxMp, currentRun.hp, currentRun.maxHp, currentRun);
         } catch (error) {
             return false;
         }
@@ -667,10 +686,20 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
         Number(effect.shieldGain) > 0 || Number(effect.mpRestore) > 0 ||
         isCombatUtilitySkillEffect(effect) || Number(effect.stealGold) > 0 || effect.stealMat;
     if (!hasSupportedEffect) return false;
+    if (Number(effect.bossDmgCut) > 0 && !activeMonster.isBoss) return false;
+    if (effect.explodePoison && Number(activeMonster.poisonStacks) <= 0) return false;
 
     const jobTraits = currentRun.jobCombatTraits || {};
     const freeCast = !!effect.isMagic && Number(jobTraits.freeSkillMpChance) > 0 && Math.random() < Number(jobTraits.freeSkillMpChance);
     if (!freeCast) currentRun.mp = Math.max(0, (Number(currentRun.mp) || 0) - mpCost);
+    if (effect.consumeAllMp) {
+        const remainingMp = Math.max(0, Number(currentRun.mp) || 0);
+        if (Number(effect.mpBonusDamageRate) > 0 && Number(effect.dmg) > 0) {
+            effect.dmg += Math.floor(remainingMp * Number(effect.mpBonusDamageRate));
+        }
+        currentRun.mp = 0;
+        if (typeof addLog === "function") addLog(`🔵【耗盡魔力】${skillMeta.name || "技能"}吸收剩餘 ${remainingMp} MP 強化這次攻擊！`, "perfect");
+    }
     if (currentRun.job === "sage" && effect.isMagic && Number(effect.dmg) > 0 && Math.random() < (Number(jobTraits.doubleCastChance) || 0)) {
         effect.dmg = Math.floor(Number(effect.dmg) * 2);
         effect.hitCount = Math.max(1, Math.floor(Number(effect.hitCount) || 1) * 2);
@@ -711,6 +740,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
         currentRun.activeCombatBuffs ||= {};
         currentRun.skillBuffsUsed ||= {};
         if (Number(effect.blockBuff) > 0) currentRun.activeCombatBuffs.blockBuff = { value: Number(effect.blockBuff), turns: duration };
+        if (Number(effect.mdefBuff) > 0) currentRun.activeCombatBuffs.mdefBuff = { value: Number(effect.mdefBuff), turns: duration };
         if (Number(effect.dodgeBuff) > 0) currentRun.activeCombatBuffs.dodgeBuff = { value: Number(effect.dodgeBuff), turns: duration };
         if (Number(effect.spdBuff) > 0) currentRun.activeCombatBuffs.spdBuff = { value: Number(effect.spdBuff), turns: duration };
         if (Number(effect.thornsFire) > 0) currentRun.activeCombatBuffs.thornsFire = { value: Number(effect.thornsFire), turns: duration };
@@ -729,22 +759,45 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
         if (Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0 || effect.guaranteedCritNext) {
             currentRun.skillBuffsUsed[skillMeta.id] = true;
         }
-        if (typeof addLog === "function") addLog(`✨ 施展【${skillName}】，獲得持續 ${duration} 次自身行動的戰鬥增益！`, "perfect");
-    }
-
-    if (Number(effect.stealGold) > 0) currentRun.gold = (Number(currentRun.gold) || 0) + Number(effect.stealGold);
-    if (effect.stealMat) {
-        const stolenItem = activeMonster.dropItem || (typeof getMonsterDrop === "function" ? getMonsterDrop(activeMonster.name) : null);
-        if (stolenItem && typeof safePushToInventory === "function") safePushToInventory(currentRun, accountMeta, stolenItem);
+        if (typeof addLog === "function") {
+            if (Number(effect.bossDmgCut) > 0) addLog(`✨ 施展【${skillName}】，下一次首領攻擊傷害降低 ${Math.floor(Number(effect.bossDmgCut) * 100)}%！`, "perfect");
+            else if (effect.guaranteedCritNext && Number(effect.permDodge) > 0) addLog(`✨ 施展【${skillName}】，完美閃避永久提升，下一次攻擊必定暴擊！`, "perfect");
+            else if (Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0) addLog(`✨ 施展【${skillName}】，永久強化本局冒險能力！`, "perfect");
+            else if (effect.guaranteedCritNext) addLog(`✨ 施展【${skillName}】，完美閃避永久提升，下一次攻擊必定暴擊！`, "perfect");
+            else addLog(`✨ 施展【${skillName}】，獲得持續 ${duration} 次自身行動的戰鬥增益！`, "perfect");
+        }
     }
 
     if (isDamagingSkillEffect(effect)) {
-        const hitCount = Math.max(1, Math.floor(Number(effect.hitCount) || (effect.isTripleHit ? 3 : (effect.isDoubleHit ? 2 : 1))));
+        const hybridHitCount = (Number(effect.physicalDmg) > 0 ? 1 : 0) + (Number(effect.magicDmg) > 0 ? 1 : 0);
+        const hitCount = Math.max(1, Math.floor(Number(effect.hitCount) || hybridHitCount || (effect.isTripleHit ? 3 : (effect.isDoubleHit ? 2 : 1))));
         const skillVfx = typeof resolveSkillVfx === "function" ? resolveSkillVfx(skillMeta, currentRun.job) : { projectileType: "slash" };
         if (typeof triggerProjectileFX === "function") triggerProjectileFX(skillVfx.projectileType || "slash", hitCount, skillVfx);
 
         let damageApplied = false;
-        if (effect.explodePoison && Number(activeMonster.poisonStacks) > 0) {
+        if ((Number(effect.physicalDmg) > 0 || Number(effect.magicDmg) > 0) && !effect.explodePoison) {
+            const components = [];
+            if (Number(effect.physicalDmg) > 0) components.push({ damage: Number(effect.physicalDmg), defense: Number(activeMonster.def) || 0, isMagic: false });
+            if (Number(effect.magicDmg) > 0) components.push({ damage: Number(effect.magicDmg), defense: Number(activeMonster.mdef) || 0, isMagic: true });
+            let totalDamage = 0;
+            let totalAbsorbed = 0;
+            let totalHits = 0;
+            for (const component of components) {
+                const componentResult = typeof calculateDamage === "function"
+                    ? calculateDamage(component.damage, component.defense, true, component.isMagic)
+                    : { damage: component.damage, isMiss: false, isCrit: false };
+                if (componentResult.isMiss) continue;
+                applySkillForcedCritical(componentResult, effect, jobTraits);
+                const hitResult = applyDamageWithShield(activeMonster, componentResult.damage);
+                totalDamage += hitResult.actualHpDmg;
+                totalAbsorbed += hitResult.absorbed;
+                totalHits++;
+                damageApplied = true;
+            }
+            if (totalAbsorbed > 0) vfx("shield", { anchor: "monster", text: `-${totalAbsorbed}` });
+            vfx("hit", { anchor: "monster", text: `-${totalDamage} HP` });
+            if (typeof addLog === "function") addLog(`✝️【${skillName} Lv.${skillLevel}】物理與魔法各判定一次（命中 ${totalHits}/${components.length}），合計造成 <span class="num-popup num-p-dmg">-${totalDamage} HP</span>！`, "skill-hit");
+        } else if (effect.explodePoison && Number(activeMonster.poisonStacks) > 0) {
             const poisonStacks = Number(activeMonster.poisonStacks) || 0;
             const rawExplosionDamage = Number(effect.dmg) + poisonStacks * 70;
             const result = applyDamageWithShield(activeMonster, rawExplosionDamage);
@@ -762,18 +815,19 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
             }
             if (effect.ignoreDef) targetDef = 0;
 
-            if (skillName.includes("火箭") && activeMonster.freezeTurns > 0) {
-                rawDamage = Math.floor(rawDamage * 2.5);
-                if (typeof addLog === "function") addLog("🔥❄️【冰火暴擊】魔物處於冰凍狀態，火箭術觸發 2.5 倍傷害！", "perfect");
+            let elementalBonus = 0;
+            if (Number(effect.bonusVsFrozen) > 0 && Number(activeMonster.freezeTurns) > 0) elementalBonus += Number(effect.bonusVsFrozen);
+            if (Number(effect.bonusVsBurning) > 0 && Number(activeMonster.burnStacks) > 0) elementalBonus += Number(effect.bonusVsBurning);
+            if (Number(effect.bonusVsPoisoned) > 0 && Number(activeMonster.poisonStacks) > 0) elementalBonus += Number(effect.bonusVsPoisoned);
+            if (elementalBonus > 0) {
+                rawDamage = Math.floor(rawDamage * (1 + elementalBonus));
+                if (typeof addLog === "function") addLog(`✨【元素克制】${skillName} 對應目標狀態，傷害提高 ${Math.floor(elementalBonus * 100)}%！`, "perfect");
             }
 
             let damageResult = typeof calculateDamage === "function"
                 ? calculateDamage(rawDamage, targetDef, true, (isMagicJob || effect.isMagic))
                 : { damage: rawDamage, isMiss: false, isCrit: false };
-            if (effect.forceCrit && !damageResult.isMiss && !damageResult.isCrit) {
-                damageResult.isCrit = true;
-                damageResult.damage = Math.floor(damageResult.damage * (1.5 + (Number(jobTraits.critDamageBonus) || 0)));
-            }
+            applySkillForcedCritical(damageResult, effect, jobTraits);
 
             if (damageResult.isMiss) {
                 vfx("miss", { anchor: "monster", text: "MISS" });
@@ -799,14 +853,49 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
             }
         }
 
-        if (damageApplied) {
+        if (damageApplied && Number(effect.shieldBreak) > 0 && Number(activeMonster.shield) > 0) {
+            const shatteredShield = Number(activeMonster.shield) || 0;
+            activeMonster.shield = 0;
+            if (typeof addLog === "function") addLog(`🛡️【破盾】${skillName}擊碎敵方 ${shatteredShield} 點護盾！`, "skill-hit");
+        }
+        if (damageApplied && effect.dispel) {
+            const strippedShield = Number(activeMonster.shield) || 0;
+            activeMonster.shield = 0;
+            let strippedBuffCount = 0;
+            for (const key of ["activeBuffs", "buffs"]) {
+                if (!Object.prototype.hasOwnProperty.call(activeMonster, key)) continue;
+                const value = activeMonster[key];
+                strippedBuffCount += Array.isArray(value) ? value.length : (value && typeof value === "object" ? Object.keys(value).length : 0);
+                delete activeMonster[key];
+            }
+            for (const key of ["atkBuff", "defBuff", "mdefBuff", "spdBuff"]) {
+                if (Number(activeMonster[key]) > 0) { strippedBuffCount++; delete activeMonster[key]; }
+            }
+            if (typeof addLog === "function") addLog(`📖【解除魔法】${skillName}驅散護盾 ${strippedShield} 點與 ${strippedBuffCount} 個敵方增益！`, "perfect");
+        }
+        if (damageApplied && Number(effect.stealGold) > 0) {
+            const stolenGold = Math.max(0, Math.floor(Number(effect.stealGold)));
+            currentRun.gold = (Number(currentRun.gold) || 0) + stolenGold;
+            if (typeof addLog === "function") addLog(`💰【偷竊成功】從魔物身上奪得 ${stolenGold} G！`, "perfect");
+        }
+        if (damageApplied && effect.stealMat) {
+            const stolenItem = activeMonster.dropItem || (typeof getMonsterDrop === "function" ? getMonsterDrop(activeMonster.name) : null);
+            if (stolenItem && typeof safePushToInventory === "function") {
+                const message = safePushToInventory(currentRun, accountMeta, stolenItem);
+                if (typeof addLog === "function") addLog(`🎒【素材竊取】${message}`, "perfect");
+            }
+        }
+
+        if (damageApplied && activeMonster.hp > 0) {
             if (Number(effect.poisonStacks) > 0) activeMonster.poisonStacks = (Number(activeMonster.poisonStacks) || 0) + Number(effect.poisonStacks);
             if (Number(effect.burnStacks) > 0) activeMonster.burnStacks = (Number(activeMonster.burnStacks) || 0) + Number(effect.burnStacks);
-            if (Number(effect.freezeChance) > 0 && Math.random() * 100 < Number(effect.freezeChance)) {
+            const freezeChance = Math.max(0, Math.min(100, Number(effect.freezeChance) || 0));
+            if (freezeChance > 0 && Math.random() * 100 < freezeChance) {
                 activeMonster.freezeTurns = (Number(activeMonster.freezeTurns) || 0) + 1;
                 if (typeof addLog === "function") addLog("❄️【極寒冷凍】魔物被凍結 1 回合！", "perfect");
             }
-            if (Number(effect.stunChance) > 0 && Math.random() * 100 < Number(effect.stunChance)) {
+            const stunChance = Math.max(0, Math.min(100, Number(effect.stunChance) || 0));
+            if (stunChance > 0 && Math.random() * 100 < stunChance) {
                 activeMonster.stunTurns = (Number(activeMonster.stunTurns) || 0) + 1;
                 if (typeof addLog === "function") addLog("💫【強制眩暈】魔物被擊暈 1 回合！", "perfect");
             }
@@ -1553,13 +1642,14 @@ function startNodeCombat(nodeType) {
                 flee: bossMeta.flee || 0,
                 hit: bossMeta.hit || Math.min(96, 82 + Math.floor((bossMeta.baseSpd || 20) * 0.25)),
                 perfectDodge: bossMeta.perfectDodge || Math.min(15, Math.floor((bossMeta.flee || 0) * 0.1)),
-                shield: 0,
+                shield: bossMeta.baseShield || 0,
                 poisonStacks: 0,
                 burnStacks: 0,
                 freezeTurns: 0, 
                 stunTurns: 0,
                 isSkipped: false, 
                 isBoss: true, 
+                attackType: bossMeta.attackType || "physical",
                 fixedDrop: bossMeta.dropItem 
             };
             shouldSpawnBossEntryVfx = true;
@@ -1679,9 +1769,10 @@ function executeMonsterActionTick() {
     }
     
     let monsterAtk = activeMonster.atk || 5;
-    let playerDef = currentRun.def || 0;
+    const monsterUsesMagic = activeMonster.attackType === "magic" || activeMonster.isMagic === true;
+    let playerDef = monsterUsesMagic ? (currentRun.mdef || 0) : (currentRun.def || 0);
     
-    let dmgRes = typeof calculateDamage === "function" ? calculateDamage(monsterAtk, playerDef, false, false) : { damage: monsterAtk, isMiss: false };
+    let dmgRes = typeof calculateDamage === "function" ? calculateDamage(monsterAtk, playerDef, false, monsterUsesMagic) : { damage: monsterAtk, isMiss: false };
     
     if (dmgRes.isMiss) {
         spawnVfx("miss", { anchor: "player", text: "MISS" });
@@ -1703,6 +1794,7 @@ function executeMonsterActionTick() {
     const thornsDamage = getActiveCombatBuff("thornsFire");
     if (activeMonster.hp > 0 && thornsDamage > 0) {
         const thornsResult = applyDamageWithShield(activeMonster, thornsDamage);
+        if (activeMonster.hp > 0) activeMonster.burnStacks = (Number(activeMonster.burnStacks) || 0) + 1;
         if (typeof addLog === "function") addLog(`🔥【火牆反噬】魔物受到 ${thornsResult.actualHpDmg} 點火焰傷害！`, "skill-hit");
     }
     if (res.absorbed > 0) spawnVfx("shield", { anchor: "player", text: `-${res.absorbed}` });

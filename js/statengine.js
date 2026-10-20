@@ -307,7 +307,10 @@
             def *= 1 - pierce;
         }
         const defConst = isMagic ? 40 : 50;
-        if (!isPlayerAttacking && current) def += Number(current.activeCombatBuffs?.blockBuff?.value) || 0;
+        if (!isPlayerAttacking && current) {
+            const defenseBuffKey = isMagic ? "mdefBuff" : "blockBuff";
+            def += Number(current.activeCombatBuffs?.[defenseBuffKey]?.value) || 0;
+        }
         const reduction = def / (def + Math.max(1, defConst));
         let baseDmg = atk * (1 - reduction);
         if (isPlayerAttacking && !isMagic) baseDmg *= Number(traits.physicalDamageMultiplier) || 1;

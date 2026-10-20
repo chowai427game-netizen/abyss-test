@@ -59,7 +59,7 @@ const DOM = {
             'p-skills-list', 'p-stat-points', 'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory',
             'slot-weapon', 'slot-armor', 'slot-accessory',
             'btn-main-action', 'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle',
-            'env-alert-bar', 'monster-status-card', 'm-name', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
+            'env-alert-bar', 'monster-status-card', 'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
             'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
             'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
             'village-panel-box', 'log-wrapper-box', 'tactics-drawer-box', 'char-folder-summary',
@@ -913,9 +913,10 @@ function syncCharacterDataUi() {
     setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk || 0})`);
     const activeCombatBuffs = currentRun.activeCombatBuffs || {};
     const activeBlockBuff = activeCombatBuffs.blockBuff?.turns > 0 ? Number(activeCombatBuffs.blockBuff.value) || 0 : 0;
+    const activeMdefBuff = activeCombatBuffs.mdefBuff?.turns > 0 ? Number(activeCombatBuffs.mdefBuff.value) || 0 : 0;
     const activeDodgeBuff = activeCombatBuffs.dodgeBuff?.turns > 0 ? Number(activeCombatBuffs.dodgeBuff.value) || 0 : 0;
     const activeSpdBuff = activeCombatBuffs.spdBuff?.turns > 0 ? Number(activeCombatBuffs.spdBuff.value) || 0 : 0;
-    setTxt('p-block', `${(currentRun.def || 0) + activeBlockBuff} (魔防 ${currentRun.mdef || 0})`);
+    setTxt('p-block', `${(currentRun.def || 0) + activeBlockBuff} (魔防 ${(currentRun.mdef || 0) + activeMdefBuff})`);
     setTxt('p-spd', (currentRun.spd || 0) + activeSpdBuff);
     setTxt('p-crit', `${currentRun.critChance}%`);
     setTxt('p-dodge', `${Math.floor((currentRun.flee || 0) + activeDodgeBuff)} (完迴 ${currentRun.perfectDodge || 0}%)`);
@@ -1167,6 +1168,8 @@ function updateUI() {
     if (activeMonster && monBox) {
         monBox.style.display = "block";
         DOM.get('m-name').innerText = activeMonster.name;
+        const monsterShield = Math.max(0, Number(activeMonster.shield) || 0);
+        DOM.get('m-shield-text').innerText = monsterShield > 0 ? `🛡️ 護盾 ${monsterShield}` : "";
         DOM.get('m-hp-text').innerText = `${activeMonster.hp} / ${activeMonster.maxHp}`;
         
         updateHpBarWithGhost(activeMonster.hp, activeMonster.maxHp, 'm-hp-bar', 'm-hp-bar-ghost');
