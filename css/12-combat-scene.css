@@ -1,0 +1,180 @@
+/* --------------------------------------------------------------------------
+   Retro pixel-art battle scene
+   -------------------------------------------------------------------------- */
+.battle-scene {
+    --battle-ink: #19120c;
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    min-height: 264px;
+    overflow: hidden;
+    margin: 0 0 14px;
+    border: 4px solid #21170d;
+    border-radius: 4px;
+    background: #17251a url("../assets/combat/battle-forest-bg.png") center 54% / cover no-repeat;
+    box-shadow: 0 0 0 2px #c4a15a, 0 0 0 5px #21170d, 0 10px 24px rgba(0, 0, 0, .45);
+    image-rendering: pixelated;
+}
+
+.battle-scene::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(9, 12, 10, .35), transparent 42%, rgba(10, 11, 8, .22));
+    content: "";
+    pointer-events: none;
+}
+
+.battle-hud {
+    position: absolute;
+    z-index: 2;
+    inset: 10px 10px auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.battle-hud-card {
+    display: grid;
+    width: min(42%, 220px);
+    gap: 3px;
+    padding: 6px 8px;
+    border: 2px solid #25190f;
+    border-radius: 3px;
+    background: rgba(255, 248, 218, .94);
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, .65);
+    color: #261d13;
+    font: 700 11px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.battle-hud-card strong {
+    overflow: hidden;
+    color: #19140f;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.battle-hud-enemy { text-align: right; }
+
+.battle-meter {
+    height: 7px;
+    overflow: hidden;
+    border: 1px solid #2a2118;
+    background: #40372c;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .45);
+}
+
+.battle-meter span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transition: width .24s steps(5, end);
+}
+
+.battle-meter-hp span { background: #df3845; }
+.battle-meter-mp span { background: #3984e8; }
+.battle-meter-enemy span { background: #8d2cb2; }
+.battle-shield-label { color: #176b70; font-weight: 800; }
+
+.battle-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.battle-sprite-platform {
+    position: absolute;
+    bottom: 22px;
+    width: 25%;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(22, 18, 11, .45);
+    filter: blur(1px);
+}
+
+.battle-player-platform { left: 9%; }
+.battle-enemy-platform { right: 9%; }
+
+.battle-sprite {
+    position: absolute;
+    z-index: 1;
+    bottom: 22px;
+    display: block;
+    width: auto;
+    height: 126px;
+    max-width: 36%;
+    object-fit: contain;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .38));
+}
+
+.battle-player-sprite { left: 13%; }
+.battle-enemy-sprite { right: 13%; height: 116px; }
+.battle-enemy-sprite.battle-boss-sprite { height: 158px; max-width: 42%; }
+
+.battle-monster-fallback {
+    position: absolute;
+    z-index: 1;
+    right: 15%;
+    bottom: 31px;
+    font-size: clamp(54px, 12vw, 82px);
+    line-height: 1;
+    filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .5));
+}
+
+.battle-versus {
+    position: absolute;
+    left: 50%;
+    bottom: 68px;
+    transform: translateX(-50%);
+    color: rgba(255, 245, 211, .9);
+    font: 900 14px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    text-shadow: 2px 2px 0 #2b2113, -1px -1px 0 #2b2113;
+}
+
+.battle-scene-caption {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 4px 8px;
+    background: rgba(20, 16, 11, .78);
+    color: #f6df9b;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-align: center;
+}
+
+.battle-scene.is-boss-battle { box-shadow: 0 0 0 2px #d78348, 0 0 0 5px #21170d, 0 10px 26px rgba(95, 28, 12, .4); }
+.battle-scene.is-ice-zone { filter: saturate(.82) hue-rotate(8deg); }
+.battle-scene.is-fire-zone { filter: saturate(1.15) sepia(.12); }
+.battle-scene[hidden], .battle-monster-fallback[hidden] { display: none !important; }
+
+@media (max-width: 600px) {
+    .battle-scene {
+        min-height: 226px;
+        margin-bottom: 12px;
+        border-width: 3px;
+        background-position: center 54%;
+    }
+    .battle-hud { inset: 7px 7px auto; gap: 6px; }
+    .battle-hud-card { width: 44%; padding: 5px 6px; font-size: 10px; }
+    .battle-hud-card strong { font-size: 11px; }
+    .battle-sprite { bottom: 21px; height: 105px; }
+    .battle-enemy-sprite { height: 96px; }
+    .battle-enemy-sprite.battle-boss-sprite { height: 132px; }
+    .battle-player-sprite { left: 9%; }
+    .battle-enemy-sprite { right: 9%; }
+    .battle-sprite-platform { bottom: 20px; }
+    .battle-versus { bottom: 55px; font-size: 12px; }
+    .battle-monster-fallback { right: 10%; bottom: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .battle-meter span { transition: none; }
+}

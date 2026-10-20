@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="css/04-components.css">
     <link rel="stylesheet" href="css/10-responsive.css">
     <link rel="stylesheet" href="css/11-accessibility.css">
+    <link rel="stylesheet" href="css/12-combat-scene.css">
 </head>
 <body>
 
@@ -296,6 +297,34 @@
             <section class="dynamic-panel reward-style full-width" id="route-panel-box" style="display: none;">
                 <div class="panel-title text-gold" id="route-title-text">🧭 命運抉擇：選擇前進分支路線 🧭</div>
                 <div class="flex-layout" id="route-choices-container"></div>
+            </section>
+
+            <!-- 🖼️ 像素風戰鬥場景：保留文字戰報，提供直覺的雙方對戰畫面 -->
+            <section id="battle-scene-box" class="battle-scene" aria-label="戰鬥場景" style="display: none;">
+                <div class="battle-hud">
+                    <div class="battle-hud-card battle-hud-player">
+                        <strong id="battle-player-name">冒險者</strong>
+                        <span id="battle-player-hp-text">HP 0 / 0</span>
+                        <div class="battle-meter battle-meter-hp"><span id="battle-player-hp-bar"></span></div>
+                        <span id="battle-player-mp-text">MP 0 / 0</span>
+                        <div class="battle-meter battle-meter-mp"><span id="battle-player-mp-bar"></span></div>
+                    </div>
+                    <div class="battle-hud-card battle-hud-enemy">
+                        <strong id="battle-monster-name">深淵魔物</strong>
+                        <span id="battle-monster-hp-text">HP 0 / 0</span>
+                        <div class="battle-meter battle-meter-enemy"><span id="battle-monster-hp-bar"></span></div>
+                        <span id="battle-monster-shield-text" class="battle-shield-label"></span>
+                    </div>
+                </div>
+                <div class="battle-stage" aria-hidden="true">
+                    <div class="battle-sprite-platform battle-player-platform"></div>
+                    <div class="battle-sprite-platform battle-enemy-platform"></div>
+                    <img id="battle-player-sprite" class="battle-sprite battle-player-sprite" src="assets/combat/hero-knight.png" alt="">
+                    <div id="battle-monster-fallback" class="battle-monster-fallback" hidden></div>
+                    <img id="battle-monster-sprite" class="battle-sprite battle-enemy-sprite" src="assets/combat/monster-slime.png" alt="">
+                    <span class="battle-versus" aria-hidden="true">VS</span>
+                </div>
+                <div class="battle-scene-caption">⚔️ 深淵遭遇戰</div>
             </section>
 
             <!-- 👹 6. 魔物狀態面板 -->

@@ -59,7 +59,10 @@ const DOM = {
             'p-skills-list', 'p-stat-points', 'p-equip-weapon', 'p-equip-armor', 'p-equip-accessory',
             'slot-weapon', 'slot-armor', 'slot-accessory',
             'btn-main-action', 'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle',
-            'env-alert-bar', 'monster-status-card', 'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
+            'env-alert-bar', 'monster-status-card', 'battle-scene-box', 'battle-player-name', 'battle-player-hp-text', 'battle-player-hp-bar',
+            'battle-player-mp-text', 'battle-player-mp-bar', 'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar',
+            'battle-monster-shield-text', 'battle-player-sprite', 'battle-monster-sprite', 'battle-monster-fallback',
+            'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
             'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
             'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
             'village-panel-box', 'log-wrapper-box', 'tactics-drawer-box', 'char-folder-summary',
@@ -1085,6 +1088,70 @@ function switchVillageLocation(targetLoc) {
 // 🛠️ updateUI 核心更新
 // --------------------------------------------------------------------------
 
+function getBattleMonsterSpriteVariant(monster) {
+    if (!monster) return "";
+    const name = String(monster.name || "");
+    if (/魔神|惡魔|魔王|狂魔|demon|devil/i.test(name)) return "demon";
+    if (/史萊姆|slime/i.test(name)) return "slime";
+    if (/怨靈|幽靈|亡靈|腐屍|死神|骷髏|殭屍|魔靈|ghost|undead|corpse|reaper|skeleton/i.test(name)) return "undead";
+    return "";
+}
+
+function setBattleMeter(element, value, maximum) {
+    if (!element) return;
+    const max = Math.max(1, Number(maximum) || 1);
+    const current = Math.max(0, Math.min(max, Number(value) || 0));
+    element.style.width = `${Math.round((current / max) * 100)}%`;
+}
+
+function updateBattleScene(monster) {
+    const scene = DOM.get('battle-scene-box');
+    if (!scene) return;
+    const inBattle = typeof gameState !== "undefined" && gameState === "BATTLE" && monster &&
+        typeof currentRun !== "undefined" && currentRun;
+    scene.style.display = inBattle ? "block" : "none";
+    if (!inBattle) return;
+
+    const heroName = (accountMeta && accountMeta.name) || "冒險者";
+    const variant = getBattleMonsterSpriteVariant(monster);
+    const image = DOM.get('battle-monster-sprite');
+    const fallback = DOM.get('battle-monster-fallback');
+    const variantPaths = {
+        slime: "assets/combat/monster-slime.png",
+        undead: "assets/combat/monster-undead.png",
+        demon: "assets/combat/monster-demon.png"
+    };
+
+    DOM.get('battle-player-name').textContent = heroName;
+    DOM.get('battle-player-hp-text').textContent = `HP ${Math.max(0, currentRun.hp || 0)} / ${currentRun.maxHp || 0}`;
+    DOM.get('battle-player-mp-text').textContent = `MP ${Math.max(0, currentRun.mp || 0)} / ${currentRun.maxMp || 0}`;
+    setBattleMeter(DOM.get('battle-player-hp-bar'), currentRun.hp, currentRun.maxHp);
+    setBattleMeter(DOM.get('battle-player-mp-bar'), currentRun.mp, currentRun.maxMp);
+    DOM.get('battle-monster-name').textContent = monster.name || "深淵魔物";
+    DOM.get('battle-monster-hp-text').textContent = `HP ${Math.max(0, monster.hp || 0)} / ${monster.maxHp || 0}`;
+    DOM.get('battle-monster-shield-text').textContent = Number(monster.shield) > 0 ? `🛡️ 護盾 ${monster.shield}` : "";
+    setBattleMeter(DOM.get('battle-monster-hp-bar'), monster.hp, monster.maxHp);
+
+    scene.classList.toggle('is-boss-battle', Boolean(monster.isBoss));
+    const environmentClass = typeof ENVIRONMENT_DATABASE !== "undefined" && typeof currentEnvironment !== "undefined" && ENVIRONMENT_DATABASE[currentEnvironment]
+        ? ENVIRONMENT_DATABASE[currentEnvironment].className : "";
+    scene.classList.toggle('is-ice-zone', environmentClass === "env-zone-ice");
+    scene.classList.toggle('is-fire-zone', environmentClass === "env-zone-fire");
+    if (image) {
+        image.classList.toggle('battle-boss-sprite', Boolean(monster.isBoss));
+        image.hidden = !variant;
+        if (variant && image.dataset.variant !== variant) {
+            image.dataset.variant = variant;
+            image.src = variantPaths[variant];
+        }
+    }
+    if (fallback) {
+        const leadingIcon = String(monster.name || "").match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
+        fallback.textContent = leadingIcon ? leadingIcon[0] : "👹";
+        fallback.hidden = Boolean(variant);
+    }
+}
+
 function updateUI() {
     const titleBox = DOM.get('title-box');
     const statusBox = DOM.get('status-panel-box');
@@ -1095,6 +1162,7 @@ function updateUI() {
     const envBar = DOM.get('env-alert-bar');
     const autoBtn = DOM.get('btn-auto-battle');
     const logWrapper = DOM.get('log-wrapper-box');
+    updateBattleScene(typeof activeMonster !== "undefined" ? activeMonster : null);
 
     if (typeof gameState !== "undefined" && gameState === "TITLE") {
         if (titleBox) titleBox.style.display = "block";
