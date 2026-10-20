@@ -47,12 +47,12 @@ const REGULAR_MONSTERS_POOL = [
 ];
 
 const BOSS_DATABASE = {
-    10: { name: "👑 哥布林暴君 • 狂怒者", baseHp: 250, baseAtk: 35, baseSpd: 28, def: 8, mdef: 5, flee: 15, dropItem: "暴君槌芯", desc: "深淵前層的殘暴統治者，巨槌帶有粉碎性震盪！" },
-    20: { name: "🧙 深淵墮落大祭司 • 莫爾", baseHp: 500, baseAtk: 55, baseSpd: 18, def: 12, mdef: 25, flee: 20, dropItem: "祭司血清", desc: "詠唱黑暗禁咒的古老祭司，防禦壁障極厚！" },
-    30: { name: "🌌 虛空秩序扭曲者 • 零", baseHp: 900, baseAtk: 85, baseSpd: 35, def: 20, mdef: 35, flee: 40, dropItem: "虛空核心", desc: "撕裂空間的虛空生物，其存在本身就在干擾力場！" },
-    40: { name: "🌊 深淵巨鎧領主 • Scylla", baseHp: 1500, baseAtk: 120, baseSpd: 15, def: 45, mdef: 20, flee: 15, dropItem: "帝王蟹腿", desc: "鎮守深淵 40 層的海棲霸主，蟹螯擁有斷鋼級物理外傷！" },
-    50: { name: "🔥 煉獄魔神 • 巴洛克", baseHp: 3200, baseAtk: 220, baseSpd: 24, def: 40, mdef: 40, flee: 30, dropItem: "魔神火核", desc: "由深淵熔岩孕育出的狂暴魔神，揮舞烈焰巨鞭！" },
-    60: { name: "🪐 終焉星神 • 艾爾達", baseHp: 7500, baseAtk: 450, baseSpd: 38, def: 60, mdef: 60, flee: 50, dropItem: "終焉奇點", desc: "主宰宇宙與萬物終焉的古老神明，掌控因果律武器！" }
+    10: { name: "👑 哥布林暴君 • 狂怒者", baseHp: 420, baseAtk: 46, baseSpd: 28, def: 14, mdef: 10, flee: 15, dropItem: "暴君槌芯", desc: "深淵前層的殘暴統治者，巨槌帶有粉碎性震盪！" },
+    20: { name: "🧙 深淵墮落大祭司 • 莫爾", baseHp: 950, baseAtk: 82, baseSpd: 18, def: 22, mdef: 38, flee: 20, dropItem: "祭司血清", desc: "詠唱黑暗禁咒的古老祭司，防禦壁障極厚！" },
+    30: { name: "🌌 虛空秩序扭曲者 • 零", baseHp: 1600, baseAtk: 155, baseSpd: 35, def: 32, mdef: 48, flee: 40, dropItem: "虛空核心", desc: "撕裂空間的虛空生物，其存在本身就在干擾力場！" },
+    40: { name: "🌊 深淵巨鎧領主 • Scylla", baseHp: 2700, baseAtk: 225, baseSpd: 15, def: 60, mdef: 36, flee: 15, dropItem: "帝王蟹腿", desc: "鎮守深淵 40 層的海棲霸主，蟹螯擁有斷鋼級物理外傷！" },
+    50: { name: "🔥 煉獄魔神 • 巴洛克", baseHp: 4900, baseAtk: 370, baseSpd: 24, def: 65, mdef: 62, flee: 30, dropItem: "魔神火核", desc: "由深淵熔岩孕育出的狂暴魔神，揮舞烈焰巨鞭！" },
+    60: { name: "🪐 終焉星神 • 艾爾達", baseHp: 9000, baseAtk: 620, baseSpd: 38, def: 82, mdef: 82, flee: 50, dropItem: "終焉奇點", desc: "主宰宇宙與萬物終焉的古老神明，掌控因果律武器！" }
 };
 
 const MONSTER_DROPS = {
@@ -142,6 +142,8 @@ function generateMonsterInstance(template, floor) {
     // 設定速度與閃避上限保護
     const calcSpd = Math.min(80, Math.floor(template.baseSpd + deltaFloor * 0.3));
     const calcFlee = Math.min(75, Math.floor(template.flee + deltaFloor * 0.4));
+    const calcHit = Math.min(96, 80 + Math.floor(template.baseSpd * 0.25) + Math.min(8, Math.floor(deltaFloor * 0.15)));
+    const calcPerfectDodge = Math.min(15, Math.floor(calcFlee * 0.1));
 
     return {
         name: template.name,
@@ -152,6 +154,8 @@ function generateMonsterInstance(template, floor) {
         mdef: calcMdef,
         spd: calcSpd,
         flee: calcFlee,
+        hit: calcHit,
+        perfectDodge: calcPerfectDodge,
         isBoss: false,
         dropItem: getMonsterDrop(template.name) || "史萊姆黏液",
         desc: `${template.name}（深淵 ${f}F 棲息魔物）`
@@ -176,6 +180,8 @@ function spawnMonsterForFloor(floor) {
             mdef: bossData.mdef,
             spd: bossData.baseSpd,
             flee: bossData.flee,
+            hit: Math.min(96, 82 + Math.floor(bossData.baseSpd * 0.25)),
+            perfectDodge: Math.min(15, Math.floor(bossData.flee * 0.1)),
             isBoss: true,
             dropItem: bossData.dropItem,
             desc: bossData.desc

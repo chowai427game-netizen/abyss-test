@@ -95,6 +95,11 @@ function resetRunState() {
     if (currentRun) {
         currentRun.hp = currentRun.maxHp || 100;
         currentRun.mp = currentRun.maxMp || 50;
+        currentRun.activeCombatBuffs = {};
+        currentRun.skillBuffsUsed = {};
+        currentRun.runBonuses = {};
+        currentRun.bossDmgCut = 0;
+        currentRun.guaranteedCritNext = false;
         currentRun.qteBuffDuration = 0;
         currentRun.qteBuffTurns = 0;
     }

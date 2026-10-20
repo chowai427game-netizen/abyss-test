@@ -911,10 +911,14 @@ function syncCharacterDataUi() {
     const setTxt = (key, txt) => { const e = DOM.get(key); if (e) e.innerText = txt; };
     setTxt('p-gold', currentRun.gold || 0);
     setTxt('p-atk', `${currentRun.atk} (魔 ${currentRun.matk || 0})`);
-    setTxt('p-block', `${currentRun.def} (魔防 ${currentRun.mdef || 0})`);
-    setTxt('p-spd', currentRun.spd);
+    const activeCombatBuffs = currentRun.activeCombatBuffs || {};
+    const activeBlockBuff = activeCombatBuffs.blockBuff?.turns > 0 ? Number(activeCombatBuffs.blockBuff.value) || 0 : 0;
+    const activeDodgeBuff = activeCombatBuffs.dodgeBuff?.turns > 0 ? Number(activeCombatBuffs.dodgeBuff.value) || 0 : 0;
+    const activeSpdBuff = activeCombatBuffs.spdBuff?.turns > 0 ? Number(activeCombatBuffs.spdBuff.value) || 0 : 0;
+    setTxt('p-block', `${(currentRun.def || 0) + activeBlockBuff} (魔防 ${currentRun.mdef || 0})`);
+    setTxt('p-spd', (currentRun.spd || 0) + activeSpdBuff);
     setTxt('p-crit', `${currentRun.critChance}%`);
-    setTxt('p-dodge', `${Math.floor(currentRun.flee)} (完迴 ${currentRun.perfectDodge || 0}%)`);
+    setTxt('p-dodge', `${Math.floor((currentRun.flee || 0) + activeDodgeBuff)} (完迴 ${currentRun.perfectDodge || 0}%)`);
     setTxt('p-vamp', `${Math.floor(currentRun.hit || 80)} HIT`);
 
     const skList = Object.keys(currentRun.skills || {}).map(k => `${k}(Lv.${currentRun.skills[k]})`).join(", ");

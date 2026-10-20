@@ -3,6 +3,24 @@
 // ==========================================================================
 
 (function (exports) {
+    const JOB_COMBAT_TRAITS = {
+        swordsman: { physicalDamageReduction: 0.10 },
+        magician: { matkMultiplier: 1.15, freeSkillMpChance: 0.20 },
+        acolyte: { magicDamageReduction: 0.15, healMultiplier: 1.25, shieldMultiplier: 1.25 },
+        thief: { fleeBonus: 15, doubleStrikeChance: 0.20 },
+        archer: { hitBonus: 20, ignorePhysicalDefense: 0.25 },
+        knight: { spdBonus: 10, physicalDamageMultiplier: 1.20 },
+        crusader: { maxHpMultiplier: 1.20, reflectChance: 0.30, reflectDamageRate: 0.25 },
+        wizard: { matkMultiplier: 1.25, magicCanCrit: true },
+        sage: { doubleCastChance: 0.30 },
+        priest: { allDamageReduction: 0.15, healMultiplier: 1.50, shieldMultiplier: 1.50 },
+        monk: { critBonus: 15, ignorePhysicalDefense: 0.25 },
+        assassin: { fleeBonus: 25, doubleStrikeChance: 0.35 },
+        rogue: { critDamageBonus: 0.30, lootMultiplier: 2 },
+        hunter: { falconChance: 0.40 },
+        bard_dancer: { allStatsMultiplier: 1.15 }
+    };
+
     /**
      * 重置並計算單次 Run 的勇者即時屬性
      * @param {Object} account - 玩家帳號持久化數據 (accountMeta)
@@ -40,13 +58,17 @@
         }
 
         // 綜合基本配點與職業加成
+        const jobMeta = (typeof JOB_DATABASE !== "undefined" && JOB_DATABASE[job]) || {};
+        const jobTraits = JOB_COMBAT_TRAITS[job] || {};
+        const allStatsMultiplier = Number(jobTraits.allStatsMultiplier) || 1;
+        const jobLevelGrowth = Math.max(0, current.lv - 1);
         const s = {
-            STR: (Number(acc.stats.STR) || 0) + (jobBonus.STR || 0),
-            AGI: (Number(acc.stats.AGI) || 0) + (jobBonus.AGI || 0),
-            VIT: (Number(acc.stats.VIT) || 0) + (jobBonus.VIT || 0),
-            INT: (Number(acc.stats.INT) || 0) + (jobBonus.INT || 0),
-            DEX: (Number(acc.stats.DEX) || 0) + (jobBonus.DEX || 0),
-            LUK: (Number(acc.stats.LUK) || 0) + (jobBonus.LUK || 0)
+            STR: Math.floor(((Number(acc.stats.STR) || 0) + (jobBonus.STR || 0)) * allStatsMultiplier),
+            AGI: Math.floor(((Number(acc.stats.AGI) || 0) + (jobBonus.AGI || 0)) * allStatsMultiplier),
+            VIT: Math.floor(((Number(acc.stats.VIT) || 0) + (jobBonus.VIT || 0)) * allStatsMultiplier),
+            INT: Math.floor(((Number(acc.stats.INT) || 0) + (jobBonus.INT || 0)) * allStatsMultiplier),
+            DEX: Math.floor(((Number(acc.stats.DEX) || 0) + (jobBonus.DEX || 0)) * allStatsMultiplier),
+            LUK: Math.floor(((Number(acc.stats.LUK) || 0) + (jobBonus.LUK || 0)) * allStatsMultiplier)
         };
 
         // 記錄舊的最大值，用於比例補算 HP/MP
@@ -61,28 +83,28 @@
         current.maxWeight = 100 + s.STR * 10;
 
         // 2. AGI 敏捷
-        current.spd = 20 + Math.floor(s.AGI * 0.5);
-        current.flee = 10 + Math.floor(s.AGI * 0.6);
+        current.spd = 20 + Math.floor(s.AGI * 0.5) + (Number(jobTraits.spdBonus) || 0);
+        current.flee = 10 + Math.floor(s.AGI * 0.6) + (Number(jobTraits.fleeBonus) || 0);
 
         // 3. VIT 體質 (加點 VIT 立刻拉高 maxHp)
-        current.maxHp = 100 + (s.VIT * 10) + (villageBuffs.maxHpAdd || 0);
-        current.def = Math.floor(s.VIT * 0.3);
+        current.maxHp = 100 + (s.VIT * 10) + jobLevelGrowth * (Number(jobMeta.hpScaling) || 0) + (villageBuffs.maxHpAdd || 0);
+        current.def = (Number(jobMeta.baseDef) || 0) + Math.floor(s.VIT * 0.3);
         current.block = current.def;
         current.hpRegen = 1 + Math.floor(s.VIT / 10);
 
         // 4. INT 智力 (加點 INT 立刻拉高 maxMp 與魔攻)
         current.matk = 15 + Math.floor(s.INT * 1.8 + Math.pow(Math.floor(s.INT / 10), 1.3));
-        current.mdef = Math.floor(s.INT * 0.3);
-        current.maxMp = 50 + (s.INT * 6) + (villageBuffs.maxMpAdd || 0);
+        current.mdef = (Number(jobMeta.baseMdef) || 0) + Math.floor(s.INT * 0.3);
+        current.maxMp = 50 + (s.INT * 6) + jobLevelGrowth * (Number(jobMeta.mpScaling) || 0) + (villageBuffs.maxMpAdd || 0);
         current.mpRegen = 15 + Math.floor(s.INT * 0.5);
 
         // 5. DEX 靈巧
-        current.hit = 80 + Math.floor(s.DEX * 0.8 + s.LUK * 0.2);
+        current.hit = 80 + Math.floor(s.DEX * 0.8 + s.LUK * 0.2) + (Number(jobTraits.hitBonus) || 0);
         const dexBonusAtk = Math.floor(s.DEX * 1.5 + Math.pow(Math.floor(s.DEX / 10), 1.3));
         current.castReduction = Math.min(0.80, (s.DEX * 0.5 + s.INT * 0.2) / 100);
 
         // 6. LUK 幸運
-        current.critChance = Math.min(80, Math.floor(s.LUK * 0.2 + s.DEX * 0.05));
+        current.critChance = Math.min(80, Math.floor(s.LUK * 0.2 + s.DEX * 0.05) + (Number(jobTraits.critBonus) || 0));
         current.perfectDodge = Math.min(30, Math.floor(s.LUK * 0.1));
 
         current.vampRate = 0;
@@ -129,6 +151,8 @@
                             current.spd = (current.spd || 0) + totalBonus;
                         } else if (pStat === "flee") {
                             current.flee = (current.flee || 0) + totalBonus;
+                        } else if (pStat === "doubleStrike") {
+                            current.doubleStrike = (current.doubleStrike || 0) + totalBonus / 100;
                         } else if (current[pStat] !== undefined) {
                             current[pStat] += totalBonus;
                         }
@@ -137,9 +161,18 @@
             }
         }
 
+        const runBonuses = current.runBonuses || {};
+        current.atk += Number(runBonuses.atk) || 0;
+        current.matk += Number(runBonuses.matk) || 0;
+        current.maxHp += Number(runBonuses.maxHp) || 0;
+        current.perfectDodge = Math.min(30, (Number(current.perfectDodge) || 0) + (Number(runBonuses.perfectDodge) || 0));
         current.maxHp += Number(bossTalentBonuses.maxHp) || 0;
+        current.maxHp = Math.floor(current.maxHp * (Number(jobTraits.maxHpMultiplier) || 1));
         current.spd += Number(bossTalentBonuses.spd) || 0;
         current.critChance = Math.min(80, (current.critChance || 0) + (Number(bossTalentBonuses.critChance) || 0));
+        current.matk = Math.floor((current.matk || 0) * (Number(jobTraits.matkMultiplier) || 1));
+        current.doubleStrike = (Number(current.doubleStrike) || 0) + (Number(jobTraits.doubleStrikeChance) || 0);
+        current.jobCombatTraits = { ...jobTraits };
 
         // 💖【關鍵修復】若是村莊狀態或加點後，直接補滿當前 HP / MP 至最新上限
         if (typeof gameState !== "undefined" && gameState === "VILLAGE") {
@@ -198,7 +231,7 @@
         if (st.hit) current.hit += Math.floor(st.hit * multiplier);
         if (st.flee) current.flee += Math.floor(st.flee * multiplier);
         if (st.vampRate) current.vampRate += Math.floor(st.vampRate * multiplier);
-        if (st.doubleStrike) current.doubleStrike += Math.floor(st.doubleStrike * multiplier);
+        if (st.doubleStrike) current.doubleStrike += (st.doubleStrike * multiplier) / 100;
     }
 
     /**
@@ -233,7 +266,7 @@
      */
     function calculateDamage(attackerAtk, defenderDef, isPlayerAttacking = true, isMagic = false, targetMonster = null, playerRun = null, floor = 1) {
         const atk = Math.max(0, Number(attackerAtk) || 0);
-        const def = Math.max(0, Number(defenderDef) || 0);
+        let def = Math.max(0, Number(defenderDef) || 0);
 
         const monster = targetMonster || (typeof activeMonster !== "undefined" ? activeMonster : null);
         const current = playerRun || (typeof currentRun !== "undefined" ? currentRun : null);
@@ -245,9 +278,9 @@
             }
 
             if (!isMagic) {
-                const monsterFlee = Number(monster.flee) || (dFloor * 3);
+                const monsterFlee = Number(monster.flee) || 0;
                 const playerHit = Number(current?.hit) || 80;
-                const hitRate = Math.max(10, Math.min(95, playerHit - monsterFlee));
+                const hitRate = Math.max(60, Math.min(98, 95 + (playerHit - 80) * 0.5 - monsterFlee * 0.5));
                 if (Math.random() * 100 > hitRate) {
                     return { damage: 0, isCrit: false, isMiss: true };
                 }
@@ -259,27 +292,46 @@
             }
 
             if (!isMagic) {
-                const monsterHit = Number(monster.hit) || (dFloor * 4 + 75);
-                const playerFlee = Number(current?.flee) || 10;
-                const hitRate = Math.max(10, Math.min(95, monsterHit - playerFlee));
+                const monsterHit = Number(monster.hit) || (82 + Math.min(10, Math.floor(dFloor * 0.15)));
+                const playerFlee = (Number(current?.flee) || 10) + (Number(current?.activeCombatBuffs?.dodgeBuff?.value) || 0);
+                const hitRate = Math.max(55, Math.min(95, monsterHit - Math.max(0, playerFlee - 10) * 0.5));
                 if (Math.random() * 100 > hitRate) {
                     return { damage: 0, isCrit: false, isMiss: true };
                 }
             }
         }
 
+        const traits = current?.jobCombatTraits || {};
+        if (isPlayerAttacking && !isMagic) {
+            const pierce = Math.max(0, Math.min(0.75, Number(traits.ignorePhysicalDefense) || 0));
+            def *= 1 - pierce;
+        }
         const defConst = isMagic ? 40 : 50;
+        if (!isPlayerAttacking && current) def += Number(current.activeCombatBuffs?.blockBuff?.value) || 0;
         const reduction = def / (def + Math.max(1, defConst));
         let baseDmg = atk * (1 - reduction);
+        if (isPlayerAttacking && !isMagic) baseDmg *= Number(traits.physicalDamageMultiplier) || 1;
 
         let variance = 0.9 + Math.random() * 0.2;
         let finalDmg = Math.max(1, Math.floor(baseDmg * variance));
 
         let isCrit = false;
         const playerCrit = Number(current?.critChance) || 0;
-        if (isPlayerAttacking && !isMagic && Math.random() * 100 < playerCrit) {
+        const canCrit = isPlayerAttacking && (!isMagic || traits.magicCanCrit || current?.guaranteedCritNext);
+        if (canCrit && (current?.guaranteedCritNext || Math.random() * 100 < playerCrit)) {
             isCrit = true;
-            finalDmg = Math.floor(finalDmg * 1.5);
+            finalDmg = Math.floor(finalDmg * (1.5 + (Number(traits.critDamageBonus) || 0)));
+            if (current?.guaranteedCritNext) current.guaranteedCritNext = false;
+        }
+
+        if (!isPlayerAttacking && current) {
+            const passiveReduction = Number(traits.allDamageReduction || 0) +
+                (isMagic ? Number(traits.magicDamageReduction || 0) : Number(traits.physicalDamageReduction || 0));
+            finalDmg = Math.max(1, Math.floor(finalDmg * (1 - Math.min(0.75, passiveReduction))));
+            if (monster?.isBoss && Number(current.bossDmgCut) > 0) {
+                finalDmg = Math.max(1, Math.floor(finalDmg * (1 - Math.min(0.9, Number(current.bossDmgCut)))));
+                current.bossDmgCut = 0;
+            }
         }
 
         return { damage: finalDmg, isCrit: isCrit, isMiss: false };

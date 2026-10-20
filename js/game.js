@@ -454,7 +454,7 @@ function handleCombatTickerTick() {
     }
 
     battleTimeElapsed += 0.25;
-    playerAtb += (currentRun.spd || 20);
+    playerAtb += (currentRun.spd || 20) + getActiveCombatBuff("spdBuff");
     monsterAtb += (activeMonster.spd || 15);
     envAtb += 15;
 
@@ -531,6 +531,40 @@ function isDamagingSkillEffect(effect) {
     return Boolean(effect && Number(effect.dmg) > 0);
 }
 
+function getActiveCombatBuff(key) {
+    const buff = currentRun?.activeCombatBuffs?.[key];
+    return buff && Number(buff.turns) > 0 ? Number(buff.value) || 0 : 0;
+}
+
+function tickCombatBuffs() {
+    if (!currentRun || !currentRun.activeCombatBuffs) return;
+    for (const [key, buff] of Object.entries(currentRun.activeCombatBuffs)) {
+        buff.turns = Math.max(0, (Number(buff.turns) || 0) - 1);
+        if (buff.turns <= 0) delete currentRun.activeCombatBuffs[key];
+    }
+}
+
+function isCombatUtilitySkillEffect(effect) {
+    return Boolean(effect && (
+        Number(effect.blockBuff) > 0 || Number(effect.dodgeBuff) > 0 || Number(effect.spdBuff) > 0 ||
+        Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0 ||
+        Number(effect.bossDmgCut) > 0 || Number(effect.thornsFire) > 0 || effect.guaranteedCritNext
+    ));
+}
+
+function isUsefulCombatUtilitySkill(candidate) {
+    if (!candidate || !isCombatUtilitySkillEffect(candidate.effect)) return false;
+    const effect = candidate.effect;
+    const used = currentRun.skillBuffsUsed || {};
+    if ((Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0 || effect.guaranteedCritNext) && used[candidate.skillMeta.id]) return false;
+    if (Number(effect.bossDmgCut) > 0 && (!activeMonster?.isBoss || Number(currentRun.bossDmgCut) > 0)) return false;
+    if (Number(effect.blockBuff) > 0 && getActiveCombatBuff("blockBuff") > 0) return false;
+    if (Number(effect.dodgeBuff) > 0 && getActiveCombatBuff("dodgeBuff") > 0) return false;
+    if (Number(effect.spdBuff) > 0 && getActiveCombatBuff("spdBuff") > 0) return false;
+    if (Number(effect.thornsFire) > 0 && getActiveCombatBuff("thornsFire") > 0) return false;
+    return true;
+}
+
 function chooseAutoBattleAction() {
     if (!activeMonster || activeMonster.hp <= 0) return { type: "none" };
     const mode = normalizeTacticMode(activeTactic);
@@ -574,6 +608,9 @@ function chooseAutoBattleAction() {
             return { type: "skill", candidate: defensiveShield };
         }
 
+        const utilitySkill = candidates.find(isUsefulCombatUtilitySkill);
+        if (utilitySkill) return { type: "skill", candidate: utilitySkill };
+
         const attackSkill = [...candidates].reverse().find((candidate) =>
             isDamagingSkillEffect(candidate.effect) &&
             !isHealingSkillEffect(candidate.effect) &&
@@ -585,7 +622,9 @@ function chooseAutoBattleAction() {
     const offensiveSkill = [...candidates].reverse().find((candidate) =>
         isDamagingSkillEffect(candidate.effect) && !isHealingSkillEffect(candidate.effect)
     );
-    return offensiveSkill ? { type: "skill", candidate: offensiveSkill } : { type: "basic" };
+    if (offensiveSkill) return { type: "skill", candidate: offensiveSkill };
+    const utilitySkill = candidates.find(isUsefulCombatUtilitySkill);
+    return utilitySkill ? { type: "skill", candidate: utilitySkill } : { type: "basic" };
 }
 
 function executeAutoBattleAiTurn() {
@@ -614,7 +653,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
 
     const isMagicJob = ["magician", "acolyte", "wizard", "priest", "sage"].includes(currentRun.job);
     const baseAttack = isMagicJob ? (currentRun.matk || 10) : (currentRun.atk || 15);
-    let effect = preparedEffect;
+    let effect = preparedEffect ? { ...preparedEffect } : null;
     if (!effect) {
         try {
             effect = skillMeta.run(skillLevel, baseAttack, currentRun.maxMp, currentRun.hp, currentRun.maxHp);
@@ -625,22 +664,33 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
     if (!effect || typeof effect !== "object") return false;
 
     const hasSupportedEffect = isDamagingSkillEffect(effect) || isHealingSkillEffect(effect) ||
-        Number(effect.shieldGain) > 0 || Number(effect.mpRestore) > 0;
+        Number(effect.shieldGain) > 0 || Number(effect.mpRestore) > 0 ||
+        isCombatUtilitySkillEffect(effect) || Number(effect.stealGold) > 0 || effect.stealMat;
     if (!hasSupportedEffect) return false;
 
-    currentRun.mp = Math.max(0, (Number(currentRun.mp) || 0) - mpCost);
+    const jobTraits = currentRun.jobCombatTraits || {};
+    const freeCast = !!effect.isMagic && Number(jobTraits.freeSkillMpChance) > 0 && Math.random() < Number(jobTraits.freeSkillMpChance);
+    if (!freeCast) currentRun.mp = Math.max(0, (Number(currentRun.mp) || 0) - mpCost);
+    if (currentRun.job === "sage" && effect.isMagic && Number(effect.dmg) > 0 && Math.random() < (Number(jobTraits.doubleCastChance) || 0)) {
+        effect.dmg = Math.floor(Number(effect.dmg) * 2);
+        effect.hitCount = Math.max(1, Math.floor(Number(effect.hitCount) || 1) * 2);
+        if (typeof addLog === "function") addLog("📖【自由詠唱】賢者觸發連續施法，魔法傷害加倍！", "perfect");
+    }
     const skillName = String(skillMeta.name || "技能");
     const fxClass = typeof detectSkillCssClass === "function" ? detectSkillCssClass(skillName) : "skill-hit";
     const vfx = typeof spawnVfx === "function" ? spawnVfx : () => {};
+    if (freeCast && typeof addLog === "function") addLog("✨【元素共鳴】本次魔法不消耗 MP！", "perfect");
 
     if (Number(effect.shieldGain) > 0) {
-        currentRun.shield = (Number(currentRun.shield) || 0) + Number(effect.shieldGain);
-        vfx("shield", { anchor: "player", text: `+${effect.shieldGain}` });
-        if (typeof addLog === "function") addLog(`🛡️ 施展 <span class="${fxClass}">【${skillName} Lv.${skillLevel}】</span>，獲得 <strong>+${effect.shieldGain} Shield</strong>！`, "perfect");
+        const shieldGain = Math.floor(Number(effect.shieldGain) * (Number(jobTraits.shieldMultiplier) || 1));
+        currentRun.shield = (Number(currentRun.shield) || 0) + shieldGain;
+        vfx("shield", { anchor: "player", text: `+${shieldGain}` });
+        if (typeof addLog === "function") addLog(`🛡️ 施展 <span class="${fxClass}">【${skillName} Lv.${skillLevel}】</span>，獲得 <strong>+${shieldGain} Shield</strong>！`, "perfect");
     }
 
     if (isHealingSkillEffect(effect)) {
-        const healValue = Number(effect.healAmount) || Math.floor((currentRun.maxHp || 100) * (Number(effect.healPercent) || 0));
+        const baseHealValue = Number(effect.healAmount) || Math.floor((currentRun.maxHp || 100) * (Number(effect.healPercent) || 0));
+        const healValue = Math.floor(baseHealValue * (Number(jobTraits.healMultiplier) || 1));
         const hpBefore = Number(currentRun.hp) || 0;
         currentRun.hp = Math.min(currentRun.maxHp, hpBefore + healValue);
         const actualHeal = Math.max(0, currentRun.hp - hpBefore);
@@ -654,6 +704,38 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
         const restoredMp = Math.max(0, currentRun.mp - mpBefore);
         vfx("heal", { anchor: "player", text: `+${restoredMp} MP`, variant: "mana", labelKind: "mana" });
         if (typeof addLog === "function") addLog(`🔷 施展 <span class="${fxClass}">【${skillName} Lv.${skillLevel}】</span>，回復 <span class="heal-effect">+${restoredMp} MP</span>！`, "perfect");
+    }
+
+    if (isCombatUtilitySkillEffect(effect)) {
+        const duration = Math.max(1, Math.floor(Number(effect.turns || effect.duration) || 1));
+        currentRun.activeCombatBuffs ||= {};
+        currentRun.skillBuffsUsed ||= {};
+        if (Number(effect.blockBuff) > 0) currentRun.activeCombatBuffs.blockBuff = { value: Number(effect.blockBuff), turns: duration };
+        if (Number(effect.dodgeBuff) > 0) currentRun.activeCombatBuffs.dodgeBuff = { value: Number(effect.dodgeBuff), turns: duration };
+        if (Number(effect.spdBuff) > 0) currentRun.activeCombatBuffs.spdBuff = { value: Number(effect.spdBuff), turns: duration };
+        if (Number(effect.thornsFire) > 0) currentRun.activeCombatBuffs.thornsFire = { value: Number(effect.thornsFire), turns: duration };
+        if (Number(effect.bossDmgCut) > 0) currentRun.bossDmgCut = Math.min(0.9, Number(effect.bossDmgCut));
+        if (Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0) {
+            currentRun.runBonuses ||= {};
+            if (Number(effect.permAtk) > 0) {
+                const attackKey = isMagicJob ? "matk" : "atk";
+                currentRun.runBonuses[attackKey] = (Number(currentRun.runBonuses[attackKey]) || 0) + Number(effect.permAtk);
+            }
+            if (Number(effect.permHp) > 0) currentRun.runBonuses.maxHp = (Number(currentRun.runBonuses.maxHp) || 0) + Number(effect.permHp);
+            if (Number(effect.permDodge) > 0) currentRun.runBonuses.perfectDodge = (Number(currentRun.runBonuses.perfectDodge) || 0) + Number(effect.permDodge);
+            if (typeof resetCurrentRunData === "function") resetCurrentRunData();
+        }
+        if (effect.guaranteedCritNext) currentRun.guaranteedCritNext = true;
+        if (Number(effect.permAtk) > 0 || Number(effect.permHp) > 0 || Number(effect.permDodge) > 0 || effect.guaranteedCritNext) {
+            currentRun.skillBuffsUsed[skillMeta.id] = true;
+        }
+        if (typeof addLog === "function") addLog(`✨ 施展【${skillName}】，獲得持續 ${duration} 次自身行動的戰鬥增益！`, "perfect");
+    }
+
+    if (Number(effect.stealGold) > 0) currentRun.gold = (Number(currentRun.gold) || 0) + Number(effect.stealGold);
+    if (effect.stealMat) {
+        const stolenItem = activeMonster.dropItem || (typeof getMonsterDrop === "function" ? getMonsterDrop(activeMonster.name) : null);
+        if (stolenItem && typeof safePushToInventory === "function") safePushToInventory(currentRun, accountMeta, stolenItem);
     }
 
     if (isDamagingSkillEffect(effect)) {
@@ -690,7 +772,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
                 : { damage: rawDamage, isMiss: false, isCrit: false };
             if (effect.forceCrit && !damageResult.isMiss && !damageResult.isCrit) {
                 damageResult.isCrit = true;
-                damageResult.damage = Math.floor(damageResult.damage * 1.5);
+                damageResult.damage = Math.floor(damageResult.damage * (1.5 + (Number(jobTraits.critDamageBonus) || 0)));
             }
 
             if (damageResult.isMiss) {
@@ -728,6 +810,11 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
                 activeMonster.stunTurns = (Number(activeMonster.stunTurns) || 0) + 1;
                 if (typeof addLog === "function") addLog("💫【強制眩暈】魔物被擊暈 1 回合！", "perfect");
             }
+            if (activeMonster.hp > 0 && Number(jobTraits.falconChance) > 0 && Math.random() < Number(jobTraits.falconChance)) {
+                const falconDamage = Math.max(1, Math.floor((currentRun.atk || 15) * 0.5));
+                const falconResult = applyDamageWithShield(activeMonster, falconDamage);
+                if (typeof addLog === "function") addLog(`🦅【獵鷹協同】獵鷹追加無視防禦傷害 -${falconResult.actualHpDmg} HP！`, "skill-hit");
+            }
         }
     }
     return true;
@@ -750,12 +837,27 @@ function executeBasicAttack() {
     }
 
     const result = applyDamageWithShield(activeMonster, damageResult.damage);
+    let totalDamage = result.actualHpDmg;
+    let hitCount = 1;
+    const jobTraits = currentRun.jobCombatTraits || {};
+    if (!isMagicJob && Number(currentRun.doubleStrike) > 0 && Math.random() < Number(currentRun.doubleStrike) && activeMonster.hp > 0) {
+        const secondHit = calculateDamage(attackPower, defense, true, false);
+        if (!secondHit.isMiss) {
+            const secondResult = applyDamageWithShield(activeMonster, secondHit.damage);
+            totalDamage += secondResult.actualHpDmg;
+            hitCount++;
+        }
+    }
+    if (activeMonster.hp > 0 && Number(jobTraits.falconChance) > 0 && Math.random() < Number(jobTraits.falconChance)) {
+        const falconResult = applyDamageWithShield(activeMonster, Math.max(1, Math.floor((currentRun.atk || 15) * 0.5)));
+        totalDamage += falconResult.actualHpDmg;
+    }
     if (result.absorbed > 0) vfx("shield", { anchor: "monster", text: `-${result.absorbed}` });
-    vfx(damageResult.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${result.actualHpDmg}` });
+    vfx(damageResult.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${totalDamage}${hitCount > 1 ? ` ×${hitCount}` : ""}` });
     const numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
     const critText = damageResult.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
     if (typeof addLog === "function") {
-        addLog(`⚔️ 基本攻擊！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${result.actualHpDmg} HP</span>`, "deal");
+        addLog(`⚔️ 基本攻擊！${critText}<span class="strike-slash">[${activeMonster.name}]</span> <span class="num-popup ${numClass}">-${totalDamage}${hitCount > 1 ? ` ×${hitCount}` : ""} HP</span>`, "deal");
     }
     return true;
 }
@@ -1448,6 +1550,9 @@ function startNodeCombat(nodeType) {
                 def: bossMeta.baseDef || bossMeta.def || (dungeonFloor * 2),
                 mdef: bossMeta.baseMdef || bossMeta.mdef || (dungeonFloor * 2),
                 spd: bossMeta.baseSpd, 
+                flee: bossMeta.flee || 0,
+                hit: bossMeta.hit || Math.min(96, 82 + Math.floor((bossMeta.baseSpd || 20) * 0.25)),
+                perfectDodge: bossMeta.perfectDodge || Math.min(15, Math.floor((bossMeta.flee || 0) * 0.1)),
                 shield: 0,
                 poisonStacks: 0,
                 burnStacks: 0,
@@ -1460,27 +1565,25 @@ function startNodeCombat(nodeType) {
             shouldSpawnBossEntryVfx = true;
             if (typeof addLog === "function") addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
         } else {
-            let availableMonsters = (typeof REGULAR_MONSTERS_POOL !== "undefined") ? REGULAR_MONSTERS_POOL.filter(m => dungeonFloor >= m.minFloor && dungeonFloor <= m.maxFloor) : [];
-            if (availableMonsters.length === 0 && typeof REGULAR_MONSTERS_POOL !== "undefined") availableMonsters = REGULAR_MONSTERS_POOL;
-            
-            let rollSeed = availableMonsters[Math.floor(Math.random() * availableMonsters.length)] || { 
-                name: "史萊姆", baseHp: 30, hpScale: 10, baseAtk: 5, atkScale: 2, baseDef: 1, baseSpd: 15 
+            const generatedMonster = typeof spawnMonsterForFloor === "function"
+                ? spawnMonsterForFloor(dungeonFloor)
+                : null;
+            const fallbackMonster = generatedMonster || {
+                name: "史萊姆", hp: 30 + dungeonFloor * 10, maxHp: 30 + dungeonFloor * 10, atk: 5 + dungeonFloor * 2,
+                def: 1 + Math.floor(dungeonFloor * 0.5), mdef: 1 + Math.floor(dungeonFloor * 0.5),
+                spd: 15, flee: 5, hit: 82, perfectDodge: 0, dropItem: "史萊姆黏液"
             };
-
-            let scaleFactor = isEliteNode ? 1.6 : 1.0;
-            let scaledHp = Math.floor((rollSeed.baseHp + dungeonFloor * (rollSeed.hpScale || 5)) * scaleFactor);
-            let scaledAtk = Math.floor((rollSeed.baseAtk + dungeonFloor * (rollSeed.atkScale || 1)) * scaleFactor);
-            let scaledDef = Math.floor(((rollSeed.baseDef || 1) + dungeonFloor * 0.5) * scaleFactor);
-            let finalSpd = Math.floor((rollSeed.baseSpd || 15) * (isEliteNode ? 1.2 : 1.0));
-            
-            activeMonster = { 
-                name: isEliteNode ? `💀 精英・${rollSeed.name}` : rollSeed.name, 
-                hp: scaledHp, 
-                maxHp: scaledHp, 
-                atk: scaledAtk, 
-                def: scaledDef,
-                mdef: scaledDef,
-                spd: finalSpd, 
+            const eliteScale = isEliteNode ? 1.4 : 1;
+            const scaledHp = Math.floor(fallbackMonster.maxHp * eliteScale);
+            activeMonster = {
+                ...fallbackMonster,
+                name: isEliteNode ? `💀 精英・${fallbackMonster.name}` : fallbackMonster.name,
+                hp: scaledHp,
+                maxHp: scaledHp,
+                atk: Math.floor(fallbackMonster.atk * eliteScale),
+                def: Math.floor(fallbackMonster.def * eliteScale),
+                mdef: Math.floor(fallbackMonster.mdef * eliteScale),
+                spd: Math.min(80, Math.floor(fallbackMonster.spd * (isEliteNode ? 1.1 : 1))),
                 shield: 0,
                 poisonStacks: 0,
                 burnStacks: 0,
@@ -1488,7 +1591,8 @@ function startNodeCombat(nodeType) {
                 stunTurns: 0,
                 isSkipped: false, 
                 isBoss: false,
-                isElite: isEliteNode
+                isElite: isEliteNode,
+                fixedDrop: fallbackMonster.dropItem
             };
             
             let eliteText = isEliteNode ? ` 🔥【狂暴精英對決】` : ``;
@@ -1531,6 +1635,8 @@ function executeEnvironmentTick() {
 
 function executePlayerActionTick() {
     if (!activeMonster || activeMonster.hp <= 0) return;
+
+    tickCombatBuffs();
 
     if (activeMonster.poisonStacks > 0) {
         const poisonDamage = Math.floor(activeMonster.poisonStacks * 15 + activeMonster.maxHp * 0.02);
@@ -1584,6 +1690,21 @@ function executeMonsterActionTick() {
     }
 
     let res = applyDamageWithShield(currentRun, dmgRes.damage);
+    const jobTraits = currentRun.jobCombatTraits || {};
+    if (currentRun.job === "swordsman" && activeMonster.hp > 0 && Math.random() < 0.15) {
+        currentRun.shield = (Number(currentRun.shield) || 0) + 30;
+        if (typeof addLog === "function") addLog("🛡️【鋼鐵意志】受擊後獲得 30 點護盾！", "perfect");
+    }
+    if (activeMonster.hp > 0 && Number(jobTraits.reflectChance) > 0 && Math.random() < Number(jobTraits.reflectChance)) {
+        const reflected = Math.max(1, Math.floor(dmgRes.damage * (Number(jobTraits.reflectDamageRate) || 0)));
+        const reflectResult = applyDamageWithShield(activeMonster, reflected);
+        if (typeof addLog === "function") addLog(`🔁【聖殿壁壘】反彈 ${reflectResult.actualHpDmg} 點傷害！`, "skill-hit");
+    }
+    const thornsDamage = getActiveCombatBuff("thornsFire");
+    if (activeMonster.hp > 0 && thornsDamage > 0) {
+        const thornsResult = applyDamageWithShield(activeMonster, thornsDamage);
+        if (typeof addLog === "function") addLog(`🔥【火牆反噬】魔物受到 ${thornsResult.actualHpDmg} 點火焰傷害！`, "skill-hit");
+    }
     if (res.absorbed > 0) spawnVfx("shield", { anchor: "player", text: `-${res.absorbed}` });
     if (res.actualHpDmg > 0) spawnVfx("hit", { anchor: "player", text: `-${res.actualHpDmg}`, variant: "damage" });
     let shieldMsg = res.absorbed > 0 ? `🛡️ 護盾吸收了 ${res.absorbed} 點傷害！` : "";
@@ -1595,6 +1716,9 @@ function executeMonsterActionTick() {
     if (currentRun.hp <= 0) { 
         stopCombatTicker();
         executeDungeonDefeatSequence(); 
+    } else if (activeMonster && activeMonster.hp <= 0) {
+        stopCombatTicker();
+        executeDungeonVictorySequence();
     }
 }
 
@@ -1616,7 +1740,8 @@ function executeDungeonVictorySequence() {
     }
 
     let multiplier = isBossFloor ? 3.0 : (isElite ? 1.8 : 1.0);
-    let rewardG = Math.floor((15 + Math.floor(dungeonFloor * 1.5)) * multiplier);
+    const lootMultiplier = Number(currentRun.jobCombatTraits?.lootMultiplier) || 1;
+    let rewardG = Math.floor((15 + Math.floor(dungeonFloor * 1.5)) * multiplier * lootMultiplier);
     let rewardExperience = Math.floor((12 + dungeonFloor * 2) * multiplier);
 
     currentRun.gold += rewardG; 
@@ -1626,8 +1751,10 @@ function executeDungeonVictorySequence() {
     const defeatedMonsterName = activeMonster?.name ? activeMonster.name.replace("💀 精英・", "") : null;
     let dropItemName = activeMonster?.fixedDrop || (typeof MONSTER_DROPS !== "undefined" && defeatedMonsterName ? MONSTER_DROPS[defeatedMonsterName] : null);
     if (dropItemName) {
-        let msg = safePushToInventory(currentRun, accountMeta, dropItemName);
-        if (typeof addLog === "function") addLog(msg, "perfect");
+        for (let drop = 0; drop < lootMultiplier; drop++) {
+            let msg = safePushToInventory(currentRun, accountMeta, dropItemName);
+            if (typeof addLog === "function") addLog(msg, "perfect");
+        }
     }
 
     if (isElite && Math.random() < 0.5) {
@@ -1783,6 +1910,7 @@ function addExperience(amount) {
 }
 
 function checkLevelUpAndTriggerSelect() {
+    const previousLevel = Number(accountMeta.lv) || 1;
     while (accountMeta.exp >= accountMeta.nextExp) {
         accountMeta.exp -= accountMeta.nextExp;
         accountMeta.lv = (accountMeta.lv || 1) + 1;
@@ -1796,7 +1924,9 @@ function checkLevelUpAndTriggerSelect() {
         if (typeof addLog === "function") addLog(`👑 突破至 <strong>Lv.${accountMeta.lv}</strong>！獲得 3 點能力點數！`, "perfect");
     }
 
-    if (gameState === "BATTLE" || gameState === "REWARD" || gameState === "ENCOUNTER_RESOLVED") { 
+    if (accountMeta.lv > previousLevel && typeof resetCurrentRunData === "function") resetCurrentRunData();
+
+    if (gameState === "BATTLE" || gameState === "REWARD" || gameState === "ENCOUNTER_RESOLVED") {
         let btnMain = document.getElementById('btn-main-action');
         if (btnMain) btnMain.disabled = false; 
     }
