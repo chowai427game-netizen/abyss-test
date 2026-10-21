@@ -308,11 +308,15 @@
                         <div class="battle-meter battle-meter-hp"><span id="battle-player-hp-bar"></span></div>
                         <span id="battle-player-mp-text">MP 0 / 0</span>
                         <div class="battle-meter battle-meter-mp"><span id="battle-player-mp-bar"></span></div>
+                        <div class="battle-atb-heading"><span>⚡ 我方 ATB</span><strong id="battle-player-atb-text">0%</strong></div>
+                        <div class="battle-meter battle-meter-atb battle-meter-player-atb"><span id="battle-player-atb-bar"></span></div>
                     </div>
                     <div class="battle-hud-card battle-hud-enemy">
                         <strong id="battle-monster-name">深淵魔物</strong>
                         <span id="battle-monster-hp-text">HP 0 / 0</span>
                         <div class="battle-meter battle-meter-enemy"><span id="battle-monster-hp-bar"></span></div>
+                        <div class="battle-atb-heading"><span>⚡ 魔物 ATB</span><strong id="battle-monster-atb-text">0%</strong></div>
+                        <div class="battle-meter battle-meter-atb battle-meter-monster-atb"><span id="battle-monster-atb-bar"></span></div>
                         <span id="battle-monster-shield-text" class="battle-shield-label"></span>
                     </div>
                 </div>
@@ -323,7 +327,10 @@
                     <div id="battle-monster-fallback" class="battle-monster-fallback" hidden></div>
                     <img id="battle-monster-sprite" class="battle-sprite battle-enemy-sprite" src="assets/combat/monster-slime.png" alt="">
                 </div>
-                <div class="battle-scene-caption">⚔️ 第一人稱戰鬥</div>
+                <div id="battle-scene-log" class="battle-scene-log" role="log" aria-live="polite" aria-label="最近兩則戰鬥日記">
+                    <div id="battle-scene-log-line-1" class="battle-scene-log-line">發現魔物</div>
+                    <div id="battle-scene-log-line-2" class="battle-scene-log-line">戰鬥開始！</div>
+                </div>
             </section>
 
             <!-- 👹 6. 魔物狀態面板 -->

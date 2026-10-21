@@ -60,8 +60,10 @@ const DOM = {
             'slot-weapon', 'slot-armor', 'slot-accessory',
             'btn-main-action', 'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle',
             'env-alert-bar', 'monster-status-card', 'battle-scene-box', 'battle-player-name', 'battle-player-hp-text', 'battle-player-hp-bar',
-            'battle-player-mp-text', 'battle-player-mp-bar', 'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar',
+            'battle-player-mp-text', 'battle-player-mp-bar', 'battle-player-atb-text', 'battle-player-atb-bar',
+            'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar', 'battle-monster-atb-text', 'battle-monster-atb-bar',
             'battle-monster-shield-text', 'battle-monster-sprite', 'battle-monster-fallback',
+            'battle-scene-log-line-1', 'battle-scene-log-line-2',
             'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
             'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
             'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
@@ -1088,6 +1090,65 @@ function switchVillageLocation(targetLoc) {
 // 🛠️ updateUI 核心更新
 // --------------------------------------------------------------------------
 
+let battleSceneLogLines = [];
+let battleSceneTerminalUntil = 0;
+let battleSceneTerminalSnapshot = null;
+let battleSceneTerminalTimer = null;
+
+function renderBattleSceneLog() {
+    const firstLine = DOM.get('battle-scene-log-line-1');
+    const secondLine = DOM.get('battle-scene-log-line-2');
+    if (firstLine) firstLine.textContent = battleSceneLogLines[0] || "發現魔物";
+    if (secondLine) secondLine.textContent = battleSceneLogLines[1] || "戰鬥開始！";
+}
+
+function syncBattleSceneLog(message) {
+    const text = String(message || "").replace(/\s+/g, " ").trim();
+    if (!text) return;
+    const foundMonster = /發現(?:大領主|魔物)/.test(text);
+    if (foundMonster) {
+        battleSceneLogLines = [];
+        battleSceneTerminalUntil = 0;
+        battleSceneTerminalSnapshot = null;
+        if (battleSceneTerminalTimer !== null) clearTimeout(battleSceneTerminalTimer);
+        battleSceneTerminalTimer = null;
+    }
+
+    const victory = /VICTORY!/i.test(text);
+    const defeat = /你已被擊敗/.test(text);
+    const inBattle = typeof gameState !== "undefined" && gameState === "BATTLE";
+    if (!inBattle && !victory && !defeat) return;
+    if (battleSceneTerminalUntil > Date.now()) return;
+
+    battleSceneLogLines.push(text);
+    if (battleSceneLogLines.length > 2) battleSceneLogLines = battleSceneLogLines.slice(-2);
+    renderBattleSceneLog();
+
+    if (victory || defeat) {
+        const monster = typeof activeMonster !== "undefined" && activeMonster ? activeMonster : null;
+        battleSceneTerminalSnapshot = {
+            monster: monster ? {
+                name: monster.name, hp: monster.hp, maxHp: monster.maxHp,
+                shield: monster.shield, isBoss: monster.isBoss
+            } : null,
+            hp: typeof currentRun !== "undefined" ? currentRun?.hp : 0,
+            maxHp: typeof currentRun !== "undefined" ? currentRun?.maxHp : 0,
+            mp: typeof currentRun !== "undefined" ? currentRun?.mp : 0,
+            maxMp: typeof currentRun !== "undefined" ? currentRun?.maxMp : 0,
+            playerAtb: typeof playerAtb !== "undefined" ? playerAtb : 0,
+            monsterAtb: typeof monsterAtb !== "undefined" ? monsterAtb : 0
+        };
+        battleSceneTerminalUntil = Date.now() + 4000;
+        if (battleSceneTerminalTimer !== null) clearTimeout(battleSceneTerminalTimer);
+        battleSceneTerminalTimer = setTimeout(() => {
+            battleSceneTerminalUntil = 0;
+            battleSceneTerminalSnapshot = null;
+            battleSceneTerminalTimer = null;
+            if (typeof updateUI === "function") updateUI();
+        }, 4000);
+    }
+}
+
 function getBattleMonsterSpriteVariant(monster) {
     if (!monster) return "";
     const name = String(monster.name || "");
@@ -1107,13 +1168,18 @@ function setBattleMeter(element, value, maximum) {
 function updateBattleScene(monster) {
     const scene = DOM.get('battle-scene-box');
     if (!scene) return;
+    const terminalVisible = battleSceneTerminalSnapshot && Date.now() < battleSceneTerminalUntil;
+    const sceneMonster = monster || (terminalVisible ? battleSceneTerminalSnapshot.monster : null);
     const inBattle = typeof gameState !== "undefined" && gameState === "BATTLE" && monster &&
         typeof currentRun !== "undefined" && currentRun;
-    scene.style.display = inBattle ? "block" : "none";
-    if (!inBattle) return;
+    const showResult = Boolean(terminalVisible && sceneMonster && typeof currentRun !== "undefined" && currentRun);
+    const showScene = Boolean(inBattle || showResult);
+    scene.style.display = showScene ? "block" : "none";
+    if (!showScene) return;
 
     const heroName = (accountMeta && accountMeta.name) || "冒險者";
-    const variant = getBattleMonsterSpriteVariant(monster);
+    const displayedMonster = sceneMonster;
+    const variant = getBattleMonsterSpriteVariant(displayedMonster);
     const image = DOM.get('battle-monster-sprite');
     const fallback = DOM.get('battle-monster-fallback');
     const variantPaths = {
@@ -1123,22 +1189,32 @@ function updateBattleScene(monster) {
     };
 
     DOM.get('battle-player-name').textContent = heroName;
-    DOM.get('battle-player-hp-text').textContent = `HP ${Math.max(0, currentRun.hp || 0)} / ${currentRun.maxHp || 0}`;
-    DOM.get('battle-player-mp-text').textContent = `MP ${Math.max(0, currentRun.mp || 0)} / ${currentRun.maxMp || 0}`;
-    setBattleMeter(DOM.get('battle-player-hp-bar'), currentRun.hp, currentRun.maxHp);
-    setBattleMeter(DOM.get('battle-player-mp-bar'), currentRun.mp, currentRun.maxMp);
-    DOM.get('battle-monster-name').textContent = monster.name || "深淵魔物";
-    DOM.get('battle-monster-hp-text').textContent = `HP ${Math.max(0, monster.hp || 0)} / ${monster.maxHp || 0}`;
-    DOM.get('battle-monster-shield-text').textContent = Number(monster.shield) > 0 ? `🛡️ 護盾 ${monster.shield}` : "";
-    setBattleMeter(DOM.get('battle-monster-hp-bar'), monster.hp, monster.maxHp);
+    const playerValues = showResult ? battleSceneTerminalSnapshot : currentRun;
+    DOM.get('battle-player-hp-text').textContent = `HP ${Math.max(0, playerValues.hp || 0)} / ${playerValues.maxHp || 0}`;
+    DOM.get('battle-player-mp-text').textContent = `MP ${Math.max(0, playerValues.mp || 0)} / ${playerValues.maxMp || 0}`;
+    setBattleMeter(DOM.get('battle-player-hp-bar'), playerValues.hp, playerValues.maxHp);
+    setBattleMeter(DOM.get('battle-player-mp-bar'), playerValues.mp, playerValues.maxMp);
+    const playerAtbPercent = Math.min(100, Math.max(0, showResult ? battleSceneTerminalSnapshot.playerAtb : (typeof playerAtb !== "undefined" ? playerAtb : 0)));
+    DOM.get('battle-player-atb-text').textContent = `${Math.floor(playerAtbPercent)}%`;
+    setBattleMeter(DOM.get('battle-player-atb-bar'), playerAtbPercent, 100);
 
-    scene.classList.toggle('is-boss-battle', Boolean(monster.isBoss));
+    DOM.get('battle-monster-name').textContent = displayedMonster.name || "深淵魔物";
+    DOM.get('battle-monster-hp-text').textContent = `HP ${Math.max(0, displayedMonster.hp || 0)} / ${displayedMonster.maxHp || 0}`;
+    DOM.get('battle-monster-shield-text').textContent = Number(displayedMonster.shield) > 0 ? `🛡️ 護盾 ${displayedMonster.shield}` : "";
+    setBattleMeter(DOM.get('battle-monster-hp-bar'), displayedMonster.hp, displayedMonster.maxHp);
+    const monsterAtbPercent = Math.min(100, Math.max(0, showResult ? battleSceneTerminalSnapshot.monsterAtb : (typeof monsterAtb !== "undefined" ? monsterAtb : 0)));
+    DOM.get('battle-monster-atb-text').textContent = `${Math.floor(monsterAtbPercent)}%`;
+    setBattleMeter(DOM.get('battle-monster-atb-bar'), monsterAtbPercent, 100);
+    renderBattleSceneLog();
+
+    scene.classList.toggle('is-result', Boolean(showResult));
+    scene.classList.toggle('is-boss-battle', Boolean(displayedMonster.isBoss));
     const environmentClass = typeof ENVIRONMENT_DATABASE !== "undefined" && typeof currentEnvironment !== "undefined" && ENVIRONMENT_DATABASE[currentEnvironment]
         ? ENVIRONMENT_DATABASE[currentEnvironment].className : "";
     scene.classList.toggle('is-ice-zone', environmentClass === "env-zone-ice");
     scene.classList.toggle('is-fire-zone', environmentClass === "env-zone-fire");
     if (image) {
-        image.classList.toggle('battle-boss-sprite', Boolean(monster.isBoss));
+        image.classList.toggle('battle-boss-sprite', Boolean(displayedMonster.isBoss));
         image.hidden = !variant;
         if (variant && image.dataset.variant !== variant) {
             image.dataset.variant = variant;
@@ -1146,7 +1222,7 @@ function updateBattleScene(monster) {
         }
     }
     if (fallback) {
-        const leadingIcon = String(monster.name || "").match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
+        const leadingIcon = String(displayedMonster.name || "").match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
         fallback.textContent = leadingIcon ? leadingIcon[0] : "👹";
         fallback.hidden = Boolean(variant);
     }
@@ -1846,6 +1922,8 @@ function addLog(msg, type = "deal") {
     p.className = `log-row-box${classMap[type] || ""}`;
     p.innerHTML = formattedMsg;
     box.appendChild(p);
+    const diaryText = p.textContent || String(formattedMsg).replace(/<[^>]*>/g, " ");
+    syncBattleSceneLog(diaryText);
 
     box.scrollTo({
         top: box.scrollHeight,

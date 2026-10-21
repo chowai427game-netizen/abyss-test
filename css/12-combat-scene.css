@@ -76,6 +76,10 @@
 .battle-meter-hp span { background: #df3845; }
 .battle-meter-mp span { background: #3984e8; }
 .battle-meter-enemy span { background: #8d2cb2; }
+.battle-meter-atb { height: 5px; }
+.battle-meter-player-atb span { background: #e7b949; }
+.battle-meter-monster-atb span { background: #55d6a0; }
+.battle-atb-heading { display: flex; justify-content: space-between; align-items: center; color: #564426; font-size: 9px; }
 .battle-shield-label { color: #176b70; font-weight: 800; }
 
 .battle-stage {
@@ -187,19 +191,35 @@
     animation: monster-critical-flash .42s steps(5, end) both;
 }
 
-.battle-scene-caption {
+.battle-scene-log {
     position: absolute;
     z-index: 5;
     right: 0;
     bottom: 0;
     left: 0;
+    display: grid;
+    gap: 2px;
+    min-height: 31px;
     padding: 4px 8px;
     background: rgba(20, 16, 11, .78);
     color: #f6df9b;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-align: center;
+    font: 700 10px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.battle-scene-log-line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.battle-scene-log-line:first-child { color: #e4d4ac; }
+.battle-scene-log-line:last-child { color: #fff0bf; }
+
+.battle-scene-log-line:empty { display: none; }
+
+.battle-scene.is-result .battle-scene-log {
+    color: #fff2cb;
+    background: rgba(20, 16, 11, .9);
 }
 
 .battle-scene.is-boss-battle { box-shadow: 0 0 0 2px #d78348, 0 0 0 5px #21170d, 0 10px 26px rgba(95, 28, 12, .4); }
@@ -235,10 +255,11 @@
 }
 
 @media (max-width: 600px) {
-    .battle-scene { min-height: 226px; margin-bottom: 12px; border-width: 3px; background-position: center 54%; }
+    .battle-scene { min-height: 250px; margin-bottom: 12px; border-width: 3px; background-position: center 54%; }
     .battle-hud { inset: 7px 7px auto; gap: 6px; }
-    .battle-hud-card { width: 44%; padding: 5px 6px; font-size: 10px; }
+    .battle-hud-card { width: 46%; padding: 5px 6px; font-size: 10px; }
     .battle-hud-card strong { font-size: 11px; }
+    .battle-atb-heading { font-size: 8px; }
     .battle-sprite-platform { bottom: 19px; width: 44%; }
     .battle-sprite { bottom: 20px; height: 124px; max-width: 64%; }
     .battle-enemy-sprite.battle-boss-sprite { height: 144px; max-width: 70%; }
