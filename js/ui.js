@@ -68,7 +68,7 @@ const DOM = {
             'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
             'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
             'village-panel-box', 'log-wrapper-box', 'tactics-drawer-box', 'char-folder-summary',
-            'stat-alloc-grid', 'bag-capacity-text', 'bag-slots-container', 'location-text',
+            'stat-alloc-grid', 'bag-capacity-text', 'bag-slots-container', 'battle-item-queue-status', 'location-text',
             'guild-skills-container', 'kitchen-warehouse-display', 'recipes-container',
             'workshop-warehouse-display', 'blueprints-container',
             'player-status-badges', 'monster-status-badges',
@@ -980,6 +980,22 @@ function syncCharacterDataUi() {
         }
     }
 
+    const queueStatus = DOM.get('battle-item-queue-status');
+    if (queueStatus) {
+        if (gameState === "BATTLE") {
+            const queued = typeof pendingCombatItem !== "undefined" ? pendingCombatItem : null;
+            queueStatus.style.display = "block";
+            queueStatus.textContent = queued
+                ? `⌛ 已排程：${queued.itemName}（下次我方 ATB 使用）`
+                : "🧪 點擊背包道具，於下次我方 ATB 行動時使用";
+            queueStatus.classList?.toggle("is-queued", Boolean(queued));
+        } else {
+            queueStatus.style.display = "none";
+            queueStatus.textContent = "";
+            queueStatus.classList?.remove("is-queued");
+        }
+    }
+
     const bagContainer = DOM.get('bag-slots-container');
     if (bagContainer) {
         bagContainer.classList.toggle('bag-full', invLen >= maxBag);
@@ -1002,9 +1018,12 @@ function syncCharacterDataUi() {
 
             if (item) {
                 slot.innerText = item;
+                const isQueued = typeof pendingCombatItem !== "undefined" && pendingCombatItem && pendingCombatItem.itemIndex === i && pendingCombatItem.itemName === item;
+                if (isQueued) slot.classList.add("combat-item-queued");
                 slot.onclick = () => {
                     if (gameState === "BATTLE") {
-                        if (typeof executeUseDungeonItem === "function") executeUseDungeonItem(item, i);
+                        if (typeof queueCombatItemUse === "function") queueCombatItemUse(i);
+                        else if (typeof executeUseDungeonItem === "function") executeUseDungeonItem(item, i);
                     } else {
                         executeDepositBagItemToWarehouse(i);
                     }
@@ -1013,7 +1032,7 @@ function syncCharacterDataUi() {
                 bindFloatingCard(slot, () => {
                     let desc = "攜帶型冒險道具。";
                     let typeStr = "消耗品";
-                    let statsStr = gameState === "BATTLE" ? "點擊在戰鬥中使用" : "點擊退回存入倉庫";
+                    let statsStr = gameState === "BATTLE" ? "點擊後排入下一次我方 ATB 行動使用" : "點擊退回存入倉庫";
 
                     const recipe = typeof getRecipeByName === "function" ? getRecipeByName(item) : (typeof RECIPES_DATABASE !== "undefined" ? RECIPES_DATABASE.find(r => r.name === item) : null);
                     if (recipe) {
@@ -1091,23 +1110,78 @@ function switchVillageLocation(targetLoc) {
 // --------------------------------------------------------------------------
 
 let battleSceneLogLines = [];
+let battleSceneTypingTimers = [null, null];
+let battleSceneLogSequence = 0;
 let battleSceneTerminalUntil = 0;
 let battleSceneTerminalSnapshot = null;
 let battleSceneTerminalTimer = null;
 
-function renderBattleSceneLog() {
-    const firstLine = DOM.get('battle-scene-log-line-1');
-    const secondLine = DOM.get('battle-scene-log-line-2');
-    if (firstLine) firstLine.textContent = battleSceneLogLines[0] || "發現魔物";
-    if (secondLine) secondLine.textContent = battleSceneLogLines[1] || "戰鬥開始！";
+function getBattleDiaryTone(text, logType = "deal") {
+    if (/VICTORY!|討伐成功/i.test(text)) return "victory";
+    if (/暴擊|爆擊|critical/i.test(text)) return "critical";
+    if (logType === "take" || /你已被擊敗|受到.{0,8}傷害|扣減.{0,8}HP|反噬/.test(text)) return "damage";
+    if (logType === "miss" || /\bMISS\b|未命中/i.test(text)) return "miss";
+    if (/回復|治癒|補滿|治療|\+\d+\s*(HP|MP)/i.test(text)) return "heal";
+    if (logType === "skill-hit" || /基本攻擊|發動攻擊|造成.{0,8}傷害|攻擊命中/.test(text)) return "attack";
+    return "status";
 }
 
-function syncBattleSceneLog(message) {
+function setBattleDiaryLine(element, index, entry, animate) {
+    if (!element) return;
+    const text = entry?.text || "";
+    const tone = entry?.tone || "status";
+    const entryId = String(entry?.id ?? "static");
+    if (!element.dataset) element.dataset = {};
+    if (element.dataset.entryId === entryId && element.dataset.targetText === text && element.dataset.tone === tone) return;
+
+    if (battleSceneTypingTimers[index] !== null) clearInterval(battleSceneTypingTimers[index]);
+    battleSceneTypingTimers[index] = null;
+    element.dataset.targetText = text;
+    element.dataset.tone = tone;
+    element.dataset.entryId = entryId;
+    element.className = `battle-scene-log-line battle-log-line--${tone}`;
+
+    const reduceMotion = typeof prefersReducedMotion === "function" && prefersReducedMotion();
+    if (!animate || !text || reduceMotion) {
+        element.textContent = text;
+        element.classList?.remove("is-typing");
+        return;
+    }
+
+    const segments = typeof Intl !== "undefined" && Intl.Segmenter
+        ? Array.from(new Intl.Segmenter("zh-Hant", { granularity: "grapheme" }).segment(text), (part) => part.segment)
+        : Array.from(text);
+    let visibleCount = 0;
+    element.textContent = "";
+    element.classList?.add("is-typing");
+    battleSceneTypingTimers[index] = setInterval(() => {
+        visibleCount += 1;
+        element.textContent = segments.slice(0, visibleCount).join("");
+        if (visibleCount >= segments.length) {
+            clearInterval(battleSceneTypingTimers[index]);
+            battleSceneTypingTimers[index] = null;
+            element.classList?.remove("is-typing");
+        }
+    }, 22);
+}
+
+function renderBattleSceneLog(animateLatest = false) {
+    const firstEntry = battleSceneLogLines[0] || { text: "發現魔物", tone: "status" };
+    const secondEntry = battleSceneLogLines[1] || { text: "戰鬥開始！", tone: "status" };
+    setBattleDiaryLine(DOM.get('battle-scene-log-line-1'), 0, firstEntry, false);
+    setBattleDiaryLine(DOM.get('battle-scene-log-line-2'), 1, secondEntry, animateLatest);
+}
+
+function syncBattleSceneLog(message, logType = "deal") {
     const text = String(message || "").replace(/\s+/g, " ").trim();
     if (!text) return;
     const foundMonster = /發現(?:大領主|魔物)/.test(text);
     if (foundMonster) {
         battleSceneLogLines = [];
+        battleSceneTypingTimers.forEach((timer, index) => {
+            if (timer !== null) clearInterval(timer);
+            battleSceneTypingTimers[index] = null;
+        });
         battleSceneTerminalUntil = 0;
         battleSceneTerminalSnapshot = null;
         if (battleSceneTerminalTimer !== null) clearTimeout(battleSceneTerminalTimer);
@@ -1120,9 +1194,9 @@ function syncBattleSceneLog(message) {
     if (!inBattle && !victory && !defeat) return;
     if (battleSceneTerminalUntil > Date.now()) return;
 
-    battleSceneLogLines.push(text);
+    battleSceneLogLines.push({ id: ++battleSceneLogSequence, text, tone: getBattleDiaryTone(text, logType) });
     if (battleSceneLogLines.length > 2) battleSceneLogLines = battleSceneLogLines.slice(-2);
-    renderBattleSceneLog();
+    renderBattleSceneLog(true);
 
     if (victory || defeat) {
         const monster = typeof activeMonster !== "undefined" && activeMonster ? activeMonster : null;
@@ -1923,7 +1997,7 @@ function addLog(msg, type = "deal") {
     p.innerHTML = formattedMsg;
     box.appendChild(p);
     const diaryText = p.textContent || String(formattedMsg).replace(/<[^>]*>/g, " ");
-    syncBattleSceneLog(diaryText);
+    syncBattleSceneLog(diaryText, type);
 
     box.scrollTo({
         top: box.scrollHeight,

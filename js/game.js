@@ -16,6 +16,7 @@ let battleTimeElapsed = 0;
 
 let isQteActive = false;
 let activeTactic = "BALANCED";
+let pendingCombatItem = null;
 
 // 📦 安全物品放入背包/倉庫流轉防護
 function safePushToInventory(run, account, itemName) {
@@ -446,6 +447,14 @@ function startCombatTicker() {
     return true;
 }
 
+function getPlayerAtbGain(speed) {
+    const effectiveSpeed = Math.max(0, Number(speed) || 0);
+    const baselineSpeed = 20;
+    // 超出基準的攻速再額外乘 1.5；AGI 對 SPD 的貢獻因此比舊公式更明顯。
+    const agilityBonus = Math.max(0, effectiveSpeed - baselineSpeed) * 0.5;
+    return Math.min(100, effectiveSpeed + agilityBonus);
+}
+
 function handleCombatTickerTick() {
     if (combatPaused) return;
     if (gameState !== "BATTLE" || !activeMonster || currentRun.hp <= 0 || activeMonster.hp <= 0) {
@@ -454,7 +463,7 @@ function handleCombatTickerTick() {
     }
 
     battleTimeElapsed += 0.25;
-    playerAtb += (currentRun.spd || 20) + getActiveCombatBuff("spdBuff");
+    playerAtb += getPlayerAtbGain((currentRun.spd || 20) + getActiveCombatBuff("spdBuff"));
     monsterAtb += (activeMonster.spd || 15);
     envAtb += 15;
 
@@ -602,7 +611,7 @@ function chooseAutoBattleAction() {
         }
 
         if (hpPercent < 35 && Array.isArray(currentRun.inventory)) {
-            const healingItemNames = ["厚牛巨堡", "料理", "牛扒", "炸薯", "烤野豬肉", "初級治癒", "強效魔藥", "壁虎乾"];
+            const healingItemNames = ["厚牛巨堡", "料理", "牛扒", "炸薯", "烤野豬肉", "初級治癒", "強效魔藥", "壁虎乾", "活力合劑"];
             const itemIndex = currentRun.inventory.findIndex((item) => healingItemNames.some((name) => String(item || "").includes(name)));
             if (itemIndex >= 0) return { type: "item", itemIndex };
         }
@@ -1599,6 +1608,7 @@ function startNodeCombat(nodeType) {
     try {
         stopCombatTicker();
         clearVfxLayer();
+        pendingCombatItem = null;
 
         const monsterCard = document.getElementById('monster-status-card');
         if (monsterCard) monsterCard.style.display = "grid";
@@ -1723,6 +1733,22 @@ function executeEnvironmentTick() {
     }
 }
 
+function queueCombatItemUse(index) {
+    if (gameState !== "BATTLE" || !activeMonster || activeMonster.hp <= 0 || !currentRun || !Array.isArray(currentRun.inventory)) return false;
+    const itemName = currentRun.inventory[index];
+    if (!itemName) return false;
+
+    if (pendingCombatItem && pendingCombatItem.itemIndex === index && pendingCombatItem.itemName === itemName) {
+        pendingCombatItem = null;
+        if (typeof addLog === "function") addLog(`↩️【行動取消】已取消使用 ${itemName} 的預約。`, "env");
+    } else {
+        pendingCombatItem = { itemIndex: index, itemName: String(itemName) };
+        if (typeof addLog === "function") addLog(`🧪【行動預約】${itemName} 已排入下一次我方 ATB 行動。`, "perfect");
+    }
+    if (typeof updateUI === "function") updateUI();
+    return true;
+}
+
 function executePlayerActionTick() {
     if (!activeMonster || activeMonster.hp <= 0) return;
 
@@ -1746,7 +1772,22 @@ function executePlayerActionTick() {
         return;
     }
 
-    executeAutoBattleAiTurn();
+    let usedQueuedItem = false;
+    if (pendingCombatItem) {
+        const queued = pendingCombatItem;
+        pendingCombatItem = null;
+        let itemIndex = queued.itemIndex;
+        if (currentRun.inventory?.[itemIndex] !== queued.itemName) {
+            itemIndex = currentRun.inventory?.findIndex((item) => item === queued.itemName) ?? -1;
+        }
+        if (itemIndex >= 0 && currentRun.inventory?.[itemIndex]) {
+            executeUseDungeonItem(currentRun.inventory[itemIndex], itemIndex);
+            usedQueuedItem = true;
+        } else if (typeof addLog === "function") {
+            addLog("⚠️【行動取消】預約的道具已不在背包中。", "env");
+        }
+    }
+    if (!usedQueuedItem && activeMonster && activeMonster.hp > 0 && gameState === "BATTLE") executeAutoBattleAiTurn();
     if (activeMonster && activeMonster.hp <= 0) {
         stopCombatTicker();
         executeDungeonVictorySequence();
@@ -1818,6 +1859,7 @@ function executeMonsterActionTick() {
 // 👑 勝利與戰敗序列
 // --------------------------------------------------------------------------
 function executeDungeonVictorySequence() {
+    pendingCombatItem = null;
     let isBossFloor = (dungeonFloor % 10 === 0);
     let isElite = activeMonster?.isElite || false;
     const defeatedWasBoss = !!activeMonster?.isBoss;
@@ -1974,6 +2016,7 @@ function closeCampaignEndingModal() {
 }
 
 function executeDungeonDefeatSequence() {
+    pendingCombatItem = null;
     clearVfxLayer();
     let lostExp = Math.floor((accountMeta.exp || 0) * 0.3);
     accountMeta.exp = Math.max(0, (accountMeta.exp || 0) - lostExp);
@@ -2143,7 +2186,71 @@ function executeUseDungeonItem(itemName, index) {
     if (gameState !== "BATTLE" || !activeMonster) return;
     if (typeof addLog === "function") addLog(`⚡🎒【快捷物資微操】勇者果斷捏碎消耗品 ➔ <strong>${itemName}</strong>！`, "deal");
     
-    if (itemName.includes("厚牛巨堡") || itemName.includes("料理") || itemName.includes("牛扒") || itemName.includes("炸薯")) {
+    if (itemName.includes("微光初級治癒藥水")) {
+        const hpBeforeHeal = currentRun.hp;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 50);
+        const actualHeal = Math.max(0, currentRun.hp - hpBeforeHeal);
+        spawnVfx("heal", { anchor: "player", text: `+${actualHeal} HP` });
+        if (typeof addLog === "function") addLog(`🧪 初級治癒藥水回復 <span class="heal-effect">+${actualHeal} HP</span>！`, "perfect");
+    }
+    else if (itemName.includes("皇家大瓶強效魔藥")) {
+        const hpBeforeHeal = currentRun.hp;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 150);
+        const actualHeal = Math.max(0, currentRun.hp - hpBeforeHeal);
+        spawnVfx("heal", { anchor: "player", text: `+${actualHeal} HP` });
+        if (typeof addLog === "function") addLog(`🧪 皇家強效魔藥回復 <span class="heal-effect">+${actualHeal} HP</span>！`, "perfect");
+    }
+    else if (itemName.includes("聖使神聖活力合劑")) {
+        const hpBeforeHeal = currentRun.hp;
+        const mpBeforeHeal = currentRun.mp;
+        currentRun.hp = currentRun.maxHp;
+        currentRun.mp = currentRun.maxMp;
+        const actualHeal = Math.max(0, currentRun.hp - hpBeforeHeal);
+        const actualMpGain = Math.max(0, currentRun.mp - mpBeforeHeal);
+        spawnVfx("heal", { anchor: "player", text: `+${actualHeal} HP` });
+        if (typeof addLog === "function") addLog(`✨ 神聖活力合劑補滿生命與魔力 <span class="heal-effect">+${actualHeal} HP</span>、<span class="heal-effect">+${actualMpGain} MP</span>！`, "perfect");
+    }
+    else if (itemName.includes("秘銀奧術回魔劑")) {
+        const mpBeforeHeal = currentRun.mp;
+        currentRun.mp = Math.min(currentRun.maxMp, currentRun.mp + 40);
+        const actualMpGain = Math.max(0, currentRun.mp - mpBeforeHeal);
+        spawnVfx("heal", { anchor: "player", text: `+${actualMpGain} MP`, variant: "mana", labelKind: "mana" });
+        if (typeof addLog === "function") addLog(`🔵 奧術回魔劑回復 <span class="heal-effect">+${actualMpGain} MP</span>！`, "perfect");
+    }
+    else if (itemName.includes("大快活厚牛巨堡")) {
+        const hpBeforeHeal = currentRun.hp;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 100);
+        const actualHeal = Math.max(0, currentRun.hp - hpBeforeHeal);
+        currentRun.shield = (Number(currentRun.shield) || 0) + 80;
+        spawnVfx("heal", { anchor: "player", text: `+${actualHeal} HP` });
+        if (typeof addLog === "function") addLog(`🌭 厚牛巨堡回復 <span class="heal-effect">+${actualHeal} HP</span>，並獲得 80 點護盾！`, "perfect");
+    }
+    else if (itemName.includes("烤野豬肉大串")) {
+        const hpBeforeHeal = currentRun.hp;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 60);
+        const actualHeal = Math.max(0, currentRun.hp - hpBeforeHeal);
+        currentRun.shield = (Number(currentRun.shield) || 0) + 20;
+        spawnVfx("heal", { anchor: "player", text: `+${actualHeal} HP` });
+        if (typeof addLog === "function") addLog(`🥩 烤野豬肉回復 <span class="heal-effect">+${actualHeal} HP</span>，並獲得 20 點護盾！`, "perfect");
+    }
+    else if (itemName.includes("地龍魔爪厚炸薯")) {
+        const hpBeforeHeal = currentRun.hp;
+        currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + 250);
+        const actualHeal = Math.max(0, currentRun.hp - hpBeforeHeal);
+        currentRun.burnStacks = 0;
+        spawnVfx("heal", { anchor: "player", text: `+${actualHeal} HP` });
+        if (typeof addLog === "function") addLog(`🍟 厚炸薯回復 <span class="heal-effect">+${actualHeal} HP</span>，並解除灼燒！`, "perfect");
+    }
+    else if (itemName.includes("時空鹽焗醃肉")) {
+        playerAtb = Math.min(100, playerAtb + 50);
+        if (typeof addLog === "function") addLog("🥩 時空醃肉推進我方 ATB 行動條 50%！", "perfect");
+    }
+    else if (itemName.includes("毒腺烈性催化劑")) {
+        const result = applyDamageWithShield(activeMonster, 150);
+        spawnVfx("hit", { anchor: "monster", text: `-${result.actualHpDmg}`, variant: "damage" });
+        if (typeof addLog === "function") addLog(`🧪 毒腺催化劑造成 <span class="num-popup num-p-dmg">-${result.actualHpDmg} HP</span> 傷害！`, "skill-hit");
+    }
+    else if (itemName.includes("厚牛巨堡") || itemName.includes("料理") || itemName.includes("牛扒") || itemName.includes("炸薯")) {
         let healVal = Math.floor(currentRun.maxHp * 0.5);
         const hpBeforeHeal = currentRun.hp;
         currentRun.hp = Math.min(currentRun.maxHp, currentRun.hp + healVal);

@@ -658,6 +658,26 @@ function runRoundTwoVfxTests() {
     assert.equal(cappedMp.context.currentRun.mp, 100);
     assert.ok(labels(cappedMp).some((label) => label.textContent === "+5 MP"));
 
+    const queuedPotion = createEnvironment();
+    queuedPotion.context.setInterval = () => 1;
+    queuedPotion.context.clearInterval = () => {};
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), queuedPotion.context, { filename: "js/game.js" });
+    queuedPotion.context.currentRun = {
+        hp: 40, maxHp: 100, mp: 20, maxMp: 50, job: "tester", atk: 20,
+        skills: {}, inventory: ["🧪 微光初級治癒藥水"]
+    };
+    queuedPotion.context.activeMonster = { name: "Test", hp: 100, maxHp: 100, poisonStacks: 0, burnStacks: 0 };
+    queuedPotion.context.gameState = "BATTLE";
+    queuedPotion.context.addLog = () => {};
+    assert.equal(queuedPotion.context.getPlayerAtbGain(20), 20, "baseline player speed keeps its original ATB pace");
+    assert.equal(queuedPotion.context.getPlayerAtbGain(40), 50, "higher AGI-derived speed has a stronger ATB impact");
+    assert.equal(queuedPotion.context.queueCombatItemUse(0), true);
+    assert.equal(queuedPotion.context.currentRun.hp, 40, "queued potion does not heal before the player's ATB turn");
+    assert.equal(queuedPotion.context.currentRun.inventory.length, 1, "queued potion is not consumed before the player's ATB turn");
+    queuedPotion.context.executePlayerActionTick();
+    assert.equal(queuedPotion.context.currentRun.hp, 90, "potion restores its specified 50 HP on the player's ATB turn");
+    assert.equal(queuedPotion.context.currentRun.inventory.length, 0, "potion is consumed when its queued action executes");
+
     const bounded = createEnvironment();
     bounded.context.spawnVfx("hit", { count: Infinity, duration: Infinity, particleCount: Infinity, maxActive: Infinity });
     bounded.advanceBy(0);
@@ -991,4 +1011,4 @@ runSceneTransitionTests();
 runStaticIntegrationChecks();
 runRoundTwoVfxTests();
 runCombatTacticsAndPauseTests();
-console.log("✅ VFX, combat tactics, shared skill effects, and pause/resume regression tests passed.");
+console.log("✅ VFX, AGI ATB scaling, queued combat potions, shared skill effects, and pause/resume regression tests passed.");

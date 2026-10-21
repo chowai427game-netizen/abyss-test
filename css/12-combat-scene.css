@@ -212,10 +212,20 @@
     white-space: nowrap;
 }
 
-.battle-scene-log-line:first-child { color: #e4d4ac; }
-.battle-scene-log-line:last-child { color: #fff0bf; }
+.battle-log-line--attack { color: #c9eaff; }
+.battle-log-line--critical { color: #ffb84e; text-shadow: 0 0 7px rgba(255, 89, 40, .55); }
+.battle-log-line--damage { color: #ff7a86; }
+.battle-log-line--heal { color: #80f0a4; }
+.battle-log-line--miss { color: #b8c4d0; }
+.battle-log-line--victory { color: #ffe27a; text-shadow: 0 0 7px rgba(255, 211, 73, .45); }
+.battle-log-line--status { color: #e4d4ac; }
+.battle-scene-log-line.is-typing::after { content: "▌"; animation: diary-caret .65s steps(1, end) infinite; }
 
 .battle-scene-log-line:empty { display: none; }
+
+.battle-item-queue-status { margin: 3px 0 5px; color: #a9bac7; font-size: 10px; line-height: 1.3; }
+.battle-item-queue-status.is-queued { color: #8debb1; font-weight: 800; }
+.combat-item-queued { outline: 2px solid #48d7ac; outline-offset: -2px; animation: queued-item-pulse 1.1s steps(2, end) infinite; }
 
 .battle-scene.is-result .battle-scene-log {
     color: #fff2cb;
@@ -254,6 +264,9 @@
     70% { filter: brightness(2.2); transform: translateX(calc(-50% - 4px)); }
 }
 
+@keyframes diary-caret { 50% { opacity: 0; } }
+@keyframes queued-item-pulse { 50% { box-shadow: inset 0 0 0 2px rgba(72, 215, 172, .65); } }
+
 @media (max-width: 600px) {
     .battle-scene { min-height: 250px; margin-bottom: 12px; border-width: 3px; background-position: center 54%; }
     .battle-hud { inset: 7px 7px auto; gap: 6px; }
@@ -267,6 +280,7 @@
     .battle-monster-fallback { bottom: 29px; }
     .battle-attack-swipe { inset: 18% -4% 8%; }
     .battle-attack-swipe::before { width: 92%; height: 8px; }
+    .battle-item-queue-status { font-size: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -276,5 +290,7 @@
     .battle-monster-sprite.is-hit,
     .battle-monster-fallback.is-hit,
     .battle-monster-sprite.is-critical,
-    .battle-monster-fallback.is-critical { animation-duration: 1ms; }
+    .battle-monster-fallback.is-critical,
+    .battle-scene-log-line.is-typing::after,
+    .combat-item-queued { animation-duration: 1ms; }
 }
