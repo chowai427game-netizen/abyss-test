@@ -333,6 +333,15 @@
                     <div id="battle-scene-log-line-1" class="battle-scene-log-line">發現魔物</div>
                     <div id="battle-scene-log-line-2" class="battle-scene-log-line">戰鬥開始！</div>
                 </div>
+                <div id="battle-command-panel" class="battle-command-panel" style="display: none;" aria-label="手動戰鬥指令" aria-live="polite">
+                    <div class="battle-command-heading" id="battle-command-status">輪到你行動</div>
+                    <div id="battle-command-categories" class="battle-command-actions">
+                        <button type="button" onclick="submitManualBattleCommand('basic')">⚔️ 攻擊</button>
+                        <button type="button" onclick="openManualBattleCommandList('skills')">✨ 技能</button>
+                        <button type="button" onclick="openManualBattleCommandList('items')">🎒 道具</button>
+                    </div>
+                    <div id="battle-command-options" class="battle-command-options" style="display: none;"></div>
+                </div>
                 <div class="tactics-drawer" id="tactics-drawer-box">
                     <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn" aria-label="切換戰術面板" aria-controls="tactics-drawer-box" aria-expanded="false">
                         <span class="trigger-icon">⚙️</span>
@@ -392,16 +401,6 @@
                         </fieldset>
                     </div>
                 </div>
-            </section>
-
-            <section id="battle-command-panel" class="battle-command-panel" style="display: none;" aria-label="手動戰鬥指令" aria-live="polite">
-                <div class="battle-command-heading" id="battle-command-status">輪到你行動</div>
-                <div id="battle-command-categories" class="battle-command-actions">
-                    <button type="button" onclick="submitManualBattleCommand('basic')">⚔️ 戰鬥</button>
-                    <button type="button" onclick="openManualBattleCommandList('skills')">✨ 技能</button>
-                    <button type="button" onclick="openManualBattleCommandList('items')">🎒 道具</button>
-                </div>
-                <div id="battle-command-options" class="battle-command-options" style="display: none;"></div>
             </section>
 
             <!-- 👹 6. 魔物狀態面板 -->

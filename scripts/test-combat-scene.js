@@ -29,8 +29,11 @@ assert.match(css, /prefers-reduced-motion/, "battle scene respects reduced motio
 assert.match(css, /@keyframes first-person-attack/, "first-person slash has an animation");
 assert.match(css, /@keyframes diary-caret/, "battle diary has a typewriter cursor animation");
 assert.match(css, /body\.battle-scene-cinematic-active::before/, "encounter transition dims the page behind the floating scene");
-assert.match(css, /@keyframes battle-scene-encounter-intro/, "encounter scene animates to the center and returns to its origin");
+assert.match(css, /@keyframes battle-scene-encounter-enter/, "encounter scene animates into the center");
+assert.match(css, /@keyframes battle-scene-encounter-return/, "battle result scene animates back to its origin");
 assert.match(ui, /function playBattleSceneEncounterIntro\(\)/, "encounter intro preserves the original layout before moving the scene");
+assert.match(ui, /function returnBattleSceneAfterResult\(delay = 2000\)/, "the floating scene waits two seconds after the result before returning");
+assert.match(ui, /returnBattleSceneAfterResult\(2000\)/, "both victory and defeat journal results schedule the two-second return");
 assert.match(game, /playBattleSceneEncounterIntro\(\)[\s\S]*?startCombatTicker\(\);/, "ATB starts only after the encounter intro transition");
 assert.match(css, /\.battle-meter span\s*\{[\s\S]*?transition: width \.25s linear;/, "ATB bars interpolate continuously instead of stepping");
 assert.match(ui, /getSkillCooldownRemaining\(skillMeta\)/, "the battle HUD displays live remaining cooldown seconds");
@@ -40,11 +43,15 @@ assert.match(game, /manualTurnPaused = true;[\s\S]*?refreshCombatPauseState\(\);
 assert.match(game, /function queueSemiCombatCommand\(/, "semi-auto exposes a next-turn action queue");
 assert.match(game, /tickSkillCooldowns\(0\.25\)/, "skill cooldowns advance on active combat ticks");
 assert.match(css, /\.battle-command-panel\s*\{/, "manual battle commands have a dedicated scene panel");
+assert.match(css, /\.battle-command-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?bottom:\s*39px;[\s\S]*?left:\s*10px;/, "manual commands are anchored in the lower-left battle scene");
+assert.match(css, /\.battle-command-actions, \.battle-command-options\s*\{[\s\S]*?flex-direction:\s*column;/, "manual categories, skills and items are selected top-to-bottom");
 assert.equal((html.match(/id="tactics-drawer-box"/g) || []).length, 1, "only one tactics drawer remains");
 const sceneStart = html.indexOf('id="battle-scene-box"');
 const sceneEnd = html.indexOf("</section>", sceneStart);
 const drawerPosition = html.indexOf('id="tactics-drawer-box"');
 assert.ok(sceneStart >= 0 && drawerPosition > sceneStart && drawerPosition < sceneEnd, "tactics drawer is nested in the battle scene");
+const commandPosition = html.indexOf('id="battle-command-panel"');
+assert.ok(commandPosition > sceneStart && commandPosition < sceneEnd, "manual commands are nested in the battle scene so they move with it");
 const diaryStart = html.indexOf('id="log-wrapper-box"');
 const diaryEnd = html.indexOf("</section>", diaryStart);
 assert.ok(diaryStart >= 0 && (html.indexOf('id="tactics-drawer-box"') < diaryStart || html.indexOf('id="tactics-drawer-box"') > diaryEnd), "the diary column no longer owns the tactics drawer");
@@ -127,6 +134,8 @@ let battleSceneTerminalSnapshot = null;
 let battleSceneTerminalTimer = null;
 let battleSceneTypingTimers = [null, null];
 let battleSceneLogSequence = 0;
+function restoreBattleSceneAfterEncounterIntro() {}
+function returnBattleSceneAfterResult() { return true; }
 ${toneSource[0]}
 function renderBattleSceneLog() {
     diaryElements["battle-scene-log-line-1"].textContent = battleSceneLogLines[0]?.text || "發現魔物";

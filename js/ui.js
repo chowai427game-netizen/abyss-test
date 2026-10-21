@@ -1096,12 +1096,15 @@ let battleSceneTerminalUntil = 0;
 let battleSceneTerminalSnapshot = null;
 let battleSceneTerminalTimer = null;
 let battleSceneEncounterIntroTimer = null;
+let battleSceneReturnTimer = null;
 let battleSceneEncounterPlaceholder = null;
 
 function restoreBattleSceneAfterEncounterIntro() {
     const scene = DOM.get('battle-scene-box');
     if (battleSceneEncounterIntroTimer !== null) clearTimeout(battleSceneEncounterIntroTimer);
     battleSceneEncounterIntroTimer = null;
+    if (battleSceneReturnTimer !== null) clearTimeout(battleSceneReturnTimer);
+    battleSceneReturnTimer = null;
     if (scene && battleSceneEncounterPlaceholder?.parentNode) {
         battleSceneEncounterPlaceholder.parentNode.insertBefore(scene, battleSceneEncounterPlaceholder);
     }
@@ -1109,10 +1112,28 @@ function restoreBattleSceneAfterEncounterIntro() {
     battleSceneEncounterPlaceholder = null;
     if (scene) {
         scene.classList?.remove('is-encounter-cinematic');
+        scene.classList?.remove('is-returning-to-origin');
         ['--battle-scene-origin-top', '--battle-scene-origin-left', '--battle-scene-origin-width', '--battle-scene-origin-height']
             .forEach((property) => scene.style.removeProperty(property));
     }
     if (typeof document !== "undefined") document.body?.classList?.remove('battle-scene-cinematic-active');
+}
+
+function returnBattleSceneAfterResult(delay = 2000) {
+    const scene = DOM.get('battle-scene-box');
+    if (!scene?.classList?.contains('is-encounter-cinematic')) return false;
+    if (battleSceneReturnTimer !== null) clearTimeout(battleSceneReturnTimer);
+    battleSceneReturnTimer = setTimeout(() => {
+        battleSceneReturnTimer = null;
+        scene.classList.add('is-returning-to-origin');
+        const returnDuration = typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 1 : 500;
+        if (battleSceneEncounterIntroTimer !== null) clearTimeout(battleSceneEncounterIntroTimer);
+        battleSceneEncounterIntroTimer = setTimeout(() => {
+            restoreBattleSceneAfterEncounterIntro();
+            if (typeof updateUI === "function") updateUI();
+        }, returnDuration);
+    }, Math.max(0, Number(delay) || 0));
+    return true;
 }
 
 function playBattleSceneEncounterIntro() {
@@ -1137,11 +1158,7 @@ function playBattleSceneEncounterIntro() {
     document.body.classList.add('battle-scene-cinematic-active');
     scene.classList.add('is-encounter-cinematic');
 
-    const duration = typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 240 : 1550;
-    battleSceneEncounterIntroTimer = setTimeout(() => {
-        restoreBattleSceneAfterEncounterIntro();
-        if (typeof updateUI === "function") updateUI();
-    }, duration);
+    const duration = typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 1 : 420;
     return duration;
 }
 
@@ -1206,6 +1223,7 @@ function syncBattleSceneLog(message, logType = "deal") {
     if (!text) return;
     const foundMonster = /發現(?:大領主|魔物)/.test(text);
     if (foundMonster) {
+        restoreBattleSceneAfterEncounterIntro();
         battleSceneLogLines = [];
         battleSceneTypingTimers.forEach((timer, index) => {
             if (timer !== null) clearInterval(timer);
@@ -1241,14 +1259,15 @@ function syncBattleSceneLog(message, logType = "deal") {
             playerAtb: typeof playerAtb !== "undefined" ? playerAtb : 0,
             monsterAtb: typeof monsterAtb !== "undefined" ? monsterAtb : 0
         };
-        battleSceneTerminalUntil = Date.now() + 4000;
+        battleSceneTerminalUntil = Date.now() + 2500;
+        returnBattleSceneAfterResult(2000);
         if (battleSceneTerminalTimer !== null) clearTimeout(battleSceneTerminalTimer);
         battleSceneTerminalTimer = setTimeout(() => {
             battleSceneTerminalUntil = 0;
             battleSceneTerminalSnapshot = null;
             battleSceneTerminalTimer = null;
             if (typeof updateUI === "function") updateUI();
-        }, 4000);
+        }, 2500);
     }
 }
 
@@ -1364,6 +1383,7 @@ function updateBattleScene(monster) {
     const showScene = Boolean(inBattle || showResult);
     scene.style.display = showScene ? "block" : "none";
     const commandPanel = DOM.get('battle-command-panel');
+    const commandStatus = DOM.get('battle-command-status');
     const commandCategories = DOM.get('battle-command-categories');
     const commandOptions = DOM.get('battle-command-options');
     const showManualCommands = Boolean(inBattle && typeof manualTurnPaused !== "undefined" && manualTurnPaused);
@@ -1374,6 +1394,7 @@ function updateBattleScene(monster) {
         }
         commandPanel.style.display = showManualCommands ? "grid" : "none";
     }
+    if (commandStatus && showManualCommands) commandStatus.textContent = "🎮 你的回合 · 由上到下選擇指令";
     const semiControls = DOM.get('semi-command-controls');
     if (semiControls) semiControls.style.display = Boolean(inBattle && activeTactic === "SEMI") ? "block" : "none";
     const semiStatus = DOM.get('semi-command-status');
