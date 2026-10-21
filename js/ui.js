@@ -61,6 +61,7 @@ const DOM = {
             'btn-main-action', 'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle',
             'env-alert-bar', 'monster-status-card', 'battle-scene-box', 'battle-player-name', 'battle-player-hp-text', 'battle-player-hp-bar',
             'battle-player-mp-text', 'battle-player-mp-bar', 'battle-player-atb-text', 'battle-player-atb-bar',
+            'battle-skill-cooldowns',
             'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar', 'battle-monster-atb-text', 'battle-monster-atb-bar',
             'battle-monster-shield-text', 'battle-monster-sprite', 'battle-monster-fallback',
             'battle-scene-log-line-1', 'battle-scene-log-line-2',
@@ -481,28 +482,6 @@ function updateActionPanelUI() {
     }
 
     if (gameState === "BATTLE") {
-        const btnTactics = document.createElement('button');
-        btnTactics.id = "btn-main-action";
-        btnTactics.className = "btn-game btn-rerun";
-        btnTactics.style.cssText = "flex: 2; padding: 10px; font-size: 12px; font-weight: bold;";
-        btnTactics.innerHTML = '⚙️ 戰術策略';
-        btnTactics.setAttribute('aria-controls', 'tactics-drawer-box');
-        const tacticsDrawer = DOM.get('tactics-drawer-box');
-        const drawerExpanded = Boolean(tacticsDrawer && tacticsDrawer.classList && tacticsDrawer.classList.contains && tacticsDrawer.classList.contains('expanded'));
-        btnTactics.setAttribute('aria-expanded', String(drawerExpanded));
-        btnTactics.onclick = () => {
-            const drawer = DOM.get('tactics-drawer-box');
-            if (drawer) {
-                if (typeof toggleTacticsDrawer === "function") toggleTacticsDrawer();
-                else {
-                    const expanded = drawer.classList.toggle('expanded');
-                    btnTactics.setAttribute('aria-expanded', String(expanded));
-                    const trigger = DOM.get('tactic-trigger-btn');
-                    if (trigger) trigger.setAttribute('aria-expanded', String(expanded));
-                }
-            }
-        };
-
         const btnFlee = document.createElement('button');
         btnFlee.id = "btn-secondary-action";
         btnFlee.className = "btn-game btn-rest";
@@ -510,7 +489,6 @@ function updateActionPanelUI() {
         btnFlee.innerHTML = "🏃 回到村莊";
         btnFlee.onclick = () => { if (typeof returnToVillage === "function") returnToVillage(); };
 
-        actionBox.appendChild(btnTactics);
         actionBox.appendChild(btnFlee);
         return;
     }
@@ -1271,6 +1249,18 @@ function updateBattleScene(monster) {
     const playerAtbPercent = Math.min(100, Math.max(0, showResult ? battleSceneTerminalSnapshot.playerAtb : (typeof playerAtb !== "undefined" ? playerAtb : 0)));
     DOM.get('battle-player-atb-text').textContent = `${Math.floor(playerAtbPercent)}%`;
     setBattleMeter(DOM.get('battle-player-atb-bar'), playerAtbPercent, 100);
+    const cooldownEl = DOM.get('battle-skill-cooldowns');
+    if (cooldownEl) {
+        const knownSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentRun.job) : [];
+        const cooldownNames = knownSkills
+            .filter((skillMeta) => skillMeta.type === "active" && Number(currentRun.skills?.[skillMeta.name]) > 0)
+            .map((skillMeta) => ({ name: skillMeta.name, seconds: typeof getSkillCooldownRemaining === "function" ? getSkillCooldownRemaining(skillMeta) : 0 }))
+            .filter((entry) => entry.seconds > 0)
+            .map((entry) => `${entry.name} ${entry.seconds}s`);
+        cooldownEl.textContent = cooldownNames.length ? `⏳ CD：${cooldownNames.join(" · ")}` : "";
+        cooldownEl.title = cooldownNames.length ? cooldownNames.join("、") : "";
+        cooldownEl.style.display = cooldownNames.length ? "block" : "none";
+    }
 
     DOM.get('battle-monster-name').textContent = displayedMonster.name || "深淵魔物";
     DOM.get('battle-monster-hp-text').textContent = `HP ${Math.max(0, displayedMonster.hp || 0)} / ${displayedMonster.maxHp || 0}`;

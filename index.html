@@ -311,6 +311,7 @@
                         <div class="battle-meter battle-meter-mp"><span id="battle-player-mp-bar"></span></div>
                         <div class="battle-atb-heading"><span>⚡ 我方 ATB</span><strong id="battle-player-atb-text">0%</strong></div>
                         <div class="battle-meter battle-meter-atb battle-meter-player-atb"><span id="battle-player-atb-bar"></span></div>
+                        <div id="battle-skill-cooldowns" class="battle-skill-cooldowns" style="display: none;" aria-live="polite"></div>
                     </div>
                     <div class="battle-hud-card battle-hud-enemy">
                         <strong id="battle-monster-name">深淵魔物</strong>
@@ -332,47 +333,6 @@
                     <div id="battle-scene-log-line-1" class="battle-scene-log-line">發現魔物</div>
                     <div id="battle-scene-log-line-2" class="battle-scene-log-line">戰鬥開始！</div>
                 </div>
-            </section>
-
-            <!-- 👹 6. 魔物狀態面板 -->
-            <section class="status-panel" id="monster-status-card" style="display: none;">
-                <div class="monster-header-row">
-                    <span>⚔️ 敵對魔物: <strong id="m-name" class="text-white">--</strong></span>
-                    <strong id="m-shield-text" class="text-cyan"></strong>
-                </div>
-                <div class="bars-container-row">
-                    <div class="mini-bar-box monster-bar-box">
-                        <div class="flex-space text-sm"><span>❤️ 魔物血量</span><strong><span id="m-hp-text">0 / 0</span></strong></div>
-                        <div class="visual-bar-bg">
-                            <div id="m-hp-bar-ghost" class="visual-bar-ghost"></div>
-                            <div id="m-hp-bar" class="visual-bar-fill monster-hp-gradient"></div>
-                        </div>
-                    </div>
-                    <div class="mini-bar-box monster-bar-box" id="m-atb-row">
-                        <div class="flex-space text-sm"><span>⚡ 行動: </span><strong><span id="m-atb-text">0%</span></strong></div>
-                        <div class="visual-bar-bg"><div id="m-atb-bar-fill" class="visual-bar-fill atb-color"></div></div>
-                    </div>
-                </div>
-
-                <!-- ✨ 魔物 Buff/Debuff 狀態徽章列 -->
-                <div id="monster-status-badges" class="status-badges-row"></div>
-
-                <div class="monster-stats-grid">
-                    <div class="grid-cell monster-grid-cell">⚔️ 攻擊力: <strong id="m-atk" class="text-pink">0</strong></div>
-                    <div class="grid-cell monster-grid-cell">⚡ 速度: <strong id="m-spd" class="text-yellow">0</strong></div>
-                </div>
-            </section>
-
-            <!-- 🎁 7. 抉擇與獎勵面板 -->
-            <section class="dynamic-panel reward-style full-width" id="reward-panel-box" style="display: none;">
-                <div class="panel-title text-gold" id="reward-title-text">✨ 抉擇靈魂賜福 ✨</div>
-                <div class="flex-layout" id="reward-choices-container"></div>
-            </section>
-
-            <!-- 📜 8. 戰鬥日誌打印台 + 🧭 側拉式戰術抽屜 -->
-            <section class="log-wrapper" id="log-wrapper-box" style="display: none;">
-                <div class="log-panel full-size" id="log-box" aria-live="polite" aria-atomic="false"></div>
-                 
                 <div class="tactics-drawer" id="tactics-drawer-box">
                     <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn" aria-label="切換戰術面板" aria-controls="tactics-drawer-box" aria-expanded="false">
                         <span class="trigger-icon">⚙️</span>
@@ -418,6 +378,46 @@
                         </fieldset>
                     </div>
                 </div>
+            </section>
+
+            <!-- 👹 6. 魔物狀態面板 -->
+            <section class="status-panel" id="monster-status-card" style="display: none;">
+                <div class="monster-header-row">
+                    <span>⚔️ 敵對魔物: <strong id="m-name" class="text-white">--</strong></span>
+                    <strong id="m-shield-text" class="text-cyan"></strong>
+                </div>
+                <div class="bars-container-row">
+                    <div class="mini-bar-box monster-bar-box">
+                        <div class="flex-space text-sm"><span>❤️ 魔物血量</span><strong><span id="m-hp-text">0 / 0</span></strong></div>
+                        <div class="visual-bar-bg">
+                            <div id="m-hp-bar-ghost" class="visual-bar-ghost"></div>
+                            <div id="m-hp-bar" class="visual-bar-fill monster-hp-gradient"></div>
+                        </div>
+                    </div>
+                    <div class="mini-bar-box monster-bar-box" id="m-atb-row">
+                        <div class="flex-space text-sm"><span>⚡ 行動: </span><strong><span id="m-atb-text">0%</span></strong></div>
+                        <div class="visual-bar-bg"><div id="m-atb-bar-fill" class="visual-bar-fill atb-color"></div></div>
+                    </div>
+                </div>
+
+                <!-- ✨ 魔物 Buff/Debuff 狀態徽章列 -->
+                <div id="monster-status-badges" class="status-badges-row"></div>
+
+                <div class="monster-stats-grid">
+                    <div class="grid-cell monster-grid-cell">⚔️ 攻擊力: <strong id="m-atk" class="text-pink">0</strong></div>
+                    <div class="grid-cell monster-grid-cell">⚡ 速度: <strong id="m-spd" class="text-yellow">0</strong></div>
+                </div>
+            </section>
+
+            <!-- 🎁 7. 抉擇與獎勵面板 -->
+            <section class="dynamic-panel reward-style full-width" id="reward-panel-box" style="display: none;">
+                <div class="panel-title text-gold" id="reward-title-text">✨ 抉擇靈魂賜福 ✨</div>
+                <div class="flex-layout" id="reward-choices-container"></div>
+            </section>
+
+            <!-- 📜 8. 戰鬥日誌打印台；戰術抽屜已移入上方戰鬥場景 -->
+            <section class="log-wrapper" id="log-wrapper-box" style="display: none;">
+                <div class="log-panel full-size" id="log-box" aria-live="polite" aria-atomic="false"></div>
             </section>
 
         </section>

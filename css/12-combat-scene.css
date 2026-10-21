@@ -70,17 +70,40 @@
     display: block;
     width: 100%;
     height: 100%;
-    transition: width .24s steps(5, end);
+    transition: width .25s linear;
 }
 
 .battle-meter-hp span { background: #df3845; }
 .battle-meter-mp span { background: #3984e8; }
 .battle-meter-enemy span { background: #8d2cb2; }
 .battle-meter-atb { height: 5px; }
-.battle-meter-player-atb span { background: #e7b949; }
-.battle-meter-monster-atb span { background: #55d6a0; }
+.battle-meter-player-atb span { background: linear-gradient(90deg, #d59e2c, #ffe17a); box-shadow: 0 0 5px rgba(255, 211, 90, .65); }
+.battle-meter-monster-atb span { background: linear-gradient(90deg, #2eaa7d, #7df0bf); box-shadow: 0 0 5px rgba(85, 214, 160, .55); }
 .battle-atb-heading { display: flex; justify-content: space-between; align-items: center; color: #564426; font-size: 9px; }
 .battle-shield-label { color: #176b70; font-weight: 800; }
+.battle-skill-cooldowns { overflow: hidden; color: #725322; font-size: 9px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+
+#battle-scene-box .tactics-drawer {
+    top: 6px;
+    right: 0;
+    bottom: 34px;
+    width: min(260px, 82%);
+    border: 1px solid rgba(226, 193, 110, .45);
+    border-right: 0;
+    border-radius: 6px 0 0 6px;
+    background: rgba(15, 15, 22, .96);
+    transform: translateX(100%);
+    transition: transform .32s cubic-bezier(.22, 1, .36, 1);
+}
+
+#battle-scene-box .tactics-drawer.expanded {
+    transform: translateX(0);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, .58);
+}
+
+#battle-scene-box .drawer-trigger-tab { top: 45%; }
+#battle-scene-box .drawer-panel-content { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+#battle-scene-box .tactics-options-container { min-height: 80px; }
 
 .battle-stage {
     position: absolute;
@@ -281,6 +304,9 @@
     .battle-attack-swipe { inset: 18% -4% 8%; }
     .battle-attack-swipe::before { width: 92%; height: 8px; }
     .battle-item-queue-status { font-size: 9px; }
+    #battle-scene-box .tactics-drawer { top: 5px; bottom: 32px; width: min(248px, 88%); }
+    #battle-scene-box .drawer-panel-content { padding: 8px; }
+    .battle-skill-cooldowns { max-width: 44vw; font-size: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

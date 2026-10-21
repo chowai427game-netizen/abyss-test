@@ -14,6 +14,7 @@ const ui = fs.readFileSync(path.join(root, "js/ui.js"), "utf8");
 for (const id of [
     "battle-scene-box", "battle-monster-vfx-anchor", "battle-attack-swipe", "battle-monster-sprite", "battle-monster-fallback",
     "battle-player-hp-bar", "battle-player-mp-bar", "battle-monster-hp-bar",
+    "battle-skill-cooldowns",
     "battle-player-atb-text", "battle-player-atb-bar", "battle-monster-atb-text", "battle-monster-atb-bar",
     "battle-scene-log-line-1", "battle-scene-log-line-2", "battle-item-queue-status"
 ]) {
@@ -24,6 +25,16 @@ assert.match(css, /@media \(max-width: 600px\)/, "battle scene has a mobile layo
 assert.match(css, /prefers-reduced-motion/, "battle scene respects reduced motion preferences");
 assert.match(css, /@keyframes first-person-attack/, "first-person slash has an animation");
 assert.match(css, /@keyframes diary-caret/, "battle diary has a typewriter cursor animation");
+assert.match(css, /\.battle-meter span\s*\{[\s\S]*?transition: width \.25s linear;/, "ATB bars interpolate continuously instead of stepping");
+assert.match(ui, /getSkillCooldownRemaining\(skillMeta\)/, "the battle HUD displays live remaining cooldown seconds");
+assert.equal((html.match(/id="tactics-drawer-box"/g) || []).length, 1, "only one tactics drawer remains");
+const sceneStart = html.indexOf('id="battle-scene-box"');
+const sceneEnd = html.indexOf("</section>", sceneStart);
+const drawerPosition = html.indexOf('id="tactics-drawer-box"');
+assert.ok(sceneStart >= 0 && drawerPosition > sceneStart && drawerPosition < sceneEnd, "tactics drawer is nested in the battle scene");
+const diaryStart = html.indexOf('id="log-wrapper-box"');
+const diaryEnd = html.indexOf("</section>", diaryStart);
+assert.ok(diaryStart >= 0 && (html.indexOf('id="tactics-drawer-box"') < diaryStart || html.indexOf('id="tactics-drawer-box"') > diaryEnd), "the diary column no longer owns the tactics drawer");
 assert.match(ui, /new Intl\.Segmenter\("zh-Hant", \{ granularity: "grapheme" \}\)/, "typewriter reveals Chinese characters by grapheme");
 assert.doesNotMatch(ui, /battle-player-sprite/, "the player sprite is removed from UI element caching");
 assert.doesNotMatch(html, /battle-player-sprite|hero-knight\.png|battle-versus/, "battle stage displays no player character or versus marker");

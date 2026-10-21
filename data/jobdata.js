@@ -361,6 +361,13 @@ const SKILLS_DATABASE = {
     ]
 };
 
+// 強力主動技能的實時冷卻（秒）；未列出的技能沒有冷卻。
+const SKILL_COOLDOWN_SECONDS = Object.freeze({
+    s_5: 5, m_5: 7, a_5: 6, t_5: 8, r_5: 8,
+    k_2: 6, c_1: 7, w_2: 10, sg_1: 6, p_2: 7,
+    mk_2: 12, as_1: 7, rg_2: 6, ht_1: 7, bd_1: 8
+});
+
 const ADVANCED_JOBS_DATABASE = {
     swordsman: [
         { id: "knight", name: "騎士", icon: "🏇", reqLv: 20, desc: "掌握槍術與衝鋒，擁有極致近戰突破力與多段貫穿衝擊力。" },

@@ -503,6 +503,26 @@ function toggleCombatPause() {
 // --------------------------------------------------------------------------
 // ⚡ 自動戰鬥策略選擇與共用行動執行器
 // --------------------------------------------------------------------------
+function getSkillCooldownSeconds(skillMeta) {
+    if (!skillMeta) return 0;
+    const configured = skillMeta.cooldownSeconds ?? (typeof SKILL_COOLDOWN_SECONDS !== "undefined" ? SKILL_COOLDOWN_SECONDS[skillMeta.id] : 0);
+    const seconds = Number(configured);
+    return Number.isFinite(seconds) ? Math.max(0, Math.min(120, Math.floor(seconds))) : 0;
+}
+
+function getSkillCooldownRemaining(skillMeta, now = Date.now()) {
+    if (!skillMeta?.id || !currentRun) return 0;
+    const cooldowns = currentRun.skillCooldowns;
+    if (!cooldowns || typeof cooldowns !== "object") return 0;
+    const readyAt = Number(cooldowns[skillMeta.id]) || 0;
+    const remainingMs = readyAt - Number(now);
+    if (remainingMs <= 0) {
+        delete cooldowns[skillMeta.id];
+        return 0;
+    }
+    return Math.ceil(remainingMs / 1000);
+}
+
 function getCombatSkillCandidates() {
     if (!currentRun || !currentRun.skills) return [];
     let jobSkills = [];
@@ -521,7 +541,7 @@ function getCombatSkillCandidates() {
         if (!skillMeta || skillMeta.type !== "active" || typeof skillMeta.run !== "function") return candidates;
         const skillLevel = Number(currentRun.skills[skillMeta.name]) || 0;
         const mpCost = Math.max(0, Number(skillMeta.mp) || 0);
-        if (skillLevel <= 0 || (Number(currentRun.mp) || 0) < mpCost) return candidates;
+        if (skillLevel <= 0 || (Number(currentRun.mp) || 0) < mpCost || getSkillCooldownRemaining(skillMeta) > 0) return candidates;
         try {
             const effect = skillMeta.run(skillLevel, baseAttack, currentRun.maxMp, currentRun.hp, currentRun.maxHp, currentRun);
             if (effect && typeof effect === "object") candidates.push({ skillMeta, skillLevel, mpCost, effect, order });
@@ -676,6 +696,7 @@ function executeAutoBattleAiTurn() {
 
 function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
     if (!skillMeta || !activeMonster || activeMonster.hp <= 0 || !currentRun) return false;
+    if (getSkillCooldownRemaining(skillMeta) > 0) return false;
     const mpCost = Math.max(0, Number(skillMeta.mp) || 0);
     if ((Number(currentRun.mp) || 0) < mpCost) return false;
 
@@ -698,6 +719,12 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
     if (Number(effect.bossDmgCut) > 0 && !activeMonster.isBoss) return false;
     if (effect.explodePoison && Number(activeMonster.poisonStacks) <= 0) return false;
 
+    const cooldownSeconds = getSkillCooldownSeconds(skillMeta);
+    if (cooldownSeconds > 0) {
+        currentRun.skillCooldowns ||= {};
+        currentRun.skillCooldowns[skillMeta.id] = Date.now() + cooldownSeconds * 1000;
+    }
+
     const jobTraits = currentRun.jobCombatTraits || {};
     const freeCast = !!effect.isMagic && Number(jobTraits.freeSkillMpChance) > 0 && Math.random() < Number(jobTraits.freeSkillMpChance);
     if (!freeCast) currentRun.mp = Math.max(0, (Number(currentRun.mp) || 0) - mpCost);
@@ -717,6 +744,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
     const skillName = String(skillMeta.name || "技能");
     const fxClass = typeof detectSkillCssClass === "function" ? detectSkillCssClass(skillName) : "skill-hit";
     const vfx = typeof spawnVfx === "function" ? spawnVfx : () => {};
+    if (cooldownSeconds > 0 && typeof addLog === "function") addLog(`⏳【${skillName}】進入冷卻，${cooldownSeconds} 秒後可再次使用。`, "env");
     if (freeCast && typeof addLog === "function") addLog("✨【元素共鳴】本次魔法不消耗 MP！", "perfect");
 
     if (Number(effect.shieldGain) > 0) {

@@ -29,6 +29,7 @@ for (const file of ["data/jobdata.js", "js/statengine.js", "js/game.js"]) {
     vm.runInContext(fs.readFileSync(path.join(repoRoot, file), "utf8"), context, { filename: file });
 }
 const skillDb = vm.runInContext("SKILLS_DATABASE", context);
+const cooldownRules = vm.runInContext("SKILL_COOLDOWN_SECONDS", context);
 
 const activeEffectKeys = new Set([
     "dmg", "physicalDmg", "magicDmg", "hitCount", "isDoubleHit", "isTripleHit", "isMagic",
@@ -81,6 +82,11 @@ assert.equal(Object.keys(skillDb).length, 15);
 assert.equal(totalSkills, 49);
 assert.equal(activeCount, 41);
 assert.equal(passiveCount, 8);
+assert.equal(Object.keys(cooldownRules).length, 15, "selected high-impact skills have real-time cooldowns");
+for (const [skillId, seconds] of Object.entries(cooldownRules)) {
+    assert.ok(skillDb && Object.values(skillDb).flat().some((entry) => entry.id === skillId && entry.type === "active"), `${skillId} is an active skill`);
+    assert.ok(seconds >= 5 && seconds <= 12, `${skillId} cooldown is bounded to a short wait`);
+}
 
 function buildStatsRun(job, learnedSkill = null) {
     const run = {
@@ -146,6 +152,27 @@ function cast(job, id, level = 1, effect = null) {
     const prepared = effect || meta.run(level, baseAttack, battle.run.maxMp, battle.run.hp, battle.run.maxHp, battle.run);
     assert.equal(context.executeActiveSkill(meta, level, prepared), true, `${meta.name} should execute`);
     return battle;
+}
+
+// Selected burst skills use a real-time cooldown, are excluded from auto-play, and become usable again on expiry.
+{
+    const battle = freshBattle({ job: "swordsman" });
+    const meta = skill("swordsman", "s_5");
+    battle.run.skills = { [meta.name]: 1 };
+    const effect = meta.run(1, battle.run.atk);
+    assert.equal(context.getSkillCooldownSeconds(meta), cooldownRules.s_5);
+    assert.equal(context.executeActiveSkill(meta, 1, effect), true);
+    const mpAfterCast = battle.run.mp;
+    assert.equal(context.getSkillCooldownRemaining(meta) > 0, true, "cooldown starts when the skill is successfully cast");
+    assert.ok(battle.run.skillCooldowns[meta.id] > Date.now());
+    assert.equal(context.executeActiveSkill(meta, 1, effect), false, "a cooling skill cannot be cast again");
+    assert.equal(battle.run.mp, mpAfterCast, "blocked reuse does not consume MP");
+    assert.equal(context.getCombatSkillCandidates().length, 0, "auto battle omits skills that are cooling down");
+    assert.equal(context.chooseAutoBattleAction().type, "basic", "auto battle falls back to a basic attack during cooldown");
+    battle.run.skillCooldowns[meta.id] = Date.now() - 1;
+    assert.equal(context.getSkillCooldownRemaining(meta), 0, "expired cooldown is cleaned up");
+    assert.equal(context.executeActiveSkill(meta, 1, effect), true, "the skill becomes usable after its timer expires");
+    assert.equal(context.getSkillCooldownRemaining(skill("swordsman", "s_1")), 0, "unconfigured skills remain without cooldown");
 }
 
 // Sword shield strike destroys a barrier and grants its caster a scaled shield.
