@@ -65,6 +65,8 @@ const DOM = {
             'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar', 'battle-monster-atb-text', 'battle-monster-atb-bar',
             'battle-monster-shield-text', 'battle-monster-sprite', 'battle-monster-fallback',
             'battle-scene-log-line-1', 'battle-scene-log-line-2',
+            'battle-command-panel', 'battle-command-status', 'battle-command-categories', 'battle-command-options',
+            'semi-command-controls', 'semi-command-options', 'semi-command-status',
             'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
             'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
             'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
@@ -1093,6 +1095,55 @@ let battleSceneLogSequence = 0;
 let battleSceneTerminalUntil = 0;
 let battleSceneTerminalSnapshot = null;
 let battleSceneTerminalTimer = null;
+let battleSceneEncounterIntroTimer = null;
+let battleSceneEncounterPlaceholder = null;
+
+function restoreBattleSceneAfterEncounterIntro() {
+    const scene = DOM.get('battle-scene-box');
+    if (battleSceneEncounterIntroTimer !== null) clearTimeout(battleSceneEncounterIntroTimer);
+    battleSceneEncounterIntroTimer = null;
+    if (scene && battleSceneEncounterPlaceholder?.parentNode) {
+        battleSceneEncounterPlaceholder.parentNode.insertBefore(scene, battleSceneEncounterPlaceholder);
+    }
+    if (battleSceneEncounterPlaceholder?.parentNode) battleSceneEncounterPlaceholder.remove();
+    battleSceneEncounterPlaceholder = null;
+    if (scene) {
+        scene.classList?.remove('is-encounter-cinematic');
+        ['--battle-scene-origin-top', '--battle-scene-origin-left', '--battle-scene-origin-width', '--battle-scene-origin-height']
+            .forEach((property) => scene.style.removeProperty(property));
+    }
+    if (typeof document !== "undefined") document.body?.classList?.remove('battle-scene-cinematic-active');
+}
+
+function playBattleSceneEncounterIntro() {
+    const scene = DOM.get('battle-scene-box');
+    if (typeof document === "undefined" || !document.body || !scene || !scene.parentNode || typeof scene.getBoundingClientRect !== "function") return 0;
+    restoreBattleSceneAfterEncounterIntro();
+
+    const rect = scene.getBoundingClientRect();
+    if (!rect.width || !rect.height) return 0;
+    const computed = typeof getComputedStyle === "function" ? getComputedStyle(scene) : null;
+    const placeholder = document.createElement('div');
+    placeholder.setAttribute('aria-hidden', 'true');
+    placeholder.style.cssText = `width:${rect.width}px;height:${rect.height}px;margin:${computed?.margin || "0"};grid-column:${computed?.gridColumn || "auto"};grid-row:${computed?.gridRow || "auto"};align-self:${computed?.alignSelf || "auto"};justify-self:${computed?.justifySelf || "auto"};visibility:hidden;pointer-events:none;`;
+    scene.parentNode.insertBefore(placeholder, scene);
+    battleSceneEncounterPlaceholder = placeholder;
+    document.body.appendChild(scene);
+
+    scene.style.setProperty('--battle-scene-origin-top', `${rect.top}px`);
+    scene.style.setProperty('--battle-scene-origin-left', `${rect.left}px`);
+    scene.style.setProperty('--battle-scene-origin-width', `${rect.width}px`);
+    scene.style.setProperty('--battle-scene-origin-height', `${rect.height}px`);
+    document.body.classList.add('battle-scene-cinematic-active');
+    scene.classList.add('is-encounter-cinematic');
+
+    const duration = typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 240 : 1550;
+    battleSceneEncounterIntroTimer = setTimeout(() => {
+        restoreBattleSceneAfterEncounterIntro();
+        if (typeof updateUI === "function") updateUI();
+    }, duration);
+    return duration;
+}
 
 function getBattleDiaryTone(text, logType = "deal") {
     if (/VICTORY!|討伐成功/i.test(text)) return "victory";
@@ -1217,6 +1268,91 @@ function setBattleMeter(element, value, maximum) {
     element.style.width = `${Math.round((current / max) * 100)}%`;
 }
 
+function appendCombatCommandButton(container, label, onClick, disabled = false, title = "") {
+    const button = document.createElement('button');
+    button.type = "button";
+    button.textContent = label;
+    button.disabled = disabled;
+    if (title) button.title = title;
+    button.addEventListener('click', onClick);
+    container.appendChild(button);
+    return button;
+}
+
+function populateCombatCommandOptions(container, kind, mode) {
+    if (!container) return;
+    container.innerHTML = "";
+    const isManual = mode === "manual";
+    if (kind === "skills") {
+        const skills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentRun?.job) : [];
+        const learned = skills.filter((skillMeta) => skillMeta.type === "active" && Number(currentRun?.skills?.[skillMeta.name]) > 0);
+        if (!learned.length) {
+            container.textContent = "尚未學會可用的主動技能。";
+            return;
+        }
+        learned.forEach((skillMeta) => {
+            const level = Number(currentRun.skills[skillMeta.name]) || 0;
+            const cost = Math.max(0, Number(skillMeta.mp) || 0);
+            const cooldown = typeof getSkillCooldownRemaining === "function" ? getSkillCooldownRemaining(skillMeta) : 0;
+            const disabled = Number(currentRun.mp) < cost || cooldown > 0;
+            const label = `${skillMeta.name} Lv.${level} · MP ${cost}${cooldown > 0 ? ` · CD ${cooldown}s` : ""}`;
+            appendCombatCommandButton(container, label, () => {
+                if (isManual) submitManualBattleCommand("skill", skillMeta.id);
+                else queueSemiCombatCommand("skill", skillMeta.id);
+            }, disabled, skillMeta.desc || "");
+        });
+        return;
+    }
+
+    const inventory = Array.isArray(currentRun?.inventory) ? currentRun.inventory : [];
+    const usableItems = inventory
+        .map((itemName, index) => ({ itemName: String(itemName || ""), index }))
+        .filter((entry) => typeof isUsableCombatItem === "function" && isUsableCombatItem(entry.itemName));
+    if (!usableItems.length) {
+        container.textContent = "背包中沒有可在戰鬥使用的道具。";
+        return;
+    }
+    usableItems.forEach(({ itemName, index }) => {
+        appendCombatCommandButton(container, itemName, () => {
+            if (isManual) submitManualBattleCommand("item", index);
+            else queueSemiCombatCommand("item", index);
+        });
+    });
+}
+
+function openManualBattleCommandList(kind) {
+    if (!manualTurnPaused || !["skills", "items"].includes(kind)) return false;
+    const categories = DOM.get('battle-command-categories');
+    const options = DOM.get('battle-command-options');
+    if (!categories || !options) return false;
+    categories.style.display = "none";
+    options.style.display = "flex";
+    populateCombatCommandOptions(options, kind, "manual");
+    const back = document.createElement('button');
+    back.type = "button";
+    back.textContent = "↩ 返回指令";
+    back.addEventListener('click', () => {
+        options.style.display = "none";
+        categories.style.display = "flex";
+    });
+    options.appendChild(back);
+    return true;
+}
+
+function openSemiCombatCommandList(kind) {
+    if (activeTactic !== "SEMI" || !["skills", "items"].includes(kind)) return false;
+    const options = DOM.get('semi-command-options');
+    if (!options) return false;
+    options.style.display = "flex";
+    populateCombatCommandOptions(options, kind, "semi");
+    const back = document.createElement('button');
+    back.type = "button";
+    back.textContent = "↩ 返回";
+    back.addEventListener('click', () => { options.innerHTML = ""; });
+    options.appendChild(back);
+    return true;
+}
+
 function updateBattleScene(monster) {
     const scene = DOM.get('battle-scene-box');
     if (!scene) return;
@@ -1227,6 +1363,25 @@ function updateBattleScene(monster) {
     const showResult = Boolean(terminalVisible && sceneMonster && typeof currentRun !== "undefined" && currentRun);
     const showScene = Boolean(inBattle || showResult);
     scene.style.display = showScene ? "block" : "none";
+    const commandPanel = DOM.get('battle-command-panel');
+    const commandCategories = DOM.get('battle-command-categories');
+    const commandOptions = DOM.get('battle-command-options');
+    const showManualCommands = Boolean(inBattle && typeof manualTurnPaused !== "undefined" && manualTurnPaused);
+    if (commandPanel) {
+        if (showManualCommands && commandPanel.style.display !== "grid") {
+            if (commandCategories) commandCategories.style.display = "flex";
+            if (commandOptions) { commandOptions.innerHTML = ""; commandOptions.style.display = "none"; }
+        }
+        commandPanel.style.display = showManualCommands ? "grid" : "none";
+    }
+    const semiControls = DOM.get('semi-command-controls');
+    if (semiControls) semiControls.style.display = Boolean(inBattle && activeTactic === "SEMI") ? "block" : "none";
+    const semiStatus = DOM.get('semi-command-status');
+    if (semiStatus && typeof pendingCombatCommand !== "undefined") {
+        const pending = pendingCombatCommand;
+        const name = pending?.skillName || pending?.itemName || (pending?.type === "basic" ? "普攻" : "行動");
+        semiStatus.textContent = pending ? `已預約：${name}（於下次我方 ATB 行動執行）` : "尚無預約行動。";
+    }
     if (!showScene) return;
 
     const heroName = (accountMeta && accountMeta.name) || "冒險者";

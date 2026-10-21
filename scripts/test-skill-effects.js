@@ -154,7 +154,7 @@ function cast(job, id, level = 1, effect = null) {
     return battle;
 }
 
-// Selected burst skills use a real-time cooldown, are excluded from auto-play, and become usable again on expiry.
+// Selected burst skills use active-combat cooldown seconds, are excluded from auto-play, and become usable again on expiry.
 {
     const battle = freshBattle({ job: "swordsman" });
     const meta = skill("swordsman", "s_5");
@@ -164,15 +164,27 @@ function cast(job, id, level = 1, effect = null) {
     assert.equal(context.executeActiveSkill(meta, 1, effect), true);
     const mpAfterCast = battle.run.mp;
     assert.equal(context.getSkillCooldownRemaining(meta) > 0, true, "cooldown starts when the skill is successfully cast");
-    assert.ok(battle.run.skillCooldowns[meta.id] > Date.now());
+    assert.equal(battle.run.skillCooldowns[meta.id], cooldownRules.s_5);
     assert.equal(context.executeActiveSkill(meta, 1, effect), false, "a cooling skill cannot be cast again");
     assert.equal(battle.run.mp, mpAfterCast, "blocked reuse does not consume MP");
     assert.equal(context.getCombatSkillCandidates().length, 0, "auto battle omits skills that are cooling down");
     assert.equal(context.chooseAutoBattleAction().type, "basic", "auto battle falls back to a basic attack during cooldown");
-    battle.run.skillCooldowns[meta.id] = Date.now() - 1;
-    assert.equal(context.getSkillCooldownRemaining(meta), 0, "expired cooldown is cleaned up");
+    context.tickSkillCooldowns(cooldownRules.s_5 - 1);
+    assert.equal(context.getSkillCooldownRemaining(meta), 1, "cooldown advances only by active combat time");
+    context.tickSkillCooldowns(1);
+    assert.equal(context.getSkillCooldownRemaining(meta), 0, "elapsed combat cooldown is cleaned up");
     assert.equal(context.executeActiveSkill(meta, 1, effect), true, "the skill becomes usable after its timer expires");
     assert.equal(context.getSkillCooldownRemaining(skill("swordsman", "s_1")), 0, "unconfigured skills remain without cooldown");
+}
+
+// Existing saved timestamps are migrated to remaining active-combat seconds.
+{
+    const battle = freshBattle({ job: "swordsman" });
+    const meta = skill("swordsman", "s_5");
+    battle.run.skillCooldowns = { [meta.id]: Date.now() + 3000 };
+    const remaining = context.getSkillCooldownRemaining(meta);
+    assert.ok(remaining >= 1 && remaining <= 3);
+    assert.ok(battle.run.skillCooldowns[meta.id] <= 3, "legacy wall-clock values are converted on read");
 }
 
 // Sword shield strike destroys a barrier and grants its caster a scaled shield.

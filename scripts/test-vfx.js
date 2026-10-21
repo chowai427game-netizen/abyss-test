@@ -956,7 +956,37 @@ function runCombatTacticsAndPauseTests() {
     assert.equal(unifiedSkill.context.currentRun.mp, 60);
     assert.ok(unifiedSkill.logs.some((message) => message.includes("暴擊")), "the shared resolver logs the critical hit");
 
+    const manualSkill = { id: "manual_test_skill", name: "手動測試技能", type: "active", mp: 10, run: () => ({ dmg: 100 }) };
+    const manualTurn = createCombatFixture({ tactic: "MANUAL", skills: [manualSkill] });
+    vm.runInContext('activeTactic = "MANUAL"; playerAtb = 100; monsterAtb = 0; envAtb = 0', manualTurn.context);
+    manualTurn.context.handleCombatTickerTick();
+    assert.equal(vm.runInContext("manualTurnPaused", manualTurn.context), true, "a full manual-mode player ATB opens a command turn");
+    assert.equal(vm.runInContext("combatPaused", manualTurn.context), true, "the manual prompt pauses enemy and environment turns");
+    assert.equal(manualTurn.context.submitManualBattleCommand("skill", manualSkill.id), true, "the player can issue a learned skill command");
+    assert.equal(vm.runInContext("manualTurnPaused", manualTurn.context), false, "issuing a manual command closes the prompt");
+    assert.equal(manualTurn.context.activeMonster.hp, 900, "the selected skill is executed on the manual ATB turn");
+    assert.equal(manualTurn.context.currentRun.mp, 90, "manual skill command consumes its MP cost");
+
+    const semiSkill = createCombatFixture({ tactic: "SEMI", skills: [manualSkill] });
+    assert.equal(semiSkill.context.queueSemiCombatCommand("skill", manualSkill.id), true, "semi-auto can reserve a learned skill");
+    assert.equal(semiSkill.context.activeMonster.hp, 1000, "a reserved semi-auto skill waits for the next player turn");
+    semiSkill.context.executePlayerActionTick();
+    assert.equal(semiSkill.context.activeMonster.hp, 900, "the reserved skill is used on the next player action");
+
+    const semiItem = createCombatFixture({ tactic: "SEMI", inventory: ["🧪 微光初級治癒藥水"] });
+    assert.equal(semiItem.context.queueSemiCombatCommand("item", 0), true, "semi-auto can reserve a usable potion");
+    semiItem.context.executePlayerActionTick();
+    assert.deepEqual(semiItem.context.usedDungeonItem, { item: "🧪 微光初級治癒藥水", index: 0 }, "the reserved potion is executed on the next player action");
+
     const paused = createCombatFixture({ tactic: "MANUAL" });
+    const tacticsDrawer = paused.env.document.createElement("div");
+    tacticsDrawer.id = "tactics-drawer-box";
+    let drawerExpanded = false;
+    tacticsDrawer.classList = { toggle: () => (drawerExpanded = !drawerExpanded) };
+    paused.env.document.body.appendChild(tacticsDrawer);
+    const drawerTrigger = paused.env.document.createElement("button");
+    drawerTrigger.id = "tactic-trigger-btn";
+    paused.env.document.body.appendChild(drawerTrigger);
     const pauseButton = paused.env.document.createElement("button");
     pauseButton.id = "combat-pause-btn";
     paused.env.document.body.appendChild(pauseButton);
@@ -977,14 +1007,30 @@ function runCombatTacticsAndPauseTests() {
     const firstTicker = [...paused.intervals.values()][0];
     firstTicker.callback();
     const getPlayerAtb = () => vm.runInContext("playerAtb", paused.context);
+    assert.ok(getPlayerAtb() > 0);
+    paused.context.currentRun.skillCooldowns = { cooldown_test: 5 };
+
+    assert.equal(paused.context.toggleTacticsDrawer(), true);
+    assert.equal(vm.runInContext("combatPaused", paused.context), true, "opening the tactics drawer pauses the battle");
+    assert.equal(paused.intervals.size, 0, "opening the tactics drawer clears the combat interval");
+    assert.equal(pauseButton.disabled, true, "manual resume is unavailable while the tactics drawer is open");
+    paused.context.handleCombatTickerTick();
+    assert.equal(paused.context.currentRun.skillCooldowns.cooldown_test, 5, "cooldowns freeze while tactics are open");
+    assert.equal(paused.context.toggleTacticsDrawer(), false);
+    assert.equal(vm.runInContext("combatPaused", paused.context), false, "closing the tactics drawer resumes an unpaused battle");
+    assert.equal(paused.intervals.size, 1, "closing the tactics drawer starts one combat interval");
+    paused.context.handleCombatTickerTick();
+    assert.equal(paused.context.currentRun.skillCooldowns.cooldown_test, 4.75, "cooldowns resume with active combat time");
     const atbBeforePause = getPlayerAtb();
-    assert.ok(atbBeforePause > 0);
 
     assert.equal(paused.context.toggleCombatPause(), true);
     assert.equal(vm.runInContext("combatPaused", paused.context), true);
     assert.equal(paused.intervals.size, 0, "pausing clears the combat interval");
     assert.equal(pauseButton.textContent, "▶️ 恢復戰鬥");
-    assert.match(pauseStatus.textContent, /已暫停/);
+    assert.match(pauseStatus.textContent, /已手動暫停/);
+    paused.context.toggleTacticsDrawer();
+    paused.context.toggleTacticsDrawer();
+    assert.equal(vm.runInContext("combatPaused", paused.context), true, "closing the tactics drawer does not undo a manual pause");
     firstTicker.callback();
     assert.equal(getPlayerAtb(), atbBeforePause, "a stale tick cannot advance ATB while paused");
 

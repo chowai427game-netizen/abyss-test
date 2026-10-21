@@ -346,8 +346,12 @@
                         <div id="combat-pause-status" class="combat-pause-status" aria-live="polite">自動戰鬥運作中</div>
                         <div class="tactics-options-container">
                             <button id="tactic-btn-MANUAL" class="btn-tactic-option" type="button" onclick="selectTactic('MANUAL')" aria-pressed="false">
-                                <span class="tactic-title">🪓 自動普攻</span>
-                                <span class="tactic-desc">每次行動只用基本攻擊，不施放技能、不消耗 MP</span>
+                                <span class="tactic-title">🎮 手動指令</span>
+                                <span class="tactic-desc">我方 ATB 集滿時暫停，等待你選擇戰鬥、技能或道具</span>
+                            </button>
+                            <button id="tactic-btn-SEMI" class="btn-tactic-option" type="button" onclick="selectTactic('SEMI')" aria-pressed="false">
+                                <span class="tactic-title">🌓 半自動</span>
+                                <span class="tactic-desc">平常自動戰鬥；可預約下次我方行動使用的普攻、技能或道具</span>
                             </button>
                             <button id="tactic-btn-BALANCED" class="btn-tactic-option active" type="button" onclick="selectTactic('BALANCED')" aria-pressed="true">
                                 <span class="tactic-title">⚖️ 均衡防禦</span>
@@ -357,6 +361,16 @@
                                 <span class="tactic-title">⚔️ 狂暴強擊</span>
                                 <span class="tactic-desc">優先施放可用攻擊技能；不自動治療或用補給，MP 不足時改用基本攻擊</span>
                             </button>
+                        </div>
+                        <div id="semi-command-controls" class="semi-command-controls" style="display: none;">
+                            <div class="semi-command-heading">🌓 預約下次我方行動</div>
+                            <div class="semi-command-actions">
+                                <button type="button" onclick="queueSemiCombatCommand('basic')">⚔️ 普攻</button>
+                                <button type="button" onclick="openSemiCombatCommandList('skills')">✨ 技能</button>
+                                <button type="button" onclick="openSemiCombatCommandList('items')">🎒 道具</button>
+                            </div>
+                            <div id="semi-command-options" class="semi-command-options"></div>
+                            <div id="semi-command-status" class="semi-command-status" aria-live="polite"></div>
                         </div>
                         <fieldset class="vfx-preference-controls">
                             <legend>✨ 特效顯示</legend>
@@ -378,6 +392,16 @@
                         </fieldset>
                     </div>
                 </div>
+            </section>
+
+            <section id="battle-command-panel" class="battle-command-panel" style="display: none;" aria-label="手動戰鬥指令" aria-live="polite">
+                <div class="battle-command-heading" id="battle-command-status">輪到你行動</div>
+                <div id="battle-command-categories" class="battle-command-actions">
+                    <button type="button" onclick="submitManualBattleCommand('basic')">⚔️ 戰鬥</button>
+                    <button type="button" onclick="openManualBattleCommandList('skills')">✨ 技能</button>
+                    <button type="button" onclick="openManualBattleCommandList('items')">🎒 道具</button>
+                </div>
+                <div id="battle-command-options" class="battle-command-options" style="display: none;"></div>
             </section>
 
             <!-- 👹 6. 魔物狀態面板 -->

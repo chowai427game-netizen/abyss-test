@@ -10,13 +10,16 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "css/12-combat-scene.css"), "utf8");
 const ui = fs.readFileSync(path.join(root, "js/ui.js"), "utf8");
+const game = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
 
 for (const id of [
     "battle-scene-box", "battle-monster-vfx-anchor", "battle-attack-swipe", "battle-monster-sprite", "battle-monster-fallback",
     "battle-player-hp-bar", "battle-player-mp-bar", "battle-monster-hp-bar",
     "battle-skill-cooldowns",
     "battle-player-atb-text", "battle-player-atb-bar", "battle-monster-atb-text", "battle-monster-atb-bar",
-    "battle-scene-log-line-1", "battle-scene-log-line-2", "battle-item-queue-status"
+    "battle-scene-log-line-1", "battle-scene-log-line-2", "battle-item-queue-status",
+    "battle-command-panel", "battle-command-categories", "battle-command-options",
+    "semi-command-controls", "semi-command-options", "semi-command-status"
 ]) {
     assert.match(html, new RegExp(`id="${id}"`), `battle scene HTML includes #${id}`);
 }
@@ -25,8 +28,18 @@ assert.match(css, /@media \(max-width: 600px\)/, "battle scene has a mobile layo
 assert.match(css, /prefers-reduced-motion/, "battle scene respects reduced motion preferences");
 assert.match(css, /@keyframes first-person-attack/, "first-person slash has an animation");
 assert.match(css, /@keyframes diary-caret/, "battle diary has a typewriter cursor animation");
+assert.match(css, /body\.battle-scene-cinematic-active::before/, "encounter transition dims the page behind the floating scene");
+assert.match(css, /@keyframes battle-scene-encounter-intro/, "encounter scene animates to the center and returns to its origin");
+assert.match(ui, /function playBattleSceneEncounterIntro\(\)/, "encounter intro preserves the original layout before moving the scene");
+assert.match(game, /playBattleSceneEncounterIntro\(\)[\s\S]*?startCombatTicker\(\);/, "ATB starts only after the encounter intro transition");
 assert.match(css, /\.battle-meter span\s*\{[\s\S]*?transition: width \.25s linear;/, "ATB bars interpolate continuously instead of stepping");
 assert.match(ui, /getSkillCooldownRemaining\(skillMeta\)/, "the battle HUD displays live remaining cooldown seconds");
+assert.match(html, /tactic-btn-MANUAL[\s\S]*?手動指令[\s\S]*?選擇戰鬥、技能或道具/, "manual mode presents selectable player commands");
+assert.match(html, /tactic-btn-SEMI[\s\S]*?半自動/, "semi-auto mode has its own tactic control");
+assert.match(game, /manualTurnPaused = true;[\s\S]*?refreshCombatPauseState\(\);/, "a full player ATB pauses the battle for manual input");
+assert.match(game, /function queueSemiCombatCommand\(/, "semi-auto exposes a next-turn action queue");
+assert.match(game, /tickSkillCooldowns\(0\.25\)/, "skill cooldowns advance on active combat ticks");
+assert.match(css, /\.battle-command-panel\s*\{/, "manual battle commands have a dedicated scene panel");
 assert.equal((html.match(/id="tactics-drawer-box"/g) || []).length, 1, "only one tactics drawer remains");
 const sceneStart = html.indexOf('id="battle-scene-box"');
 const sceneEnd = html.indexOf("</section>", sceneStart);
@@ -76,7 +89,7 @@ assert.equal(typingElement.textContent, "A漢字", "diary line finishes after re
 const vfx = fs.readFileSync(path.join(root, "js/vfx.js"), "utf8");
 assert.match(vfx, /firstPersonAttack === true/, "VFX supports explicit first-person attacks");
 assert.match(vfx, /battle-monster-vfx-anchor/, "monster VFX target the single on-screen enemy");
-assert.match(fs.readFileSync(path.join(root, "js/game.js"), "utf8"), /firstPersonAttack: true, result: damageResult\.isCrit \? "crit" : "hit"/, "basic attacks and skills feed first-person combat feedback");
+assert.match(game, /firstPersonAttack: true, result: damageResult\.isCrit \? "crit" : "hit"/, "basic attacks and skills feed first-person combat feedback");
 assert.match(ui, /updateBattleScene\(typeof activeMonster/, "regular UI updates sync the scene before state-specific early returns");
 
 const variantSource = ui.match(/function getBattleMonsterSpriteVariant\(monster\) \{[\s\S]*?\n\}/);
@@ -152,4 +165,4 @@ for (const asset of [
     assert.deepEqual([...signature], [137, 80, 78, 71, 13, 10, 26, 10], `${asset} is a valid PNG`);
 }
 
-console.log("✅ Pixel battle scene markup, mobile styling, sprite routing and generated PNG assets passed.");
+console.log("✅ Pixel battle scene, manual/semi-auto commands, combat-time cooldowns, mobile styling and generated PNG assets passed.");

@@ -3,7 +3,11 @@
 // ==========================================================================
 
 let combatTickerTimer = null;
+let combatIntroStartTimer = null;
 let combatPaused = false;
+let manualPauseRequested = false;
+let tacticsDrawerPaused = false;
+let manualTurnPaused = false;
 let combatRoundCounter = 1;     
 let bossVictoryUnlockTimer = null;
 let bossVictoryAutoCloseTimer = null;
@@ -17,6 +21,7 @@ let battleTimeElapsed = 0;
 let isQteActive = false;
 let activeTactic = "BALANCED";
 let pendingCombatItem = null;
+let pendingCombatCommand = null;
 
 // 📦 安全物品放入背包/倉庫流轉防護
 function safePushToInventory(run, account, itemName) {
@@ -362,7 +367,7 @@ function executeReselectJob(newJobId) {
 }
 
 function normalizeTacticMode(tacticMode) {
-    return ["MANUAL", "BALANCED", "OFFENSIVE"].includes(tacticMode) ? tacticMode : "BALANCED";
+    return ["MANUAL", "SEMI", "BALANCED", "OFFENSIVE"].includes(tacticMode) ? tacticMode : "BALANCED";
 }
 
 function toggleTacticsDrawer() {
@@ -373,29 +378,40 @@ function toggleTacticsDrawer() {
     if (trigger) trigger.setAttribute('aria-expanded', String(expanded));
     const mainAction = document.getElementById('btn-main-action');
     if (mainAction) mainAction.setAttribute('aria-expanded', String(expanded));
+    if (gameState === "BATTLE" && activeMonster && activeMonster.hp > 0) {
+        tacticsDrawerPaused = expanded;
+        refreshCombatPauseState();
+    }
     return expanded;
 }
 
 function selectTactic(tacticMode) {
-    if (!["MANUAL", "BALANCED", "OFFENSIVE"].includes(tacticMode)) return false;
+    if (!["MANUAL", "SEMI", "BALANCED", "OFFENSIVE"].includes(tacticMode)) return false;
+    if (manualTurnPaused && tacticMode !== "MANUAL") {
+        manualTurnPaused = false;
+        playerAtb = Math.min(100, (Number(playerAtb) || 0) + 100);
+        refreshCombatPauseState();
+    }
     activeTactic = tacticMode;
     if (typeof currentRun !== "undefined" && currentRun) currentRun.tactic = tacticMode;
     syncTacticButtonsUi();
 
     const tacticNames = {
-        MANUAL: "🪓 自動普攻",
+        MANUAL: "🎮 手動指令",
+        SEMI: "🌓 半自動",
         BALANCED: "⚖️ 均衡防守",
         OFFENSIVE: "🔥 狂暴強擊"
     };
     if (typeof addLog === "function") {
         addLog(`🛡️【戰術切換】當前姿態：<strong>${tacticNames[tacticMode]}</strong>`, "perfect");
     }
+    if (typeof updateUI === "function") updateUI();
     return true;
 }
 
 function syncTacticButtonsUi() {
     activeTactic = normalizeTacticMode(activeTactic);
-    const modes = ['MANUAL', 'BALANCED', 'OFFENSIVE'];
+    const modes = ['MANUAL', 'SEMI', 'BALANCED', 'OFFENSIVE'];
     modes.forEach((mode) => {
         const button = document.getElementById(`tactic-btn-${mode}`);
         if (!button) return;
@@ -414,16 +430,27 @@ function syncCombatPauseUi() {
     const paused = Boolean(inBattle && combatPaused);
 
     if (button) {
-        button.disabled = !inBattle;
-        button.textContent = paused ? "▶️ 恢復戰鬥" : "⏸️ 暫停戰鬥";
+        button.disabled = !inBattle || tacticsDrawerPaused || manualTurnPaused;
+        button.textContent = tacticsDrawerPaused ? "🔒 關閉選單以恢復" : (manualTurnPaused ? "🎮 請先完成指令" : (paused ? "▶️ 恢復戰鬥" : "⏸️ 暫停戰鬥"));
         button.setAttribute('aria-pressed', String(paused));
-        button.setAttribute('aria-label', paused ? "恢復自動戰鬥" : "暫停自動戰鬥");
+        button.setAttribute('aria-label', tacticsDrawerPaused ? "關閉戰術選單以恢復戰鬥" : (manualTurnPaused ? "請先完成你的戰鬥指令" : (paused ? "恢復自動戰鬥" : "暫停自動戰鬥")));
     }
     if (status) {
         status.textContent = inBattle
-            ? (paused ? "已暫停；怪物、環境與行動條停止。" : "自動戰鬥運作中")
+            ? (tacticsDrawerPaused ? "戰術選單開啟；敵人、環境與行動條已暫停。" : (manualPauseRequested ? "已手動暫停；敵人、環境與行動條停止。" : (manualTurnPaused ? "等待你的戰鬥指令。" : (paused ? "戰鬥暫停中。" : "自動戰鬥運作中"))))
             : "尚未進入戰鬥";
     }
+}
+
+function refreshCombatPauseState() {
+    const wasPaused = combatPaused;
+    combatPaused = Boolean(manualPauseRequested || tacticsDrawerPaused || manualTurnPaused);
+    if (combatPaused) {
+        clearCombatTicker();
+    } else if (wasPaused && gameState === "BATTLE" && combatIntroStartTimer === null) {
+        startCombatTicker();
+    }
+    syncCombatPauseUi();
 }
 
 function clearCombatTicker() {
@@ -436,6 +463,11 @@ function clearCombatTicker() {
 
 function stopCombatTicker() {
     clearCombatTicker();
+    pendingCombatItem = null;
+    pendingCombatCommand = null;
+    manualPauseRequested = false;
+    tacticsDrawerPaused = false;
+    manualTurnPaused = false;
     combatPaused = false;
     syncCombatPauseUi();
 }
@@ -463,6 +495,7 @@ function handleCombatTickerTick() {
     }
 
     battleTimeElapsed += 0.25;
+    tickSkillCooldowns(0.25);
     playerAtb += getPlayerAtbGain((currentRun.spd || 20) + getActiveCombatBuff("spdBuff"));
     monsterAtb += (activeMonster.spd || 15);
     envAtb += 15;
@@ -473,9 +506,15 @@ function handleCombatTickerTick() {
     }
     if (gameState === "BATTLE" && playerAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) {
         playerAtb = Math.min(100, playerAtb - 100);
-        executePlayerActionTick();
+        if (activeTactic === "MANUAL") {
+            manualTurnPaused = true;
+            refreshCombatPauseState();
+            if (typeof addLog === "function") addLog("🎮【你的回合】選擇戰鬥、技能或道具。", "perfect");
+        } else {
+            executePlayerActionTick();
+        }
     }
-    if (gameState === "BATTLE" && monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) {
+    if (gameState === "BATTLE" && !combatPaused && monsterAtb >= 100 && currentRun.hp > 0 && activeMonster && activeMonster.hp > 0) {
         monsterAtb = Math.min(100, monsterAtb - 100);
         executeMonsterActionTick();
     }
@@ -488,15 +527,13 @@ function toggleCombatPause() {
         return false;
     }
 
-    combatPaused = !combatPaused;
-    if (combatPaused) {
-        clearCombatTicker();
+    manualPauseRequested = !manualPauseRequested;
+    refreshCombatPauseState();
+    if (manualPauseRequested) {
         if (typeof addLog === "function") addLog("⏸️【戰鬥暫停】怪物、環境與行動條計時已停止。", "env");
     } else {
-        startCombatTicker();
         if (typeof addLog === "function") addLog("▶️【戰鬥恢復】自動戰鬥計時繼續。", "perfect");
     }
-    syncCombatPauseUi();
     return true;
 }
 
@@ -510,17 +547,33 @@ function getSkillCooldownSeconds(skillMeta) {
     return Number.isFinite(seconds) ? Math.max(0, Math.min(120, Math.floor(seconds))) : 0;
 }
 
-function getSkillCooldownRemaining(skillMeta, now = Date.now()) {
+function getSkillCooldownRemaining(skillMeta) {
     if (!skillMeta?.id || !currentRun) return 0;
     const cooldowns = currentRun.skillCooldowns;
     if (!cooldowns || typeof cooldowns !== "object") return 0;
-    const readyAt = Number(cooldowns[skillMeta.id]) || 0;
-    const remainingMs = readyAt - Number(now);
-    if (remainingMs <= 0) {
+    let remaining = Number(cooldowns[skillMeta.id]) || 0;
+    // Migrate cooldown timestamps saved by the previous release into active-combat seconds.
+    if (remaining > 120) {
+        remaining = Math.max(0, (remaining - Date.now()) / 1000);
+        cooldowns[skillMeta.id] = remaining;
+    }
+    if (remaining <= 0) {
         delete cooldowns[skillMeta.id];
         return 0;
     }
-    return Math.ceil(remainingMs / 1000);
+    return Math.ceil(remaining);
+}
+
+function tickSkillCooldowns(elapsedSeconds = 0.25) {
+    if (!currentRun?.skillCooldowns || typeof currentRun.skillCooldowns !== "object") return;
+    const elapsed = Math.max(0, Number(elapsedSeconds) || 0);
+    for (const [skillId, storedValue] of Object.entries(currentRun.skillCooldowns)) {
+        let remaining = Number(storedValue) || 0;
+        if (remaining > 120) remaining = Math.max(0, (remaining - Date.now()) / 1000);
+        remaining = Math.max(0, remaining - elapsed);
+        if (remaining <= 0) delete currentRun.skillCooldowns[skillId];
+        else currentRun.skillCooldowns[skillId] = remaining;
+    }
 }
 
 function getCombatSkillCandidates() {
@@ -614,11 +667,12 @@ function chooseAutoBattleAction() {
     if (!activeMonster || activeMonster.hp <= 0) return { type: "none" };
     const mode = normalizeTacticMode(activeTactic);
     if (mode === "MANUAL") return { type: "basic" };
+    const autoMode = mode === "SEMI" ? "BALANCED" : mode;
 
     const candidates = getCombatSkillCandidates();
     const hpPercent = (Number(currentRun.hp) / Math.max(1, Number(currentRun.maxHp) || 1)) * 100;
 
-    if (mode === "BALANCED") {
+    if (autoMode === "BALANCED") {
         if (hpPercent < 60) {
             const healingSkill = candidates
                 .filter((candidate) => isHealingSkillEffect(candidate.effect))
@@ -722,7 +776,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
     const cooldownSeconds = getSkillCooldownSeconds(skillMeta);
     if (cooldownSeconds > 0) {
         currentRun.skillCooldowns ||= {};
-        currentRun.skillCooldowns[skillMeta.id] = Date.now() + cooldownSeconds * 1000;
+        currentRun.skillCooldowns[skillMeta.id] = cooldownSeconds;
     }
 
     const jobTraits = currentRun.jobCombatTraits || {};
@@ -1634,6 +1688,10 @@ function resolveRestNodeDone() {
 // --------------------------------------------------------------------------
 function startNodeCombat(nodeType) {
     try {
+        if (combatIntroStartTimer !== null) {
+            clearTimeout(combatIntroStartTimer);
+            combatIntroStartTimer = null;
+        }
         stopCombatTicker();
         clearVfxLayer();
         pendingCombatItem = null;
@@ -1730,6 +1788,7 @@ function startNodeCombat(nodeType) {
         activeTactic = normalizeTacticMode((currentRun && currentRun.tactic) || activeTactic);
         if (currentRun) currentRun.tactic = activeTactic;
         combatPaused = false;
+        playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
         syncTacticButtonsUi();
         syncCombatPauseUi();
         if (typeof updateUI === "function") updateUI();
@@ -1738,10 +1797,15 @@ function startNodeCombat(nodeType) {
                 spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: prefersReducedMotion() ? 0 : 4 });
             });
         }
-
-        playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
-
-        startCombatTicker();
+        const introDelay = typeof playBattleSceneEncounterIntro === "function" ? playBattleSceneEncounterIntro() : 0;
+        if (introDelay > 0) {
+            combatIntroStartTimer = setTimeout(() => {
+                combatIntroStartTimer = null;
+                if (gameState === "BATTLE" && activeMonster && currentRun && currentRun.hp > 0) startCombatTicker();
+            }, introDelay);
+        } else {
+            startCombatTicker();
+        }
     } catch(err) { 
         if (typeof addLog === "function") addLog(`🚨 地下城異常：${err.message}`, "take"); 
     }
@@ -1766,6 +1830,9 @@ function queueCombatItemUse(index) {
     const itemName = currentRun.inventory[index];
     if (!itemName) return false;
 
+    if (activeTactic === "SEMI") return queueSemiCombatCommand("item", index);
+    if (manualTurnPaused) return submitManualBattleCommand("item", index);
+
     if (pendingCombatItem && pendingCombatItem.itemIndex === index && pendingCombatItem.itemName === itemName) {
         pendingCombatItem = null;
         if (typeof addLog === "function") addLog(`↩️【行動取消】已取消使用 ${itemName} 的預約。`, "env");
@@ -1773,6 +1840,64 @@ function queueCombatItemUse(index) {
         pendingCombatItem = { itemIndex: index, itemName: String(itemName) };
         if (typeof addLog === "function") addLog(`🧪【行動預約】${itemName} 已排入下一次我方 ATB 行動。`, "perfect");
     }
+    if (typeof updateUI === "function") updateUI();
+    return true;
+}
+
+function isUsableCombatItem(itemName) {
+    const usableFragments = [
+        "微光初級治癒藥水", "皇家大瓶強效魔藥", "秘銀奧術回魔劑", "聖使神聖活力合劑",
+        "大快活厚牛巨堡", "烤野豬肉大串", "萬年永凍刨冰", "毒腺烈性催化劑",
+        "炙烤熔岩壁虎乾", "魔導奧術瓊漿", "時空鹽焗醃肉", "逆轉禁忌血釀", "地龍魔爪厚炸薯",
+        "厚牛巨堡", "烤野豬肉", "永凍刨冰", "強效魔藥", "初級治癒", "壁虎乾", "回魔劑", "瓊漿", "未知物體"
+    ];
+    const name = String(itemName || "");
+    return usableFragments.some((fragment) => name.includes(fragment));
+}
+
+function createCombatCommand(type, value) {
+    if (!currentRun || !activeMonster || activeMonster.hp <= 0) return null;
+    if (type === "basic") return { type: "basic" };
+    if (type === "skill") {
+        const candidate = getCombatSkillCandidates().find((entry) => entry.skillMeta.id === value);
+        return candidate ? { type: "skill", skillId: candidate.skillMeta.id, skillName: candidate.skillMeta.name } : null;
+    }
+    if (type === "item") {
+        const itemIndex = Number(value);
+        const itemName = currentRun.inventory?.[itemIndex];
+        if (!Number.isInteger(itemIndex) || !isUsableCombatItem(itemName)) return null;
+        return { type: "item", itemIndex, itemName: String(itemName) };
+    }
+    return null;
+}
+
+function queueSemiCombatCommand(type, value = null) {
+    if (gameState !== "BATTLE" || activeTactic !== "SEMI") return false;
+    const command = createCombatCommand(type, value);
+    if (!command) {
+        if (typeof addLog === "function") addLog("⚠️【預約失敗】此技能或道具目前無法使用。", "env");
+        return false;
+    }
+    pendingCombatCommand = command;
+    pendingCombatItem = null;
+    const commandName = command.skillName || command.itemName || "普攻";
+    if (typeof addLog === "function") addLog(`📌【半自動預約】${commandName} 已排入下次我方 ATB 行動。`, "perfect");
+    if (typeof updateUI === "function") updateUI();
+    return true;
+}
+
+function submitManualBattleCommand(type, value = null) {
+    if (gameState !== "BATTLE" || !manualTurnPaused) return false;
+    const command = createCombatCommand(type, value);
+    if (!command) {
+        if (typeof addLog === "function") addLog("⚠️【指令未執行】目前 MP、冷卻或背包狀態不允許使用。", "env");
+        return false;
+    }
+    pendingCombatCommand = command;
+    pendingCombatItem = null;
+    manualTurnPaused = false;
+    refreshCombatPauseState();
+    executePlayerActionTick();
     if (typeof updateUI === "function") updateUI();
     return true;
 }
@@ -1800,8 +1925,30 @@ function executePlayerActionTick() {
         return;
     }
 
-    let usedQueuedItem = false;
-    if (pendingCombatItem) {
+    let usedQueuedAction = false;
+    if (pendingCombatCommand) {
+        const queued = pendingCombatCommand;
+        pendingCombatCommand = null;
+        if (queued.type === "basic") {
+            executeBasicAttack();
+            usedQueuedAction = true;
+        } else if (queued.type === "skill") {
+            const candidate = getCombatSkillCandidates().find((entry) => entry.skillMeta.id === queued.skillId);
+            if (candidate) usedQueuedAction = executeActiveSkill(candidate.skillMeta, candidate.skillLevel, candidate.effect);
+        } else if (queued.type === "item") {
+            let itemIndex = queued.itemIndex;
+            if (currentRun.inventory?.[itemIndex] !== queued.itemName) {
+                itemIndex = currentRun.inventory?.findIndex((item) => item === queued.itemName) ?? -1;
+            }
+            if (itemIndex >= 0 && isUsableCombatItem(currentRun.inventory?.[itemIndex])) {
+                executeUseDungeonItem(currentRun.inventory[itemIndex], itemIndex);
+                usedQueuedAction = true;
+            }
+        }
+        if (!usedQueuedAction && typeof addLog === "function") addLog("⚠️【預約指令失效】改為自動選擇可用行動。", "env");
+    }
+
+    if (!usedQueuedAction && pendingCombatItem) {
         const queued = pendingCombatItem;
         pendingCombatItem = null;
         let itemIndex = queued.itemIndex;
@@ -1810,12 +1957,12 @@ function executePlayerActionTick() {
         }
         if (itemIndex >= 0 && currentRun.inventory?.[itemIndex]) {
             executeUseDungeonItem(currentRun.inventory[itemIndex], itemIndex);
-            usedQueuedItem = true;
+            usedQueuedAction = true;
         } else if (typeof addLog === "function") {
             addLog("⚠️【行動取消】預約的道具已不在背包中。", "env");
         }
     }
-    if (!usedQueuedItem && activeMonster && activeMonster.hp > 0 && gameState === "BATTLE") executeAutoBattleAiTurn();
+    if (!usedQueuedAction && activeMonster && activeMonster.hp > 0 && gameState === "BATTLE") executeAutoBattleAiTurn();
     if (activeMonster && activeMonster.hp <= 0) {
         stopCombatTicker();
         executeDungeonVictorySequence();
