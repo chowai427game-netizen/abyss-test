@@ -798,6 +798,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
     const skillName = String(skillMeta.name || "技能");
     const fxClass = typeof detectSkillCssClass === "function" ? detectSkillCssClass(skillName) : "skill-hit";
     const vfx = typeof spawnVfx === "function" ? spawnVfx : () => {};
+    if (typeof showBattleSkillCastCue === "function") showBattleSkillCastCue(skillName, fxClass, effect);
     if (cooldownSeconds > 0 && typeof addLog === "function") addLog(`⏳【${skillName}】進入冷卻，${cooldownSeconds} 秒後可再次使用。`, "env");
     if (freeCast && typeof addLog === "function") addLog("✨【元素共鳴】本次魔法不消耗 MP！", "perfect");
 

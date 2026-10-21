@@ -17,7 +17,7 @@ for (const id of [
     "battle-player-hp-bar", "battle-player-mp-bar", "battle-monster-hp-bar",
     "battle-skill-cooldowns",
     "battle-player-atb-text", "battle-player-atb-bar", "battle-monster-atb-text", "battle-monster-atb-bar",
-    "battle-scene-log-line-1", "battle-scene-log-line-2", "battle-item-queue-status",
+    "battle-scene-log-line-1", "battle-scene-log-line-2", "battle-item-queue-status", "battle-skill-cast-cue",
     "battle-command-panel", "battle-command-categories", "battle-command-options",
     "semi-command-controls", "semi-command-options", "semi-command-status"
 ]) {
@@ -31,6 +31,9 @@ assert.match(css, /@keyframes diary-caret/, "battle diary has a typewriter curso
 assert.match(css, /body\.battle-scene-cinematic-active::before/, "encounter transition dims the page behind the floating scene");
 assert.match(css, /@keyframes battle-scene-encounter-enter/, "encounter scene animates into the center");
 assert.match(css, /@keyframes battle-scene-encounter-return/, "battle result scene animates back to its origin");
+assert.match(css, /@keyframes battle-backdrop-enter/, "cinematic backdrop fades in smoothly");
+assert.match(css, /@keyframes battle-backdrop-return/, "cinematic backdrop fades out smoothly");
+assert.match(css, /@keyframes battle-skill-cast-cue/, "skill casting has a dedicated battle animation");
 assert.match(ui, /function playBattleSceneEncounterIntro\(\)/, "encounter intro preserves the original layout before moving the scene");
 assert.match(ui, /function returnBattleSceneAfterResult\(delay = 2000\)/, "the floating scene waits two seconds after the result before returning");
 assert.match(ui, /returnBattleSceneAfterResult\(2000\)/, "both victory and defeat journal results schedule the two-second return");
@@ -45,6 +48,8 @@ assert.match(game, /tickSkillCooldowns\(0\.25\)/, "skill cooldowns advance on ac
 assert.match(css, /\.battle-command-panel\s*\{/, "manual battle commands have a dedicated scene panel");
 assert.match(css, /\.battle-command-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?bottom:\s*39px;[\s\S]*?left:\s*10px;/, "manual commands are anchored in the lower-left battle scene");
 assert.match(css, /\.battle-command-actions, \.battle-command-options\s*\{[\s\S]*?flex-direction:\s*column;/, "manual categories, skills and items are selected top-to-bottom");
+assert.match(css, /\.battle-command-options button\s*\{[\s\S]*?flex:\s*0 0 auto;[\s\S]*?min-height:\s*25px;/, "skill and item options are compact rows rather than oversized cards");
+assert.match(css, /\.battle-command-option\[data-tooltip\]::after/, "skill buttons render a dedicated detailed tooltip");
 assert.equal((html.match(/id="tactics-drawer-box"/g) || []).length, 1, "only one tactics drawer remains");
 const sceneStart = html.indexOf('id="battle-scene-box"');
 const sceneEnd = html.indexOf("</section>", sceneStart);
@@ -61,6 +66,9 @@ assert.doesNotMatch(html, /battle-player-sprite|hero-knight\.png|battle-versus/,
 assert.match(html, /最近兩則戰鬥日記/, "scene shows recent battle diary entries");
 assert.match(ui, /function syncBattleSceneLog\(message, logType = "deal"\)/, "diary entries are synchronized with their log type");
 assert.match(ui, /function getBattleDiaryTone\(text, logType = "deal"\)/, "diary entries receive combat-state colors");
+assert.match(ui, /Your Turn · 由上到下選擇指令/, "manual turn title uses the requested Your Turn label");
+assert.match(ui, /button\.dataset\.tooltip = title/, "skill command descriptions are exposed to the tooltip layer");
+assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedicated skill cast cue");
 assert.match(ui, /發現魔物/, "a new encounter resets the scene diary");
 assert.match(ui, /VICTORY!/, "victory text is retained at battle end");
 assert.match(ui, /你已被擊敗/, "defeat text is retained at battle end");
@@ -97,6 +105,7 @@ const vfx = fs.readFileSync(path.join(root, "js/vfx.js"), "utf8");
 assert.match(vfx, /firstPersonAttack === true/, "VFX supports explicit first-person attacks");
 assert.match(vfx, /battle-monster-vfx-anchor/, "monster VFX target the single on-screen enemy");
 assert.match(game, /firstPersonAttack: true, result: damageResult\.isCrit \? "crit" : "hit"/, "basic attacks and skills feed first-person combat feedback");
+assert.match(game, /showBattleSkillCastCue\(skillName, fxClass, effect\)/, "active skills trigger the dedicated battle cast cue");
 assert.match(ui, /updateBattleScene\(typeof activeMonster/, "regular UI updates sync the scene before state-specific early returns");
 
 const variantSource = ui.match(/function getBattleMonsterSpriteVariant\(monster\) \{[\s\S]*?\n\}/);

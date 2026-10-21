@@ -64,7 +64,7 @@ const DOM = {
             'battle-skill-cooldowns',
             'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar', 'battle-monster-atb-text', 'battle-monster-atb-bar',
             'battle-monster-shield-text', 'battle-monster-sprite', 'battle-monster-fallback',
-            'battle-scene-log-line-1', 'battle-scene-log-line-2',
+            'battle-scene-log-line-1', 'battle-scene-log-line-2', 'battle-skill-cast-cue',
             'battle-command-panel', 'battle-command-status', 'battle-command-categories', 'battle-command-options',
             'semi-command-controls', 'semi-command-options', 'semi-command-status',
             'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
@@ -1098,6 +1098,7 @@ let battleSceneTerminalTimer = null;
 let battleSceneEncounterIntroTimer = null;
 let battleSceneReturnTimer = null;
 let battleSceneEncounterPlaceholder = null;
+let battleSkillCastCueTimer = null;
 
 function restoreBattleSceneAfterEncounterIntro() {
     const scene = DOM.get('battle-scene-box');
@@ -1116,7 +1117,10 @@ function restoreBattleSceneAfterEncounterIntro() {
         ['--battle-scene-origin-top', '--battle-scene-origin-left', '--battle-scene-origin-width', '--battle-scene-origin-height']
             .forEach((property) => scene.style.removeProperty(property));
     }
-    if (typeof document !== "undefined") document.body?.classList?.remove('battle-scene-cinematic-active');
+    if (typeof document !== "undefined") {
+        document.body?.classList?.remove('battle-scene-cinematic-active');
+        document.body?.classList?.remove('battle-scene-cinematic-returning');
+    }
 }
 
 function returnBattleSceneAfterResult(delay = 2000) {
@@ -1126,6 +1130,7 @@ function returnBattleSceneAfterResult(delay = 2000) {
     battleSceneReturnTimer = setTimeout(() => {
         battleSceneReturnTimer = null;
         scene.classList.add('is-returning-to-origin');
+        if (typeof document !== "undefined") document.body?.classList?.add('battle-scene-cinematic-returning');
         const returnDuration = typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 1 : 500;
         if (battleSceneEncounterIntroTimer !== null) clearTimeout(battleSceneEncounterIntroTimer);
         battleSceneEncounterIntroTimer = setTimeout(() => {
@@ -1287,12 +1292,48 @@ function setBattleMeter(element, value, maximum) {
     element.style.width = `${Math.round((current / max) * 100)}%`;
 }
 
+function getBattleSkillCastTone(fxClass = "", effect = {}) {
+    const token = String(fxClass || "").toLowerCase();
+    if (/fire|flame|burn/.test(token)) return "fire";
+    if (/ice|frost|freeze/.test(token)) return "ice";
+    if (/lightning|thunder|bolt/.test(token)) return "lightning";
+    if (/holy|heal|priest/.test(token)) return "holy";
+    if (/shadow|poison|dark/.test(token)) return "shadow";
+    if (effect?.isMagic) return "lightning";
+    return "physical";
+}
+
+function showBattleSkillCastCue(skillName, fxClass = "", effect = {}) {
+    const cue = DOM.get('battle-skill-cast-cue');
+    if (!cue || !skillName) return false;
+    cue.dataset.castTone = getBattleSkillCastTone(fxClass, effect);
+    cue.textContent = `✦ ${String(skillName)}`;
+    cue.classList.remove('is-active');
+    void cue.offsetWidth;
+    cue.classList.add('is-active');
+    if (battleSkillCastCueTimer !== null) clearTimeout(battleSkillCastCueTimer);
+    const duration = typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 1 : 760;
+    battleSkillCastCueTimer = setTimeout(() => {
+        cue.classList.remove('is-active');
+        battleSkillCastCueTimer = null;
+    }, duration);
+    return true;
+}
+
 function appendCombatCommandButton(container, label, onClick, disabled = false, title = "") {
     const button = document.createElement('button');
     button.type = "button";
-    button.textContent = label;
+    button.className = "battle-command-option";
+    const labelElement = document.createElement('span');
+    labelElement.className = "combat-command-label";
+    labelElement.textContent = label;
+    button.appendChild(labelElement);
     button.disabled = disabled;
-    if (title) button.title = title;
+    if (title) {
+        button.title = title;
+        button.dataset.tooltip = title;
+        button.setAttribute('aria-label', `${label}。${title}`);
+    }
     button.addEventListener('click', onClick);
     container.appendChild(button);
     return button;
@@ -1315,10 +1356,16 @@ function populateCombatCommandOptions(container, kind, mode) {
             const cooldown = typeof getSkillCooldownRemaining === "function" ? getSkillCooldownRemaining(skillMeta) : 0;
             const disabled = Number(currentRun.mp) < cost || cooldown > 0;
             const label = `${skillMeta.name} Lv.${level} · MP ${cost}${cooldown > 0 ? ` · CD ${cooldown}s` : ""}`;
+            const configuredCooldown = typeof getSkillCooldownSeconds === "function" ? getSkillCooldownSeconds(skillMeta) : 0;
+            const detail = [
+                skillMeta.desc || "施放職業專屬戰技。",
+                `消耗 ${cost} MP`,
+                configuredCooldown > 0 ? `冷卻 ${configuredCooldown} 秒` : "無冷卻"
+            ].join(" · ");
             appendCombatCommandButton(container, label, () => {
                 if (isManual) submitManualBattleCommand("skill", skillMeta.id);
                 else queueSemiCombatCommand("skill", skillMeta.id);
-            }, disabled, skillMeta.desc || "");
+            }, disabled, detail);
         });
         return;
     }
@@ -1394,7 +1441,7 @@ function updateBattleScene(monster) {
         }
         commandPanel.style.display = showManualCommands ? "grid" : "none";
     }
-    if (commandStatus && showManualCommands) commandStatus.textContent = "🎮 你的回合 · 由上到下選擇指令";
+    if (commandStatus && showManualCommands) commandStatus.textContent = "🎮 Your Turn · 由上到下選擇指令";
     const semiControls = DOM.get('semi-command-controls');
     if (semiControls) semiControls.style.display = Boolean(inBattle && activeTactic === "SEMI") ? "block" : "none";
     const semiStatus = DOM.get('semi-command-status');
