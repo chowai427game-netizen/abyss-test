@@ -1,8 +1,7 @@
 /* --------------------------------------------------------------------------
-   Retro pixel-art battle scene
+   First-person pixel-art battle scene: the enemy is the sole visible combatant.
    -------------------------------------------------------------------------- */
 .battle-scene {
-    --battle-ink: #19120c;
     position: relative;
     isolation: isolate;
     width: 100%;
@@ -18,16 +17,16 @@
 
 .battle-scene::before {
     position: absolute;
-    z-index: -1;
+    z-index: 0;
     inset: 0;
-    background: linear-gradient(180deg, rgba(9, 12, 10, .35), transparent 42%, rgba(10, 11, 8, .22));
+    background: linear-gradient(180deg, rgba(9, 12, 10, .3), transparent 42%, rgba(10, 11, 8, .24));
     content: "";
     pointer-events: none;
 }
 
 .battle-hud {
     position: absolute;
-    z-index: 2;
+    z-index: 5;
     inset: 10px 10px auto;
     display: flex;
     justify-content: space-between;
@@ -81,6 +80,7 @@
 
 .battle-stage {
     position: absolute;
+    z-index: 1;
     inset: 0;
     overflow: hidden;
 }
@@ -88,56 +88,108 @@
 .battle-sprite-platform {
     position: absolute;
     bottom: 22px;
-    width: 25%;
-    height: 12px;
+    left: 50%;
+    width: min(38%, 230px);
+    height: 14px;
+    transform: translateX(-50%);
     border-radius: 50%;
-    background: rgba(22, 18, 11, .45);
+    background: rgba(22, 18, 11, .5);
     filter: blur(1px);
 }
 
-.battle-player-platform { left: 9%; }
-.battle-enemy-platform { right: 9%; }
-
 .battle-sprite {
     position: absolute;
-    z-index: 1;
-    bottom: 22px;
+    z-index: 2;
+    bottom: 23px;
+    left: 50%;
     display: block;
     width: auto;
-    height: 126px;
-    max-width: 36%;
+    height: 146px;
+    max-width: 52%;
+    transform: translateX(-50%);
     object-fit: contain;
     object-position: center bottom;
     image-rendering: pixelated;
-    filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .38));
+    filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .42));
 }
 
-.battle-player-sprite { left: 13%; }
-.battle-enemy-sprite { right: 13%; height: 116px; }
-.battle-enemy-sprite.battle-boss-sprite { height: 158px; max-width: 42%; }
+.battle-enemy-sprite.battle-boss-sprite { height: 174px; max-width: 62%; }
 
 .battle-monster-fallback {
     position: absolute;
-    z-index: 1;
-    right: 15%;
-    bottom: 31px;
-    font-size: clamp(54px, 12vw, 82px);
+    z-index: 2;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(74px, 18vw, 126px);
     line-height: 1;
-    filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .5));
+    filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .52));
 }
 
-.battle-versus {
+.battle-monster-vfx-anchor {
+    position: absolute;
+    z-index: 3;
+    bottom: 48px;
+    left: 50%;
+    width: min(48%, 280px);
+    height: 62%;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.battle-attack-swipe {
+    position: absolute;
+    z-index: 4;
+    inset: 13% 4% 9%;
+    overflow: visible;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.battle-attack-swipe::before,
+.battle-attack-swipe::after {
     position: absolute;
     left: 50%;
-    bottom: 68px;
-    transform: translateX(-50%);
-    color: rgba(255, 245, 211, .9);
-    font: 900 14px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    text-shadow: 2px 2px 0 #2b2113, -1px -1px 0 #2b2113;
+    top: 53%;
+    width: min(76%, 430px);
+    height: 10px;
+    transform: translate(-72%, 38%) rotate(-31deg) scaleX(.2);
+    transform-origin: center;
+    clip-path: polygon(0 50%, 100% 0, 82% 50%, 100% 100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .94) 32%, #fff4b5 51%, rgba(255, 233, 144, .8) 72%, transparent);
+    filter: drop-shadow(0 0 8px #fff0a2);
+    content: "";
+}
+
+.battle-attack-swipe::after {
+    top: 56%;
+    width: min(62%, 350px);
+    height: 4px;
+    transform: translate(-66%, 58%) rotate(-24deg) scaleX(.12);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .95), rgba(255, 255, 255, .12));
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, .8));
+}
+
+.battle-attack-swipe[data-attack-type="fire"]::before { background: linear-gradient(90deg, transparent, #ffe29a, #ff6b28, rgba(236, 52, 20, .4), transparent); filter: drop-shadow(0 0 9px #ff5a20); }
+.battle-attack-swipe[data-attack-type="ice"]::before { background: linear-gradient(90deg, transparent, #f1ffff, #77e4ff, rgba(56, 160, 255, .35), transparent); filter: drop-shadow(0 0 9px #7dd3fc); }
+.battle-attack-swipe[data-attack-type="lightning"]::before { background: linear-gradient(90deg, transparent, #fff, #ffef63, #b5f7ff, transparent); filter: drop-shadow(0 0 10px #fde047); }
+.battle-attack-swipe[data-attack-type="holy"]::before { background: linear-gradient(90deg, transparent, #fff, #ffe997, rgba(255, 255, 255, .35), transparent); filter: drop-shadow(0 0 10px #fff1a8); }
+.battle-attack-swipe.is-active { opacity: 1; animation: first-person-attack .34s steps(5, end) both; }
+.battle-attack-swipe.is-active::after { animation: first-person-attack-trail .34s steps(5, end) both; }
+
+.battle-monster-sprite.is-hit,
+.battle-monster-fallback.is-hit {
+    animation: monster-hit-flash .32s steps(4, end) both;
+}
+
+.battle-monster-sprite.is-critical,
+.battle-monster-fallback.is-critical {
+    animation: monster-critical-flash .42s steps(5, end) both;
 }
 
 .battle-scene-caption {
     position: absolute;
+    z-index: 5;
     right: 0;
     bottom: 0;
     left: 0;
@@ -153,28 +205,55 @@
 .battle-scene.is-boss-battle { box-shadow: 0 0 0 2px #d78348, 0 0 0 5px #21170d, 0 10px 26px rgba(95, 28, 12, .4); }
 .battle-scene.is-ice-zone { filter: saturate(.82) hue-rotate(8deg); }
 .battle-scene.is-fire-zone { filter: saturate(1.15) sepia(.12); }
-.battle-scene[hidden], .battle-monster-fallback[hidden] { display: none !important; }
+.battle-scene[hidden], .battle-monster-fallback[hidden], .battle-enemy-sprite[hidden] { display: none !important; }
+
+@keyframes first-person-attack {
+    0% { opacity: 0; transform: translate(-10%, 12%) scale(.65); }
+    20% { opacity: 1; }
+    70% { opacity: .95; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(4%, -3%) scale(1.04); }
+}
+
+@keyframes first-person-attack-trail {
+    0%, 12% { opacity: 0; }
+    28% { opacity: .9; }
+    66% { opacity: .7; }
+    100% { opacity: 0; }
+}
+
+@keyframes monster-hit-flash {
+    0%, 100% { filter: brightness(1); transform: translateX(-50%); }
+    25% { filter: brightness(2.2) sepia(.2); transform: translateX(calc(-50% - 7px)); }
+    55% { filter: brightness(1.5); transform: translateX(calc(-50% + 5px)); }
+}
+
+@keyframes monster-critical-flash {
+    0%, 100% { filter: brightness(1); transform: translateX(-50%); }
+    20% { filter: brightness(2.8) saturate(1.4); transform: translateX(calc(-50% - 10px)); }
+    45% { filter: brightness(.55) sepia(.3); transform: translateX(calc(-50% + 8px)); }
+    70% { filter: brightness(2.2); transform: translateX(calc(-50% - 4px)); }
+}
 
 @media (max-width: 600px) {
-    .battle-scene {
-        min-height: 226px;
-        margin-bottom: 12px;
-        border-width: 3px;
-        background-position: center 54%;
-    }
+    .battle-scene { min-height: 226px; margin-bottom: 12px; border-width: 3px; background-position: center 54%; }
     .battle-hud { inset: 7px 7px auto; gap: 6px; }
     .battle-hud-card { width: 44%; padding: 5px 6px; font-size: 10px; }
     .battle-hud-card strong { font-size: 11px; }
-    .battle-sprite { bottom: 21px; height: 105px; }
-    .battle-enemy-sprite { height: 96px; }
-    .battle-enemy-sprite.battle-boss-sprite { height: 132px; }
-    .battle-player-sprite { left: 9%; }
-    .battle-enemy-sprite { right: 9%; }
-    .battle-sprite-platform { bottom: 20px; }
-    .battle-versus { bottom: 55px; font-size: 12px; }
-    .battle-monster-fallback { right: 10%; bottom: 28px; }
+    .battle-sprite-platform { bottom: 19px; width: 44%; }
+    .battle-sprite { bottom: 20px; height: 124px; max-width: 64%; }
+    .battle-enemy-sprite.battle-boss-sprite { height: 144px; max-width: 70%; }
+    .battle-monster-vfx-anchor { bottom: 38px; width: 62%; height: 62%; }
+    .battle-monster-fallback { bottom: 29px; }
+    .battle-attack-swipe { inset: 18% -4% 8%; }
+    .battle-attack-swipe::before { width: 92%; height: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .battle-meter span { transition: none; }
+    .battle-attack-swipe.is-active,
+    .battle-attack-swipe.is-active::after,
+    .battle-monster-sprite.is-hit,
+    .battle-monster-fallback.is-hit,
+    .battle-monster-sprite.is-critical,
+    .battle-monster-fallback.is-critical { animation-duration: 1ms; }
 }

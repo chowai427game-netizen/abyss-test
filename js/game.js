@@ -795,14 +795,14 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
                 damageApplied = true;
             }
             if (totalAbsorbed > 0) vfx("shield", { anchor: "monster", text: `-${totalAbsorbed}` });
-            vfx("hit", { anchor: "monster", text: `-${totalDamage} HP` });
+            vfx("hit", { anchor: "monster", text: `-${totalDamage} HP`, firstPersonAttack: true, result: "hit" });
             if (typeof addLog === "function") addLog(`✝️【${skillName} Lv.${skillLevel}】物理與魔法各判定一次（命中 ${totalHits}/${components.length}），合計造成 <span class="num-popup num-p-dmg">-${totalDamage} HP</span>！`, "skill-hit");
         } else if (effect.explodePoison && Number(activeMonster.poisonStacks) > 0) {
             const poisonStacks = Number(activeMonster.poisonStacks) || 0;
             const rawExplosionDamage = Number(effect.dmg) + poisonStacks * 70;
             const result = applyDamageWithShield(activeMonster, rawExplosionDamage);
             if (result.absorbed > 0) vfx("shield", { anchor: "monster", text: `-${result.absorbed}` });
-            vfx("hit", { anchor: "monster", text: `-${result.actualHpDmg}`, particleCount: typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 0 : 4 });
+            vfx("hit", { anchor: "monster", text: `-${result.actualHpDmg}`, firstPersonAttack: true, result: "hit", particleCount: typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 0 : 4 });
             activeMonster.poisonStacks = 0;
             damageApplied = true;
             if (typeof addLog === "function") addLog(`🧪💥 引爆全部 <span class="skill-poison">${poisonStacks} 層劇毒</span>！造成 <span class="num-popup num-p-dmg">-${result.actualHpDmg} HP</span>！`, "skill-hit");
@@ -830,7 +830,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
             applySkillForcedCritical(damageResult, effect, jobTraits);
 
             if (damageResult.isMiss) {
-                vfx("miss", { anchor: "monster", text: "MISS" });
+                vfx("miss", { anchor: "monster", text: "MISS", firstPersonAttack: true, result: "miss" });
                 if (typeof addLog === "function") addLog(`💨 施展 <span class="${fxClass}">【${skillName} Lv.${skillLevel}】</span>，但被魔物 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
             } else {
                 let totalDamage = 0;
@@ -843,7 +843,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
                 }
                 if (totalAbsorbed > 0) vfx("shield", { anchor: "monster", text: `-${totalAbsorbed}` });
                 const hitLabel = `-${totalDamage}${hitCount > 1 ? ` ×${hitCount}` : ""} HP`;
-                vfx(damageResult.isCrit ? "crit" : "hit", { anchor: "monster", text: hitLabel });
+                vfx(damageResult.isCrit ? "crit" : "hit", { anchor: "monster", text: hitLabel, firstPersonAttack: true, result: damageResult.isCrit ? "crit" : "hit" });
                 const numClass = (isMagicJob || effect.isMagic) ? "num-m-dmg" : "num-p-dmg";
                 const critTag = damageResult.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
                 if (typeof addLog === "function") {
@@ -920,7 +920,7 @@ function executeBasicAttack() {
     const vfx = typeof spawnVfx === "function" ? spawnVfx : () => {};
 
     if (damageResult.isMiss) {
-        vfx("miss", { anchor: "monster", text: "MISS" });
+        vfx("miss", { anchor: "monster", text: "MISS", firstPersonAttack: true, result: "miss" });
         if (typeof addLog === "function") addLog(`💨 基本攻擊被魔物 <span class="miss-effect">[MISS 閃過]</span>！`, "miss");
         return true;
     }
@@ -942,7 +942,7 @@ function executeBasicAttack() {
         totalDamage += falconResult.actualHpDmg;
     }
     if (result.absorbed > 0) vfx("shield", { anchor: "monster", text: `-${result.absorbed}` });
-    vfx(damageResult.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${totalDamage}${hitCount > 1 ? ` ×${hitCount}` : ""}` });
+    vfx(damageResult.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${totalDamage}${hitCount > 1 ? ` ×${hitCount}` : ""}`, firstPersonAttack: true, result: damageResult.isCrit ? "crit" : "hit" });
     const numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
     const critText = damageResult.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
     if (typeof addLog === "function") {

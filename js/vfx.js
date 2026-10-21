@@ -51,6 +51,7 @@ let projectileBurstGuardUntil = 0;
     let vfxGeneration = 0;
     let sequence = 0;
     let labelSequence = 0;
+    let pendingFirstPersonImpactUntil = 0;
     let activeParticleCount = 0;
     let droppedEffects = 0;
     let droppedLabels = 0;
@@ -221,6 +222,37 @@ let projectileBurstGuardUntil = 0;
         return Math.min(92, Math.max(8, num));
     }
 
+    function resolveAnchorId(options = {}) {
+        if (options.anchorId && /^[a-zA-Z][\w:-]{0,63}$/.test(options.anchorId)) return options.anchorId;
+        const scene = typeof document !== "undefined" ? document.getElementById("battle-scene-box") : null;
+        if (options.anchor === "monster" && typeof gameState !== "undefined" && gameState === "BATTLE" &&
+            scene && scene.style?.display !== "none") return "battle-monster-vfx-anchor";
+        return ANCHOR_IDS[options.anchor] || ANCHOR_IDS.monster;
+    }
+
+    function triggerFirstPersonAttack(options = {}) {
+        if (typeof document === "undefined" || typeof gameState === "undefined" || gameState !== "BATTLE") return;
+        const scene = document.getElementById("battle-scene-box");
+        if (!scene || scene.style?.display === "none") return;
+        const swipe = document.getElementById("battle-attack-swipe");
+        const monster = document.getElementById("battle-monster-sprite");
+        const fallback = document.getElementById("battle-monster-fallback");
+        const target = monster && !monster.hidden ? monster : fallback;
+        const now = Date.now();
+        const attackType = String(options.projectileType || options.attackType || "slash").replace(/[^a-z0-9_-]/gi, "");
+        if (swipe && !options.skipSwipe) {
+            swipe.dataset.attackType = attackType;
+            if (swipe.classList.contains("is-active")) swipe.classList.remove("is-active");
+            void swipe.offsetWidth;
+            swipe.classList.add("is-active");
+        }
+        if (target && (options.result === "hit" || options.result === "crit")) {
+            target.classList.remove("is-hit", "is-critical");
+            void target.offsetWidth;
+            target.classList.add(options.result === "crit" ? "is-critical" : "is-hit");
+        }
+    }
+
     function resolveVfxPosition(options = {}) {
         if (typeof window === "undefined" || typeof document === "undefined") {
             return { x: 50, y: 45 };
@@ -232,8 +264,7 @@ let projectileBurstGuardUntil = 0;
             };
         }
 
-        const targetId = (options.anchorId && /^[a-zA-Z][\w:-]{0,63}$/.test(options.anchorId) ? options.anchorId : null) ||
-            ANCHOR_IDS[options.anchor] || ANCHOR_IDS.monster;
+        const targetId = resolveAnchorId(options);
         const anchorEl = document.getElementById(targetId);
         const fallbackPosition = { x: 50, y: options.anchor === "player" ? 38 : 46 };
         if (!anchorEl || typeof anchorEl.getBoundingClientRect !== "function" || anchorEl.hidden ||
@@ -252,8 +283,7 @@ let projectileBurstGuardUntil = 0;
     }
 
     function anchorIdFor(options) {
-        if (options.anchorId && /^[a-zA-Z][\w:-]{0,63}$/.test(options.anchorId)) return options.anchorId;
-        return ANCHOR_IDS[options.anchor] || ANCHOR_IDS.monster;
+        return resolveAnchorId(options);
     }
 
     function updateFollowingPositions() {
@@ -452,6 +482,12 @@ let projectileBurstGuardUntil = 0;
         if (!layer) return null;
 
         const vfxType = normalizedType(type);
+        if (options.firstPersonAttack === true) {
+            const now = Date.now();
+            const isFollowupImpact = Boolean(options.result) && now <= pendingFirstPersonImpactUntil;
+            pendingFirstPersonImpactUntil = options.result ? 0 : now + 260;
+            triggerFirstPersonAttack({ ...options, skipSwipe: Boolean(isFollowupImpact) });
+        }
         const definition = VFX_DEFINITIONS[vfxType] || {};
         const quality = qualityConfig();
         const configuredMaxActive = boundedInteger(options.maxActive, quality.maxActive, 1, MAX_ACTIVE_EFFECTS);
@@ -582,6 +618,8 @@ let projectileBurstGuardUntil = 0;
         const maxCount = boundedInteger(count, 1, 1, quality.maxBurst);
         return spawnVfx("cast", {
             anchor: "monster",
+            firstPersonAttack: true,
+            attackType: projectileType,
             count: maxCount,
             duration: quality.maxBurst === 2 ? 160 : 320,
             particleCount: quality.particles ? 1 : 0,

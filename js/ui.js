@@ -61,7 +61,7 @@ const DOM = {
             'btn-main-action', 'btn-rerun-action', 'btn-secondary-action', 'btn-auto-battle',
             'env-alert-bar', 'monster-status-card', 'battle-scene-box', 'battle-player-name', 'battle-player-hp-text', 'battle-player-hp-bar',
             'battle-player-mp-text', 'battle-player-mp-bar', 'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar',
-            'battle-monster-shield-text', 'battle-player-sprite', 'battle-monster-sprite', 'battle-monster-fallback',
+            'battle-monster-shield-text', 'battle-monster-sprite', 'battle-monster-fallback',
             'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
             'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
             'reward-panel-box', 'log-box', 'title-box', 'status-panel-box', 'action-panel-box',
