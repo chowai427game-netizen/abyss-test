@@ -381,7 +381,7 @@ function initSwipeNavigation() {
 
     let touchStartX = 0;
     let touchStartY = 0;
-    const locations = ['GATE', 'GUILD', 'WORKSHOP', 'KITCHEN', 'SQUARE'];
+    const locations = ['GATE', 'GUILD', 'KITCHEN', 'WORKSHOP', 'SQUARE'];
 
     villageBox.ontouchstart = (e) => {
         touchStartX = e.touches[0].clientX;
@@ -763,7 +763,7 @@ function getEquipmentStatDiff(blueprint) {
     }
 
     const itemRefineLvl = (accountMeta.itemRefines?.[blueprint.name]) || 0;
-    const nameMap = { atk: "攻擊", matk: "魔攻", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", maxMp: "魔力", flee: "閃避", def: "物防", mdef: "魔防" };
+    const nameMap = { atk: "攻擊", matk: "魔攻", spd: "速度", mpRegen: "回魔", block: "減傷", maxHp: "生命", maxMp: "魔力", flee: "閃避", hit: "命中", critChance: "暴擊", def: "物防", mdef: "魔防" };
 
     let diffParts = [];
     for (let statKey in blueprint.stats) {
@@ -773,12 +773,13 @@ function getEquipmentStatDiff(blueprint) {
         const diff = newFinal - oldFinal;
 
         const label = nameMap[statKey] || statKey;
+        const displayValue = newFinal >= 0 ? `+${newFinal}` : `${newFinal}`;
         if (diff > 0) {
-            diffParts.push(`${label} +${newFinal} <span style="color:#2ecc71; font-weight:bold;">(🟢 +${diff})</span>`);
+            diffParts.push(`${label} ${displayValue} <span style="color:#2ecc71; font-weight:bold;">(🟢 +${diff})</span>`);
         } else if (diff < 0) {
-            diffParts.push(`${label} +${newFinal} <span style="color:#ff4757; font-weight:bold;">(🔴 ${diff})</span>`);
+            diffParts.push(`${label} ${displayValue} <span style="color:#ff4757; font-weight:bold;">(🔴 ${diff})</span>`);
         } else {
-            diffParts.push(`${label} +${newFinal} <span style="color:#8e8e93;">(=)</span>`);
+            diffParts.push(`${label} ${displayValue} <span style="color:#8e8e93;">(=)</span>`);
         }
     }
 
@@ -1055,37 +1056,44 @@ function getJobChineseName(j) {
 
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
-    
+
     const panels = ['v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'];
-    panels.forEach(p => {
-        const el = DOM.get(p);
-        if (el) el.style.display = 'none';
+    panels.forEach((panelId) => {
+        const panel = DOM.get(panelId);
+        if (!panel) return;
+        panel.style.display = 'none';
+        panel.setAttribute('aria-hidden', 'true');
     });
-    
-    const tabs = { 'GATE': 'btn-tab-gate', 'GUILD': 'btn-tab-guild', 'WORKSHOP': 'btn-tab-workshop', 'KITCHEN': 'btn-tab-kitchen', 'SQUARE': 'btn-tab-square' };
-    
-    Object.keys(tabs).forEach(k => {
-        const tBtn = DOM.get(tabs[k]);
-        if (tBtn) tBtn.classList.toggle('active', k === targetLoc);
+
+    const tabs = { GATE: 'btn-tab-gate', GUILD: 'btn-tab-guild', KITCHEN: 'btn-tab-kitchen', WORKSHOP: 'btn-tab-workshop', SQUARE: 'btn-tab-square' };
+    Object.keys(tabs).forEach((location) => {
+        const tab = DOM.get(tabs[location]);
+        if (!tab) return;
+        const isActive = location === targetLoc;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-pressed', String(isActive));
     });
-    
+
     const locTextEl = DOM.get('location-text');
     const locMap = {
-        GATE: { el: 'v-loc-gate', text: "⛺ 地表村莊 ➔ 傳送大殿" },
-        GUILD: { el: 'v-loc-guild', text: "🏛️ 地表村莊 ➔ 冒險者公會", render: renderVillageGuild },
-        WORKSHOP: { el: 'v-loc-workshop', text: "🛠️ 地表村莊 ➔ 魔導加工所", render: renderVillageWorkshop },
-        KITCHEN: { el: 'v-loc-kitchen', text: "🍳 地表村莊 ➔ 皇家料理屋", render: renderVillageCookingWorkshop },
-        SQUARE: { el: 'v-loc-square', text: "💬 地表村莊 ➔ 中央廣場", render: renderVillageSquare }
+        GATE: { el: 'v-loc-gate', text: '⛺ 地表村莊 ➔ 傳送大殿' },
+        GUILD: { el: 'v-loc-guild', text: '🏛️ 地表村莊 ➔ 冒險者公會', render: renderVillageGuild },
+        WORKSHOP: { el: 'v-loc-workshop', text: '🛠️ 地表村莊 ➔ 魔導加工所', render: renderVillageWorkshop },
+        KITCHEN: { el: 'v-loc-kitchen', text: '🍳 地表村莊 ➔ 皇家料理屋', render: renderVillageCookingWorkshop },
+        SQUARE: { el: 'v-loc-square', text: '💬 地表村莊 ➔ 中央廣場', render: renderVillageSquare }
     };
 
     if (locMap[targetLoc]) {
         const target = locMap[targetLoc];
-        const el = DOM.get(target.el);
-        if (el) el.style.display = 'block';
-        if (locTextEl) locTextEl.innerHTML = target.text;
+        const panel = DOM.get(target.el);
+        if (panel) {
+            panel.style.display = 'block';
+            panel.setAttribute('aria-hidden', 'false');
+        }
+        if (locTextEl) locTextEl.textContent = target.text;
         if (target.render) target.render();
     }
-    
+
     updateUI();
 }
 
@@ -1767,115 +1775,275 @@ function formatSkillEffectText(s, lv, playerRun) {
     return parts.length > 0 ? parts.join(" | ") : "特殊效果觸發";
 }
 
+// --------------------------------------------------------------------------
+// 🏛️ 村莊設施工作台：共用資料、摘要與材料狀態
+// --------------------------------------------------------------------------
+
+function getWarehouseCounts() {
+    const warehouse = (typeof accountMeta !== 'undefined' && accountMeta?.warehouse) || {};
+    const recipeNames = new Set(typeof RECIPES_DATABASE !== 'undefined' ? RECIPES_DATABASE.map((recipe) => recipe.name) : []);
+    const blueprintNames = new Set(typeof CRAFTING_BLUEPRINTS !== 'undefined' ? CRAFTING_BLUEPRINTS.map((blueprint) => blueprint.name) : []);
+    const counts = {
+        totalTypes: 0,
+        totalQty: 0,
+        materialTypes: 0,
+        materialQty: 0,
+        dishTypes: 0,
+        dishQty: 0,
+        equipmentTypes: 0,
+        equipmentQty: 0
+    };
+
+    Object.entries(warehouse).forEach(([name, rawQty]) => {
+        const qty = Math.max(0, Number(rawQty) || 0);
+        if (!qty) return;
+        counts.totalTypes += 1;
+        counts.totalQty += qty;
+        if (recipeNames.has(name)) {
+            counts.dishTypes += 1;
+            counts.dishQty += qty;
+        } else if (blueprintNames.has(name)) {
+            counts.equipmentTypes += 1;
+            counts.equipmentQty += qty;
+        } else {
+            counts.materialTypes += 1;
+            counts.materialQty += qty;
+        }
+    });
+
+    return counts;
+}
+
+function getIngredientAvailability(ingredients) {
+    const warehouse = (typeof accountMeta !== 'undefined' && accountMeta?.warehouse) || {};
+    const missing = [];
+    Object.entries(ingredients || {}).forEach(([name, rawRequired]) => {
+        const required = Math.max(0, Number(rawRequired) || 0);
+        const owned = Math.max(0, Number(warehouse[name]) || 0);
+        if (owned < required) missing.push({ name, required, owned, shortfall: required - owned });
+    });
+    return { isReady: missing.length === 0, missing };
+}
+
+function renderFacilityOverview(elementId, metrics) {
+    const target = DOM.get(elementId);
+    if (!target) return;
+    target.innerHTML = metrics.map((metric) => `
+        <div class="facility-metric${metric.tone ? ` facility-metric--${metric.tone}` : ''}">
+            <span class="facility-metric-label">${metric.label}</span>
+            <strong class="facility-metric-value">${metric.value}</strong>
+        </div>
+    `).join('');
+}
+
+function createIngredientChips(ingredients) {
+    return Object.entries(ingredients || {}).map(([name, rawQty]) => (
+        `<span class="facility-material-chip">🌾 ${name} ×${Math.max(0, Number(rawQty) || 0)}</span>`
+    )).join('');
+}
+
+function createAvailabilityChip(availability, readyLabel = '材料齊全') {
+    if (availability.isReady) {
+        return `<span class="facility-status-chip facility-status-chip--ready">✓ ${readyLabel}</span>`;
+    }
+    const names = availability.missing.map((item) => item.name).join('、');
+    return `<span class="facility-status-chip facility-status-chip--missing">缺少：${names}</span>`;
+}
+
+function normalizeWarehouseFilter(allowedKeys) {
+    if (!allowedKeys.includes(activeWarehouseFilter)) activeWarehouseFilter = 'all';
+}
+
+function createWarehousePill(name, qty) {
+    const pill = document.createElement('span');
+    pill.className = 'warehouse-pill';
+    const itemName = document.createElement('span');
+    itemName.textContent = name;
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = `×${qty}`;
+    pill.append(itemName, count);
+    return pill;
+}
+
+function renderWarehouseFilterBar(containerEl, onFilterChange, allowedKeys = ['all', 'mat', 'dish', 'equip']) {
+    if (!containerEl) return;
+    const tags = [
+        { key: 'all', label: '🌐 全部' },
+        { key: 'mat', label: '🌾 食材素材' },
+        { key: 'dish', label: '🍱 料理成品' },
+        { key: 'equip', label: '⚔️ 裝備神裝' }
+    ].filter((tag) => allowedKeys.includes(tag.key));
+
+    normalizeWarehouseFilter(tags.map((tag) => tag.key));
+    const filterRow = document.createElement('div');
+    filterRow.className = 'warehouse-filter-row';
+    filterRow.setAttribute('aria-label', '倉庫物品篩選');
+
+    tags.forEach((tag) => {
+        const button = document.createElement('button');
+        const isActive = activeWarehouseFilter === tag.key;
+        button.type = 'button';
+        button.className = `warehouse-filter-button${isActive ? ' is-active' : ''}`;
+        button.textContent = tag.label;
+        button.setAttribute('aria-pressed', String(isActive));
+        button.addEventListener('click', () => {
+            activeWarehouseFilter = tag.key;
+            onFilterChange();
+        });
+        filterRow.appendChild(button);
+    });
+
+    containerEl.appendChild(filterRow);
+}
+
+// --------------------------------------------------------------------------
 // 🏛️ 冒險者公會渲染
+// --------------------------------------------------------------------------
+
 function renderVillageGuild() {
     const container = DOM.get('guild-skills-container');
-    if (!container || typeof SKILLS_DATABASE === "undefined") return;
-    container.innerHTML = "";
+    if (!container || typeof SKILLS_DATABASE === 'undefined') return;
 
     const playerLv = accountMeta.lv || currentRun.lv || 1;
     const currentJob = currentRun.job;
+    const jobSkills = typeof getAllSkillsForJob === 'function' ? getAllSkillsForJob(currentJob) : (SKILLS_DATABASE[currentJob] || []);
+    const learnedCount = jobSkills.filter((skill) => Number(accountMeta.skills?.[skill.name] || currentRun.skills?.[skill.name]) > 0).length;
+    const jobName = getJobChineseName(currentJob);
 
-    if (typeof canAdvanceJob === "function" && canAdvanceJob(currentRun)) {
-        const advBanner = document.createElement('div');
-        advBanner.style.cssText = `
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.3));
-            border: 2px solid #ffd700; border-radius: 10px; padding: 10px; margin-bottom: 10px;
-            text-align: center; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25); width: 100%;
-        `;
-        advBanner.innerHTML = `
-            <div style="font-size: 13px; font-weight: bold; color: #ffd700; margin-bottom: 2px;">
-                🌟【血脈突破】具備資格進行皇家二轉突破儀式！
+    renderFacilityOverview('guild-overview', [
+        { label: '目前職業', value: `🎭 ${jobName}`, tone: 'accent' },
+        { label: '角色等級', value: `Lv. ${playerLv}` },
+        { label: '已傳承技能', value: `${learnedCount} / ${jobSkills.length}`, tone: 'ready' },
+        { label: '持有金幣', value: `${Math.max(0, Number(currentRun.gold) || 0)} G`, tone: 'gold' }
+    ]);
+
+    container.innerHTML = '';
+
+    if (typeof canAdvanceJob === 'function' && canAdvanceJob(currentRun)) {
+        const advancementBanner = document.createElement('div');
+        advancementBanner.className = 'guild-advancement-banner';
+        advancementBanner.innerHTML = `
+            <div>
+                <strong>🌟 血脈突破資格已達成</strong>
+                <span>你已符合皇家二轉儀式條件，可選擇下一階職業專精。</span>
             </div>
-            <button class="btn-game btn-rerun" style="padding: 4px 12px; font-size: 11px; font-weight: bold; margin-top: 4px;" onclick="if(typeof openJobAdvancementModal === 'function') openJobAdvancementModal(); else showToast('二轉系統載入中...', 'info');">
-                🏇✨ 開啟二轉突破選擇
-            </button>
         `;
-        container.appendChild(advBanner);
+        const advancementButton = document.createElement('button');
+        advancementButton.type = 'button';
+        advancementButton.className = 'btn-game btn-rerun facility-action-button';
+        advancementButton.textContent = '🏇 開啟二轉選擇';
+        advancementButton.addEventListener('click', () => {
+            if (typeof openJobAdvancementModal === 'function') openJobAdvancementModal();
+            else showToast('二轉系統載入中...', 'info');
+        });
+        advancementBanner.appendChild(advancementButton);
+        container.appendChild(advancementBanner);
     }
 
-    const jobSkills = typeof getAllSkillsForJob === "function" ? getAllSkillsForJob(currentJob) : (SKILLS_DATABASE[currentJob] || []);
+    if (jobSkills.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'facility-empty-state';
+        empty.textContent = '此職業暫無可傳承技能。';
+        container.appendChild(empty);
+    }
 
-    jobSkills.forEach(s => {
-        const row = document.createElement('div');
-        row.style.cssText = `
-            background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px; width: 100%;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s;
-        `;
-
-        const currentLv = (accountMeta.skills && accountMeta.skills[s.name]) || (currentRun.skills && currentRun.skills[s.name]) || 0;
+    jobSkills.forEach((skill) => {
+        const currentLv = Number(accountMeta.skills?.[skill.name] || currentRun.skills?.[skill.name]) || 0;
         const isMaxLevel = currentLv >= 10;
         const nextLv = currentLv + 1;
+        const goldCost = (Number(skill.goldCost) || 0) * nextLv;
+        const hasLevel = playerLv >= (Number(skill.reqLv) || 1);
+        const hasGold = (Number(currentRun.gold) || 0) >= goldCost;
+        const requiredMaterials = {};
+        Object.entries(skill.reqMat || {}).forEach(([name, baseQty]) => {
+            requiredMaterials[name] = (Number(baseQty) || 0) * nextLv;
+        });
+        const availability = getIngredientAvailability(requiredMaterials);
+        const isDisabled = isMaxLevel || !hasLevel || !hasGold || !availability.isReady;
+        const currentEffect = formatSkillEffectText(skill, currentLv, currentRun);
+        const nextEffect = isMaxLevel ? '已達上限' : formatSkillEffectText(skill, nextLv, currentRun);
+        const skillType = skill.type === 'passive' ? '被動常駐' : `主動 · MP ${skill.mp || 0}`;
 
-        const goldCost = s.goldCost * nextLv;
-        const hasLevel = playerLv >= s.reqLv;
-        const hasGold = (currentRun.gold || 0) >= goldCost;
-        
-        let reqMatTextArr = [];
-        let hasMats = true;
-        for (let mat in s.reqMat) {
-            let reqQty = s.reqMat[mat] * nextLv;
-            reqMatTextArr.push(`${mat} x${reqQty}`);
-            if ((accountMeta.warehouse?.[mat] || 0) < reqQty) hasMats = false;
+        let statusLabel = '可升級';
+        let statusClass = 'facility-status-chip--ready';
+        if (isMaxLevel) {
+            statusLabel = '已達滿級';
+            statusClass = '';
+        } else if (!hasLevel) {
+            statusLabel = `Lv. ${skill.reqLv} 解鎖`;
+            statusClass = 'facility-status-chip--missing';
+        } else if (!hasGold) {
+            statusLabel = `需 ${goldCost} G`;
+            statusClass = 'facility-status-chip--missing';
+        } else if (!availability.isReady) {
+            statusLabel = `缺少 ${availability.missing.length} 種素材`;
+            statusClass = 'facility-status-chip--missing';
         }
-        const reqMatText = reqMatTextArr.join(", ");
 
-        let btnDisabled = isMaxLevel || !hasLevel || !hasGold || !hasMats;
-        const skillTypeTag = s.type === "passive" ? `<span style="color:#00ffcc; font-size:10px;">[被動]</span>` : `<span style="color:#ff9f43; font-size:10px;">[MP:${s.mp}]</span>`;
-
-        row.innerHTML = `
+        const card = document.createElement('article');
+        card.className = 'guild-skill-card';
+        card.innerHTML = `
             <div>
-                <strong style="color: #ffd700; font-size: 12px;">${skillTypeTag} ${s.name}</strong>
-                <span style="color: #8e8e93; font-size: 10px; margin-left: 6px;">Lv.${currentLv} / 10</span>
+                <div class="guild-skill-card__name">${skill.name} <span class="guild-skill-card__level">Lv. ${currentLv} / 10</span></div>
+                <span class="guild-skill-card__type">${skillType}</span>
+                <p class="guild-skill-card__description">${skill.desc || '職業專屬技能。'}</p>
+                <div class="guild-skill-card__footer">
+                    <span class="facility-effect-chip">目前：${currentEffect}</span>
+                    <span class="facility-status-chip ${statusClass}">${statusLabel}</span>
+                    ${Object.keys(requiredMaterials).length ? createIngredientChips(requiredMaterials) : ''}
+                </div>
+                ${isMaxLevel ? '' : `<div class="guild-skill-card__next">下一級：${nextEffect}</div>`}
             </div>
         `;
 
-        const btnLearn = document.createElement('button');
-        btnLearn.className = "btn-game btn-explore";
-        btnLearn.style.cssText = "padding: 3px 8px; font-size: 10px; font-weight: bold;";
-        btnLearn.innerText = isMaxLevel ? "滿級" : `升級 (${goldCost}G)`;
-        btnLearn.disabled = btnDisabled;
-        btnLearn.onclick = (e) => { 
-            e.stopPropagation(); 
-            if (typeof executeLearnSkill === "function") executeLearnSkill(s); 
-            else showToast("技能學習模組未載入", "warn");
-        };
+        const learnButton = document.createElement('button');
+        learnButton.type = 'button';
+        learnButton.className = 'btn-game btn-explore facility-action-button';
+        learnButton.textContent = isMaxLevel ? '滿級' : `升級 · ${goldCost}G`;
+        learnButton.disabled = isDisabled;
+        learnButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (typeof executeLearnSkill === 'function') executeLearnSkill(skill);
+            else showToast('技能學習模組未載入', 'warn');
+        });
+        card.appendChild(learnButton);
 
-        row.appendChild(btnLearn);
-
-        const curDmgText = formatSkillEffectText(s, currentLv, currentRun);
-        const nextDmgText = !isMaxLevel ? formatSkillEffectText(s, nextLv, currentRun) : "已達上限";
-
-        bindFloatingCard(row, () => ({
-            title: `${s.name} (Lv.${currentLv})`,
-            type: s.type === "passive" ? "被動技能" : `主動技能 (MP: ${s.mp})`,
-            desc: `${s.desc}<br><br>🔹 當前威力: ${curDmgText}<br>${!isMaxLevel ? `⚡ 下級突破: ${nextDmgText}` : ''}`,
-            stats: isMaxLevel ? "已達最高等級" : `升級所需: 🪙 ${goldCost} G ${reqMatText ? `| 📦 ${reqMatText}` : ''}`
+        const materialText = Object.entries(requiredMaterials).map(([name, qty]) => `${name} ×${qty}`).join('、');
+        bindFloatingCard(card, () => ({
+            title: `${skill.name} (Lv.${currentLv})`,
+            type: skill.type === 'passive' ? '被動技能' : `主動技能 (MP: ${skill.mp || 0})`,
+            desc: `${skill.desc || '職業專屬技能。'}<br><br>🔹 當前威力: ${currentEffect}<br>${isMaxLevel ? '' : `⚡ 下級突破: ${nextEffect}`}`,
+            stats: isMaxLevel ? '已達最高等級' : `升級所需: 🪙 ${goldCost} G ${materialText ? `| 📦 ${materialText}` : ''}`
         }));
-
-        container.appendChild(row);
+        container.appendChild(card);
     });
 
-    const resetSection = document.createElement('div');
-    resetSection.style.cssText = `
-        margin-top: 10px; padding: 8px 10px; background: rgba(0, 0, 0, 0.25);
-        border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 8px; width: 100%;
-        box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
-    `;
+    const resetSection = document.createElement('section');
+    resetSection.className = 'guild-reset-section';
     resetSection.innerHTML = `
-        <div style="font-size: 11px; font-weight: bold; color: #ffd700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
-            ⚖️ 命運洗禮 (洗點與轉職)
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <button class="btn-game btn-rerun" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof executeResetStats === 'function') executeResetStats(); else showToast('洗點模組載入中...', 'info');">
-                <span>🧹 重洗屬性點</span> <span style="font-size: 9px; opacity: 0.85;">(300G)</span>
-            </button>
-            <button class="btn-game btn-explore" style="padding: 6px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #16a085, #0a5c4c) !important; display: flex; align-items: center; justify-content: center; gap: 3px;" onclick="if(typeof triggerReselectJobUI === 'function') triggerReselectJobUI(); else showToast('轉職模組載入中...', 'info');">
-                <span>🔄 重選職業</span> <span style="font-size: 9px; opacity: 0.85;">(1,000G)</span>
-            </button>
-        </div>
+        <h5 class="guild-reset-section__heading">⚖️ 命運洗禮</h5>
+        <p class="guild-reset-section__description">重置能力點或重選職業會影響角色配置，請在出發前確認。</p>
+        <div class="guild-reset-section__actions"></div>
     `;
+    const resetActions = resetSection.querySelector('.guild-reset-section__actions');
+    const resetStatsButton = document.createElement('button');
+    resetStatsButton.type = 'button';
+    resetStatsButton.className = 'btn-game btn-rerun';
+    resetStatsButton.textContent = '🧹 重洗屬性點 · 300G';
+    resetStatsButton.addEventListener('click', () => {
+        if (typeof executeResetStats === 'function') executeResetStats();
+        else showToast('洗點模組載入中...', 'info');
+    });
+    const reselectJobButton = document.createElement('button');
+    reselectJobButton.type = 'button';
+    reselectJobButton.className = 'btn-game btn-explore';
+    reselectJobButton.textContent = '🔄 重選職業 · 1,000G';
+    reselectJobButton.addEventListener('click', () => {
+        if (typeof triggerReselectJobUI === 'function') triggerReselectJobUI();
+        else showToast('轉職模組載入中...', 'info');
+    });
+    resetActions.append(resetStatsButton, reselectJobButton);
     container.appendChild(resetSection);
 }
 
@@ -1884,362 +2052,367 @@ function closeMatAlertModal() {
     hideMaterialAlert();
 }
 
-function renderWarehouseFilterBar(containerEl, onFilterChange) {
-    if (!containerEl) return;
-    const filterRow = document.createElement('div');
-    filterRow.className = "warehouse-filter-row";
-    filterRow.style.cssText = "display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;";
-
-    const tags = [
-        { key: "all", label: "🌐 全部" },
-        { key: "mat", label: "🌾 食材素材" },
-        { key: "dish", label: "🍱 料理成品" },
-        { key: "equip", label: "⚔️ 裝備神裝" }
-    ];
-
-    tags.forEach(t => {
-        const btn = document.createElement('button');
-        btn.className = `btn-game ${activeWarehouseFilter === t.key ? 'btn-rerun' : ''}`;
-        btn.style.cssText = "padding: 3px 8px; font-size: 10px; font-weight: 600;";
-        btn.innerText = t.label;
-        btn.onclick = () => {
-            activeWarehouseFilter = t.key;
-            onFilterChange();
-        };
-        filterRow.appendChild(btn);
-    });
-
-    containerEl.appendChild(filterRow);
-}
-
+// --------------------------------------------------------------------------
 // 🍳 皇家料理屋渲染
+// --------------------------------------------------------------------------
+
 function renderVillageCookingWorkshop() {
-    const wBox = DOM.get('kitchen-warehouse-display');
-    if (wBox) {
-        wBox.innerHTML = "";
-        renderWarehouseFilterBar(wBox, renderVillageCookingWorkshop);
+    const recipes = typeof RECIPES_DATABASE !== 'undefined' ? RECIPES_DATABASE : [];
+    const warehouse = accountMeta.warehouse || {};
+    const counts = getWarehouseCounts();
+    const craftableRecipes = recipes.filter((recipe) => getIngredientAvailability(recipe.ingredients).isReady).length;
 
-        const warehouseData = accountMeta.warehouse || {};
-        let rawMaterials = [];
-        let cookedDishes = [];
+    renderFacilityOverview('kitchen-overview', [
+        { label: '食材種類', value: `${counts.materialTypes} 種` },
+        { label: '食材存量', value: `${counts.materialQty} 個`, tone: 'accent' },
+        { label: '完成料理', value: `${counts.dishQty} 份` },
+        { label: '可烹飪食譜', value: `${craftableRecipes} 道`, tone: 'ready' }
+    ]);
 
-        const recipeNames = typeof RECIPES_DATABASE !== "undefined" ? RECIPES_DATABASE.map(r => r.name) : [];
+    normalizeWarehouseFilter(['all', 'mat', 'dish']);
+    const warehouseBox = DOM.get('kitchen-warehouse-display');
+    if (warehouseBox) {
+        warehouseBox.className = 'facility-stock-card';
+        warehouseBox.innerHTML = '';
 
-        for (let itemKey in warehouseData) {
-            let count = warehouseData[itemKey];
-            if (count <= 0) continue;
+        const summary = document.createElement('div');
+        summary.className = 'facility-stock-summary';
+        summary.innerHTML = `<span>目前倉庫共有 <strong>${counts.totalTypes}</strong> 種物品</span><span>${counts.totalQty} 件</span>`;
+        warehouseBox.appendChild(summary);
+        renderWarehouseFilterBar(warehouseBox, renderVillageCookingWorkshop, ['all', 'mat', 'dish']);
 
-            const isDish = recipeNames.includes(itemKey);
+        const recipeNames = new Set(recipes.map((recipe) => recipe.name));
+        const blueprintNames = new Set(typeof CRAFTING_BLUEPRINTS !== 'undefined' ? CRAFTING_BLUEPRINTS.map((blueprint) => blueprint.name) : []);
+        const rawMaterials = [];
+        const cookedDishes = [];
+        Object.entries(warehouse).forEach(([name, rawQty]) => {
+            const qty = Math.max(0, Number(rawQty) || 0);
+            if (!qty) return;
+            const isDish = recipeNames.has(name);
+            const isEquipment = blueprintNames.has(name);
+            if (isEquipment) return;
+            if (activeWarehouseFilter === 'mat' && isDish) return;
+            if (activeWarehouseFilter === 'dish' && !isDish) return;
+            if (isDish) cookedDishes.push({ name, qty });
+            else rawMaterials.push({ name, qty });
+        });
 
-            if (activeWarehouseFilter === "mat" && isDish) continue;
-            if (activeWarehouseFilter === "dish" && !isDish) continue;
-
-            if (isDish) {
-                cookedDishes.push({ name: itemKey, qty: count });
-            } else {
-                rawMaterials.push({ name: itemKey, qty: count });
-            }
+        if (activeWarehouseFilter !== 'dish') {
+            const materialTitle = document.createElement('div');
+            materialTitle.className = 'facility-stock-summary';
+            materialTitle.innerHTML = `<span>🌾 食材素材</span><span>${rawMaterials.length} 種</span>`;
+            warehouseBox.appendChild(materialTitle);
+            const materialBox = document.createElement('div');
+            materialBox.className = 'warehouse-pill-box';
+            if (rawMaterials.length) rawMaterials.forEach((item) => materialBox.appendChild(createWarehousePill(item.name, item.qty)));
+            else materialBox.innerHTML = '<div class="facility-empty-state">目前沒有符合篩選條件的食材。</div>';
+            warehouseBox.appendChild(materialBox);
         }
 
-        if (activeWarehouseFilter !== "dish") {
-            const rawMatContainer = document.createElement('div');
-            rawMatContainer.className = "warehouse-pill-box";
-
-            if (rawMaterials.length === 0) {
-                rawMatContainer.innerHTML = `<span style="color:#888; font-size:11px;">無符合條件的食材</span>`;
+        if (activeWarehouseFilter !== 'mat') {
+            const dishTitle = document.createElement('div');
+            dishTitle.className = 'facility-stock-summary';
+            dishTitle.innerHTML = `<span>🍱 完成料理</span><span>${cookedDishes.length} 種</span>`;
+            warehouseBox.appendChild(dishTitle);
+            const dishList = document.createElement('div');
+            dishList.className = 'facility-owned-list';
+            if (!cookedDishes.length) {
+                dishList.innerHTML = '<div class="facility-empty-state">尚無完成料理；選擇下方食譜開始烹飪。</div>';
             } else {
-                rawMaterials.forEach(m => {
-                    const pill = document.createElement('span');
-                    pill.className = "warehouse-pill";
-                    pill.innerHTML = `${m.name} <span class="count">x${m.qty}</span>`;
-                    rawMatContainer.appendChild(pill);
+                cookedDishes.forEach((dish) => {
+                    const dishRow = document.createElement('div');
+                    dishRow.className = 'facility-owned-item';
+                    dishRow.innerHTML = `
+                        <div class="facility-owned-item__meta">
+                            <span class="facility-owned-item__name">${dish.name}</span>
+                            <span class="facility-owned-item__hint">倉庫現存 ×${dish.qty}</span>
+                        </div>
+                    `;
+                    const withdrawButton = document.createElement('button');
+                    withdrawButton.type = 'button';
+                    withdrawButton.className = 'btn-game btn-explore facility-action-button';
+                    withdrawButton.textContent = '🎒 取出 1 個';
+                    withdrawButton.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        executeWithdrawFoodFromWarehouse(dish.name);
+                    });
+                    dishRow.appendChild(withdrawButton);
+                    bindFloatingCard(dishRow, () => {
+                        const recipe = typeof getRecipeByName === 'function' ? getRecipeByName(dish.name) : recipes.find((item) => item.name === dish.name);
+                        return {
+                            title: dish.name,
+                            type: '成品料理',
+                            desc: recipe?.desc || '完成的美味料理。',
+                            stats: `倉庫現存數量: ${dish.qty}`
+                        };
+                    });
+                    dishList.appendChild(dishRow);
                 });
             }
-            wBox.appendChild(rawMatContainer);
-        }
-
-        if (activeWarehouseFilter !== "mat" && cookedDishes.length > 0) {
-            const dishesGrid = document.createElement('div');
-            dishesGrid.style.cssText = "display: flex; flex-direction: column; gap: 4px; margin-top: 4px;";
-
-            cookedDishes.forEach(d => {
-                const dishRow = document.createElement('div');
-                dishRow.style.cssText = `
-                    display: flex; justify-content: space-between; align-items: center;
-                    background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2);
-                    border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;
-                `;
-                dishRow.innerHTML = `<span>🍱 <strong>${d.name}</strong> (x${d.qty})</span>`;
-
-                const btnWithdraw = document.createElement('button');
-                btnWithdraw.className = "btn-game btn-explore";
-                btnWithdraw.style.cssText = "padding: 2px 6px; font-size: 10px; font-weight: bold;";
-                btnWithdraw.innerText = "🎒 取出 1 個";
-                btnWithdraw.onclick = (e) => { e.stopPropagation(); executeWithdrawFoodFromWarehouse(d.name); };
-
-                dishRow.appendChild(btnWithdraw);
-
-                bindFloatingCard(dishRow, () => {
-                    let desc = "完成的美味料理。";
-                    const r = typeof getRecipeByName === "function" ? getRecipeByName(d.name) : (typeof RECIPES_DATABASE !== "undefined" ? RECIPES_DATABASE.find(item => item.name === d.name) : null);
-                    if (r) desc = r.desc;
-                    return { title: d.name, type: "成品料理", desc: desc, stats: `倉庫現存數量: ${d.qty}` };
-                });
-
-                dishesGrid.appendChild(dishRow);
-            });
-
-            wBox.appendChild(dishesGrid);
+            warehouseBox.appendChild(dishList);
         }
     }
-    
-    const rContainer = DOM.get('recipes-container');
-    if (!rContainer) return;
-    rContainer.innerHTML = "";
 
-    const selectorControl = document.createElement('div');
-    selectorControl.style.cssText = "margin-bottom: 8px; width: 100%;";
-    selectorControl.innerHTML = `
-        <select class="select-game" onchange="changeCookingTab(this.value)">
-            <option value="1-10" ${activeCookingRange === "1-10" ? "selected" : ""}>📜 深淵階層 B1F ~ B10F 食譜</option>
-            <option value="11-20" ${activeCookingRange === "11-20" ? "selected" : ""}>📜 深淵階層 B11F ~ B20F 食譜</option>
-            <option value="21-30" ${activeCookingRange === "21-30" ? "selected" : ""}>📜 深淵階層 B21F ~ B30F 食譜</option>
-            <option value="31-40" ${activeCookingRange === "31-40" ? "selected" : ""}>📜 深淵階層 B31F ~ B40F 食譜</option>
-            <option value="41-50" ${activeCookingRange === "41-50" ? "selected" : ""}>📜 深淵階層 B41F ~ B50F 食譜</option>
-        </select>
+    const recipeContainer = DOM.get('recipes-container');
+    if (!recipeContainer) return;
+    recipeContainer.innerHTML = '';
+
+    const filterBar = document.createElement('div');
+    filterBar.className = 'facility-filter-bar facility-filter-bar--single';
+    const recipeSelect = document.createElement('select');
+    recipeSelect.className = 'select-game';
+    recipeSelect.setAttribute('aria-label', '選擇食譜對應的深淵階層');
+    recipeSelect.innerHTML = `
+        <option value="1-10">📜 深淵階層 B1F ~ B10F 食譜</option>
+        <option value="11-20">📜 深淵階層 B11F ~ B20F 食譜</option>
+        <option value="21-30">📜 深淵階層 B21F ~ B30F 食譜</option>
+        <option value="31-40">📜 深淵階層 B31F ~ B40F 食譜</option>
+        <option value="41-50">📜 深淵階層 B41F ~ B50F 食譜</option>
     `;
-    rContainer.appendChild(selectorControl);
+    recipeSelect.value = activeCookingRange;
+    recipeSelect.addEventListener('change', (event) => changeCookingTab(event.target.value));
+    filterBar.appendChild(recipeSelect);
+    recipeContainer.appendChild(filterBar);
 
-    if (typeof RECIPES_DATABASE === "undefined") return;
-    const filteredRecipes = RECIPES_DATABASE.filter(r => r.range === activeCookingRange);
-
-    filteredRecipes.forEach(recipe => {
-        const row = document.createElement('div');
-        row.style.cssText = `
-            background: rgba(0,0,0,0.25); padding: 5px 8px; border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.03); margin-bottom: 4px; width: 100%;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-        `;
-
-        const ingList = Object.keys(recipe.ingredients).map(k => `${k} x${recipe.ingredients[k]}`).join(", ");
-
-        row.innerHTML = `<div><strong style="color:#2ecc71; font-size:12px;">${recipe.name}</strong></div>`;
-
-        const btnCook = document.createElement('button');
-        btnCook.className = "btn-game btn-cook";
-        btnCook.style.cssText = "padding: 3px 8px; font-size: 10px;";
-        btnCook.innerHTML = recipe.type === "village_eat" ? "🍴 進食 Buff" : "🍳 烹飪存倉";
-        btnCook.onclick = (e) => { 
-            e.stopPropagation(); 
-            if (typeof executeVillageCooking === "function") executeVillageCooking(recipe); 
-        };
-
-        row.appendChild(btnCook);
-
-        bindFloatingCard(row, () => ({
-            title: recipe.name,
-            type: recipe.type === "village_eat" ? "長效進食 Buff" : "可攜帶戰鬥料理",
-            desc: recipe.desc,
-            stats: `🌾 配料需求: ${ingList}`
-        }));
-
-        rContainer.appendChild(row);
-    });
-}
-
-// 🛠️ 魔導加工所渲染（重構：全平台/手機端 Responsive Card Layout 上下分層）
-function renderVillageWorkshop() {
-    const wBox = DOM.get('workshop-warehouse-display');
-    if (wBox) {
-        wBox.innerHTML = "";
-        renderWarehouseFilterBar(wBox, renderVillageWorkshop);
-
-        const warehouseData = accountMeta.warehouse || {};
-        let itemsList = [];
-
-        for (let k in warehouseData) {
-            if (warehouseData[k] <= 0) continue;
-            
-            const isEquip = typeof CRAFTING_BLUEPRINTS !== "undefined" && CRAFTING_BLUEPRINTS.some(b => b.name === k);
-            const isDish = typeof RECIPES_DATABASE !== "undefined" && RECIPES_DATABASE.some(r => r.name === k);
-            const isMat = !isEquip && !isDish;
-
-            if (activeWarehouseFilter === "mat" && !isMat) continue;
-            if (activeWarehouseFilter === "dish" && !isDish) continue;
-            if (activeWarehouseFilter === "equip" && !isEquip) continue;
-
-            itemsList.push({ name: k, qty: warehouseData[k] });
-        }
-
-        const pillBox = document.createElement('div');
-        pillBox.className = "warehouse-pill-box";
-
-        if (itemsList.length === 0) {
-            pillBox.innerHTML = `<span style="color:#888; font-size:11px;">無符合條件的物品</span>`;
-        } else {
-            itemsList.forEach(item => {
-                const pill = document.createElement('span');
-                pill.className = "warehouse-pill";
-                pill.innerHTML = `${item.name} <span class="count">x${item.qty}</span>`;
-                pillBox.appendChild(pill);
-            });
-        }
-        wBox.appendChild(pillBox);
-    }
-    
-    const bContainer = DOM.get('blueprints-container');
-    if (!bContainer) return;
-    bContainer.innerHTML = "";
-
-    const selectorWrapper = document.createElement('div');
-    selectorWrapper.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; width: 100%;";
-    selectorWrapper.innerHTML = `
-        <select class="select-game" onchange="changeCraftingCat(this.value)">
-            <option value="all" ${activeCraftingCategory === "all" ? "selected" : ""}>🌐 全部神裝類別</option>
-            <option value="weapon" ${activeCraftingCategory === "weapon" ? "selected" : ""}>🗡️ 武器裝備</option>
-            <option value="armor" ${activeCraftingCategory === "armor" ? "selected" : ""}>👕 防具裝備</option>
-            <option value="accessory" ${activeCraftingCategory === "accessory" ? "selected" : ""}>💍 飾品裝備</option>
-        </select>
-        <select class="select-game" onchange="changeCraftingLvl(this.value)">
-            <option value="1-10" ${activeCraftingLvlRange === "1-10" ? "selected" : ""}>📜 階層 B1F ~ B10F</option>
-            <option value="11-20" ${activeCraftingLvlRange === "11-20" ? "selected" : ""}>📜 階層 B11F ~ B20F</option>
-            <option value="21-30" ${activeCraftingLvlRange === "21-30" ? "selected" : ""}>📜 階層 B21F ~ B30F</option>
-            <option value="31-40" ${activeCraftingLvlRange === "31-40" ? "selected" : ""}>📜 階層 B31F ~ B40F</option>
-            <option value="41-50" ${activeCraftingLvlRange === "41-50" ? "selected" : ""}>📜 階層 B41F ~ B50F</option>
-            <option value="51-60" ${activeCraftingLvlRange === "51-60" ? "selected" : ""}>📜 階層 B51F ~ B60F</option>
-            <option value="legendary" ${activeCraftingLvlRange === "legendary" ? "selected" : ""}>🌟 傳說神裝藍圖</option>
-        </select>
-    `;
-    bContainer.appendChild(selectorWrapper);
-
-    if (typeof CRAFTING_BLUEPRINTS === "undefined") return;
-
-    const unlockedBlueprints = accountMeta.unlockedBlueprints || [];
-
-    const filteredBlueprints = CRAFTING_BLUEPRINTS.filter(b => {
-        const matchCat = (activeCraftingCategory === "all" || b.type === activeCraftingCategory);
-        
-        if (b.isLegendary) {
-            if (!unlockedBlueprints.includes(b.name)) return false; 
-            return matchCat && (activeCraftingLvlRange === "legendary" || b.range === activeCraftingLvlRange || activeCraftingLvlRange === "51-60" || !b.range);
-        }
-
-        const matchLvl = (b.range === activeCraftingLvlRange);
-        return matchCat && matchLvl;
-    });
-
-    if (filteredBlueprints.length === 0) {
-        const emptyTip = document.createElement('div');
-        emptyTip.style.cssText = "color: #777; font-size: 11px; text-align: center; padding: 15px;";
-        emptyTip.innerText = activeCraftingLvlRange === "legendary" 
-            ? "🔒 尚未解鎖任何傳說藍圖。請前往地下黑市進行尋寶採購！" 
-            : "📜 該分頁目前暫無可打造裝備。";
-        bContainer.appendChild(emptyTip);
+    const filteredRecipes = recipes.filter((recipe) => recipe.range === activeCookingRange);
+    if (!filteredRecipes.length) {
+        recipeContainer.insertAdjacentHTML('beforeend', '<div class="facility-empty-state">此樓層區間暫無食譜。</div>');
         return;
     }
 
-    filteredBlueprints.forEach(blueprint => {
-        const row = document.createElement('div');
-        row.className = "workshop-blueprint-card";
-        row.style.cssText = `
-            background: ${blueprint.isLegendary ? 'radial-gradient(circle at 0% 0%, rgba(230, 126, 34, 0.2) 0%, rgba(20, 15, 10, 0.85) 100%)' : 'rgba(15, 18, 25, 0.75)'}; 
-            padding: 8px 10px; border-radius: 8px;
-            border: 1px solid ${blueprint.isLegendary ? 'rgba(230, 126, 34, 0.6)' : 'rgba(255,255,255,0.08)'}; 
-            margin-bottom: 6px; text-align: left;
-            width: 100%; display: flex; flex-direction: column; gap: 6px; cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s ease;
-            box-sizing: border-box;
-        `;
-
-        const itemRefineLvl = (accountMeta.itemRefines?.[blueprint.name]) || (accountMeta.equipmentStars?.[blueprint.type]) || 0;
-        const refineBadge = itemRefineLvl > 0 ? `<span style="color:#ffd700; font-weight:bold;"> (+${itemRefineLvl})</span>` : "";
-        const statDiffHtml = getEquipmentStatDiff(blueprint);
-        const reqText = Object.keys(blueprint.ingredients).map(k => `${k} x${blueprint.ingredients[k]}`).join(", ");
-
-        const skillTag = blueprint.skill ? `<span style="font-size:10px; color:#00ffcc; background:rgba(0,255,204,0.1); padding:1px 5px; border-radius:4px; border:1px solid rgba(0,255,204,0.3); margin-left:6px;">✨ [${blueprint.skill.name}]</span>` : "";
-
-        // 上層：裝備資訊與標籤
-        const infoDiv = document.createElement('div');
-        infoDiv.style.cssText = "display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 4px;";
-        infoDiv.innerHTML = `
-            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 2px;">
-                <strong style="color:${blueprint.isLegendary ? '#f39c12' : '#fff'}; font-size:13px; font-weight:bold;">${blueprint.name}${refineBadge}</strong>
-                ${skillTag}
+    filteredRecipes.forEach((recipe) => {
+        const availability = getIngredientAvailability(recipe.ingredients);
+        const isBuff = recipe.type === 'village_eat';
+        const card = document.createElement('article');
+        card.className = 'recipe-card';
+        card.innerHTML = `
+            <div>
+                <h5 class="recipe-card__name">${recipe.name}</h5>
+                <span class="recipe-card__type">${isBuff ? '立即進食 Buff' : '可攜帶戰鬥料理'}</span>
+                <p class="recipe-card__description">${recipe.desc || '深淵後勤料理。'}</p>
+                <div class="recipe-card__footer">
+                    ${createAvailabilityChip(availability, '食材齊全')}
+                    ${createIngredientChips(recipe.ingredients)}
+                </div>
             </div>
-            <span style="font-size: 10px; color: #8e8e93; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${blueprint.type.toUpperCase()}</span>
         `;
-        row.appendChild(infoDiv);
+        const cookButton = document.createElement('button');
+        cookButton.type = 'button';
+        cookButton.className = 'btn-game btn-cook facility-action-button';
+        cookButton.textContent = isBuff ? '🍴 立即進食' : '🍳 烹飪入庫';
+        cookButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (typeof executeVillageCooking === 'function') executeVillageCooking(recipe);
+        });
+        card.appendChild(cookButton);
+        bindFloatingCard(card, () => ({
+            title: recipe.name,
+            type: isBuff ? '長效進食 Buff' : '可攜帶戰鬥料理',
+            desc: recipe.desc,
+            stats: `🌾 配料需求: ${Object.entries(recipe.ingredients || {}).map(([name, qty]) => `${name} ×${qty}`).join('、')}`
+        }));
+        recipeContainer.appendChild(card);
+    });
+}
 
-        // 下層：操作按鈕欄位（RWD 自適應防擠壓）
-        const btnGroup = document.createElement('div');
-        btnGroup.style.cssText = "display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: flex-end; align-items: center; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;";
+// --------------------------------------------------------------------------
+// 🛠️ 魔導加工所渲染
+// --------------------------------------------------------------------------
 
-        const btnForge = document.createElement('button');
-        btnForge.className = "btn-game btn-explore";
-        btnForge.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
-        btnForge.innerHTML = "🔨 打造";
-        btnForge.onclick = (e) => { e.stopPropagation(); if (typeof executeForgeEquipment === "function") executeForgeEquipment(blueprint); };
-        btnGroup.appendChild(btnForge);
+function renderVillageWorkshop() {
+    const blueprints = typeof CRAFTING_BLUEPRINTS !== 'undefined' ? CRAFTING_BLUEPRINTS : [];
+    const recipes = typeof RECIPES_DATABASE !== 'undefined' ? RECIPES_DATABASE : [];
+    const warehouse = accountMeta.warehouse || {};
+    const counts = getWarehouseCounts();
+    const unlockedBlueprints = accountMeta.unlockedBlueprints || [];
+    const visibleBlueprints = blueprints.filter((blueprint) => !blueprint.isLegendary || unlockedBlueprints.includes(blueprint.name));
+    const craftableCount = visibleBlueprints.filter((blueprint) => getIngredientAvailability(blueprint.ingredients).isReady).length;
 
-        const isEquipped = (accountMeta.equipment?.weapon === blueprint.name || accountMeta.equipment?.armor === blueprint.name || accountMeta.equipment?.accessory === blueprint.name);
-        const hasInWarehouse = (accountMeta.warehouse?.[blueprint.name] || 0) > 0;
+    renderFacilityOverview('workshop-overview', [
+        { label: '素材存量', value: `${counts.materialQty} 個`, tone: 'accent' },
+        { label: '已製作裝備', value: `${counts.equipmentQty} 件` },
+        { label: '可打造藍圖', value: `${craftableCount} 張`, tone: 'ready' },
+        { label: '持有金幣', value: `${Math.max(0, Number(currentRun.gold) || 0)} G`, tone: 'gold' }
+    ]);
+
+    normalizeWarehouseFilter(['all', 'mat', 'dish', 'equip']);
+    const warehouseBox = DOM.get('workshop-warehouse-display');
+    if (warehouseBox) {
+        warehouseBox.className = 'facility-stock-card';
+        warehouseBox.innerHTML = '';
+        const summary = document.createElement('div');
+        summary.className = 'facility-stock-summary';
+        summary.innerHTML = `<span>加工庫存共有 <strong>${counts.totalTypes}</strong> 種物品</span><span>${counts.totalQty} 件</span>`;
+        warehouseBox.appendChild(summary);
+        renderWarehouseFilterBar(warehouseBox, renderVillageWorkshop, ['all', 'mat', 'dish', 'equip']);
+
+        const blueprintNames = new Set(blueprints.map((blueprint) => blueprint.name));
+        const recipeNames = new Set(recipes.map((recipe) => recipe.name));
+        const filteredItems = Object.entries(warehouse).reduce((items, [name, rawQty]) => {
+            const qty = Math.max(0, Number(rawQty) || 0);
+            if (!qty) return items;
+            const category = blueprintNames.has(name) ? 'equip' : (recipeNames.has(name) ? 'dish' : 'mat');
+            if (activeWarehouseFilter !== 'all' && activeWarehouseFilter !== category) return items;
+            items.push({ name, qty, category });
+            return items;
+        }, []);
+
+        const itemBox = document.createElement('div');
+        itemBox.className = 'warehouse-pill-box';
+        if (filteredItems.length) filteredItems.forEach((item) => itemBox.appendChild(createWarehousePill(item.name, item.qty)));
+        else itemBox.innerHTML = '<div class="facility-empty-state">沒有符合篩選條件的庫存物品。</div>';
+        warehouseBox.appendChild(itemBox);
+    }
+
+    const blueprintContainer = DOM.get('blueprints-container');
+    if (!blueprintContainer) return;
+    blueprintContainer.innerHTML = '';
+
+    const filterBar = document.createElement('div');
+    filterBar.className = 'facility-filter-bar';
+    const categorySelect = document.createElement('select');
+    categorySelect.className = 'select-game';
+    categorySelect.setAttribute('aria-label', '選擇裝備類別');
+    categorySelect.innerHTML = `
+        <option value="all">🌐 全部神裝類別</option>
+        <option value="weapon">🗡️ 武器裝備</option>
+        <option value="armor">👕 防具裝備</option>
+        <option value="accessory">💍 飾品裝備</option>
+    `;
+    categorySelect.value = activeCraftingCategory;
+    categorySelect.addEventListener('change', (event) => changeCraftingCat(event.target.value));
+
+    const levelSelect = document.createElement('select');
+    levelSelect.className = 'select-game';
+    levelSelect.setAttribute('aria-label', '選擇藍圖對應的深淵階層');
+    levelSelect.innerHTML = `
+        <option value="1-10">📜 階層 B1F ~ B10F</option>
+        <option value="11-20">📜 階層 B11F ~ B20F</option>
+        <option value="21-30">📜 階層 B21F ~ B30F</option>
+        <option value="31-40">📜 階層 B31F ~ B40F</option>
+        <option value="41-50">📜 階層 B41F ~ B50F</option>
+        <option value="51-60">📜 階層 B51F ~ B60F</option>
+        <option value="legendary">🌟 傳說神裝藍圖</option>
+    `;
+    levelSelect.value = activeCraftingLvlRange;
+    levelSelect.addEventListener('change', (event) => changeCraftingLvl(event.target.value));
+    filterBar.append(categorySelect, levelSelect);
+    blueprintContainer.appendChild(filterBar);
+
+    const filteredBlueprints = blueprints.filter((blueprint) => {
+        const matchesCategory = activeCraftingCategory === 'all' || blueprint.type === activeCraftingCategory;
+        if (blueprint.isLegendary) {
+            if (!unlockedBlueprints.includes(blueprint.name)) return false;
+            return matchesCategory && (activeCraftingLvlRange === 'legendary' || blueprint.range === activeCraftingLvlRange || activeCraftingLvlRange === '51-60' || !blueprint.range);
+        }
+        return matchesCategory && blueprint.range === activeCraftingLvlRange;
+    });
+
+    if (!filteredBlueprints.length) {
+        const message = activeCraftingLvlRange === 'legendary'
+            ? '🔒 尚未解鎖任何傳說藍圖。請前往地下黑市進行尋寶採購！'
+            : '📜 該分頁目前暫無可打造裝備。';
+        blueprintContainer.insertAdjacentHTML('beforeend', `<div class="facility-empty-state">${message}</div>`);
+        return;
+    }
+
+    const typeLabelMap = { weapon: '武器', armor: '防具', accessory: '飾品' };
+    filteredBlueprints.forEach((blueprint) => {
+        const itemRefineLvl = (accountMeta.itemRefines?.[blueprint.name]) || (accountMeta.equipmentStars?.[blueprint.type]) || 0;
+        const availability = getIngredientAvailability(blueprint.ingredients);
+        const isEquipped = Object.values(accountMeta.equipment || {}).includes(blueprint.name);
+        const hasInWarehouse = (Number(accountMeta.warehouse?.[blueprint.name]) || 0) > 0;
+        const refineGoldCost = (itemRefineLvl + 1) * 100;
+        const playerGold = Math.max(0, Number(currentRun?.gold) || 0);
+        const hasEnoughGold = playerGold >= refineGoldCost;
+        const statDiffHtml = getEquipmentStatDiff(blueprint);
+        const skillTag = blueprint.skill ? `<span class="facility-effect-chip">✨ ${blueprint.skill.name}</span>` : '';
+        const stateTag = isEquipped ? '<span class="facility-status-chip facility-status-chip--ready">已穿戴</span>'
+            : (hasInWarehouse ? '<span class="facility-status-chip">倉庫持有</span>' : '');
+
+        const card = document.createElement('article');
+        card.className = `workshop-blueprint-card${blueprint.isLegendary ? ' workshop-blueprint-card--legendary' : ''}`;
+        card.innerHTML = `
+            <div class="workshop-blueprint-card__heading">
+                <div>
+                    <h5 class="workshop-blueprint-card__name${blueprint.isLegendary ? ' workshop-blueprint-card__name--legendary' : ''}">${blueprint.name}${itemRefineLvl > 0 ? ` <span class="text-gold">(+${itemRefineLvl})</span>` : ''}</h5>
+                    <div class="workshop-blueprint-card__footer">
+                        <span class="workshop-blueprint-card__type">${typeLabelMap[blueprint.type] || blueprint.type}</span>
+                        ${skillTag}
+                        ${stateTag}
+                    </div>
+                </div>
+            </div>
+            <p class="workshop-blueprint-card__description">${blueprint.desc || '魔導加工所藍圖。'}</p>
+            <div class="workshop-blueprint-card__stats">📊 穿戴數值比對：${statDiffHtml || '請懸停查看詳細數值。'}</div>
+            <div class="workshop-blueprint-card__footer">
+                ${createAvailabilityChip(availability, '材料可打造')}
+                ${createIngredientChips(blueprint.ingredients)}
+            </div>
+            <div class="workshop-blueprint-card__actions"></div>
+        `;
+
+        const actions = card.querySelector('.workshop-blueprint-card__actions');
+        const forgeButton = document.createElement('button');
+        forgeButton.type = 'button';
+        forgeButton.className = 'btn-game btn-explore';
+        forgeButton.textContent = '🔨 打造';
+        forgeButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (typeof executeForgeEquipment === 'function') executeForgeEquipment(blueprint);
+        });
+        actions.appendChild(forgeButton);
 
         if (isEquipped || hasInWarehouse) {
-            const refineGoldCost = (itemRefineLvl + 1) * 100;
-            const playerGold = (currentRun && currentRun.gold) ? currentRun.gold : 0;
-            const hasEnoughGold = playerGold >= refineGoldCost;
-
-            const btnRefine = document.createElement('button');
-            btnRefine.className = "btn-game btn-rerun";
-            btnRefine.style.cssText = `padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1.2; min-width: 90px; text-align: center; background: ${hasEnoughGold ? 'linear-gradient(135deg, #f39c12 0%, #d35400 100%)' : 'rgba(255,255,255,0.1)'} !important;`;
-            btnRefine.innerHTML = `✨ 強化 +${itemRefineLvl + 1} (${refineGoldCost}G)`;
+            const refineButton = document.createElement('button');
+            refineButton.type = 'button';
+            refineButton.className = 'btn-game btn-rerun';
+            refineButton.textContent = `✨ 強化 +${itemRefineLvl + 1} · ${refineGoldCost}G`;
             if (!hasEnoughGold) {
-                btnRefine.style.opacity = "0.65";
+                refineButton.title = `需要 ${refineGoldCost} G，目前只有 ${playerGold} G`;
+                refineButton.setAttribute('aria-label', `強化 ${blueprint.name}；需要 ${refineGoldCost} G，目前只有 ${playerGold} G`);
             }
-
-            btnRefine.onclick = (e) => { 
-                e.stopPropagation(); 
+            refineButton.addEventListener('click', (event) => {
+                event.stopPropagation();
                 if (playerGold < refineGoldCost) {
-                    showMaterialAlert([`強化費用: ${refineGoldCost} G (當前持有: ${playerGold} G)`, `缺額: ${refineGoldCost - playerGold} G`], "⚠️ 強化所需金幣不足！");
+                    showMaterialAlert([`強化費用: ${refineGoldCost} G (當前持有: ${playerGold} G)`, `缺額: ${refineGoldCost - playerGold} G`], '⚠️ 強化所需金幣不足！');
                     return;
                 }
-                if (typeof refineSpecificEquipment === "function") {
-                    refineSpecificEquipment(blueprint.name);
-                } else {
-                    showToast("強化模組載入中...", "info");
-                }
-            };
-            btnGroup.appendChild(btnRefine);
+                if (typeof refineSpecificEquipment === 'function') refineSpecificEquipment(blueprint.name);
+                else showToast('強化模組載入中...', 'info');
+            });
+            actions.appendChild(refineButton);
         }
 
         if (isEquipped) {
-            const btnUnequip = document.createElement('button');
-            btnUnequip.className = "btn-game btn-rest"; 
-            btnUnequip.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
-            btnUnequip.innerHTML = "❌ 卸下";
-            btnUnequip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "unequip"); };
-            btnGroup.appendChild(btnUnequip);
+            const unequipButton = document.createElement('button');
+            unequipButton.type = 'button';
+            unequipButton.className = 'btn-game btn-rest';
+            unequipButton.textContent = '❌ 卸下';
+            unequipButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (typeof executeEquipAction === 'function') executeEquipAction(blueprint.name, 'unequip');
+            });
+            actions.appendChild(unequipButton);
         } else if (hasInWarehouse) {
-            const btnEquip = document.createElement('button');
-            btnEquip.className = "btn-game btn-rerun"; 
-            btnEquip.style.cssText = "padding: 4px 10px; font-size: 11px; font-weight: bold; flex: 1; min-width: 60px; text-align: center;";
-            btnEquip.innerHTML = "⚡ 穿戴";
-            btnEquip.onclick = (e) => { e.stopPropagation(); if (typeof executeEquipAction === "function") executeEquipAction(blueprint.name, "equip"); };
-            btnGroup.appendChild(btnEquip);
+            const equipButton = document.createElement('button');
+            equipButton.type = 'button';
+            equipButton.className = 'btn-game btn-rerun';
+            equipButton.textContent = '⚡ 穿戴';
+            equipButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (typeof executeEquipAction === 'function') executeEquipAction(blueprint.name, 'equip');
+            });
+            actions.appendChild(equipButton);
         }
 
-        row.appendChild(btnGroup);
-
-        const refineGoldCostHover = (itemRefineLvl + 1) * 100;
-
-        bindFloatingCard(row, () => ({
+        bindFloatingCard(card, () => ({
             title: blueprint.name,
-            type: blueprint.isLegendary ? "🌟 傳說神裝藍圖" : `裝備藍圖 (${blueprint.type.toUpperCase()})`,
-            desc: `${blueprint.desc}<br><br>📊 <strong>穿戴屬性比對:</strong> ${statDiffHtml}`,
-            stats: `🔨 打造材料: ${reqText}<br>✨ 強化預計費用 (+${itemRefineLvl + 1}): 🪙 ${refineGoldCostHover} G`
+            type: blueprint.isLegendary ? '🌟 傳說神裝藍圖' : `裝備藍圖 (${(typeLabelMap[blueprint.type] || blueprint.type).toUpperCase()})`,
+            desc: `${blueprint.desc || '魔導加工所藍圖。'}<br><br>📊 <strong>穿戴屬性比對:</strong> ${statDiffHtml}`,
+            stats: `🔨 打造材料: ${Object.entries(blueprint.ingredients || {}).map(([name, qty]) => `${name} ×${qty}`).join('、')}<br>✨ 強化預計費用 (+${itemRefineLvl + 1}): 🪙 ${refineGoldCost} G`
         }));
-
-        bContainer.appendChild(row);
+        blueprintContainer.appendChild(card);
     });
 }
 

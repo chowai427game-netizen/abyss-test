@@ -20,6 +20,7 @@
     <!-- Legacy 基礎樣式後載入 token 與相容覆蓋層 -->
     <link rel="stylesheet" href="css/00-tokens.css">
     <link rel="stylesheet" href="css/04-components.css">
+    <link rel="stylesheet" href="css/13-facilities.css">
     <link rel="stylesheet" href="css/10-responsive.css">
     <link rel="stylesheet" href="css/11-accessibility.css">
     <link rel="stylesheet" href="css/12-combat-scene.css">
@@ -246,11 +247,11 @@
             <!-- ⛺ 4. 地表村莊專用分流面板 -->
             <div id="village-panel-box" class="full-width" style="display: none;">
                 <nav class="village-nav-bar" aria-label="村莊區域導覽">
-                    <button id="btn-tab-gate" class="btn-nav-tab active" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
-                    <button id="btn-tab-guild" class="btn-nav-tab" onclick="switchVillageLocation('GUILD')">🏛️ 冒險者公會</button>
-                    <button id="btn-tab-kitchen" class="btn-nav-tab" onclick="switchVillageLocation('KITCHEN')">🍳 料理屋</button>
-                    <button id="btn-tab-workshop" class="btn-nav-tab" onclick="switchVillageLocation('WORKSHOP')">🛠️ 加工所</button>
-                    <button id="btn-tab-square" class="btn-nav-tab" onclick="switchVillageLocation('SQUARE')">💬 廣場</button>
+                    <button type="button" id="btn-tab-gate" class="btn-nav-tab active" aria-pressed="true" aria-controls="v-loc-gate" onclick="switchVillageLocation('GATE')">🚪 傳送大殿</button>
+                    <button type="button" id="btn-tab-guild" class="btn-nav-tab" aria-pressed="false" aria-controls="v-loc-guild" onclick="switchVillageLocation('GUILD')">🏛️ 冒險者公會</button>
+                    <button type="button" id="btn-tab-kitchen" class="btn-nav-tab" aria-pressed="false" aria-controls="v-loc-kitchen" onclick="switchVillageLocation('KITCHEN')">🍳 料理屋</button>
+                    <button type="button" id="btn-tab-workshop" class="btn-nav-tab" aria-pressed="false" aria-controls="v-loc-workshop" onclick="switchVillageLocation('WORKSHOP')">🛠️ 加工所</button>
+                    <button type="button" id="btn-tab-square" class="btn-nav-tab" aria-pressed="false" aria-controls="v-loc-square" onclick="switchVillageLocation('SQUARE')">💬 廣場</button>
                 </nav>
 
                 <div id="v-loc-gate" class="v-sub-loc-panel">
@@ -261,22 +262,64 @@
                 </div>
 
                 <!-- 🏛️ 冒險者公會 HTML 結構 (由 ui.js renderVillageGuild 動態注入技能與洗點/轉職按鈕) -->
-                <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;">
-                    <div class="dynamic-panel cooking-style guild-theme-bg">
-                        <div class="panel-title text-purple-title">🏛️ 皇家冒險者公會</div>
-                        <div class="guild-section">
-                            <div class="guild-section-title">🎓 職業專屬技能傳承</div>
-                            <div id="guild-skills-container" class="flex-layout"></div>
-                        </div>
+                <div id="v-loc-guild" class="v-sub-loc-panel" style="display: none;" aria-hidden="true">
+                    <div class="facility-panel facility-panel--guild">
+                        <header class="facility-hero">
+                            <div class="facility-hero-heading">
+                                <span class="facility-hero-icon" aria-hidden="true">🏛️</span>
+                                <div>
+                                    <p class="facility-eyebrow">職業成長中心</p>
+                                    <h3 class="facility-title">皇家冒險者公會</h3>
+                                </div>
+                            </div>
+                            <p class="facility-description">確認技能效果與升級條件，規劃你的血脈、能力點與轉職方向。</p>
+                        </header>
+                        <div id="guild-overview" class="facility-overview" aria-live="polite"></div>
+                        <section class="facility-section" aria-labelledby="guild-skills-heading">
+                            <div class="facility-section-heading">
+                                <div>
+                                    <p class="facility-section-kicker">SKILL ARCHIVE</p>
+                                    <h4 id="guild-skills-heading">🎓 職業專屬技能傳承</h4>
+                                </div>
+                                <span class="facility-section-hint">點選技能卡可查看完整效果</span>
+                            </div>
+                            <div id="guild-skills-container" class="facility-card-list"></div>
+                        </section>
                     </div>
                 </div>
 
-                <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;">
-                    <div class="dynamic-panel cooking-style">
-                        <div class="panel-title">🍳 皇家後勤料理屋</div>
-                        <div id="kitchen-lvl-row" class="tab-filter-row"></div>
-                        <div class="notice-container" id="kitchen-warehouse-display">📦 雲端倉庫載入中...</div>
-                        <div class="flex-layout" id="recipes-container"></div>
+                <div id="v-loc-kitchen" class="v-sub-loc-panel" style="display: none;" aria-hidden="true">
+                    <div class="facility-panel facility-panel--kitchen">
+                        <header class="facility-hero">
+                            <div class="facility-hero-heading">
+                                <span class="facility-hero-icon" aria-hidden="true">🍳</span>
+                                <div>
+                                    <p class="facility-eyebrow">遠征補給站</p>
+                                    <h3 class="facility-title">皇家後勤料理屋</h3>
+                                </div>
+                            </div>
+                            <p class="facility-description">先查看食材存量，再選擇立即進食的增益料理或可帶入深淵的補給品。</p>
+                        </header>
+                        <div id="kitchen-overview" class="facility-overview" aria-live="polite"></div>
+                        <section class="facility-section facility-section--stock" aria-labelledby="kitchen-stock-heading">
+                            <div class="facility-section-heading">
+                                <div>
+                                    <p class="facility-section-kicker">PANTRY</p>
+                                    <h4 id="kitchen-stock-heading">📦 後勤倉庫</h4>
+                                </div>
+                                <span class="facility-section-hint">已完成料理可直接取出至背包</span>
+                            </div>
+                            <div id="kitchen-warehouse-display" class="facility-stock-card">📦 雲端倉庫載入中...</div>
+                        </section>
+                        <section class="facility-section" aria-labelledby="recipes-heading">
+                            <div class="facility-section-heading">
+                                <div>
+                                    <p class="facility-section-kicker">RECIPE BOOK</p>
+                                    <h4 id="recipes-heading">🍲 可製作料理</h4>
+                                </div>
+                            </div>
+                            <div id="recipes-container" class="facility-card-list"></div>
+                        </section>
                     </div>
                 </div>
 
@@ -285,11 +328,38 @@
                     <div class="notice-container">💬 正在連接中央交流廣場與黑市地下回收站...</div>
                 </div>
 
-                <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;">
-                    <div class="dynamic-panel cooking-style workshop-theme-bg">
-                        <div class="panel-title">🛠️ 皇家魔導加工所 (神裝鍛造)</div>
-                        <div class="notice-container" id="workshop-warehouse-display">📦 雲端永久庫存載入中...</div>
-                        <div class="flex-layout" id="blueprints-container"></div>
+                <div id="v-loc-workshop" class="v-sub-loc-panel" style="display: none;" aria-hidden="true">
+                    <div class="facility-panel facility-panel--workshop">
+                        <header class="facility-hero">
+                            <div class="facility-hero-heading">
+                                <span class="facility-hero-icon" aria-hidden="true">🛠️</span>
+                                <div>
+                                    <p class="facility-eyebrow">魔導鍛造工坊</p>
+                                    <h3 class="facility-title">皇家魔導加工所</h3>
+                                </div>
+                            </div>
+                            <p class="facility-description">依素材、裝備欄位與樓層藍圖安排打造；已持有裝備可在同一卡片強化或穿戴。</p>
+                        </header>
+                        <div id="workshop-overview" class="facility-overview" aria-live="polite"></div>
+                        <section class="facility-section facility-section--stock" aria-labelledby="workshop-stock-heading">
+                            <div class="facility-section-heading">
+                                <div>
+                                    <p class="facility-section-kicker">MATERIAL VAULT</p>
+                                    <h4 id="workshop-stock-heading">📦 加工庫存</h4>
+                                </div>
+                                <span class="facility-section-hint">素材、料理與已製作裝備分流管理</span>
+                            </div>
+                            <div id="workshop-warehouse-display" class="facility-stock-card">📦 雲端永久庫存載入中...</div>
+                        </section>
+                        <section class="facility-section" aria-labelledby="blueprints-heading">
+                            <div class="facility-section-heading">
+                                <div>
+                                    <p class="facility-section-kicker">FORGE CATALOG</p>
+                                    <h4 id="blueprints-heading">🔨 神裝藍圖</h4>
+                                </div>
+                            </div>
+                            <div id="blueprints-container" class="facility-card-list"></div>
+                        </section>
                     </div>
                 </div>
             </div>
