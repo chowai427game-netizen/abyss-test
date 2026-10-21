@@ -65,7 +65,9 @@ const DOM = {
             'battle-monster-name', 'battle-monster-hp-text', 'battle-monster-hp-bar', 'battle-monster-atb-text', 'battle-monster-atb-bar',
             'battle-monster-shield-text', 'battle-monster-sprite', 'battle-monster-fallback',
             'battle-scene-log-line-1', 'battle-scene-log-line-2', 'battle-skill-cast-cue',
-            'battle-command-panel', 'battle-command-status', 'battle-command-categories', 'battle-command-options',
+            'battle-monster-inspect-card', 'battle-monster-inspect-name', 'battle-monster-inspect-type', 'battle-monster-inspect-desc',
+            'battle-monster-inspect-hp', 'battle-monster-inspect-atk', 'battle-monster-inspect-def', 'battle-monster-inspect-spd', 'battle-monster-inspect-extra',
+            'battle-command-panel', 'battle-command-status', 'battle-command-categories', 'battle-command-options', 'battle-command-back',
             'semi-command-controls', 'semi-command-options', 'semi-command-status',
             'm-name', 'm-shield-text', 'm-hp-text', 'm-hp-bar', 'm-hp-bar-ghost',
             'm-atb-row', 'm-atb-text', 'm-atb-bar-fill', 'm-atk', 'm-spd',
@@ -703,6 +705,7 @@ function executeDepositBagItemToWarehouse(bagIndex) {
 
     if (!accountMeta.warehouse) accountMeta.warehouse = {};
     accountMeta.warehouse[itemName] = (accountMeta.warehouse[itemName] || 0) + 1;
+    hideFloatingCard();
 
     if (typeof saveGameData === "function") saveGameData();
     showToast(`📦 ${itemName} 已存入倉庫`, "info");
@@ -727,6 +730,7 @@ function executeDepositAllBagItems() {
     });
 
     currentRun.inventory = [];
+    hideFloatingCard();
 
     if (typeof saveGameData === "function") saveGameData();
     showToast(`📦 已將 ${count} 件物品全存入倉庫！`, "success");
@@ -1320,6 +1324,51 @@ function showBattleSkillCastCue(skillName, fxClass = "", effect = {}) {
     return true;
 }
 
+function setBattleMonsterInspectVisibility(visible) {
+    const card = DOM.get('battle-monster-inspect-card');
+    if (!card) return;
+    card.classList.toggle('is-visible', Boolean(visible));
+    card.setAttribute('aria-hidden', String(!visible));
+}
+
+function bindBattleMonsterInspectHover(...targets) {
+    targets.filter(Boolean).forEach((target) => {
+        if (target.dataset?.inspectBound === "true") return;
+        if (target.dataset) target.dataset.inspectBound = "true";
+        target.addEventListener('mouseenter', () => setBattleMonsterInspectVisibility(true));
+        target.addEventListener('mouseleave', () => setBattleMonsterInspectVisibility(false));
+        target.addEventListener('focus', () => setBattleMonsterInspectVisibility(true));
+        target.addEventListener('blur', () => setBattleMonsterInspectVisibility(false));
+    });
+}
+
+function updateBattleMonsterInspectCard(monster) {
+    const card = DOM.get('battle-monster-inspect-card');
+    if (!card || !monster) return;
+    const name = String(monster.name || "深淵魔物");
+    const category = monster.isBoss ? "首領" : (monster.isElite ? "菁英" : "一般");
+    const hp = Math.max(0, Number(monster.hp) || 0);
+    const maxHp = Math.max(0, Number(monster.maxHp) || 0);
+    const defense = Math.max(0, Number(monster.def) || 0);
+    const magicDefense = Math.max(0, Number(monster.mdef) || 0);
+    const details = [];
+    const setText = (id, text) => {
+        const element = DOM.get(id);
+        if (element) element.textContent = text;
+    };
+    if (monster.weakness) details.push(`弱點：${monster.weakness}`);
+    if (Number(monster.shield) > 0) details.push(`護盾：${Math.floor(Number(monster.shield))}`);
+    if (monster.attackType === "magic") details.push("魔法攻擊");
+    setText('battle-monster-inspect-name', name);
+    setText('battle-monster-inspect-type', category);
+    setText('battle-monster-inspect-desc', String(monster.desc || "深淵威脅生物。留意牠的行動條與攻擊節奏。"));
+    setText('battle-monster-inspect-hp', `HP ${hp} / ${maxHp}`);
+    setText('battle-monster-inspect-atk', `ATK ${Math.max(0, Number(monster.atk) || 0)}`);
+    setText('battle-monster-inspect-def', `DEF ${defense} · MDEF ${magicDefense}`);
+    setText('battle-monster-inspect-spd', `SPD ${Math.max(0, Number(monster.spd) || 0)}`);
+    setText('battle-monster-inspect-extra', details.join(" · ") || "無特別弱點");
+}
+
 function appendCombatCommandButton(container, label, onClick, disabled = false, title = "") {
     const button = document.createElement('button');
     button.type = "button";
@@ -1390,18 +1439,24 @@ function openManualBattleCommandList(kind) {
     if (!manualTurnPaused || !["skills", "items"].includes(kind)) return false;
     const categories = DOM.get('battle-command-categories');
     const options = DOM.get('battle-command-options');
-    if (!categories || !options) return false;
+    const back = DOM.get('battle-command-back');
+    if (!categories || !options || !back) return false;
     categories.style.display = "none";
     options.style.display = "flex";
     populateCombatCommandOptions(options, kind, "manual");
-    const back = document.createElement('button');
-    back.type = "button";
-    back.textContent = "↩ 返回指令";
-    back.addEventListener('click', () => {
-        options.style.display = "none";
-        categories.style.display = "flex";
-    });
-    options.appendChild(back);
+    back.style.display = "block";
+    return true;
+}
+
+function closeManualBattleCommandList() {
+    const categories = DOM.get('battle-command-categories');
+    const options = DOM.get('battle-command-options');
+    const back = DOM.get('battle-command-back');
+    if (!categories || !options || !back) return false;
+    options.innerHTML = "";
+    options.style.display = "none";
+    categories.style.display = "flex";
+    back.style.display = "none";
     return true;
 }
 
@@ -1433,15 +1488,17 @@ function updateBattleScene(monster) {
     const commandStatus = DOM.get('battle-command-status');
     const commandCategories = DOM.get('battle-command-categories');
     const commandOptions = DOM.get('battle-command-options');
+    const commandBack = DOM.get('battle-command-back');
     const showManualCommands = Boolean(inBattle && typeof manualTurnPaused !== "undefined" && manualTurnPaused);
     if (commandPanel) {
         if (showManualCommands && commandPanel.style.display !== "grid") {
             if (commandCategories) commandCategories.style.display = "flex";
             if (commandOptions) { commandOptions.innerHTML = ""; commandOptions.style.display = "none"; }
+            if (commandBack) commandBack.style.display = "none";
         }
         commandPanel.style.display = showManualCommands ? "grid" : "none";
     }
-    if (commandStatus && showManualCommands) commandStatus.textContent = "🎮 Your Turn · 由上到下選擇指令";
+    if (commandStatus && showManualCommands) commandStatus.textContent = "Your Turn..";
     const semiControls = DOM.get('semi-command-controls');
     if (semiControls) semiControls.style.display = Boolean(inBattle && activeTactic === "SEMI") ? "block" : "none";
     const semiStatus = DOM.get('semi-command-status');
@@ -1450,7 +1507,10 @@ function updateBattleScene(monster) {
         const name = pending?.skillName || pending?.itemName || (pending?.type === "basic" ? "普攻" : "行動");
         semiStatus.textContent = pending ? `已預約：${name}（於下次我方 ATB 行動執行）` : "尚無預約行動。";
     }
-    if (!showScene) return;
+    if (!showScene) {
+        setBattleMonsterInspectVisibility(false);
+        return;
+    }
 
     const heroName = (accountMeta && accountMeta.name) || "冒險者";
     const displayedMonster = sceneMonster;
@@ -1503,6 +1563,7 @@ function updateBattleScene(monster) {
     if (image) {
         image.classList.toggle('battle-boss-sprite', Boolean(displayedMonster.isBoss));
         image.hidden = !variant;
+        image.alt = `檢視 ${displayedMonster.name || "魔物"} 資訊`;
         if (variant && image.dataset.variant !== variant) {
             image.dataset.variant = variant;
             image.src = variantPaths[variant];
@@ -1512,7 +1573,10 @@ function updateBattleScene(monster) {
         const leadingIcon = String(displayedMonster.name || "").match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
         fallback.textContent = leadingIcon ? leadingIcon[0] : "👹";
         fallback.hidden = Boolean(variant);
+        fallback.setAttribute('aria-label', `檢視 ${displayedMonster.name || "魔物"} 資訊`);
     }
+    updateBattleMonsterInspectCard(displayedMonster);
+    bindBattleMonsterInspectHover(image, fallback);
 }
 
 function updateUI() {
@@ -1540,6 +1604,7 @@ function updateUI() {
     }
     
     if (gameState === "VILLAGE") {
+        hideFloatingCard();
         if (titleBox) titleBox.style.display = "none"; 
         if (statusBox) statusBox.style.display = "grid";
         if (actionBox) actionBox.style.display = "flex";
@@ -1548,6 +1613,11 @@ function updateUI() {
         if (logWrapper) logWrapper.style.display = "block"; 
         if (envBar) envBar.style.display = "none";
         if (autoBtn) autoBtn.style.display = "none";
+        const villageMonsterCard = DOM.get('monster-status-card');
+        if (villageMonsterCard) {
+            villageMonsterCard.style.display = "none";
+            villageMonsterCard.classList.remove('monster-threat-high');
+        }
         
         const drawer = DOM.get('tactics-drawer-box');
         if (drawer) drawer.classList.remove('expanded');

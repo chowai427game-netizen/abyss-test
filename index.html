@@ -322,26 +322,41 @@
                         <span id="battle-monster-shield-text" class="battle-shield-label"></span>
                     </div>
                 </div>
-                <div class="battle-stage" aria-hidden="true">
+                <div class="battle-stage">
                     <div class="battle-sprite-platform battle-enemy-platform"></div>
                     <span id="battle-monster-vfx-anchor" class="battle-monster-vfx-anchor"></span>
                     <span id="battle-attack-swipe" class="battle-attack-swipe"></span>
-                    <div id="battle-monster-fallback" class="battle-monster-fallback" hidden></div>
-                    <img id="battle-monster-sprite" class="battle-sprite battle-enemy-sprite" src="assets/combat/monster-slime.png" alt="">
+                    <div id="battle-monster-fallback" class="battle-monster-fallback" role="img" tabindex="0" aria-label="檢視魔物資訊" hidden></div>
+                    <img id="battle-monster-sprite" class="battle-sprite battle-enemy-sprite" src="assets/combat/monster-slime.png" alt="檢視魔物資訊" tabindex="0">
                 </div>
+                <aside id="battle-monster-inspect-card" class="battle-monster-inspect-card" role="tooltip" aria-hidden="true">
+                    <div class="battle-monster-inspect-heading">
+                        <strong id="battle-monster-inspect-name">深淵魔物</strong>
+                        <span id="battle-monster-inspect-type">一般</span>
+                    </div>
+                    <p id="battle-monster-inspect-desc">深淵威脅生物。</p>
+                    <div class="battle-monster-inspect-stats">
+                        <span id="battle-monster-inspect-hp">HP 0 / 0</span>
+                        <span id="battle-monster-inspect-atk">ATK 0</span>
+                        <span id="battle-monster-inspect-def">DEF 0</span>
+                        <span id="battle-monster-inspect-spd">SPD 0</span>
+                    </div>
+                    <div id="battle-monster-inspect-extra" class="battle-monster-inspect-extra"></div>
+                </aside>
                 <div id="battle-skill-cast-cue" class="battle-skill-cast-cue" aria-live="polite" aria-atomic="true"></div>
                 <div id="battle-scene-log" class="battle-scene-log" role="log" aria-live="polite" aria-label="最近兩則戰鬥日記">
                     <div id="battle-scene-log-line-1" class="battle-scene-log-line">發現魔物</div>
                     <div id="battle-scene-log-line-2" class="battle-scene-log-line">戰鬥開始！</div>
                 </div>
                 <div id="battle-command-panel" class="battle-command-panel" style="display: none;" aria-label="手動戰鬥指令" aria-live="polite">
-                    <div class="battle-command-heading" id="battle-command-status">輪到你行動</div>
+                    <div class="battle-command-heading" id="battle-command-status">Your Turn..</div>
                     <div id="battle-command-categories" class="battle-command-actions">
                         <button type="button" onclick="submitManualBattleCommand('basic')">⚔️ 攻擊</button>
                         <button type="button" onclick="openManualBattleCommandList('skills')">✨ 技能</button>
                         <button type="button" onclick="openManualBattleCommandList('items')">🎒 道具</button>
                     </div>
                     <div id="battle-command-options" class="battle-command-options" style="display: none;"></div>
+                    <button id="battle-command-back" class="battle-command-back" type="button" onclick="closeManualBattleCommandList()" style="display: none;">↩ 返回指令</button>
                 </div>
                 <div class="tactics-drawer" id="tactics-drawer-box">
                     <button class="drawer-trigger-tab" type="button" onclick="toggleTacticsDrawer()" id="tactic-trigger-btn" aria-label="切換戰術面板" aria-controls="tactics-drawer-box" aria-expanded="false">

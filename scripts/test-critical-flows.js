@@ -195,10 +195,35 @@ function testBossRewardAndFinale() {
     assert.equal(vm.runInContext("gameState", context), "VILLAGE", "ending action should return safely to the village");
 }
 
+function testVillageCleanupAfterDefeatAndRetreat() {
+    const defeated = createGameContext();
+    vm.runInContext(`
+        gameState = "BATTLE";
+        dungeonFloor = 8;
+        activeMonster = { name: "殘留魔物", hp: 42, maxHp: 42 };
+        currentRun.hp = 0;
+        executeDungeonDefeatSequence();
+    `, defeated.context);
+    assert.equal(vm.runInContext("gameState", defeated.context), "VILLAGE", "defeat returns the player to the village");
+    assert.equal(vm.runInContext("activeMonster", defeated.context), null, "defeat clears the stale monster object");
+    assert.equal(vm.runInContext("dungeonFloor", defeated.context), 0, "defeat resets the next dungeon entry to B1F");
+
+    const retreated = createGameContext();
+    vm.runInContext(`
+        gameState = "SELECT_ROUTE";
+        dungeonFloor = 8;
+        activeMonster = { name: "撤退殘留魔物", hp: 42, maxHp: 42 };
+        handleSecondaryAction();
+    `, retreated.context);
+    assert.equal(vm.runInContext("activeMonster", retreated.context), null, "retreat clears the stale monster object");
+    assert.equal(vm.runInContext("dungeonFloor", retreated.context), 0, "retreat resets the next dungeon entry to B1F");
+}
+
 (async () => {
     await testOfflinePinAndLocalSave();
     await testCloudHttpFailureAndPayload();
     testBossRewardAndFinale();
+    testVillageCleanupAfterDefeatAndRetreat();
     console.log("✅ Critical progression, offline PIN, cloud-save failure, and ending tests passed.");
 })().catch((error) => {
     console.error(error);

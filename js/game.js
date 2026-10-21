@@ -2202,6 +2202,8 @@ function executeDungeonDefeatSequence() {
     
     gameState = "VILLAGE"; 
     currentEnvironment = "NORMAL";
+    activeMonster = null;
+    dungeonFloor = 0;
     currentRun.currentNodes = [];
     
     if (typeof resetCurrentRunData === "function") resetCurrentRunData(); 
@@ -2321,6 +2323,9 @@ function handleSecondaryAction() {
             }
         });
     }
+
+    activeMonster = null;
+    dungeonFloor = 0;
     
     if (typeof resetCurrentRunData === "function") resetCurrentRunData();
     currentRun.hp = currentRun.maxHp;

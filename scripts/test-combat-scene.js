@@ -18,7 +18,8 @@ for (const id of [
     "battle-skill-cooldowns",
     "battle-player-atb-text", "battle-player-atb-bar", "battle-monster-atb-text", "battle-monster-atb-bar",
     "battle-scene-log-line-1", "battle-scene-log-line-2", "battle-item-queue-status", "battle-skill-cast-cue",
-    "battle-command-panel", "battle-command-categories", "battle-command-options",
+    "battle-monster-inspect-card", "battle-monster-inspect-name", "battle-monster-inspect-hp", "battle-monster-inspect-atk",
+    "battle-command-panel", "battle-command-categories", "battle-command-options", "battle-command-back",
     "semi-command-controls", "semi-command-options", "semi-command-status"
 ]) {
     assert.match(html, new RegExp(`id="${id}"`), `battle scene HTML includes #${id}`);
@@ -50,6 +51,8 @@ assert.match(css, /\.battle-command-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S
 assert.match(css, /\.battle-command-actions, \.battle-command-options\s*\{[\s\S]*?flex-direction:\s*column;/, "manual categories, skills and items are selected top-to-bottom");
 assert.match(css, /\.battle-command-options button\s*\{[\s\S]*?flex:\s*0 0 auto;[\s\S]*?min-height:\s*25px;/, "skill and item options are compact rows rather than oversized cards");
 assert.match(css, /\.battle-command-option\[data-tooltip\]::after/, "skill buttons render a dedicated detailed tooltip");
+assert.match(css, /\.battle-monster-inspect-card\s*\{/, "battle scene includes a monster hover information card");
+assert.match(css, /#battle-scene-box:has\(#battle-monster-sprite:hover\) \.battle-monster-inspect-card/, "hovering the monster reveals the information card");
 assert.equal((html.match(/id="tactics-drawer-box"/g) || []).length, 1, "only one tactics drawer remains");
 const sceneStart = html.indexOf('id="battle-scene-box"');
 const sceneEnd = html.indexOf("</section>", sceneStart);
@@ -66,9 +69,12 @@ assert.doesNotMatch(html, /battle-player-sprite|hero-knight\.png|battle-versus/,
 assert.match(html, /最近兩則戰鬥日記/, "scene shows recent battle diary entries");
 assert.match(ui, /function syncBattleSceneLog\(message, logType = "deal"\)/, "diary entries are synchronized with their log type");
 assert.match(ui, /function getBattleDiaryTone\(text, logType = "deal"\)/, "diary entries receive combat-state colors");
-assert.match(ui, /Your Turn · 由上到下選擇指令/, "manual turn title uses the requested Your Turn label");
+assert.match(ui, /Your Turn\.\./, "manual turn title uses the requested Your Turn.. label");
 assert.match(ui, /button\.dataset\.tooltip = title/, "skill command descriptions are exposed to the tooltip layer");
 assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedicated skill cast cue");
+assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
+assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
+assert.match(ui, /hideFloatingCard\(\);/, "inventory and village transitions clear stale floating item cards");
 assert.match(ui, /發現魔物/, "a new encounter resets the scene diary");
 assert.match(ui, /VICTORY!/, "victory text is retained at battle end");
 assert.match(ui, /你已被擊敗/, "defeat text is retained at battle end");

@@ -142,6 +142,7 @@
 .battle-command-panel button { width: 100%; text-align: left; }
 .battle-command-options { max-height: 184px; overflow-y: auto; padding-right: 2px; scrollbar-width: thin; }
 .battle-command-options button { flex: 0 0 auto; min-height: 25px; padding: 4px 6px; font-size: 10px; text-align: left; }
+.battle-command-back { min-height: 24px !important; margin-top: -3px; padding: 4px 6px !important; color: #c8d7e7 !important; font-size: 10px !important; }
 .battle-command-option { position: relative; overflow: visible; }
 .battle-command-option .combat-command-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .battle-command-option[data-tooltip]::after {
@@ -203,6 +204,7 @@
     object-position: center bottom;
     image-rendering: pixelated;
     filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .42));
+    cursor: help;
 }
 
 .battle-enemy-sprite.battle-boss-sprite { height: 174px; max-width: 62%; }
@@ -216,6 +218,43 @@
     font-size: clamp(74px, 18vw, 126px);
     line-height: 1;
     filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .52));
+    cursor: help;
+}
+
+.battle-monster-inspect-card {
+    position: absolute;
+    z-index: 8;
+    top: 38%;
+    left: 54%;
+    width: min(224px, 34%);
+    padding: 8px 9px;
+    border: 1px solid #d9ba64;
+    border-radius: 5px;
+    background: rgba(12, 14, 22, .96);
+    box-shadow: 4px 5px 0 rgba(0, 0, 0, .44), 0 0 14px rgba(255, 214, 105, .2);
+    color: #eee5c9;
+    font: 700 10px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(8px, -50%) scale(.96);
+    transition: opacity .14s ease, transform .14s ease;
+    visibility: hidden;
+}
+.battle-monster-inspect-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; color: #ffe59a; font-size: 11px; }
+.battle-monster-inspect-heading strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.battle-monster-inspect-heading span { flex: 0 0 auto; padding: 1px 4px; border: 1px solid rgba(255, 229, 154, .35); border-radius: 3px; color: #badff4; font-size: 8px; }
+.battle-monster-inspect-card p { margin: 5px 0; color: #d5d8df; font-weight: 500; }
+.battle-monster-inspect-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; border-top: 1px solid rgba(255, 255, 255, .1); padding-top: 5px; }
+.battle-monster-inspect-stats span { color: #d7f1ff; }
+.battle-monster-inspect-extra { margin-top: 5px; color: #9eecc0; font-size: 9px; }
+#battle-scene-box:has(#battle-monster-sprite:hover) .battle-monster-inspect-card,
+#battle-scene-box:has(#battle-monster-sprite:focus-visible) .battle-monster-inspect-card,
+#battle-scene-box:has(#battle-monster-fallback:hover) .battle-monster-inspect-card,
+#battle-scene-box:has(#battle-monster-fallback:focus-visible) .battle-monster-inspect-card,
+.battle-monster-inspect-card.is-visible {
+    opacity: 1;
+    transform: translate(0, -50%) scale(1);
+    visibility: visible;
 }
 
 .battle-monster-vfx-anchor {
@@ -479,6 +518,8 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
     .battle-enemy-sprite.battle-boss-sprite { height: 144px; max-width: 70%; }
     .battle-monster-vfx-anchor { bottom: 38px; width: 62%; height: 62%; }
     .battle-monster-fallback { bottom: 29px; }
+    .battle-monster-inspect-card { top: 41%; left: 50%; width: min(204px, 58%); padding: 6px 7px; font-size: 9px; }
+    .battle-monster-inspect-heading { font-size: 10px; }
     .battle-attack-swipe { inset: 18% -4% 8%; }
     .battle-attack-swipe::before { width: 92%; height: 8px; }
     .battle-item-queue-status { font-size: 9px; }
