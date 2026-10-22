@@ -1986,14 +1986,11 @@ function renderVillageGuild() {
         card.innerHTML = `
             <div>
                 <div class="guild-skill-card__name">${skill.name} <span class="guild-skill-card__level">Lv. ${currentLv} / 10</span></div>
-                <span class="guild-skill-card__type">${skillType}</span>
-                <p class="guild-skill-card__description">${skill.desc || '職業專屬技能。'}</p>
-                <div class="guild-skill-card__footer">
-                    <span class="facility-effect-chip">目前：${currentEffect}</span>
+                <div class="facility-compact-meta">
+                    <span class="guild-skill-card__type">${skillType}</span>
                     <span class="facility-status-chip ${statusClass}">${statusLabel}</span>
-                    ${Object.keys(requiredMaterials).length ? createIngredientChips(requiredMaterials) : ''}
+                    <span class="facility-detail-hint">⌁ 查看詳情</span>
                 </div>
-                ${isMaxLevel ? '' : `<div class="guild-skill-card__next">下一級：${nextEffect}</div>`}
             </div>
         `;
 
@@ -2188,11 +2185,10 @@ function renderVillageCookingWorkshop() {
         card.innerHTML = `
             <div>
                 <h5 class="recipe-card__name">${recipe.name}</h5>
-                <span class="recipe-card__type">${isBuff ? '立即進食 Buff' : '可攜帶戰鬥料理'}</span>
-                <p class="recipe-card__description">${recipe.desc || '深淵後勤料理。'}</p>
-                <div class="recipe-card__footer">
+                <div class="facility-compact-meta">
+                    <span class="recipe-card__type">${isBuff ? '立即進食 Buff' : '可攜帶戰鬥料理'}</span>
                     ${createAvailabilityChip(availability, '食材齊全')}
-                    ${createIngredientChips(recipe.ingredients)}
+                    <span class="facility-detail-hint">⌁ 查看詳情</span>
                 </div>
             </div>
         `;
@@ -2336,18 +2332,14 @@ function renderVillageWorkshop() {
             <div class="workshop-blueprint-card__heading">
                 <div>
                     <h5 class="workshop-blueprint-card__name${blueprint.isLegendary ? ' workshop-blueprint-card__name--legendary' : ''}">${blueprint.name}${itemRefineLvl > 0 ? ` <span class="text-gold">(+${itemRefineLvl})</span>` : ''}</h5>
-                    <div class="workshop-blueprint-card__footer">
+                    <div class="facility-compact-meta">
                         <span class="workshop-blueprint-card__type">${typeLabelMap[blueprint.type] || blueprint.type}</span>
                         ${skillTag}
                         ${stateTag}
+                        ${createAvailabilityChip(availability, '材料可打造')}
+                        <span class="facility-detail-hint">⌁ 查看詳情</span>
                     </div>
                 </div>
-            </div>
-            <p class="workshop-blueprint-card__description">${blueprint.desc || '魔導加工所藍圖。'}</p>
-            <div class="workshop-blueprint-card__stats">📊 穿戴數值比對：${statDiffHtml || '請懸停查看詳細數值。'}</div>
-            <div class="workshop-blueprint-card__footer">
-                ${createAvailabilityChip(availability, '材料可打造')}
-                ${createIngredientChips(blueprint.ingredients)}
             </div>
             <div class="workshop-blueprint-card__actions"></div>
         `;

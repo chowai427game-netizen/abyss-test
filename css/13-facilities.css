@@ -362,7 +362,8 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
     align-items: center;
-    padding: 10px;
+    min-height: 58px;
+    padding: 9px 10px;
     cursor: pointer;
 }
 
@@ -408,6 +409,28 @@
     flex-wrap: wrap;
     gap: 5px;
     margin-top: 8px;
+}
+
+.facility-compact-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+}
+
+.facility-compact-meta .recipe-card__type,
+.facility-compact-meta .guild-skill-card__type,
+.facility-compact-meta .workshop-blueprint-card__type {
+    margin-top: 0;
+}
+
+.facility-detail-hint {
+    color: #8493a8;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: nowrap;
 }
 
 .facility-material-chip,
@@ -476,7 +499,8 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
     align-items: center;
-    padding: 10px;
+    min-height: 58px;
+    padding: 9px 10px;
     cursor: pointer;
 }
 
@@ -532,8 +556,8 @@
 
 .workshop-blueprint-card {
     display: grid;
-    gap: 8px;
-    padding: 11px;
+    gap: 7px;
+    padding: 9px 10px;
     cursor: pointer;
 }
 
@@ -568,8 +592,7 @@
 }
 
 .workshop-blueprint-card__actions {
-    padding-top: 8px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    padding-top: 1px;
 }
 
 .facility-panel .btn-game:disabled {
@@ -609,6 +632,10 @@
     .recipe-card > .facility-action-button,
     .guild-skill-card > .facility-action-button,
     .guild-advancement-banner > .btn-game {
+        width: 100%;
+    }
+
+    .facility-detail-hint {
         width: 100%;
     }
 
