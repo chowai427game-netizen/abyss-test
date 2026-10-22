@@ -77,6 +77,10 @@ const DOM = {
             'guild-skills-container', 'kitchen-warehouse-display', 'recipes-container',
             'workshop-warehouse-display', 'blueprints-container',
             'player-status-badges', 'monster-status-badges',
+            'mobile-bottom-hud', 'mobile-latest-log', 'mobile-hud-name', 'mobile-hud-job',
+            'mobile-hud-hp', 'mobile-hud-mp', 'mobile-hud-gold', 'mobile-hud-bag-count',
+            'mobile-hud-action-slot', 'mobile-character-drawer', 'mobile-log-drawer',
+            'mobile-shell-drawer', 'mobile-drawer-title',
             'v-loc-gate', 'v-loc-guild', 'v-loc-kitchen', 'v-loc-workshop', 'v-loc-square'
         ];
         keys.forEach(key => {
@@ -100,6 +104,168 @@ let activeCookingRange = "1-10";
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
 let activeWarehouseFilter = "all";
+const MOBILE_SHELL_MEDIA_QUERY = "(max-width: 640px)";
+const mobileShellOrigins = {};
+let mobileShellInitialized = false;
+let mobileShellMediaQuery = null;
+let mobileDrawerReturnFocus = null;
+let mobileLatestLogText = "";
+
+// --------------------------------------------------------------------------
+// 📱 手機 UI 殼層：重用既有角色、日誌與動作節點，避免雙重資料同步
+// --------------------------------------------------------------------------
+
+function isMobileShellViewport() {
+    return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(MOBILE_SHELL_MEDIA_QUERY).matches;
+}
+
+function setMobileText(elementId, value) {
+    const element = DOM.get(elementId) || document.getElementById(elementId);
+    if (element) element.textContent = value;
+}
+
+function rememberMobileShellOrigin(key, element) {
+    if (!element || mobileShellOrigins[key]) return;
+    const marker = document.createComment(`mobile-shell-origin:${key}`);
+    element.parentNode?.insertBefore(marker, element);
+    mobileShellOrigins[key] = marker;
+}
+
+function moveMobileShellElement(key, elementId, destinationId) {
+    const element = document.getElementById(elementId);
+    const destination = document.getElementById(destinationId);
+    if (!element || !destination) return;
+    rememberMobileShellOrigin(key, element);
+    if (element.parentNode !== destination) destination.appendChild(element);
+}
+
+function restoreMobileShellElement(key, elementId) {
+    const element = document.getElementById(elementId);
+    const marker = mobileShellOrigins[key];
+    if (!element || !marker?.parentNode) return;
+    if (element.parentNode !== marker.parentNode || marker.nextSibling !== element) {
+        marker.parentNode.insertBefore(element, marker.nextSibling);
+    }
+}
+
+function setMobileDrawerExpanded(expanded) {
+    ['mobile-hud-character', 'mobile-hud-vitals', 'mobile-hud-bag', 'mobile-hud-log'].forEach((id) => {
+        const trigger = document.getElementById(id);
+        if (trigger) trigger.setAttribute('aria-expanded', String(expanded));
+    });
+}
+
+function openMobileDrawer(type, trigger = null) {
+    if (!isMobileShellViewport()) return;
+    const body = document.body;
+    const drawer = document.getElementById('mobile-shell-drawer');
+    const title = document.getElementById('mobile-drawer-title');
+    if (!body || !drawer || !title) return;
+
+    if (typeof hideFloatingCard === "function") hideFloatingCard();
+    mobileDrawerReturnFocus = trigger || document.activeElement;
+    body.dataset.mobileDrawer = type;
+    body.classList.add('mobile-drawer-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    title.textContent = type === 'log' ? '📜 冒險日誌' : '👤 角色與背包';
+    setMobileDrawerExpanded(true);
+
+    window.setTimeout(() => title.focus?.({ preventScroll: true }), 0);
+}
+
+function closeMobileDrawer({ restoreFocus = true } = {}) {
+    const body = document.body;
+    const drawer = document.getElementById('mobile-shell-drawer');
+    if (!body || !drawer) return;
+
+    body.classList.remove('mobile-drawer-open');
+    delete body.dataset.mobileDrawer;
+    drawer.setAttribute('aria-hidden', 'true');
+    setMobileDrawerExpanded(false);
+
+    if (restoreFocus && mobileDrawerReturnFocus?.focus) {
+        mobileDrawerReturnFocus.focus({ preventScroll: true });
+    }
+    mobileDrawerReturnFocus = null;
+}
+
+function syncMobileShellPlacement() {
+    if (typeof document === "undefined" || !document.body) return;
+    const useMobileShell = isMobileShellViewport();
+    document.body.classList.toggle('mobile-shell-active', useMobileShell);
+
+    if (useMobileShell) {
+        moveMobileShellElement('status', 'status-panel-box', 'mobile-character-drawer');
+        moveMobileShellElement('action', 'action-panel-box', 'mobile-hud-action-slot');
+        moveMobileShellElement('log', 'log-wrapper-box', 'mobile-log-drawer');
+    } else {
+        closeMobileDrawer({ restoreFocus: false });
+        restoreMobileShellElement('status', 'status-panel-box');
+        restoreMobileShellElement('action', 'action-panel-box');
+        restoreMobileShellElement('log', 'log-wrapper-box');
+    }
+}
+
+function syncMobileShellUI() {
+    if (typeof document === "undefined") return;
+    const hud = document.getElementById('mobile-bottom-hud');
+    if (!hud) return;
+
+    const isPlayableState = typeof gameState !== "undefined" && gameState !== 'TITLE';
+    const showHud = isMobileShellViewport() && isPlayableState;
+    hud.hidden = !showHud;
+    if (!showHud || typeof currentRun === "undefined" || !currentRun) return;
+
+    const maxBag = typeof MAX_BAG_SIZE !== "undefined" ? MAX_BAG_SIZE : 6;
+    const invLen = Array.isArray(currentRun.inventory) ? currentRun.inventory.length : 0;
+    const heroName = accountMeta?.name || currentRun.name || '冒險者';
+    const jobName = typeof getJobChineseName === 'function' ? getJobChineseName(currentRun.job) : (currentRun.job || '職業');
+    setMobileText('mobile-hud-name', `👤 ${heroName}`);
+    setMobileText('mobile-hud-job', `🎭 ${jobName} · Lv.${currentRun.lv || accountMeta?.lv || 1}`);
+    setMobileText('mobile-hud-hp', `${Math.max(0, currentRun.hp || 0)}/${Math.max(0, currentRun.maxHp || 0)}`);
+    setMobileText('mobile-hud-mp', `${Math.max(0, currentRun.mp || 0)}/${Math.max(0, currentRun.maxMp || 0)}`);
+    setMobileText('mobile-hud-gold', String(Math.max(0, currentRun.gold || 0)));
+    setMobileText('mobile-hud-bag-count', `${invLen}/${maxBag}`);
+
+    const latestLog = document.getElementById('mobile-latest-log');
+    if (latestLog) latestLog.textContent = mobileLatestLogText || '準備踏入命運深淵';
+}
+
+function syncMobileLatestLog(text) {
+    mobileLatestLogText = String(text || '').replace(/\s+/g, ' ').trim();
+    syncMobileShellUI();
+}
+
+function initMobileShell() {
+    if (mobileShellInitialized || typeof document === "undefined") return;
+    mobileShellInitialized = true;
+
+    const openCharacter = (event) => openMobileDrawer('character', event.currentTarget);
+    ['mobile-hud-character', 'mobile-hud-vitals', 'mobile-hud-bag'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('click', openCharacter);
+    });
+    document.getElementById('mobile-hud-log')?.addEventListener('click', (event) => openMobileDrawer('log', event.currentTarget));
+    document.getElementById('mobile-drawer-close')?.addEventListener('click', () => closeMobileDrawer());
+    document.getElementById('mobile-drawer-scrim')?.addEventListener('click', () => closeMobileDrawer());
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && document.body?.classList.contains('mobile-drawer-open')) closeMobileDrawer();
+    });
+
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+        mobileShellMediaQuery = window.matchMedia(MOBILE_SHELL_MEDIA_QUERY);
+        const syncForViewport = () => {
+            syncMobileShellPlacement();
+            syncMobileShellUI();
+        };
+        if (typeof mobileShellMediaQuery.addEventListener === 'function') mobileShellMediaQuery.addEventListener('change', syncForViewport);
+        else if (typeof mobileShellMediaQuery.addListener === 'function') mobileShellMediaQuery.addListener(syncForViewport);
+    }
+
+    const existingLog = document.querySelector('#log-box .log-row-box:last-child');
+    if (existingLog) mobileLatestLogText = existingLog.textContent || '';
+    syncMobileShellPlacement();
+    syncMobileShellUI();
+}
 
 // --------------------------------------------------------------------------
 // ⏳ 0. 登入動態遮罩
@@ -1040,6 +1206,8 @@ function syncCharacterDataUi() {
             bagContainer.appendChild(slot);
         }
     }
+
+    syncMobileShellUI();
 }
 
 function getJobChineseName(j) {
@@ -1588,6 +1756,8 @@ function updateBattleScene(monster) {
 }
 
 function updateUI() {
+    initMobileShell();
+    syncMobileShellPlacement();
     const titleBox = DOM.get('title-box');
     const statusBox = DOM.get('status-panel-box');
     const actionBox = DOM.get('action-panel-box');
@@ -1608,6 +1778,7 @@ function updateUI() {
         if (logWrapper) logWrapper.style.display = "none";
         if (envBar) envBar.style.display = "none";
         if (autoBtn) autoBtn.style.display = "none";
+        syncMobileShellUI();
         return;
     }
     
@@ -2446,6 +2617,7 @@ function addLog(msg, type = "deal") {
     box.appendChild(p);
     const diaryText = p.textContent || String(formattedMsg).replace(/<[^>]*>/g, " ");
     syncBattleSceneLog(diaryText, type);
+    syncMobileLatestLog(diaryText);
 
     box.scrollTo({
         top: box.scrollHeight,

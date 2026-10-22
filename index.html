@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="css/10-responsive.css">
     <link rel="stylesheet" href="css/11-accessibility.css">
     <link rel="stylesheet" href="css/12-combat-scene.css">
+    <link rel="stylesheet" href="css/14-mobile-shell.css">
 </head>
 <body>
 
@@ -534,6 +535,41 @@
         </section>
     </main>
 </div>
+
+<!-- 📱 僅於 640px 以下啟用：既有角色、動作與日誌節點會由 ui.js 移入此 portal，桌機保持原位置。 -->
+<section id="mobile-bottom-hud" aria-label="手機冒險 HUD" hidden>
+    <div class="mobile-latest-log-row" role="status" aria-live="polite">
+        <span id="mobile-latest-log">尚無新的冒險紀錄</span>
+        <button type="button" id="mobile-hud-log" class="mobile-hud-utility" aria-controls="mobile-shell-drawer" aria-expanded="false">📜 日誌</button>
+    </div>
+    <div class="mobile-hud-summary-row">
+        <button type="button" id="mobile-hud-character" class="mobile-hud-summary mobile-hud-summary--identity" aria-controls="mobile-shell-drawer" aria-expanded="false">
+            <span id="mobile-hud-name">冒險者</span>
+            <span id="mobile-hud-job">職業</span>
+        </button>
+        <button type="button" id="mobile-hud-vitals" class="mobile-hud-summary mobile-hud-summary--vitals" aria-controls="mobile-shell-drawer" aria-expanded="false">
+            <span>❤️ <strong id="mobile-hud-hp">0/0</strong></span>
+            <span>🔵 <strong id="mobile-hud-mp">0/0</strong></span>
+        </button>
+        <button type="button" id="mobile-hud-bag" class="mobile-hud-summary mobile-hud-summary--bag" aria-controls="mobile-shell-drawer" aria-expanded="false">
+            <span>🪙 <strong id="mobile-hud-gold">0</strong></span>
+            <span>🎒 <strong id="mobile-hud-bag-count">0/6</strong></span>
+        </button>
+    </div>
+    <div id="mobile-hud-action-slot" class="mobile-hud-action-slot"></div>
+</section>
+
+<button type="button" id="mobile-drawer-scrim" aria-label="關閉手機抽屜" tabindex="-1"></button>
+<aside id="mobile-shell-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-drawer-title">
+    <header class="mobile-drawer-header">
+        <h2 id="mobile-drawer-title" tabindex="-1">角色與背包</h2>
+        <button type="button" id="mobile-drawer-close" class="mobile-drawer-close" aria-label="關閉">✕</button>
+    </header>
+    <div class="mobile-drawer-scroll">
+        <section id="mobile-character-drawer" class="mobile-drawer-view" aria-label="角色與背包"></section>
+        <section id="mobile-log-drawer" class="mobile-drawer-view" aria-label="冒險日誌"></section>
+    </div>
+</aside>
 
 <!-- ⚡ 全螢幕 QTE 視窗 -->
 <div id="qte-overlay" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-hidden="true">

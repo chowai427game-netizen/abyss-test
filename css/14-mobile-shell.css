@@ -1,0 +1,307 @@
+/* ============================================================================
+   手機遊戲殼層：固定 HUD、角色／背包與冒險日誌抽屜
+   僅由 ui.js 在 <= 640px 時啟用，桌機與平板版保持既有排版。
+   ============================================================================ */
+
+#mobile-bottom-hud,
+#mobile-drawer-scrim,
+#mobile-shell-drawer {
+    display: none;
+}
+
+@media screen and (max-width: 640px) {
+    :root {
+        --mobile-hud-reserve: 142px;
+        --mobile-hud-z: 1002;
+        --mobile-drawer-z: 1001;
+        --mobile-scrim-z: 1000;
+    }
+
+    body.mobile-shell-active {
+        padding-bottom: calc(var(--mobile-hud-reserve) + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    body.mobile-shell-active .left-layout-column {
+        display: none !important;
+    }
+
+    body.mobile-shell-active #mobile-bottom-hud {
+        position: fixed;
+        z-index: var(--mobile-hud-z);
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: grid;
+        gap: 6px;
+        box-sizing: border-box;
+        min-height: var(--mobile-hud-reserve);
+        padding: 7px max(10px, env(safe-area-inset-right, 0px))
+            max(8px, env(safe-area-inset-bottom, 0px))
+            max(10px, env(safe-area-inset-left, 0px));
+        border-top: 1px solid rgba(0, 255, 204, 0.26);
+        background: linear-gradient(180deg, rgba(7, 12, 19, 0.94), rgba(4, 7, 12, 0.985));
+        box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.5), 0 -1px 12px rgba(0, 255, 204, 0.08);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    body.mobile-shell-active #mobile-bottom-hud[hidden] {
+        display: none !important;
+    }
+
+    .mobile-latest-log-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        color: #b8c6d8;
+        font-size: 10px;
+        line-height: 1.3;
+    }
+
+    #mobile-latest-log {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-hud-utility,
+    .mobile-hud-summary,
+    .mobile-drawer-close {
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.035);
+        color: #dce7f6;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    .mobile-hud-utility {
+        min-height: 25px;
+        padding: 3px 7px;
+        color: #a3f4e0;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .mobile-hud-summary-row {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) minmax(0, 0.9fr);
+        gap: 5px;
+    }
+
+    .mobile-hud-summary {
+        display: grid;
+        align-content: center;
+        min-width: 0;
+        min-height: 35px;
+        padding: 4px 6px;
+        text-align: left;
+    }
+
+    .mobile-hud-summary--identity span,
+    .mobile-hud-summary--bag span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #mobile-hud-name {
+        color: #f4f7fb;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    #mobile-hud-job {
+        margin-top: 1px;
+        color: #a88cff;
+        font-size: 9px;
+    }
+
+    .mobile-hud-summary--vitals {
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        color: #f4f7fb;
+        font-size: 9px;
+    }
+
+    .mobile-hud-summary--vitals span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-hud-summary--bag {
+        gap: 1px;
+        color: #ffd770;
+        font-size: 9px;
+    }
+
+    .mobile-hud-summary--bag span:last-child {
+        color: #a8d7ff;
+    }
+
+    .mobile-hud-action-slot {
+        min-width: 0;
+    }
+
+    #mobile-hud-action-slot #action-panel-box {
+        position: static !important;
+        z-index: auto !important;
+        display: flex;
+        width: 100% !important;
+        min-width: 0;
+        min-height: 37px;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: auto;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        scrollbar-width: none;
+    }
+
+    #mobile-hud-action-slot #action-panel-box::-webkit-scrollbar {
+        display: none;
+    }
+
+    #mobile-hud-action-slot #action-panel-box .btn-game {
+        min-width: max-content;
+        min-height: 37px !important;
+        padding: 7px 10px !important;
+        font-size: 11px !important;
+        white-space: nowrap;
+    }
+
+    #mobile-drawer-scrim {
+        position: fixed;
+        z-index: var(--mobile-scrim-z);
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: rgba(1, 4, 8, 0.64);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+    }
+
+    #mobile-shell-drawer {
+        position: fixed;
+        z-index: var(--mobile-drawer-z);
+        top: max(8px, env(safe-area-inset-top, 0px));
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        max-height: calc(100vh - max(8px, env(safe-area-inset-top, 0px)));
+        max-height: calc(100dvh - max(8px, env(safe-area-inset-top, 0px)));
+        border: 1px solid rgba(0, 255, 204, 0.28);
+        border-radius: 16px 16px 0 0;
+        background: linear-gradient(165deg, rgba(19, 28, 43, 0.99), rgba(5, 8, 14, 0.995));
+        box-shadow: 0 -16px 42px rgba(0, 0, 0, 0.68);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(104%);
+        transition: transform 220ms ease, opacity 180ms ease;
+    }
+
+    body.mobile-drawer-open #mobile-drawer-scrim {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.mobile-drawer-open #mobile-shell-drawer {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+
+    body.mobile-drawer-open {
+        overflow: hidden;
+    }
+
+    .mobile-drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px max(14px, env(safe-area-inset-right, 0px)) 10px max(14px, env(safe-area-inset-left, 0px));
+        border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .mobile-drawer-header h2 {
+        margin: 0;
+        color: #f4f7fb;
+        font-size: 15px;
+        line-height: 1.3;
+    }
+
+    .mobile-drawer-close {
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        color: #a3f4e0;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .mobile-drawer-scroll {
+        min-height: 0;
+        padding: 12px max(10px, env(safe-area-inset-right, 0px))
+            calc(var(--mobile-hud-reserve) + env(safe-area-inset-bottom, 0px))
+            max(10px, env(safe-area-inset-left, 0px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-drawer-view {
+        display: none;
+    }
+
+    body[data-mobile-drawer="character"] #mobile-character-drawer,
+    body[data-mobile-drawer="log"] #mobile-log-drawer {
+        display: block;
+    }
+
+    #mobile-character-drawer #status-panel-box {
+        width: 100%;
+        margin: 0 !important;
+    }
+
+    #mobile-log-drawer #log-wrapper-box {
+        display: block !important;
+        height: auto !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+
+    #mobile-log-drawer #log-box {
+        height: min(64dvh, 620px) !important;
+        min-height: 300px;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+    }
+
+    body.mobile-drawer-open #floating-item-card {
+        visibility: hidden;
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #mobile-drawer-scrim,
+    #mobile-shell-drawer {
+        transition: none;
+    }
+}
