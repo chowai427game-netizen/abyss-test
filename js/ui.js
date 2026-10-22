@@ -1564,10 +1564,10 @@ function updateBattleScene(monster) {
 
     scene.classList.toggle('is-result', Boolean(showResult));
     scene.classList.toggle('is-boss-battle', Boolean(displayedMonster.isBoss));
-    const environmentClass = typeof ENVIRONMENT_DATABASE !== "undefined" && typeof currentEnvironment !== "undefined" && ENVIRONMENT_DATABASE[currentEnvironment]
-        ? ENVIRONMENT_DATABASE[currentEnvironment].className : "";
-    scene.classList.toggle('is-ice-zone', environmentClass === "env-zone-ice");
-    scene.classList.toggle('is-fire-zone', environmentClass === "env-zone-fire");
+    const environmentKey = typeof currentEnvironment === "string" ? currentEnvironment : "NORMAL";
+    ["NORMAL", "VOID", "ICE", "FIRE", "POISON"].forEach((key) => {
+        scene.classList.toggle(`is-${key.toLowerCase()}-zone`, environmentKey === key);
+    });
     if (image) {
         image.classList.toggle('battle-boss-sprite', Boolean(displayedMonster.isBoss));
         image.hidden = !variant;

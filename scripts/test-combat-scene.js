@@ -53,6 +53,10 @@ assert.match(css, /\.battle-command-options button\s*\{[\s\S]*?flex:\s*0 0 auto;
 assert.match(css, /\.battle-command-option\[data-tooltip\]::after/, "skill buttons render a dedicated detailed tooltip");
 assert.match(css, /\.battle-monster-inspect-card\s*\{/, "battle scene includes a monster hover information card");
 assert.match(css, /#battle-scene-box:has\(#battle-monster-sprite:hover\) \.battle-monster-inspect-card/, "hovering the monster reveals the information card");
+assert.match(css, /--battle-enemy-ground:\s*clamp\(/, "enemy, ground shadow and VFX share a responsive foreground anchor");
+assert.match(css, /\.battle-scene\.is-poison-zone\s*\{[\s\S]*?battle-poison-bg\.png/, "poison battles use the dedicated toxic dungeon background");
+assert.match(css, /\.battle-scene\.is-ice-zone\s*\{[\s\S]*?battle-ice-bg\.png/, "ice battles use the dedicated frozen dungeon background");
+assert.match(css, /\.battle-scene\.is-fire-zone\s*\{[\s\S]*?battle-fire-bg\.png/, "fire battles use the dedicated magma dungeon background");
 assert.equal((html.match(/id="tactics-drawer-box"/g) || []).length, 1, "only one tactics drawer remains");
 const sceneStart = html.indexOf('id="battle-scene-box"');
 const sceneEnd = html.indexOf("</section>", sceneStart);
@@ -75,6 +79,7 @@ assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedic
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
 assert.match(ui, /hideFloatingCard\(\);/, "inventory and village transitions clear stale floating item cards");
+assert.match(ui, /\["NORMAL", "VOID", "ICE", "FIRE", "POISON"\]\.forEach/, "battle scene maps every environment type to a matching background class");
 assert.match(ui, /發現魔物/, "a new encounter resets the scene diary");
 assert.match(ui, /VICTORY!/, "victory text is retained at battle end");
 assert.match(ui, /你已被擊敗/, "defeat text is retained at battle end");
@@ -181,7 +186,8 @@ assert.match(diarySandbox.getLines()[1].text, /你已被擊敗/);
 assert.equal(diarySandbox.snapshot().hp, 0, "defeat result preserves the player's zero HP for the scene");
 
 for (const asset of [
-    "monster-slime.png", "monster-undead.png", "monster-demon.png", "battle-forest-bg.png"
+    "monster-slime.png", "monster-undead.png", "monster-demon.png", "battle-forest-bg.png",
+    "battle-ruins-bg.png", "battle-void-bg.png", "battle-ice-bg.png", "battle-fire-bg.png", "battle-poison-bg.png"
 ]) {
     const file = path.join(root, "assets/combat", asset);
     assert.ok(fs.existsSync(file), `generated battle asset exists: ${asset}`);
