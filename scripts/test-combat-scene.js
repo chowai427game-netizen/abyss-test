@@ -78,6 +78,17 @@ assert.match(ui, /button\.dataset\.tooltip = title/, "skill command descriptions
 assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedicated skill cast cue");
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
+const monsterPortraitManifest = JSON.parse(fs.readFileSync(path.join(root, "assets/combat/monsters/manifest.json"), "utf8"));
+assert.equal(monsterPortraitManifest.completedCount, 4, "four monster portraits are complete");
+for (const [monsterName, assetPath] of Object.entries({
+    "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
+    "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
+    "🐗 荒野半獸人": "assets/combat/monsters/regular-03-wild-orc.png",
+    "👻 迷途哭泣怨靈": "assets/combat/monsters/regular-04-lost-wailing-wraith.png"
+})) {
+    assert.ok(ui.includes(`"${monsterName}": "${assetPath}"`), `${monsterName} has a dedicated battle portrait mapping`);
+    assert.ok(fs.existsSync(path.join(root, assetPath)), `${assetPath} exists`);
+}
 assert.match(ui, /hideFloatingCard\(\);/, "inventory and village transitions clear stale floating item cards");
 assert.match(ui, /\["NORMAL", "VOID", "ICE", "FIRE", "POISON"\]\.forEach/, "battle scene maps every environment type to a matching background class");
 assert.match(ui, /發現魔物/, "a new encounter resets the scene diary");

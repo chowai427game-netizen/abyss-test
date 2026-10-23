@@ -1456,6 +1456,13 @@ function syncBattleSceneLog(message, logType = "deal") {
     }
 }
 
+const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
+    "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
+    "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
+    "🐗 荒野半獸人": "assets/combat/monsters/regular-03-wild-orc.png",
+    "👻 迷途哭泣怨靈": "assets/combat/monsters/regular-04-lost-wailing-wraith.png"
+});
+
 function getBattleMonsterSpriteVariant(monster) {
     if (!monster) return "";
     const name = String(monster.name || "");
@@ -1698,6 +1705,8 @@ function updateBattleScene(monster) {
         undead: "assets/combat/monster-undead.png",
         demon: "assets/combat/monster-demon.png"
     };
+    const explicitPortraitPath = BATTLE_MONSTER_PORTRAIT_OVERRIDES[String(displayedMonster.name || "")] || "";
+    const spritePath = explicitPortraitPath || variantPaths[variant] || "";
 
     DOM.get('battle-player-name').textContent = heroName;
     const playerValues = showResult ? battleSceneTerminalSnapshot : currentRun;
@@ -1738,17 +1747,17 @@ function updateBattleScene(monster) {
     });
     if (image) {
         image.classList.toggle('battle-boss-sprite', Boolean(displayedMonster.isBoss));
-        image.hidden = !variant;
+        image.hidden = !spritePath;
         image.alt = `檢視 ${displayedMonster.name || "魔物"} 資訊`;
-        if (variant && image.dataset.variant !== variant) {
-            image.dataset.variant = variant;
-            image.src = variantPaths[variant];
+        if (spritePath && image.dataset.variant !== spritePath) {
+            image.dataset.variant = spritePath;
+            image.src = spritePath;
         }
     }
     if (fallback) {
         const leadingIcon = String(displayedMonster.name || "").match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
         fallback.textContent = leadingIcon ? leadingIcon[0] : "👹";
-        fallback.hidden = Boolean(variant);
+        fallback.hidden = Boolean(spritePath);
         fallback.setAttribute('aria-label', `檢視 ${displayedMonster.name || "魔物"} 資訊`);
     }
     updateBattleMonsterInspectCard(displayedMonster);

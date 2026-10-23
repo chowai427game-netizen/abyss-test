@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "totalMonsters": 36,
+  "completedCount": 4,
+  "portraits": [
+    {
+      "id": "regular-01-blue-slime",
+      "name": "💧 藍色史萊姆",
+      "kind": "regular",
+      "minFloor": 1,
+      "maxFloor": 9,
+      "path": "assets/combat/monsters/regular-01-blue-slime.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-02-green-goblin",
+      "name": "👺 綠皮哥布林",
+      "kind": "regular",
+      "minFloor": 1,
+      "maxFloor": 9,
+      "path": "assets/combat/monsters/regular-02-green-goblin.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-03-wild-orc",
+      "name": "🐗 荒野半獸人",
+      "kind": "regular",
+      "minFloor": 1,
+      "maxFloor": 9,
+      "path": "assets/combat/monsters/regular-03-wild-orc.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-04-lost-wailing-wraith",
+      "name": "👻 迷途哭泣怨靈",
+      "kind": "regular",
+      "minFloor": 1,
+      "maxFloor": 9,
+      "path": "assets/combat/monsters/regular-04-lost-wailing-wraith.png",
+      "status": "complete"
+    }
+  ]
+}
