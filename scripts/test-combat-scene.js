@@ -79,12 +79,16 @@ assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedic
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
 const monsterPortraitManifest = JSON.parse(fs.readFileSync(path.join(root, "assets/combat/monsters/manifest.json"), "utf8"));
-assert.equal(monsterPortraitManifest.completedCount, 4, "four monster portraits are complete");
+assert.equal(monsterPortraitManifest.completedCount, 8, "eight monster portraits are complete");
 for (const [monsterName, assetPath] of Object.entries({
     "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
     "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
     "🐗 荒野半獸人": "assets/combat/monsters/regular-03-wild-orc.png",
-    "👻 迷途哭泣怨靈": "assets/combat/monsters/regular-04-lost-wailing-wraith.png"
+    "👻 迷途哭泣怨靈": "assets/combat/monsters/regular-04-lost-wailing-wraith.png",
+    "🧱 古墓巨石守衛": "assets/combat/monsters/regular-05-ancient-tomb-stone-guardian.png",
+    "❄️ 冰川小惡魔": "assets/combat/monsters/regular-06-glacier-little-demon.png",
+    "🕷️ 地底毒牙蛛": "assets/combat/monsters/regular-07-underground-venomfang-spider.png",
+    "🧟 復甦凍僵腐屍": "assets/combat/monsters/regular-08-revived-frozen-corpse.png"
 })) {
     assert.ok(ui.includes(`"${monsterName}": "${assetPath}"`), `${monsterName} has a dedicated battle portrait mapping`);
     assert.ok(fs.existsSync(path.join(root, assetPath)), `${assetPath} exists`);

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "totalMonsters": 36,
-  "completedCount": 4,
+  "completedCount": 8,
   "portraits": [
     {
       "id": "regular-01-blue-slime",
@@ -37,6 +37,42 @@
       "minFloor": 1,
       "maxFloor": 9,
       "path": "assets/combat/monsters/regular-04-lost-wailing-wraith.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-05-ancient-tomb-stone-guardian",
+      "name": "🧱 古墓巨石守衛",
+      "kind": "regular",
+      "minFloor": 1,
+      "maxFloor": 9,
+      "path": "assets/combat/monsters/regular-05-ancient-tomb-stone-guardian.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-06-glacier-little-demon",
+      "name": "❄️ 冰川小惡魔",
+      "kind": "regular",
+      "minFloor": 11,
+      "maxFloor": 19,
+      "path": "assets/combat/monsters/regular-06-glacier-little-demon.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-07-underground-venomfang-spider",
+      "name": "🕷️ 地底毒牙蛛",
+      "kind": "regular",
+      "minFloor": 11,
+      "maxFloor": 19,
+      "path": "assets/combat/monsters/regular-07-underground-venomfang-spider.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-08-revived-frozen-corpse",
+      "name": "🧟 復甦凍僵腐屍",
+      "kind": "regular",
+      "minFloor": 11,
+      "maxFloor": 19,
+      "path": "assets/combat/monsters/regular-08-revived-frozen-corpse.png",
       "status": "complete"
     }
   ]

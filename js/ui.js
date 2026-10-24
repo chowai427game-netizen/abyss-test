@@ -1460,7 +1460,11 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
     "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
     "🐗 荒野半獸人": "assets/combat/monsters/regular-03-wild-orc.png",
-    "👻 迷途哭泣怨靈": "assets/combat/monsters/regular-04-lost-wailing-wraith.png"
+    "👻 迷途哭泣怨靈": "assets/combat/monsters/regular-04-lost-wailing-wraith.png",
+    "🧱 古墓巨石守衛": "assets/combat/monsters/regular-05-ancient-tomb-stone-guardian.png",
+    "❄️ 冰川小惡魔": "assets/combat/monsters/regular-06-glacier-little-demon.png",
+    "🕷️ 地底毒牙蛛": "assets/combat/monsters/regular-07-underground-venomfang-spider.png",
+    "🧟 復甦凍僵腐屍": "assets/combat/monsters/regular-08-revived-frozen-corpse.png"
 });
 
 function getBattleMonsterSpriteVariant(monster) {
