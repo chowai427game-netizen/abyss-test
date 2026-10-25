@@ -1464,7 +1464,11 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "🧱 古墓巨石守衛": "assets/combat/monsters/regular-05-ancient-tomb-stone-guardian.png",
     "❄️ 冰川小惡魔": "assets/combat/monsters/regular-06-glacier-little-demon.png",
     "🕷️ 地底毒牙蛛": "assets/combat/monsters/regular-07-underground-venomfang-spider.png",
-    "🧟 復甦凍僵腐屍": "assets/combat/monsters/regular-08-revived-frozen-corpse.png"
+    "🧟 復甦凍僵腐屍": "assets/combat/monsters/regular-08-revived-frozen-corpse.png",
+    "🦅 冰原吸血皮翼": "assets/combat/monsters/regular-09-icefield-vampire-wing.png",
+    "🛡️ 鋼鐵霜殼陸龜": "assets/combat/monsters/regular-10-steel-frostshell-tortoise.png",
+    "🔥 焦土爆烈小鬼": "assets/combat/monsters/regular-11-scorched-earth-explosive-imp.png",
+    "🦎 熔岩劇毒壁虎": "assets/combat/monsters/regular-12-lava-toxic-gecko.png"
 });
 
 const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({

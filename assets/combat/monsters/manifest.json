@@ -1,7 +1,7 @@
 {
   "version": 1,
   "totalMonsters": 36,
-  "completedCount": 8,
+  "completedCount": 12,
   "portraits": [
     {
       "id": "regular-01-blue-slime",
@@ -73,6 +73,42 @@
       "minFloor": 11,
       "maxFloor": 19,
       "path": "assets/combat/monsters/regular-08-revived-frozen-corpse.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-09-icefield-vampire-wing",
+      "name": "🦅 冰原吸血皮翼",
+      "kind": "regular",
+      "minFloor": 11,
+      "maxFloor": 19,
+      "path": "assets/combat/monsters/regular-09-icefield-vampire-wing.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-10-steel-frostshell-tortoise",
+      "name": "🛡️ 鋼鐵霜殼陸龜",
+      "kind": "regular",
+      "minFloor": 11,
+      "maxFloor": 19,
+      "path": "assets/combat/monsters/regular-10-steel-frostshell-tortoise.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-11-scorched-earth-explosive-imp",
+      "name": "🔥 焦土爆烈小鬼",
+      "kind": "regular",
+      "minFloor": 21,
+      "maxFloor": 29,
+      "path": "assets/combat/monsters/regular-11-scorched-earth-explosive-imp.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-12-lava-toxic-gecko",
+      "name": "🦎 熔岩劇毒壁虎",
+      "kind": "regular",
+      "minFloor": 21,
+      "maxFloor": 29,
+      "path": "assets/combat/monsters/regular-12-lava-toxic-gecko.png",
       "status": "complete"
     }
   ]
