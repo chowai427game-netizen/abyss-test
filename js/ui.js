@@ -1467,13 +1467,30 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "🧟 復甦凍僵腐屍": "assets/combat/monsters/regular-08-revived-frozen-corpse.png"
 });
 
+const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({
+    slime: "assets/combat/monster-slime.png",
+    undead: "assets/combat/monster-undead.png",
+    demon: "assets/combat/monster-demon.png"
+});
+
+function getBattleMonsterPortraitName(monster) {
+    const name = String(monster?.portraitName || monster?.baseMonsterName || monster?.name || "");
+    return name.replace(/^(?:💀\s*)?精英\s*[・·:：]?\s*/u, "").trim();
+}
+
 function getBattleMonsterSpriteVariant(monster) {
     if (!monster) return "";
-    const name = String(monster.name || "");
+    const name = getBattleMonsterPortraitName(monster);
     if (/魔神|惡魔|魔王|狂魔|demon|devil/i.test(name)) return "demon";
     if (/史萊姆|slime/i.test(name)) return "slime";
     if (/怨靈|幽靈|亡靈|腐屍|死神|骷髏|殭屍|魔靈|ghost|undead|corpse|reaper|skeleton/i.test(name)) return "undead";
     return "";
+}
+
+function getBattleMonsterPortraitPath(monster) {
+    const portraitName = getBattleMonsterPortraitName(monster);
+    const variant = getBattleMonsterSpriteVariant(monster);
+    return BATTLE_MONSTER_PORTRAIT_OVERRIDES[portraitName] || BATTLE_MONSTER_VARIANT_PATHS[variant] || "";
 }
 
 function setBattleMeter(element, value, maximum) {
@@ -1532,7 +1549,7 @@ function bindBattleMonsterInspectHover(...targets) {
 function updateBattleMonsterInspectCard(monster) {
     const card = DOM.get('battle-monster-inspect-card');
     if (!card || !monster) return;
-    const name = String(monster.name || "深淵魔物");
+    const name = getBattleMonsterPortraitName(monster) || "深淵魔物";
     const category = monster.isBoss ? "首領" : (monster.isElite ? "菁英" : "一般");
     const hp = Math.max(0, Number(monster.hp) || 0);
     const maxHp = Math.max(0, Number(monster.maxHp) || 0);
@@ -1701,16 +1718,10 @@ function updateBattleScene(monster) {
 
     const heroName = (accountMeta && accountMeta.name) || "冒險者";
     const displayedMonster = sceneMonster;
-    const variant = getBattleMonsterSpriteVariant(displayedMonster);
+    const portraitName = getBattleMonsterPortraitName(displayedMonster);
+    const spritePath = getBattleMonsterPortraitPath(displayedMonster);
     const image = DOM.get('battle-monster-sprite');
     const fallback = DOM.get('battle-monster-fallback');
-    const variantPaths = {
-        slime: "assets/combat/monster-slime.png",
-        undead: "assets/combat/monster-undead.png",
-        demon: "assets/combat/monster-demon.png"
-    };
-    const explicitPortraitPath = BATTLE_MONSTER_PORTRAIT_OVERRIDES[String(displayedMonster.name || "")] || "";
-    const spritePath = explicitPortraitPath || variantPaths[variant] || "";
 
     DOM.get('battle-player-name').textContent = heroName;
     const playerValues = showResult ? battleSceneTerminalSnapshot : currentRun;
@@ -1734,7 +1745,7 @@ function updateBattleScene(monster) {
         cooldownEl.style.display = cooldownNames.length ? "block" : "none";
     }
 
-    DOM.get('battle-monster-name').textContent = displayedMonster.name || "深淵魔物";
+    DOM.get('battle-monster-name').textContent = portraitName || "深淵魔物";
     DOM.get('battle-monster-hp-text').textContent = `HP ${Math.max(0, displayedMonster.hp || 0)} / ${displayedMonster.maxHp || 0}`;
     DOM.get('battle-monster-shield-text').textContent = Number(displayedMonster.shield) > 0 ? `🛡️ 護盾 ${displayedMonster.shield}` : "";
     setBattleMeter(DOM.get('battle-monster-hp-bar'), displayedMonster.hp, displayedMonster.maxHp);
@@ -1745,6 +1756,7 @@ function updateBattleScene(monster) {
 
     scene.classList.toggle('is-result', Boolean(showResult));
     scene.classList.toggle('is-boss-battle', Boolean(displayedMonster.isBoss));
+    scene.classList.toggle('is-elite-battle', Boolean(displayedMonster.isElite));
     const environmentKey = typeof currentEnvironment === "string" ? currentEnvironment : "NORMAL";
     ["NORMAL", "VOID", "ICE", "FIRE", "POISON"].forEach((key) => {
         scene.classList.toggle(`is-${key.toLowerCase()}-zone`, environmentKey === key);
@@ -1759,7 +1771,7 @@ function updateBattleScene(monster) {
         }
     }
     if (fallback) {
-        const leadingIcon = String(displayedMonster.name || "").match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
+        const leadingIcon = portraitName.match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
         fallback.textContent = leadingIcon ? leadingIcon[0] : "👹";
         fallback.hidden = Boolean(spritePath);
         fallback.setAttribute('aria-label', `檢視 ${displayedMonster.name || "魔物"} 資訊`);

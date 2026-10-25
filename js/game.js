@@ -1034,7 +1034,16 @@ function executeBasicAttack() {
         totalDamage += falconResult.actualHpDmg;
     }
     if (result.absorbed > 0) vfx("shield", { anchor: "monster", text: `-${result.absorbed}` });
-    vfx(damageResult.isCrit ? "crit" : "hit", { anchor: "monster", text: `-${totalDamage}${hitCount > 1 ? ` ×${hitCount}` : ""}`, firstPersonAttack: true, result: damageResult.isCrit ? "crit" : "hit" });
+    const weaponName = (typeof accountMeta !== "undefined" && accountMeta?.equipment?.weapon) || currentRun.equipment?.weapon || "";
+    vfx(damageResult.isCrit ? "crit" : "hit", {
+        anchor: "monster",
+        text: `-${totalDamage}${hitCount > 1 ? ` ×${hitCount}` : ""}`,
+        firstPersonAttack: true,
+        result: damageResult.isCrit ? "crit" : "hit",
+        basicAttack: true,
+        weaponName,
+        job: currentRun.job
+    });
     const numClass = isMagicJob ? "num-m-dmg" : "num-p-dmg";
     const critText = damageResult.isCrit ? `<span class="skill-crit">⚡ 暴擊！</span>` : "";
     if (typeof addLog === "function") {
@@ -1764,6 +1773,7 @@ function startNodeCombat(nodeType) {
             const scaledHp = Math.floor(fallbackMonster.maxHp * eliteScale);
             activeMonster = {
                 ...fallbackMonster,
+                portraitName: fallbackMonster.portraitName || fallbackMonster.name,
                 name: isEliteNode ? `💀 精英・${fallbackMonster.name}` : fallbackMonster.name,
                 hp: scaledHp,
                 maxHp: scaledHp,

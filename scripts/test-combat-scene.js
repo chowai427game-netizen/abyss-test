@@ -133,16 +133,24 @@ assert.match(vfx, /battle-monster-vfx-anchor/, "monster VFX target the single on
 assert.match(game, /firstPersonAttack: true, result: damageResult\.isCrit \? "crit" : "hit"/, "basic attacks and skills feed first-person combat feedback");
 assert.match(game, /showBattleSkillCastCue\(skillName, fxClass, effect\)/, "active skills trigger the dedicated battle cast cue");
 assert.match(ui, /updateBattleScene\(typeof activeMonster/, "regular UI updates sync the scene before state-specific early returns");
+assert.match(game, /portraitName: fallbackMonster\.portraitName \|\| fallbackMonster\.name/, "elite monsters preserve the original portrait name");
+assert.match(ui, /scene\.classList\.toggle\('is-elite-battle', Boolean\(displayedMonster\.isElite\)\)/, "elite battle styling follows the elite state");
+assert.match(css, /\.battle-scene\.is-elite-battle \.battle-hud-enemy::before/, "elite monsters have a dedicated HUD badge");
+assert.match(css, /\.battle-scene\.is-elite-battle \.battle-enemy-sprite,[\s\S]*?drop-shadow\(0 0 5px/, "elite portraits receive a warm visual glow");
 
-const variantSource = ui.match(/function getBattleMonsterSpriteVariant\(monster\) \{[\s\S]*?\n\}/);
-assert.ok(variantSource, "monster sprite classification helper exists");
-const sandbox = {};
-vm.runInNewContext(`${variantSource[0]}; this.classify = getBattleMonsterSpriteVariant;`, sandbox);
-assert.equal(sandbox.classify({ name: "💧 藍色史萊姆" }), "slime");
-assert.equal(sandbox.classify({ name: "👻 迷途哭泣怨靈" }), "undead");
-assert.equal(sandbox.classify({ name: "🔥 煉獄魔神", isBoss: true }), "demon");
-assert.equal(sandbox.classify({ name: "👑 虛空領主", isBoss: true }), "", "non-demon bosses keep their existing icon");
-assert.equal(sandbox.classify({ name: "👺 綠皮哥布林" }), "", "unmatched enemies use their existing icon fallback");
+const portraitHelpers = ui.match(/const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object\.freeze\(\{[\s\S]*?(?=\nfunction setBattleMeter)/);
+assert.ok(portraitHelpers, "monster portrait lookup helpers exist");
+const spriteSandbox = {};
+vm.runInNewContext(`${portraitHelpers[0]}; this.portraitName = getBattleMonsterPortraitName; this.classify = getBattleMonsterSpriteVariant; this.portraitPath = getBattleMonsterPortraitPath;`, spriteSandbox);
+assert.equal(spriteSandbox.classify({ name: "💧 藍色史萊姆" }), "slime");
+assert.equal(spriteSandbox.classify({ name: "👻 迷途哭泣怨靈" }), "undead");
+assert.equal(spriteSandbox.classify({ name: "🔥 煉獄魔神", isBoss: true }), "demon");
+assert.equal(spriteSandbox.classify({ name: "👑 虛空領主", isBoss: true }), "", "non-demon bosses keep their existing icon");
+assert.equal(spriteSandbox.classify({ name: "👺 綠皮哥布林" }), "", "unmatched enemies use their existing icon fallback");
+assert.equal(spriteSandbox.portraitName({ name: "💀 精英・🧱 古墓巨石守衛" }), "🧱 古墓巨石守衛");
+assert.equal(spriteSandbox.portraitPath({ name: "💀 精英・🧱 古墓巨石守衛", isElite: true, portraitName: "🧱 古墓巨石守衛" }), "assets/combat/monsters/regular-05-ancient-tomb-stone-guardian.png", "elite monsters reuse the original dedicated portrait");
+assert.equal(spriteSandbox.portraitPath({ name: "💀 精英・🧱 古墓巨石守衛", isElite: true }), "assets/combat/monsters/regular-05-ancient-tomb-stone-guardian.png", "legacy elite records without portraitName resolve from their display name");
+assert.equal(spriteSandbox.portraitPath({ name: "💀 精英・👻 迷途哭泣怨靈", isElite: true }), "assets/combat/monsters/regular-04-lost-wailing-wraith.png", "elite variants prefer their original dedicated portrait");
 
 const toneSource = ui.match(/function getBattleDiaryTone\(text, logType = "deal"\) \{[\s\S]*?\n\}/);
 assert.ok(toneSource, "battle diary tone classifier exists");
