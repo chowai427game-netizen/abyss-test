@@ -1471,6 +1471,21 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "🦎 熔岩劇毒壁虎": "assets/combat/monsters/regular-12-lava-toxic-gecko.png"
 });
 
+const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
+    "💧 藍色史萊姆": { desktopHeight: 142, mobileHeight: 120 },
+    "👺 綠皮哥布林": { desktopHeight: 170, mobileHeight: 144 },
+    "🐗 荒野半獸人": { desktopHeight: 220, mobileHeight: 188 },
+    "👻 迷途哭泣怨靈": { desktopHeight: 158, mobileHeight: 136, desktopLift: 58, mobileLift: 42, desktopVfxLift: 58, mobileVfxLift: 42, floating: true },
+    "🧱 古墓巨石守衛": { desktopHeight: 228, mobileHeight: 194 },
+    "❄️ 冰川小惡魔": { desktopHeight: 170, mobileHeight: 144 },
+    "🕷️ 地底毒牙蛛": { desktopHeight: 164, mobileHeight: 140 },
+    "🧟 復甦凍僵腐屍": { desktopHeight: 184, mobileHeight: 156 },
+    "🦅 冰原吸血皮翼": { desktopHeight: 182, mobileHeight: 154 },
+    "🛡️ 鋼鐵霜殼陸龜": { desktopHeight: 212, mobileHeight: 180 },
+    "🔥 焦土爆烈小鬼": { desktopHeight: 158, mobileHeight: 136 },
+    "🦎 熔岩劇毒壁虎": { desktopHeight: 194, mobileHeight: 166 }
+});
+
 const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({
     slime: "assets/combat/monster-slime.png",
     undead: "assets/combat/monster-undead.png",
@@ -1495,6 +1510,29 @@ function getBattleMonsterPortraitPath(monster) {
     const portraitName = getBattleMonsterPortraitName(monster);
     const variant = getBattleMonsterSpriteVariant(monster);
     return BATTLE_MONSTER_PORTRAIT_OVERRIDES[portraitName] || BATTLE_MONSTER_VARIANT_PATHS[variant] || "";
+}
+
+function applyBattleMonsterLayout(scene, monster) {
+    if (!scene?.style || !scene?.classList) return;
+    const portraitName = getBattleMonsterPortraitName(monster);
+    const layout = BATTLE_MONSTER_LAYOUT_OVERRIDES[portraitName] || null;
+    const layoutKey = portraitName || "default";
+    if (scene.dataset.monsterLayout !== layoutKey) {
+        const properties = {
+            "--battle-monster-desktop-height": layout?.desktopHeight ? `${layout.desktopHeight}px` : "",
+            "--battle-monster-mobile-height": layout?.mobileHeight ? `${layout.mobileHeight}px` : "",
+            "--battle-monster-desktop-lift": layout?.desktopLift ? `${layout.desktopLift}px` : "",
+            "--battle-monster-mobile-lift": layout?.mobileLift ? `${layout.mobileLift}px` : "",
+            "--battle-monster-vfx-lift": layout?.desktopVfxLift ? `${layout.desktopVfxLift}px` : "",
+            "--battle-monster-mobile-vfx-lift": layout?.mobileVfxLift ? `${layout.mobileVfxLift}px` : ""
+        };
+        Object.entries(properties).forEach(([property, value]) => {
+            if (value) scene.style.setProperty(property, value);
+            else scene.style.removeProperty(property);
+        });
+        scene.dataset.monsterLayout = layoutKey;
+    }
+    scene.classList.toggle("is-floating-monster", Boolean(layout?.floating));
 }
 
 function setBattleMeter(element, value, maximum) {
@@ -1761,6 +1799,7 @@ function updateBattleScene(monster) {
     scene.classList.toggle('is-result', Boolean(showResult));
     scene.classList.toggle('is-boss-battle', Boolean(displayedMonster.isBoss));
     scene.classList.toggle('is-elite-battle', Boolean(displayedMonster.isElite));
+    applyBattleMonsterLayout(scene, displayedMonster);
     const environmentKey = typeof currentEnvironment === "string" ? currentEnvironment : "NORMAL";
     ["NORMAL", "VOID", "ICE", "FIRE", "POISON"].forEach((key) => {
         scene.classList.toggle(`is-${key.toLowerCase()}-zone`, environmentKey === key);

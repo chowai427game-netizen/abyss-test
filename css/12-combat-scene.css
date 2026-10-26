@@ -2,7 +2,7 @@
    First-person pixel-art battle scene: the enemy is the sole visible combatant.
    -------------------------------------------------------------------------- */
 .battle-scene {
-    --battle-enemy-ground: clamp(24px, 13%, 86px);
+    --battle-enemy-ground: clamp(18px, 7%, 46px);
     position: relative;
     isolation: isolate;
     width: 100%;
@@ -198,7 +198,7 @@
     position: absolute;
     bottom: calc(var(--battle-enemy-ground) - 2px);
     left: 50%;
-    width: min(38%, 230px);
+    width: min(42%, 250px);
     height: 14px;
     transform: translateX(-50%);
     border-radius: 50%;
@@ -209,12 +209,12 @@
 .battle-sprite {
     position: absolute;
     z-index: 2;
-    bottom: var(--battle-enemy-ground);
     left: 50%;
     display: block;
     width: auto;
-    height: 146px;
-    max-width: 52%;
+    height: var(--battle-monster-desktop-height, 168px);
+    max-width: 70%;
+    bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-desktop-lift, 0px));
     transform: translateX(-50%);
     object-fit: contain;
     object-position: center bottom;
@@ -223,7 +223,16 @@
     cursor: help;
 }
 
-.battle-enemy-sprite.battle-boss-sprite { height: 174px; max-width: 62%; }
+.battle-enemy-sprite.battle-boss-sprite { height: 218px; max-width: 72%; }
+
+.battle-scene.is-floating-monster .battle-enemy-sprite:not(.is-hit):not(.is-critical) {
+    animation: battle-monster-hover 2.4s ease-in-out infinite;
+}
+
+@keyframes battle-monster-hover {
+    0%, 100% { translate: 0 -2px; }
+    50% { translate: 0 -8px; }
+}
 
 .battle-scene.is-elite-battle .battle-enemy-sprite,
 .battle-scene.is-elite-battle .battle-monster-fallback {
@@ -283,10 +292,10 @@
 .battle-monster-vfx-anchor {
     position: absolute;
     z-index: 3;
-    bottom: calc(var(--battle-enemy-ground) + 20px);
+    bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-vfx-lift, 20px));
     left: 50%;
-    width: min(48%, 280px);
-    height: 62%;
+    width: min(54%, 330px);
+    height: 66%;
     transform: translateX(-50%);
     pointer-events: none;
 }
@@ -582,15 +591,15 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
 }
 
 @media (max-width: 600px) {
-    .battle-scene { --battle-enemy-ground: clamp(20px, 13%, 48px); min-height: 250px; margin-bottom: 12px; border-width: 3px; background-position: center 54%; }
+    .battle-scene { --battle-enemy-ground: clamp(16px, 7%, 34px); min-height: 250px; margin-bottom: 12px; border-width: 3px; background-position: center 54%; }
     .battle-hud { inset: 7px 7px auto; gap: 6px; }
     .battle-hud-card { width: 46%; padding: 5px 6px; font-size: 10px; }
     .battle-hud-card strong { font-size: 11px; }
     .battle-atb-heading { font-size: 8px; }
-    .battle-sprite-platform { width: 44%; }
-    .battle-sprite { height: 124px; max-width: 64%; }
-    .battle-enemy-sprite.battle-boss-sprite { height: 144px; max-width: 70%; }
-    .battle-monster-vfx-anchor { width: 62%; height: 62%; }
+    .battle-sprite-platform { width: 46%; }
+    .battle-sprite { height: var(--battle-monster-mobile-height, 142px); max-width: 92%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-mobile-lift, 0px)); }
+    .battle-enemy-sprite.battle-boss-sprite { height: 178px; max-width: 94%; }
+    .battle-monster-vfx-anchor { width: 68%; height: 66%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-mobile-vfx-lift, 18px)); }
     .battle-monster-inspect-card { top: 41%; left: 50%; width: min(204px, 58%); padding: 6px 7px; font-size: 9px; }
     .battle-monster-inspect-heading { font-size: 10px; }
     .battle-attack-swipe { inset: 18% -4% 8%; }
@@ -617,6 +626,7 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
     .battle-monster-fallback.is-hit,
     .battle-monster-sprite.is-critical,
     .battle-monster-fallback.is-critical,
+    .battle-scene.is-floating-monster .battle-enemy-sprite:not(.is-hit):not(.is-critical),
     .battle-attack-art.is-active,
     .battle-scene-log-line.is-typing::after,
     .combat-item-queued,
