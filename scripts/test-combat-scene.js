@@ -70,8 +70,13 @@ assert.ok(monsterLayoutMatch, "monster layout overrides are available for valida
 const monsterLayoutOverrides = vm.runInNewContext(`(${monsterLayoutMatch[1]})`);
 assert.ok(monsterLayoutOverrides["🐗 荒野半獸人"].desktopHeight > monsterLayoutOverrides["👺 綠皮哥布林"].desktopHeight, "the orc is larger than the goblin");
 assert.ok(monsterLayoutOverrides["🧱 古墓巨石守衛"].desktopHeight > monsterLayoutOverrides["🐗 荒野半獸人"].desktopHeight, "the stone guardian is larger than the orc");
+assert.ok(monsterLayoutOverrides["🥩 煉獄虐殺食人魔"].desktopHeight > monsterLayoutOverrides["💀 焦黑地獄刺客"].desktopHeight, "the infernal ogre is larger than the assassin");
 assert.ok(new Set(Object.values(monsterLayoutOverrides).map((layout) => layout.desktopHeight)).size >= 10, "regular monster sizes are individually varied");
 assert.ok(monsterLayoutOverrides["👻 迷途哭泣怨靈"].desktopLift > 0 && monsterLayoutOverrides["👻 迷途哭泣怨靈"].floating, "the wraith has a raised floating position");
+assert.ok(monsterLayoutOverrides["🔮 浮空禁忌魔導書"].desktopLift > 0 && monsterLayoutOverrides["🔮 浮空禁忌魔導書"].floating, "the forbidden grimoire has a raised floating position");
+assert.ok(monsterLayoutOverrides["👁️ 虛空扭曲觀察者"].desktopLift > 0 && monsterLayoutOverrides["👁️ 虛空扭曲觀察者"].floating, "the void observer has a raised floating position");
+assert.ok(monsterLayoutOverrides["🗿 虛空遺蹟守衛像"].desktopHeight > monsterLayoutOverrides["🌌 裂縫黯夜潛行者"].desktopHeight, "the void ruins sentinel is larger than the stalker");
+assert.ok(monsterLayoutOverrides["🌌 裂縫黯夜潛行者"].floating && monsterLayoutOverrides["🦇 異次元吸血巨蝠"].floating, "the rift stalker and vampire bat float");
 assert.match(css, /\.battle-scene\.is-poison-zone\s*\{[\s\S]*?battle-poison-bg\.png/, "poison battles use the dedicated toxic dungeon background");
 assert.match(css, /\.battle-scene\.is-ice-zone\s*\{[\s\S]*?battle-ice-bg\.png/, "ice battles use the dedicated frozen dungeon background");
 assert.match(css, /\.battle-scene\.is-fire-zone\s*\{[\s\S]*?battle-fire-bg\.png/, "fire battles use the dedicated magma dungeon background");
@@ -97,7 +102,7 @@ assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedic
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
 const monsterPortraitManifest = JSON.parse(fs.readFileSync(path.join(root, "assets/combat/monsters/manifest.json"), "utf8"));
-assert.equal(monsterPortraitManifest.completedCount, 12, "twelve monster portraits are complete");
+assert.equal(monsterPortraitManifest.completedCount, 20, "twenty monster portraits are complete");
 for (const [monsterName, assetPath] of Object.entries({
     "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
     "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
@@ -110,7 +115,15 @@ for (const [monsterName, assetPath] of Object.entries({
     "🦅 冰原吸血皮翼": "assets/combat/monsters/regular-09-icefield-vampire-wing.png",
     "🛡️ 鋼鐵霜殼陸龜": "assets/combat/monsters/regular-10-steel-frostshell-tortoise.png",
     "🔥 焦土爆烈小鬼": "assets/combat/monsters/regular-11-scorched-earth-explosive-imp.png",
-    "🦎 熔岩劇毒壁虎": "assets/combat/monsters/regular-12-lava-toxic-gecko.png"
+    "🦎 熔岩劇毒壁虎": "assets/combat/monsters/regular-12-lava-toxic-gecko.png",
+    "💀 焦黑地獄刺客": "assets/combat/monsters/regular-13-charred-hell-assassin.png",
+    "🥩 煉獄虐殺食人魔": "assets/combat/monsters/regular-14-infernal-butcher-ogre.png",
+    "🔮 浮空禁忌魔導書": "assets/combat/monsters/regular-15-floating-forbidden-grimoire.png",
+    "👁️ 虛空扭曲觀察者": "assets/combat/monsters/regular-16-void-twisted-observer.png",
+    "🌌 裂縫黯夜潛行者": "assets/combat/monsters/regular-17-rift-nocturnal-stalker.png",
+    "🦇 異次元吸血巨蝠": "assets/combat/monsters/regular-18-interdimensional-vampire-bat.png",
+    "🗿 虛空遺蹟守衛像": "assets/combat/monsters/regular-19-void-ruins-sentinel.png",
+    "🐍 劇毒多頭利維坦": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png"
 })) {
     assert.ok(ui.includes(`"${monsterName}": "${assetPath}"`), `${monsterName} has a dedicated battle portrait mapping`);
     assert.ok(fs.existsSync(path.join(root, assetPath)), `${assetPath} exists`);

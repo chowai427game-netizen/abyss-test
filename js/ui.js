@@ -1468,7 +1468,15 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "🦅 冰原吸血皮翼": "assets/combat/monsters/regular-09-icefield-vampire-wing.png",
     "🛡️ 鋼鐵霜殼陸龜": "assets/combat/monsters/regular-10-steel-frostshell-tortoise.png",
     "🔥 焦土爆烈小鬼": "assets/combat/monsters/regular-11-scorched-earth-explosive-imp.png",
-    "🦎 熔岩劇毒壁虎": "assets/combat/monsters/regular-12-lava-toxic-gecko.png"
+    "🦎 熔岩劇毒壁虎": "assets/combat/monsters/regular-12-lava-toxic-gecko.png",
+    "💀 焦黑地獄刺客": "assets/combat/monsters/regular-13-charred-hell-assassin.png",
+    "🥩 煉獄虐殺食人魔": "assets/combat/monsters/regular-14-infernal-butcher-ogre.png",
+    "🔮 浮空禁忌魔導書": "assets/combat/monsters/regular-15-floating-forbidden-grimoire.png",
+    "👁️ 虛空扭曲觀察者": "assets/combat/monsters/regular-16-void-twisted-observer.png",
+    "🌌 裂縫黯夜潛行者": "assets/combat/monsters/regular-17-rift-nocturnal-stalker.png",
+    "🦇 異次元吸血巨蝠": "assets/combat/monsters/regular-18-interdimensional-vampire-bat.png",
+    "🗿 虛空遺蹟守衛像": "assets/combat/monsters/regular-19-void-ruins-sentinel.png",
+    "🐍 劇毒多頭利維坦": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png"
 });
 
 const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
@@ -1483,7 +1491,15 @@ const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
     "🦅 冰原吸血皮翼": { desktopHeight: 182, mobileHeight: 154 },
     "🛡️ 鋼鐵霜殼陸龜": { desktopHeight: 212, mobileHeight: 180 },
     "🔥 焦土爆烈小鬼": { desktopHeight: 158, mobileHeight: 136 },
-    "🦎 熔岩劇毒壁虎": { desktopHeight: 194, mobileHeight: 166 }
+    "🦎 熔岩劇毒壁虎": { desktopHeight: 194, mobileHeight: 166 },
+    "💀 焦黑地獄刺客": { desktopHeight: 184, mobileHeight: 158 },
+    "🥩 煉獄虐殺食人魔": { desktopHeight: 236, mobileHeight: 202 },
+    "🔮 浮空禁忌魔導書": { desktopHeight: 150, mobileHeight: 128, desktopLift: 64, mobileLift: 46, desktopVfxLift: 64, mobileVfxLift: 46, floating: true },
+    "👁️ 虛空扭曲觀察者": { desktopHeight: 194, mobileHeight: 166, desktopLift: 44, mobileLift: 34, desktopVfxLift: 44, mobileVfxLift: 34, floating: true },
+    "🌌 裂縫黯夜潛行者": { desktopHeight: 178, mobileHeight: 152, desktopLift: 44, mobileLift: 34, desktopVfxLift: 44, mobileVfxLift: 34, floating: true },
+    "🦇 異次元吸血巨蝠": { desktopHeight: 182, mobileHeight: 154, desktopLift: 54, mobileLift: 40, desktopVfxLift: 54, mobileVfxLift: 40, floating: true },
+    "🗿 虛空遺蹟守衛像": { desktopHeight: 242, mobileHeight: 206 },
+    "🐍 劇毒多頭利維坦": { desktopHeight: 220, mobileHeight: 188 }
 });
 
 const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({

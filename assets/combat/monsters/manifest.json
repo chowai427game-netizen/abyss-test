@@ -1,7 +1,7 @@
 {
   "version": 1,
   "totalMonsters": 36,
-  "completedCount": 12,
+  "completedCount": 20,
   "portraits": [
     {
       "id": "regular-01-blue-slime",
@@ -109,6 +109,78 @@
       "minFloor": 21,
       "maxFloor": 29,
       "path": "assets/combat/monsters/regular-12-lava-toxic-gecko.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-13-charred-hell-assassin",
+      "name": "💀 焦黑地獄刺客",
+      "kind": "regular",
+      "minFloor": 21,
+      "maxFloor": 29,
+      "path": "assets/combat/monsters/regular-13-charred-hell-assassin.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-14-infernal-butcher-ogre",
+      "name": "🥩 煉獄虐殺食人魔",
+      "kind": "regular",
+      "minFloor": 21,
+      "maxFloor": 29,
+      "path": "assets/combat/monsters/regular-14-infernal-butcher-ogre.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-15-floating-forbidden-grimoire",
+      "name": "🔮 浮空禁忌魔導書",
+      "kind": "regular",
+      "minFloor": 21,
+      "maxFloor": 29,
+      "path": "assets/combat/monsters/regular-15-floating-forbidden-grimoire.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-16-void-twisted-observer",
+      "name": "👁️ 虛空扭曲觀察者",
+      "kind": "regular",
+      "minFloor": 31,
+      "maxFloor": 39,
+      "path": "assets/combat/monsters/regular-16-void-twisted-observer.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-17-rift-nocturnal-stalker",
+      "name": "🌌 裂縫黯夜潛行者",
+      "kind": "regular",
+      "minFloor": 31,
+      "maxFloor": 39,
+      "path": "assets/combat/monsters/regular-17-rift-nocturnal-stalker.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-18-interdimensional-vampire-bat",
+      "name": "🦇 異次元吸血巨蝠",
+      "kind": "regular",
+      "minFloor": 31,
+      "maxFloor": 39,
+      "path": "assets/combat/monsters/regular-18-interdimensional-vampire-bat.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-19-void-ruins-sentinel",
+      "name": "🗿 虛空遺蹟守衛像",
+      "kind": "regular",
+      "minFloor": 31,
+      "maxFloor": 39,
+      "path": "assets/combat/monsters/regular-19-void-ruins-sentinel.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-20-toxic-many-headed-leviathan",
+      "name": "🐍 劇毒多頭利維坦",
+      "kind": "regular",
+      "minFloor": 31,
+      "maxFloor": 39,
+      "path": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png",
       "status": "complete"
     }
   ]
