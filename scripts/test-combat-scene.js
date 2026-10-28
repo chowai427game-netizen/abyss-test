@@ -13,7 +13,7 @@ const ui = fs.readFileSync(path.join(root, "js/ui.js"), "utf8");
 const game = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
 
 for (const id of [
-    "battle-scene-box", "battle-monster-vfx-anchor", "battle-attack-swipe", "battle-monster-sprite", "battle-monster-fallback",
+    "battle-scene-box", "battle-monster-vfx-anchor", "battle-monster-load-status", "battle-attack-swipe", "battle-monster-sprite", "battle-monster-fallback",
     "battle-player-hp-bar", "battle-player-mp-bar", "battle-monster-hp-bar",
     "battle-skill-cooldowns",
     "battle-player-atb-text", "battle-player-atb-bar", "battle-monster-atb-text", "battle-monster-atb-bar",
@@ -35,6 +35,13 @@ assert.match(css, /@keyframes battle-scene-encounter-return/, "battle result sce
 assert.match(css, /@keyframes battle-backdrop-enter/, "cinematic backdrop fades in smoothly");
 assert.match(css, /@keyframes battle-backdrop-return/, "cinematic backdrop fades out smoothly");
 assert.match(css, /@keyframes battle-skill-cast-cue/, "skill casting has a dedicated battle animation");
+assert.match(css, /@keyframes monster-hit-flash[\s\S]*?sepia\(1\)[\s\S]*?rgba\(255, 35, 35/, "normal hits tint the monster red");
+assert.match(css, /@keyframes monster-defeat-dissolve/, "defeated monsters scatter and fade out");
+assert.match(game, /function playBattleMonsterDefeatAnimation\(\)/, "victory sequence can animate the monster portrait away");
+assert.match(game, /playBattleMonsterDefeatAnimation\(\)/, "monster defeat animation is triggered before the battle result");
+assert.match(ui, /function waitForBattleMonsterPortraitReady\(\)/, "battle UI exposes the monster portrait readiness promise");
+assert.match(ui, /image\.decode\(\)/, "portrait readiness waits for browser image decoding");
+assert.match(game, /combatEncounterCooldownPending/, "ATB remains locked while the encounter is loading");
 assert.match(ui, /function playBattleSceneEncounterIntro\(\)/, "encounter intro preserves the original layout before moving the scene");
 assert.match(ui, /function returnBattleSceneAfterResult\(delay = 2000\)/, "the floating scene waits two seconds after the result before returning");
 assert.match(ui, /returnBattleSceneAfterResult\(2000\)/, "both victory and defeat journal results schedule the two-second return");
@@ -58,8 +65,8 @@ assert.match(css, /\.battle-scene\s*\{[\s\S]*?--battle-enemy-ground:\s*clamp\(18
 assert.match(css, /\.battle-sprite\s*\{[\s\S]*?height:\s*var\(--battle-monster-desktop-height, 168px\);[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-desktop-lift, 0px\)\);[\s\S]*?object-position:\s*center bottom;/, "monster height and lift are driven by individual presentation settings");
 assert.match(css, /\.battle-enemy-sprite\.battle-boss-sprite\s*\{\s*height:\s*218px;\s*max-width:\s*72%;\s*\}/, "bosses remain larger than regular monsters");
 assert.match(css, /@media \(max-width: 600px\)[\s\S]*?--battle-enemy-ground:\s*clamp\(16px, 7%, 34px\)[\s\S]*?\.battle-sprite\s*\{\s*height:\s*var\(--battle-monster-mobile-height, 142px\);\s*max-width:\s*92%;\s*bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-mobile-lift, 0px\)\);\s*\}/, "mobile monster position and size remain responsive");
-assert.match(css, /\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\)[\s\S]*?animation:\s*battle-monster-hover/, "floating monsters bob without conflicting with hit reactions");
-assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\)[\s\S]*?animation-duration:\s*1ms/, "floating animation respects reduced-motion preference");
+assert.match(css, /\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\):not\(\.is-defeated\)[\s\S]*?animation:\s*battle-monster-hover/, "floating monsters stop bobbing while hit or defeat animations play");
+assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\):not\(\.is-defeated\)[\s\S]*?animation-duration:\s*1ms/, "floating animation respects reduced-motion preference");
 assert.match(css, /\.battle-monster-vfx-anchor\s*\{[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-vfx-lift, 20px\)\)/, "hit VFX can align with individually elevated monsters");
 assert.match(ui, /"🐗 荒野半獸人": \{ desktopHeight: 220, mobileHeight: 188 \}/, "the wild orc is configured as a large monster");
 assert.match(ui, /"🧱 古墓巨石守衛": \{ desktopHeight: 228, mobileHeight: 194 \}/, "the stone guardian is configured as the largest regular monster");

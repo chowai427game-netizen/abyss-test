@@ -9,6 +9,10 @@ let localChatHistory = [];
 const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時
 let loginLoadingInterval = null;
 let autoSelectBlessingTimer = null; // 自動戰鬥代選定時器
+let battleMonsterPortraitReadyPromise = Promise.resolve(true);
+let resolveBattleMonsterPortraitReady = null;
+let battleMonsterPortraitLoadTimer = null;
+let battleMonsterPortraitLoadToken = 0;
 
 // 🛡️ XSS 資安防禦：HTML 特殊字元轉義函式
 function escapeHTML(str) {
@@ -1736,6 +1740,89 @@ function openSemiCombatCommandList(kind) {
     return true;
 }
 
+function finishBattleMonsterPortraitLoad(image, fallback, loadStatus, spritePath, token, loaded) {
+    if (token !== battleMonsterPortraitLoadToken || image.dataset.variant !== spritePath) return;
+    const ready = Boolean(loaded && Number(image.naturalWidth) > 0);
+    image.dataset.loadState = ready ? "ready" : "error";
+    image.hidden = !ready;
+    if (fallback) fallback.hidden = ready;
+    if (loadStatus) loadStatus.hidden = true;
+    if (battleMonsterPortraitLoadTimer !== null) {
+        clearTimeout(battleMonsterPortraitLoadTimer);
+        battleMonsterPortraitLoadTimer = null;
+    }
+    const resolve = resolveBattleMonsterPortraitReady;
+    resolveBattleMonsterPortraitReady = null;
+    if (resolve) resolve(ready);
+}
+
+function setBattleMonsterPortraitSource(image, fallback, loadStatus, spritePath) {
+    if (!image) {
+        battleMonsterPortraitReadyPromise = Promise.resolve(true);
+        return;
+    }
+    if (!spritePath) {
+        battleMonsterPortraitLoadToken++;
+        if (battleMonsterPortraitLoadTimer !== null) clearTimeout(battleMonsterPortraitLoadTimer);
+        battleMonsterPortraitLoadTimer = null;
+        if (resolveBattleMonsterPortraitReady) resolveBattleMonsterPortraitReady(false);
+        resolveBattleMonsterPortraitReady = null;
+        battleMonsterPortraitReadyPromise = Promise.resolve(true);
+        image.dataset.variant = "";
+        image.dataset.loadState = "fallback";
+        image.hidden = true;
+        if (fallback) fallback.hidden = false;
+        if (loadStatus) loadStatus.hidden = true;
+        return;
+    }
+
+    if (image.dataset.variant === spritePath) {
+        const ready = image.dataset.loadState === "ready" || (image.dataset.loadState !== "loading" && image.complete && Number(image.naturalWidth) > 0);
+        image.dataset.loadState = ready ? "ready" : (image.dataset.loadState || "loading");
+        image.hidden = !ready;
+        if (fallback) fallback.hidden = ready;
+        if (loadStatus) loadStatus.hidden = image.dataset.loadState !== "loading";
+        if (ready && resolveBattleMonsterPortraitReady) {
+            const resolve = resolveBattleMonsterPortraitReady;
+            resolveBattleMonsterPortraitReady = null;
+            resolve(true);
+            battleMonsterPortraitReadyPromise = Promise.resolve(true);
+        }
+        return;
+    }
+
+    if (battleMonsterPortraitLoadTimer !== null) clearTimeout(battleMonsterPortraitLoadTimer);
+    battleMonsterPortraitLoadTimer = null;
+    if (resolveBattleMonsterPortraitReady) resolveBattleMonsterPortraitReady(false);
+
+    const token = ++battleMonsterPortraitLoadToken;
+    image.dataset.variant = spritePath;
+    image.dataset.loadState = "loading";
+    image.hidden = true;
+    if (fallback) fallback.hidden = false;
+    if (loadStatus) {
+        loadStatus.textContent = "正在載入魔物圖像…";
+        loadStatus.hidden = false;
+    }
+    battleMonsterPortraitReadyPromise = new Promise((resolve) => {
+        resolveBattleMonsterPortraitReady = resolve;
+    });
+
+    const finish = (loaded) => finishBattleMonsterPortraitLoad(image, fallback, loadStatus, spritePath, token, loaded);
+    image.onload = () => {
+        if (token !== battleMonsterPortraitLoadToken || image.dataset.variant !== spritePath) return;
+        const decoded = typeof image.decode === "function" ? image.decode().catch(() => {}) : Promise.resolve();
+        Promise.resolve(decoded).then(() => finish(true));
+    };
+    image.onerror = () => finish(false);
+    battleMonsterPortraitLoadTimer = setTimeout(() => finish(false), 4000);
+    image.src = spritePath;
+}
+
+function waitForBattleMonsterPortraitReady() {
+    return battleMonsterPortraitReadyPromise;
+}
+
 function updateBattleScene(monster) {
     const scene = DOM.get('battle-scene-box');
     if (!scene) return;
@@ -1820,21 +1907,18 @@ function updateBattleScene(monster) {
     ["NORMAL", "VOID", "ICE", "FIRE", "POISON"].forEach((key) => {
         scene.classList.toggle(`is-${key.toLowerCase()}-zone`, environmentKey === key);
     });
-    if (image) {
-        image.classList.toggle('battle-boss-sprite', Boolean(displayedMonster.isBoss));
-        image.hidden = !spritePath;
-        image.alt = `檢視 ${displayedMonster.name || "魔物"} 資訊`;
-        if (spritePath && image.dataset.variant !== spritePath) {
-            image.dataset.variant = spritePath;
-            image.src = spritePath;
-        }
-    }
     if (fallback) {
         const leadingIcon = portraitName.match(/^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
         fallback.textContent = leadingIcon ? leadingIcon[0] : "👹";
-        fallback.hidden = Boolean(spritePath);
         fallback.setAttribute('aria-label', `檢視 ${displayedMonster.name || "魔物"} 資訊`);
     }
+    if (image) {
+        image.classList.toggle('battle-boss-sprite', Boolean(displayedMonster.isBoss));
+        image.alt = `檢視 ${displayedMonster.name || "魔物"} 資訊`;
+        if (Number(displayedMonster.hp) > 0) image.classList.remove("is-defeated");
+    }
+    if (fallback && Number(displayedMonster.hp) > 0) fallback.classList.remove("is-defeated");
+    setBattleMonsterPortraitSource(image, fallback, DOM.get('battle-monster-load-status'), spritePath);
     updateBattleMonsterInspectCard(displayedMonster);
     bindBattleMonsterInspectHover(image, fallback);
 }

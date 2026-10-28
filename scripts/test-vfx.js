@@ -17,6 +17,11 @@ class FakeElement {
         this.properties = new Map();
         this.dataset = {};
         this.listeners = new Map();
+        this.classList = {
+            contains: (name) => this.className.split(/\s+/).includes(name),
+            add: (...names) => { this.className = [...new Set([...this.className.split(/\s+/).filter(Boolean), ...names])].join(" "); },
+            remove: (...names) => { this.className = this.className.split(/\s+/).filter((name) => name && !names.includes(name)).join(" "); }
+        };
         this.style = {
             pointerEvents: "",
             display: "",
@@ -526,7 +531,9 @@ function runSceneTransitionTests() {
 function runStaticIntegrationChecks() {
     const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
     const game = fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8");
+    const vfx = fs.readFileSync(path.join(repoRoot, "js/vfx.js"), "utf8");
     const styles = fs.readFileSync(path.join(repoRoot, "css/04-components.css"), "utf8");
+    const combatStyles = fs.readFileSync(path.join(repoRoot, "css/12-combat-scene.css"), "utf8");
     assert.ok(html.indexOf('src="js/vfx.js"') < html.indexOf('src="js/ui.js"'));
     assert.ok(html.indexOf('src="js/vfx.js"') < html.indexOf('src="js/game.js"'));
     assert.match(html, /id="combat-pause-btn"[^>]*onclick="toggleCombatPause\(\)"/);
@@ -538,6 +545,11 @@ function runStaticIntegrationChecks() {
     assert.doesNotMatch(game, /setTimeout\(\(\) => \{\s*spawnVfx\("boss-entry"/);
     assert.match(styles, /\.vfx-layer\s*\{[^}]*z-index:\s*120/s);
     assert.match(styles, /\.vfx-variant-projectile-fire/);
+    assert.match(html, /id="battle-attack-art"/);
+    assert.match(html, /id="battle-monster-load-status"/);
+    assert.match(vfx, /function detectBasicAttackType\(/);
+    assert.match(game, /basicAttack:\s*true/);
+    assert.match(combatStyles, /\.battle-attack-art\[data-attack-type="pierce"\]\.is-active/);
 }
 
 function runRoundTwoVfxTests() {
@@ -546,6 +558,72 @@ function runRoundTwoVfxTests() {
     assert.equal(registry.context.getVfxSettings().quality, "standard");
     assert.equal(registry.context.VFX_DEFINITIONS.hit.duration, 460);
     assert.equal(registry.context.VFX_DEFINITIONS.hit.priority, 60);
+    assert.equal(registry.context.detectBasicAttackType("🗡️ 虛空時空裂刃", "swordsman"), "slash");
+    assert.equal(registry.context.detectBasicAttackType("🪓 食人魔震盪裂斧", "swordsman"), "slash");
+    assert.equal(registry.context.detectBasicAttackType("🪄 古木法杖", "magician"), "blunt");
+    assert.equal(registry.context.detectBasicAttackType("重力碎星槌", "swordsman"), "blunt");
+    assert.equal(registry.context.detectBasicAttackType("🏹 獵手短弓", "archer"), "pierce");
+    assert.equal(registry.context.detectBasicAttackType("手銃", "gunner"), "pierce");
+
+    const basicAttackArt = createEnvironment();
+    basicAttackArt.context.gameState = "BATTLE";
+    const scene = basicAttackArt.document.createElement("section");
+    scene.id = "battle-scene-box";
+    const swipe = basicAttackArt.document.createElement("span");
+    swipe.id = "battle-attack-swipe";
+    const image = basicAttackArt.document.createElement("img");
+    image.id = "battle-attack-art";
+    swipe.appendChild(image);
+    scene.appendChild(swipe);
+    basicAttackArt.document.body.appendChild(scene);
+    basicAttackArt.context.spawnVfx("hit", {
+        anchor: "monster", firstPersonAttack: true, result: "hit", basicAttack: true,
+        weaponName: "🏹 獵手短弓", job: "archer"
+    });
+    assert.equal(swipe.dataset.attackType, "pierce");
+    assert.equal(swipe.dataset.basicArt, "true");
+    assert.equal(image.getAttribute("src"), "assets/combat/effects/basic-pierce.png");
+    assert.equal(image.getAttribute("data-attack-type"), "pierce");
+    assert.match(image.className, /is-active/);
+
+    const monsterImpact = createEnvironment();
+    monsterImpact.context.gameState = "BATTLE";
+    const impactScene = monsterImpact.document.createElement("section");
+    impactScene.id = "battle-scene-box";
+    const impactSprite = monsterImpact.document.createElement("img");
+    impactSprite.id = "battle-monster-sprite";
+    impactScene.appendChild(impactSprite);
+    monsterImpact.document.body.appendChild(impactScene);
+    monsterImpact.context.spawnVfx("hit", { anchor: "monster", text: "-12" });
+    assert.ok(impactSprite.classList.contains("is-hit"), "monster-anchored hit VFX trigger the red hit reaction");
+    monsterImpact.context.spawnVfx("crit", { anchor: "monster", text: "-24" });
+    assert.ok(impactSprite.classList.contains("is-critical"), "monster-anchored critical VFX trigger the critical reaction");
+    assert.ok(!impactSprite.classList.contains("is-defeated"), "a new impact clears any old defeat animation");
+    impactSprite.classList.add("is-defeated");
+    monsterImpact.context.spawnVfx("hit", { anchor: "monster", variant: "defeat" });
+    assert.ok(impactSprite.classList.contains("is-defeated"), "defeat particles do not restart the red hit flash");
+
+    const basicAttackPipeline = createEnvironment();
+    basicAttackPipeline.context.gameState = "BATTLE";
+    const pipelineScene = basicAttackPipeline.document.createElement("section");
+    pipelineScene.id = "battle-scene-box";
+    const pipelineSwipe = basicAttackPipeline.document.createElement("span");
+    pipelineSwipe.id = "battle-attack-swipe";
+    const pipelineImage = basicAttackPipeline.document.createElement("img");
+    pipelineImage.id = "battle-attack-art";
+    pipelineSwipe.appendChild(pipelineImage);
+    pipelineScene.appendChild(pipelineSwipe);
+    basicAttackPipeline.document.body.appendChild(pipelineScene);
+    vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), basicAttackPipeline.context, { filename: "js/game.js" });
+    basicAttackPipeline.context.currentRun = { job: "magician", matk: 20, equipment: {}, shield: 0, jobCombatTraits: {} };
+    basicAttackPipeline.context.accountMeta = { equipment: { weapon: "🪄 古木法杖" } };
+    basicAttackPipeline.context.activeMonster = { name: "Test", hp: 100, maxHp: 100, def: 0, mdef: 0, shield: 0 };
+    basicAttackPipeline.context.calculateDamage = (damage) => ({ damage, isMiss: false, isCrit: false });
+    basicAttackPipeline.context.addLog = () => {};
+    assert.equal(basicAttackPipeline.context.executeBasicAttack(), true);
+    assert.equal(pipelineSwipe.dataset.attackType, "blunt");
+    assert.equal(pipelineImage.getAttribute("src"), "assets/combat/effects/basic-blunt.png");
+
     assert.deepEqual(
         JSON.parse(JSON.stringify(registry.context.resolveSkillVfx({ name: "冰霜箭" }, "magician"))),
         { projectileType: "ice", shape: "ice-shards" }
@@ -907,6 +985,15 @@ function runCombatTacticsAndPauseTests() {
         };
         return { env, context: env.context, intervals, damageCalls, logs };
     }
+
+    const encounterGate = createCombatFixture();
+    vm.runInContext("combatEncounterCooldownPending = true", encounterGate.context);
+    assert.equal(encounterGate.context.startCombatTicker(), false, "ATB cannot start while the monster portrait is loading");
+    assert.equal(encounterGate.intervals.size, 0, "portrait loading keeps the combat interval stopped");
+    vm.runInContext("combatEncounterCooldownPending = false", encounterGate.context);
+    assert.equal(encounterGate.context.startCombatTicker(), true, "ATB resumes after portrait readiness clears the gate");
+    assert.equal(encounterGate.intervals.size, 1, "exactly one combat interval starts after the encounter gate clears");
+    encounterGate.context.stopCombatTicker();
 
     const manual = createCombatFixture({ tactic: "MANUAL", skills: [{ name: "昂貴技能", type: "active", mp: 0, run: () => ({ dmg: 500 }) }] });
     manual.context.executePlayerActionTick();

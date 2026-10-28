@@ -8,6 +8,7 @@
 |---|---|
 | `index.html` | GitHub Pages 遊戲入口，必須留在倉庫根目錄。 |
 | `css/` | 基礎樣式、設計 token、元件、響應式與無障礙樣式。 |
+| `assets/combat/effects/` | 透明 PNG 普攻特效：`basic-slash.png`、`basic-blunt.png`、`basic-pierce.png`。 |
 | `data/` | 全域遊戲資料庫與資料 schema。 |
 | `js/` | VFX、屬性計算、存檔狀態、UI、地下城與瀏覽器相容程式。 |
 | `js/legacy/` | 未接入正式入口的舊 bootstrap 備份；不由 `index.html` 載入。 |
@@ -15,7 +16,7 @@
 
 ## 載入順序
 
-`index.html` 以相對路徑載入 CSS 與腳本，避免 GitHub Pages 的 `/abyss-test/` 子路徑失效。遊戲資料檔先載入，接著載入 `data/data-schema.js`、`js/vfx.js`、`js/statengine.js`、`js/state.js`、`js/ui.js`、`js/game.js`，最後是 `js/browser-compat.js`。這些都是 classic scripts，順序不可隨意調換；標記 `defer` 可在保留順序的同時等待 HTML 完成解析。Socket.IO CDN 也排在 UI 初始化前。
+`index.html` 以相對路徑載入 CSS、腳本與圖片，避免 GitHub Pages 的 `/abyss-test/` 子路徑失效。`js/vfx.js` 依已裝備武器將成功的普攻命中分為斬、打、刺三類，圖像在 `#battle-attack-swipe` 疊層內以 CSS 動畫播放；劍／斧／刀為斬，杖／槌為打，弓／弩／銃為刺。遊戲資料檔先載入，接著載入 `data/data-schema.js`、`js/vfx.js`、`js/statengine.js`、`js/state.js`、`js/ui.js`、`js/game.js`，最後是 `js/browser-compat.js`。這些都是 classic scripts，順序不可隨意調換；標記 `defer` 可在保留順序的同時等待 HTML 完成解析。Socket.IO CDN 也排在 UI 初始化前。
 
 ## 本機檢查
 

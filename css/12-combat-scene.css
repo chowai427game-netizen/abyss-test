@@ -225,7 +225,7 @@
 
 .battle-enemy-sprite.battle-boss-sprite { height: 218px; max-width: 72%; }
 
-.battle-scene.is-floating-monster .battle-enemy-sprite:not(.is-hit):not(.is-critical) {
+.battle-scene.is-floating-monster .battle-enemy-sprite:not(.is-hit):not(.is-critical):not(.is-defeated) {
     animation: battle-monster-hover 2.4s ease-in-out infinite;
 }
 
@@ -252,6 +252,25 @@
     filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .52));
     cursor: help;
 }
+
+.battle-monster-load-status {
+    position: absolute;
+    z-index: 9;
+    top: 44%;
+    left: 50%;
+    padding: 6px 10px;
+    border: 1px solid rgba(226, 193, 110, .8);
+    border-radius: 4px;
+    background: rgba(12, 14, 22, .88);
+    box-shadow: 0 0 14px rgba(255, 214, 105, .28);
+    color: #fff0c4;
+    font: 800 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    animation: battle-monster-loading-pulse .9s steps(2, end) infinite;
+}
+.battle-monster-load-status[hidden] { display: none; }
 
 .battle-monster-inspect-card {
     position: absolute;
@@ -416,6 +435,12 @@
     animation: monster-critical-flash .42s steps(5, end) both;
 }
 
+.battle-monster-sprite.is-defeated,
+.battle-monster-fallback.is-defeated {
+    pointer-events: none;
+    animation: monster-defeat-dissolve .68s steps(7, end) both;
+}
+
 .battle-scene-log {
     position: absolute;
     z-index: 5;
@@ -536,16 +561,25 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
 
 @keyframes monster-hit-flash {
     0%, 100% { filter: brightness(1); transform: translateX(-50%); }
-    25% { filter: brightness(2.2) sepia(.2); transform: translateX(calc(-50% - 7px)); }
-    55% { filter: brightness(1.5); transform: translateX(calc(-50% + 5px)); }
+    22% { filter: brightness(1.35) sepia(1) saturate(7) hue-rotate(318deg) drop-shadow(0 0 8px rgba(255, 35, 35, .95)); transform: translateX(calc(-50% - 6px)); }
+    56% { filter: brightness(1.12) sepia(.8) saturate(5) hue-rotate(325deg) drop-shadow(0 0 5px rgba(255, 45, 45, .72)); transform: translateX(calc(-50% + 4px)); }
 }
 
 @keyframes monster-critical-flash {
     0%, 100% { filter: brightness(1); transform: translateX(-50%); }
-    20% { filter: brightness(2.8) saturate(1.4); transform: translateX(calc(-50% - 10px)); }
-    45% { filter: brightness(.55) sepia(.3); transform: translateX(calc(-50% + 8px)); }
-    70% { filter: brightness(2.2); transform: translateX(calc(-50% - 4px)); }
+    20% { filter: brightness(1.65) sepia(1) saturate(9) hue-rotate(320deg) drop-shadow(0 0 11px rgba(255, 20, 20, .98)); transform: translateX(calc(-50% - 9px)); }
+    45% { filter: brightness(.72) sepia(.8) saturate(6) hue-rotate(325deg); transform: translateX(calc(-50% + 7px)); }
+    70% { filter: brightness(1.4) sepia(1) saturate(8) hue-rotate(318deg) drop-shadow(0 0 8px rgba(255, 30, 30, .86)); transform: translateX(calc(-50% - 4px)); }
 }
+
+@keyframes monster-defeat-dissolve {
+    0% { opacity: 1; filter: brightness(1.35) sepia(.8) saturate(2); transform: translateX(-50%) scale(1); clip-path: inset(0); }
+    34% { opacity: .92; filter: brightness(1.2) sepia(.55) saturate(1.7); transform: translateX(calc(-50% - 4px)) translateY(-4px) scale(1.03); }
+    68% { opacity: .48; filter: blur(1px) grayscale(.55); transform: translateX(calc(-50% + 8px)) translateY(-14px) scale(.9); clip-path: polygon(0 0, 100% 0, 100% 70%, 84% 65%, 70% 80%, 58% 69%, 44% 88%, 30% 72%, 16% 83%, 0 68%); }
+    100% { opacity: 0; filter: blur(5px) grayscale(1); transform: translateX(calc(-50% + 16px)) translateY(-27px) scale(.72); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+}
+
+@keyframes battle-monster-loading-pulse { 50% { opacity: .55; } }
 
 @keyframes diary-caret { 50% { opacity: 0; } }
 @keyframes queued-item-pulse { 50% { box-shadow: inset 0 0 0 2px rgba(72, 215, 172, .65); } }
@@ -626,11 +660,14 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
     .battle-monster-fallback.is-hit,
     .battle-monster-sprite.is-critical,
     .battle-monster-fallback.is-critical,
-    .battle-scene.is-floating-monster .battle-enemy-sprite:not(.is-hit):not(.is-critical),
+    .battle-monster-sprite.is-defeated,
+    .battle-monster-fallback.is-defeated,
+    .battle-scene.is-floating-monster .battle-enemy-sprite:not(.is-hit):not(.is-critical):not(.is-defeated),
     .battle-attack-art.is-active,
     .battle-scene-log-line.is-typing::after,
     .combat-item-queued,
     .battle-skill-cast-cue.is-active,
     .battle-skill-cast-cue.is-active::before { animation-duration: 1ms; }
+    .battle-monster-load-status { animation: none; }
     #battle-scene-box.is-encounter-cinematic, #battle-scene-box.is-encounter-cinematic.is-returning-to-origin { animation-duration: 1ms; }
 }

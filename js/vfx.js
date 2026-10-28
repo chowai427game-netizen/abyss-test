@@ -42,6 +42,11 @@ let projectileBurstGuardUntil = 0;
         holy: "#fef08a",
         arrow: "#86efac"
     };
+    const BASIC_ATTACK_IMAGE_PATHS = Object.freeze({
+        slash: "assets/combat/effects/basic-slash.png",
+        blunt: "assets/combat/effects/basic-blunt.png",
+        pierce: "assets/combat/effects/basic-pierce.png"
+    });
     const pendingVfxTimers = new Set();
     const queuedSpawns = new Map();
     const activeVfxNodes = new Map();
@@ -239,18 +244,53 @@ let projectileBurstGuardUntil = 0;
         const fallback = document.getElementById("battle-monster-fallback");
         const target = monster && !monster.hidden ? monster : fallback;
         const now = Date.now();
-        const attackType = String(options.projectileType || options.attackType || "slash").replace(/[^a-z0-9_-]/gi, "");
+        const basicAttackType = options.basicAttack === true ? detectBasicAttackType(options.weaponName, options.job) : null;
+        const attackType = basicAttackType || String(options.projectileType || options.attackType || "slash").replace(/[^a-z0-9_-]/gi, "");
         if (swipe && !options.skipSwipe) {
             swipe.dataset.attackType = attackType;
+            const showBasicAttackArt = Boolean(basicAttackType && (options.result === "hit" || options.result === "crit"));
+            swipe.dataset.basicArt = showBasicAttackArt ? "true" : "false";
+            const attackArt = document.getElementById("battle-attack-art");
+            if (attackArt) {
+                attackArt.className = "battle-attack-art";
+                if (showBasicAttackArt) {
+                    attackArt.setAttribute("src", BASIC_ATTACK_IMAGE_PATHS[basicAttackType]);
+                    attackArt.setAttribute("data-attack-type", basicAttackType);
+                    void attackArt.offsetWidth;
+                    attackArt.className = "battle-attack-art is-active";
+                }
+            }
             if (swipe.classList.contains("is-active")) swipe.classList.remove("is-active");
             void swipe.offsetWidth;
             swipe.classList.add("is-active");
         }
         if (target && (options.result === "hit" || options.result === "crit")) {
-            target.classList.remove("is-hit", "is-critical");
+            target.classList.remove("is-hit", "is-critical", "is-defeated");
             void target.offsetWidth;
             target.classList.add(options.result === "crit" ? "is-critical" : "is-hit");
         }
+    }
+
+    function triggerMonsterHitReaction(vfxType) {
+        if (typeof document === "undefined" || typeof gameState === "undefined" || gameState !== "BATTLE") return;
+        const scene = document.getElementById("battle-scene-box");
+        if (!scene || scene.style?.display === "none") return;
+        const sprite = document.getElementById("battle-monster-sprite");
+        const fallback = document.getElementById("battle-monster-fallback");
+        const target = sprite && !sprite.hidden ? sprite : (fallback && !fallback.hidden ? fallback : null);
+        if (!target?.classList) return;
+        target.classList.remove("is-hit", "is-critical", "is-defeated");
+        void target.offsetWidth;
+        target.classList.add(vfxType === "crit" ? "is-critical" : "is-hit");
+    }
+
+    function detectBasicAttackType(weaponName, job) {
+        const name = String(weaponName || "").toLowerCase();
+        if (/弓|弩|銃|bow|crossbow|gun|rifle|arrow/.test(name)) return "pierce";
+        if (/杖|槌|鎚|錘|棍|棒|staff|hammer|mace|club/.test(name)) return "blunt";
+        if (/劍|剑|刀|斧|刃|匕首|小刀|刺針|銳刺|sword|dagger|axe|blade/.test(name)) return "slash";
+        if (["archer", "hunter", "bard_dancer", "gunner"].includes(job)) return "pierce";
+        return "blunt";
     }
 
     function resolveVfxPosition(options = {}) {
@@ -487,6 +527,8 @@ let projectileBurstGuardUntil = 0;
             const isFollowupImpact = Boolean(options.result) && now <= pendingFirstPersonImpactUntil;
             pendingFirstPersonImpactUntil = options.result ? 0 : now + 260;
             triggerFirstPersonAttack({ ...options, skipSwipe: Boolean(isFollowupImpact) });
+        } else if ((vfxType === "hit" || vfxType === "crit") && options.anchor === "monster" && options.variant !== "defeat") {
+            triggerMonsterHitReaction(vfxType);
         }
         const definition = VFX_DEFINITIONS[vfxType] || {};
         const quality = qualityConfig();
@@ -665,6 +707,7 @@ let projectileBurstGuardUntil = 0;
     global.ensureVfxLayer = ensureVfxLayer;
     global.clampVfxPercent = clampVfxPercent;
     global.resolveVfxPosition = resolveVfxPosition;
+    global.detectBasicAttackType = detectBasicAttackType;
     global.spawnVfx = spawnVfx;
     global.clearVfxLayer = clearVfxLayer;
     global.scheduleVfx = scheduleVfx;

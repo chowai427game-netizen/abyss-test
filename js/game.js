@@ -4,6 +4,8 @@
 
 let combatTickerTimer = null;
 let combatIntroStartTimer = null;
+let combatEncounterCooldownPending = false;
+let combatEncounterGeneration = 0;
 let combatPaused = false;
 let manualPauseRequested = false;
 let tacticsDrawerPaused = false;
@@ -447,7 +449,7 @@ function refreshCombatPauseState() {
     combatPaused = Boolean(manualPauseRequested || tacticsDrawerPaused || manualTurnPaused);
     if (combatPaused) {
         clearCombatTicker();
-    } else if (wasPaused && gameState === "BATTLE" && combatIntroStartTimer === null) {
+    } else if (wasPaused && gameState === "BATTLE" && combatIntroStartTimer === null && !combatEncounterCooldownPending) {
         startCombatTicker();
     }
     syncCombatPauseUi();
@@ -473,7 +475,7 @@ function stopCombatTicker() {
 }
 
 function startCombatTicker() {
-    if (combatPaused || combatTickerTimer !== null || gameState !== "BATTLE" || !activeMonster) return false;
+    if (combatPaused || combatEncounterCooldownPending || combatTickerTimer !== null || gameState !== "BATTLE" || !activeMonster) return false;
     combatTickerTimer = setInterval(handleCombatTickerTick, 250);
     syncCombatPauseUi();
     return true;
@@ -1697,12 +1699,14 @@ function resolveRestNodeDone() {
 // ⚔️ 戰鬥初始化與動態環境力場結合
 // --------------------------------------------------------------------------
 function startNodeCombat(nodeType) {
+    const encounterGeneration = ++combatEncounterGeneration;
     try {
         if (combatIntroStartTimer !== null) {
             clearTimeout(combatIntroStartTimer);
             combatIntroStartTimer = null;
         }
         stopCombatTicker();
+        combatEncounterCooldownPending = true;
         clearVfxLayer();
         pendingCombatItem = null;
 
@@ -1809,15 +1813,35 @@ function startNodeCombat(nodeType) {
             });
         }
         const introDelay = typeof playBattleSceneEncounterIntro === "function" ? playBattleSceneEncounterIntro() : 0;
+        let introReady = introDelay <= 0;
+        let portraitReady = typeof waitForBattleMonsterPortraitReady !== "function";
+        const startEncounterWhenReady = () => {
+            if (encounterGeneration !== combatEncounterGeneration || !introReady || !portraitReady) return;
+            combatIntroStartTimer = null;
+            combatEncounterCooldownPending = false;
+            if (gameState === "BATTLE" && activeMonster && currentRun && currentRun.hp > 0) startCombatTicker();
+        };
         if (introDelay > 0) {
             combatIntroStartTimer = setTimeout(() => {
                 combatIntroStartTimer = null;
-                if (gameState === "BATTLE" && activeMonster && currentRun && currentRun.hp > 0) startCombatTicker();
+                introReady = true;
+                startEncounterWhenReady();
             }, introDelay);
+        }
+        if (typeof waitForBattleMonsterPortraitReady === "function") {
+            Promise.resolve()
+                .then(() => waitForBattleMonsterPortraitReady())
+                .catch(() => false)
+                .then(() => {
+                    portraitReady = true;
+                    startEncounterWhenReady();
+                });
         } else {
-            startCombatTicker();
+            startEncounterWhenReady();
         }
     } catch(err) { 
+        combatEncounterCooldownPending = false;
+        combatEncounterGeneration++;
         if (typeof addLog === "function") addLog(`🚨 地下城異常：${err.message}`, "take"); 
     }
 }
@@ -2044,20 +2068,24 @@ function executeMonsterActionTick() {
 // --------------------------------------------------------------------------
 // 👑 勝利與戰敗序列
 // --------------------------------------------------------------------------
+function playBattleMonsterDefeatAnimation() {
+    if (typeof document === "undefined") return false;
+    const sprite = document.getElementById("battle-monster-sprite");
+    const fallback = document.getElementById("battle-monster-fallback");
+    const target = sprite && !sprite.hidden ? sprite : (fallback && !fallback.hidden ? fallback : null);
+    if (!target?.classList) return false;
+    target.classList.remove("is-hit", "is-critical", "is-defeated");
+    void target.offsetWidth;
+    target.classList.add("is-defeated");
+    return true;
+}
+
 function executeDungeonVictorySequence() {
     pendingCombatItem = null;
+    playBattleMonsterDefeatAnimation();
     let isBossFloor = (dungeonFloor % 10 === 0);
     let isElite = activeMonster?.isElite || false;
     const defeatedWasBoss = !!activeMonster?.isBoss;
-    const monsterCard = typeof document !== "undefined" ? document.getElementById("monster-status-card") : null;
-    const defeatVfxPosition = { x: 50, y: 46 };
-    if (monsterCard && typeof window !== "undefined" && typeof monsterCard.getBoundingClientRect === "function") {
-        const rect = monsterCard.getBoundingClientRect();
-        const width = Math.max(1, window.innerWidth || 1);
-        const height = Math.max(1, window.innerHeight || 1);
-        defeatVfxPosition.x = clampVfxPercent((rect.left + rect.width * 0.5) / width * 100, 50);
-        defeatVfxPosition.y = clampVfxPercent((rect.top + rect.height * 0.45) / height * 100, 46);
-    }
 
     let multiplier = isBossFloor ? 3.0 : (isElite ? 1.8 : 1.0);
     const lootMultiplier = Number(currentRun.jobCombatTraits?.lootMultiplier) || 1;
@@ -2085,9 +2113,9 @@ function executeDungeonVictorySequence() {
 
     const defeatedBossName = activeMonster?.name || "深淵領主";
     if (defeatedWasBoss) {
-        spawnVfx("boss-defeat", { ...defeatVfxPosition, duration: 1200, particleCount: prefersReducedMotion() ? 0 : 5 });
+        spawnVfx("boss-defeat", { anchor: "monster", duration: 1200, particleCount: prefersReducedMotion() ? 0 : 5 });
     } else {
-        spawnVfx("hit", { ...defeatVfxPosition, variant: "defeat", duration: 520, particleCount: prefersReducedMotion() ? 0 : 3 });
+        spawnVfx("hit", { anchor: "monster", variant: "defeat", duration: 650, particleCount: prefersReducedMotion() ? 0 : 4 });
     }
     activeMonster = null;
     gameState = "ENCOUNTER_RESOLVED";

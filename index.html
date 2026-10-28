@@ -398,7 +398,10 @@
                 <div class="battle-stage">
                     <div class="battle-sprite-platform battle-enemy-platform"></div>
                     <span id="battle-monster-vfx-anchor" class="battle-monster-vfx-anchor"></span>
-                    <span id="battle-attack-swipe" class="battle-attack-swipe"></span>
+                    <span id="battle-monster-load-status" class="battle-monster-load-status" role="status" aria-live="polite" hidden>正在載入魔物圖像…</span>
+                    <span id="battle-attack-swipe" class="battle-attack-swipe" aria-hidden="true">
+                        <img id="battle-attack-art" class="battle-attack-art" alt="" aria-hidden="true" draggable="false" decoding="async">
+                    </span>
                     <div id="battle-monster-fallback" class="battle-monster-fallback" role="img" tabindex="0" aria-label="檢視魔物資訊" hidden></div>
                     <img id="battle-monster-sprite" class="battle-sprite battle-enemy-sprite" src="assets/combat/monster-slime.png" alt="檢視魔物資訊" tabindex="0">
                 </div>
