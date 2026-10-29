@@ -461,8 +461,35 @@ function runSceneTransitionTests() {
 
     env.context.gameState = "BATTLE";
     env.context.dungeonFloor = 10;
+    env.context.currentRun = {
+        hp: 80, maxHp: 100, mp: 25, maxMp: 50, gold: 0, exp: 0, inventory: [],
+        activeCombatBuffs: { thornsFire: { value: 30, turns: 3 }, spdBuff: { value: 12, turns: 2 } },
+        bossDmgCut: 0.5, guaranteedCritNext: true, skillBuffsUsed: { permanent: true }
+    };
+    env.context.activeMonster = { name: "Previous monster", hp: 10, maxHp: 10, burnStacks: 4 };
+    vm.runInContext('playerAtb = 78; monsterAtb = 66; envAtb = 45; battleTimeElapsed = 12;', env.context);
+    let transientEffectsCleared = 0;
+    env.context.clearBattleTransientEffects = () => { transientEffectsCleared++; };
+    env.context.spawnVfx("hit", { text: "old encounter" });
+    env.advanceBy(0);
+    assert.equal(effects(env).length, 1, "the prior encounter has a live effect before transition");
+
     vm.runInContext('startNodeCombat("BOSS")', env.context);
+    const encounterCounters = vm.runInContext('({ playerAtb, monsterAtb, envAtb, battleTimeElapsed })', env.context);
+    assert.equal(encounterCounters.playerAtb, 0, "player ATB resets before the new encounter UI starts");
+    assert.equal(encounterCounters.monsterAtb, 0, "monster ATB resets before the new encounter UI starts");
+    assert.equal(encounterCounters.envAtb, 0, "environment ATB resets between encounters");
+    assert.equal(encounterCounters.battleTimeElapsed, 0, "battle elapsed time resets between encounters");
+    assert.deepEqual(JSON.parse(JSON.stringify(env.context.currentRun.activeCombatBuffs)), {}, "temporary combat buffs, including fire wall, do not leak into the next fight");
+    assert.equal(env.context.currentRun.bossDmgCut, 0);
+    assert.equal(env.context.currentRun.guaranteedCritNext, false);
+    assert.deepEqual(JSON.parse(JSON.stringify(env.context.currentRun.skillBuffsUsed)), { permanent: true }, "once-per-run permanent skill flags remain intact");
+    assert.equal(env.context.activeMonster.burnStacks, 0, "new monsters start without the previous monster's burn stacks");
+    assert.equal(transientEffectsCleared, 1, "battle scene CSS skill and hit cues are cleared at encounter start");
+    assert.equal(effects(env).length, 0, "previous VFX is removed when the next encounter starts");
     assert.equal(env.timers.size, 1);
+    env.advanceBy(0);
+    assert.deepEqual(effects(env).map((effect) => effect.className), ["vfx-effect vfx-boss-entry"], "only the new encounter's boss-entry effect appears");
     env.context.handleMainAction();
     env.advanceBy(1000);
     assert.equal(env.context.gameState, "SELECT_ROUTE");

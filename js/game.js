@@ -1707,7 +1707,18 @@ function startNodeCombat(nodeType) {
         }
         stopCombatTicker();
         combatEncounterCooldownPending = true;
+        // Each encounter owns fresh ATB and temporary combat-only effects.
+        playerAtb = 0;
+        monsterAtb = 0;
+        envAtb = 0;
+        battleTimeElapsed = 0;
+        if (currentRun) {
+            currentRun.activeCombatBuffs = {};
+            currentRun.bossDmgCut = 0;
+            currentRun.guaranteedCritNext = false;
+        }
         clearVfxLayer();
+        if (typeof clearBattleTransientEffects === "function") clearBattleTransientEffects();
         pendingCombatItem = null;
 
         const monsterCard = document.getElementById('monster-status-card');
@@ -1803,7 +1814,6 @@ function startNodeCombat(nodeType) {
         activeTactic = normalizeTacticMode((currentRun && currentRun.tactic) || activeTactic);
         if (currentRun) currentRun.tactic = activeTactic;
         combatPaused = false;
-        playerAtb = 0; monsterAtb = 0; envAtb = 0; battleTimeElapsed = 0;
         syncTacticButtonsUi();
         syncCombatPauseUi();
         if (typeof updateUI === "function") updateUI();

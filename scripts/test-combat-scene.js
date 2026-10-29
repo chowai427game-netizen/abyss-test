@@ -182,6 +182,38 @@ assert.match(vfx, /firstPersonAttack === true/, "VFX supports explicit first-per
 assert.match(vfx, /battle-monster-vfx-anchor/, "monster VFX target the single on-screen enemy");
 assert.match(game, /firstPersonAttack: true, result: damageResult\.isCrit \? "crit" : "hit"/, "basic attacks and skills feed first-person combat feedback");
 assert.match(game, /showBattleSkillCastCue\(skillName, fxClass, effect\)/, "active skills trigger the dedicated battle cast cue");
+assert.match(game, /clearBattleTransientEffects\(\)/, "new encounters clear scene-only transient effects");
+const transientCleanupSource = ui.match(/function clearBattleTransientEffects\(\) \{[\s\S]*?\n\}/);
+assert.ok(transientCleanupSource, "battle UI exposes a transient effect cleanup helper");
+const transientClasses = (initial) => {
+    const values = new Set(initial);
+    return { values, remove(...names) { names.forEach((name) => values.delete(name)); } };
+};
+const transientCue = { classList: transientClasses(["is-active"]), dataset: { castTone: "fire" }, textContent: "✦ 火箭術" };
+const transientSwipe = { classList: transientClasses(["is-active"]), dataset: { attackType: "fire" } };
+const transientMonster = { classList: transientClasses(["is-hit", "is-critical"]) };
+const transientFallback = { classList: transientClasses(["is-hit"]) };
+const transientNodes = new Map([
+    ["battle-skill-cast-cue", transientCue], ["battle-attack-swipe", transientSwipe],
+    ["battle-monster-sprite", transientMonster], ["battle-monster-fallback", transientFallback]
+]);
+const clearedTimeouts = [];
+const transientSandbox = {
+    DOM: { get: (id) => transientNodes.get(id) || null },
+    clearTimeout: (id) => clearedTimeouts.push(id)
+};
+vm.createContext(transientSandbox);
+vm.runInContext(`let battleSkillCastCueTimer = 73; ${transientCleanupSource[0]}; this.clear = clearBattleTransientEffects; this.timer = () => battleSkillCastCueTimer;`, transientSandbox);
+transientSandbox.clear();
+assert.deepEqual(clearedTimeouts, [73], "the previous cast cue timeout is canceled");
+assert.equal(transientSandbox.timer(), null, "the cast cue timer reference is reset");
+assert.equal(transientCue.textContent, "", "old skill name is removed from the scene");
+assert.equal(transientCue.dataset.castTone, "physical");
+assert.equal(transientCue.classList.values.has("is-active"), false);
+assert.equal(transientSwipe.classList.values.has("is-active"), false);
+assert.equal(transientSwipe.dataset.attackType, "");
+assert.deepEqual([...transientMonster.classList.values], []);
+assert.deepEqual([...transientFallback.classList.values], []);
 assert.match(ui, /updateBattleScene\(typeof activeMonster/, "regular UI updates sync the scene before state-specific early returns");
 assert.match(game, /portraitName: fallbackMonster\.portraitName \|\| fallbackMonster\.name/, "elite monsters preserve the original portrait name");
 assert.match(ui, /scene\.classList\.toggle\('is-elite-battle', Boolean\(displayedMonster\.isElite\)\)/, "elite battle styling follows the elite state");

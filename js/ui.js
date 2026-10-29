@@ -1598,6 +1598,30 @@ function showBattleSkillCastCue(skillName, fxClass = "", effect = {}) {
     return true;
 }
 
+function clearBattleTransientEffects() {
+    if (battleSkillCastCueTimer !== null) {
+        clearTimeout(battleSkillCastCueTimer);
+        battleSkillCastCueTimer = null;
+    }
+
+    const cue = DOM.get('battle-skill-cast-cue');
+    if (cue) {
+        cue.classList?.remove('is-active');
+        cue.textContent = "";
+        if (cue.dataset) cue.dataset.castTone = "physical";
+    }
+
+    const swipe = DOM.get('battle-attack-swipe');
+    if (swipe) {
+        swipe.classList?.remove('is-active');
+        if (swipe.dataset) swipe.dataset.attackType = "";
+    }
+
+    ['battle-monster-sprite', 'battle-monster-fallback'].forEach((id) => {
+        DOM.get(id)?.classList?.remove('is-hit', 'is-critical');
+    });
+}
+
 function setBattleMonsterInspectVisibility(visible) {
     const card = DOM.get('battle-monster-inspect-card');
     if (!card) return;
