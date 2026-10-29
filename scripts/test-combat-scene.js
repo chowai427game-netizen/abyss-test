@@ -79,6 +79,10 @@ assert.ok(monsterLayoutOverrides["🐗 荒野半獸人"].desktopHeight > monster
 assert.ok(monsterLayoutOverrides["🧱 古墓巨石守衛"].desktopHeight > monsterLayoutOverrides["🐗 荒野半獸人"].desktopHeight, "the stone guardian is larger than the orc");
 assert.ok(monsterLayoutOverrides["🥩 煉獄虐殺食人魔"].desktopHeight > monsterLayoutOverrides["💀 焦黑地獄刺客"].desktopHeight, "the infernal ogre is larger than the assassin");
 assert.ok(new Set(Object.values(monsterLayoutOverrides).map((layout) => layout.desktopHeight)).size >= 10, "regular monster sizes are individually varied");
+assert.equal(monsterLayoutOverrides["👿 深淵貪婪狂魔"].desktopHeight, 226, "the greedy fiend has a large desktop portrait");
+assert.equal(monsterLayoutOverrides["🗡️ 墮落暗殺刺刃者"].desktopHeight, 184, "the assassin uses a compact portrait size");
+assert.equal(monsterLayoutOverrides["🐲 岩漿黑羽幼龍"].desktopHeight, 232, "the young dragon gets a large winged portrait");
+assert.ok(monsterLayoutOverrides["🧠 奪心碎裂魔靈"].desktopLift > 0 && monsterLayoutOverrides["🧠 奪心碎裂魔靈"].floating, "the mind spirit floats above the ground");
 assert.ok(monsterLayoutOverrides["👻 迷途哭泣怨靈"].desktopLift > 0 && monsterLayoutOverrides["👻 迷途哭泣怨靈"].floating, "the wraith has a raised floating position");
 assert.ok(monsterLayoutOverrides["🔮 浮空禁忌魔導書"].desktopLift > 0 && monsterLayoutOverrides["🔮 浮空禁忌魔導書"].floating, "the forbidden grimoire has a raised floating position");
 assert.ok(monsterLayoutOverrides["👁️ 虛空扭曲觀察者"].desktopLift > 0 && monsterLayoutOverrides["👁️ 虛空扭曲觀察者"].floating, "the void observer has a raised floating position");
@@ -109,7 +113,7 @@ assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedic
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
 const monsterPortraitManifest = JSON.parse(fs.readFileSync(path.join(root, "assets/combat/monsters/manifest.json"), "utf8"));
-assert.equal(monsterPortraitManifest.completedCount, 20, "twenty monster portraits are complete");
+assert.equal(monsterPortraitManifest.completedCount, 24, "twenty-four monster portraits are complete");
 for (const [monsterName, assetPath] of Object.entries({
     "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
     "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
@@ -130,7 +134,11 @@ for (const [monsterName, assetPath] of Object.entries({
     "🌌 裂縫黯夜潛行者": "assets/combat/monsters/regular-17-rift-nocturnal-stalker.png",
     "🦇 異次元吸血巨蝠": "assets/combat/monsters/regular-18-interdimensional-vampire-bat.png",
     "🗿 虛空遺蹟守衛像": "assets/combat/monsters/regular-19-void-ruins-sentinel.png",
-    "🐍 劇毒多頭利維坦": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png"
+    "🐍 劇毒多頭利維坦": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png",
+    "👿 深淵貪婪狂魔": "assets/combat/monsters/regular-21-abyss-greedy-fiend.png",
+    "🗡️ 墮落暗殺刺刃者": "assets/combat/monsters/regular-22-fallen-assassin-blade.png",
+    "🧠 奪心碎裂魔靈": "assets/combat/monsters/regular-23-mind-shatter-demon-spirit.png",
+    "🐲 岩漿黑羽幼龍": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png"
 })) {
     assert.ok(ui.includes(`"${monsterName}": "${assetPath}"`), `${monsterName} has a dedicated battle portrait mapping`);
     assert.ok(fs.existsSync(path.join(root, assetPath)), `${assetPath} exists`);

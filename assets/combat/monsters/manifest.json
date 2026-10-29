@@ -1,7 +1,7 @@
 {
   "version": 1,
   "totalMonsters": 36,
-  "completedCount": 20,
+  "completedCount": 24,
   "portraits": [
     {
       "id": "regular-01-blue-slime",
@@ -181,6 +181,42 @@
       "minFloor": 31,
       "maxFloor": 39,
       "path": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-21-abyss-greedy-fiend",
+      "name": "👿 深淵貪婪狂魔",
+      "kind": "regular",
+      "minFloor": 41,
+      "maxFloor": 49,
+      "path": "assets/combat/monsters/regular-21-abyss-greedy-fiend.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-22-fallen-assassin-blade",
+      "name": "🗡️ 墮落暗殺刺刃者",
+      "kind": "regular",
+      "minFloor": 41,
+      "maxFloor": 49,
+      "path": "assets/combat/monsters/regular-22-fallen-assassin-blade.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-23-mind-shatter-demon-spirit",
+      "name": "🧠 奪心碎裂魔靈",
+      "kind": "regular",
+      "minFloor": 41,
+      "maxFloor": 49,
+      "path": "assets/combat/monsters/regular-23-mind-shatter-demon-spirit.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-24-magma-blackfeather-wyvern",
+      "name": "🐲 岩漿黑羽幼龍",
+      "kind": "regular",
+      "minFloor": 41,
+      "maxFloor": 49,
+      "path": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png",
       "status": "complete"
     }
   ]

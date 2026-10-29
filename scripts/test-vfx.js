@@ -607,12 +607,23 @@ function runRoundTwoVfxTests() {
     basicAttackPipeline.context.gameState = "BATTLE";
     const pipelineScene = basicAttackPipeline.document.createElement("section");
     pipelineScene.id = "battle-scene-box";
+    const pipelineStage = basicAttackPipeline.document.createElement("div");
+    pipelineStage.rect = { left: 100, top: 50, width: 400, height: 250 };
+    const pipelineAnchor = basicAttackPipeline.document.createElement("span");
+    pipelineAnchor.id = "battle-monster-vfx-anchor";
+    pipelineAnchor.rect = { left: 170, top: 80, width: 80, height: 60 };
+    pipelineStage.appendChild(pipelineAnchor);
+    const pipelineMonster = basicAttackPipeline.document.createElement("img");
+    pipelineMonster.id = "battle-monster-sprite";
+    pipelineMonster.rect = { left: 235, top: 90, width: 130, height: 150 };
+    pipelineStage.appendChild(pipelineMonster);
     const pipelineSwipe = basicAttackPipeline.document.createElement("span");
     pipelineSwipe.id = "battle-attack-swipe";
     const pipelineImage = basicAttackPipeline.document.createElement("img");
     pipelineImage.id = "battle-attack-art";
     pipelineSwipe.appendChild(pipelineImage);
-    pipelineScene.appendChild(pipelineSwipe);
+    pipelineStage.appendChild(pipelineSwipe);
+    pipelineScene.appendChild(pipelineStage);
     basicAttackPipeline.document.body.appendChild(pipelineScene);
     vm.runInContext(fs.readFileSync(path.join(repoRoot, "js/game.js"), "utf8"), basicAttackPipeline.context, { filename: "js/game.js" });
     basicAttackPipeline.context.currentRun = { job: "magician", matk: 20, equipment: {}, shield: 0, jobCombatTraits: {} };
@@ -623,6 +634,20 @@ function runRoundTwoVfxTests() {
     assert.equal(basicAttackPipeline.context.executeBasicAttack(), true);
     assert.equal(pipelineSwipe.dataset.attackType, "blunt");
     assert.equal(pipelineImage.getAttribute("src"), "assets/combat/effects/basic-blunt.png");
+    assert.equal(pipelineSwipe.properties.get("--basic-attack-target-x"), "200px", "basic attack X aligns to the current monster body rectangle in stage-local coordinates");
+    assert.equal(pipelineSwipe.properties.get("--basic-attack-target-y"), "115px", "basic attack Y aligns to the current monster body rectangle rather than the generic anchor");
+
+    const basicAttackSource = fs.readFileSync(path.join(repoRoot, "js/vfx.js"), "utf8");
+    const basicAttackStyles = fs.readFileSync(path.join(repoRoot, "css/12-combat-scene.css"), "utf8");
+    assert.match(basicAttackSource, /function alignBasicAttackArt\(swipe, target\)[\s\S]*?target\?\.getBoundingClientRect/, "basic attack art reads the visible monster rectangle");
+    assert.match(basicAttackSource, /const anchor = document\.getElementById\("battle-monster-vfx-anchor"\)/, "basic attack art retains the monster-specific VFX anchor as fallback");
+    assert.match(basicAttackSource, /if \(showBasicAttackArt\) alignBasicAttackArt\(swipe, target\)/, "successful basic hits align their art before playback");
+    assert.match(basicAttackStyles, /\.battle-attack-swipe\[data-basic-art="true"\]\s*\{\s*inset:\s*0;\s*\}/, "basic art uses battle-stage coordinates without inherited panel motion");
+    assert.match(basicAttackStyles, /top:\s*var\(--basic-attack-target-y,\s*53%\);[\s\S]*?left:\s*var\(--basic-attack-target-x,\s*50%\)/, "basic attack art uses live monster target coordinates");
+    assert.match(basicAttackStyles, /\.battle-attack-art\[data-attack-type="slash"\]\s*\{\s*--basic-art-offset-x:\s*9\.2%;\s*--basic-art-offset-y:\s*-3\.4%;\s*\}/, "slash PNG transparent margins are compensated at the impact point");
+    assert.match(basicAttackStyles, /@keyframes battle-basic-art-slash[\s\S]*?- 48%\)[\s\S]*?\+ 27%\)/, "slash sweeps from left to right across the target");
+    assert.match(basicAttackStyles, /@keyframes battle-basic-art-blunt[\s\S]*?- 40%\)[\s\S]*?\+ 4%\)/, "blunt impact drops vertically while holding its horizontal coordinate");
+    assert.match(basicAttackStyles, /\.battle-attack-art\[data-attack-type="pierce"\]\.is-active\s*\{\s*animation:\s*battle-basic-art-pierce\s+\.24s linear both;\s*\}/, "pierce uses a rapid straight linear trajectory");
 
     assert.deepEqual(
         JSON.parse(JSON.stringify(registry.context.resolveSkillVfx({ name: "冰霜箭" }, "magician"))),

@@ -235,6 +235,34 @@ let projectileBurstGuardUntil = 0;
         return ANCHOR_IDS[options.anchor] || ANCHOR_IDS.monster;
     }
 
+    function alignBasicAttackArt(swipe, target) {
+        const anchor = document.getElementById("battle-monster-vfx-anchor");
+        const targetRect = target?.getBoundingClientRect?.();
+        const anchorRect = anchor?.getBoundingClientRect?.();
+        const hasTargetRect = targetRect && Number.isFinite(targetRect.left) && Number.isFinite(targetRect.top) &&
+            Number.isFinite(targetRect.width) && Number.isFinite(targetRect.height) && targetRect.width > 0 && targetRect.height > 0;
+        const positionRect = hasTargetRect ? targetRect : anchorRect;
+        const stage = hasTargetRect ? target.parentNode : (anchor && anchor.parentNode);
+        const stageRect = stage?.getBoundingClientRect?.();
+        if (!swipe?.style?.setProperty || !positionRect || !stageRect ||
+            !Number.isFinite(positionRect.left) || !Number.isFinite(positionRect.top) ||
+            !Number.isFinite(positionRect.width) || !Number.isFinite(positionRect.height) ||
+            !Number.isFinite(stageRect.left) || !Number.isFinite(stageRect.top) ||
+            !Number.isFinite(stageRect.width) || !Number.isFinite(stageRect.height) ||
+            positionRect.width <= 0 || positionRect.height <= 0 || stageRect.width <= 0 || stageRect.height <= 0) return;
+
+        const stageWidth = Number(stage.offsetWidth);
+        const stageHeight = Number(stage.offsetHeight);
+        const scaleX = stageWidth > 0 ? stageWidth / stageRect.width : 1;
+        const scaleY = stageHeight > 0 ? stageHeight / stageRect.height : 1;
+        const targetX = (positionRect.left + positionRect.width / 2 - stageRect.left) * scaleX;
+        const targetY = (positionRect.top + positionRect.height / 2 - stageRect.top) * scaleY;
+        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) return;
+
+        swipe.style.setProperty("--basic-attack-target-x", `${targetX}px`);
+        swipe.style.setProperty("--basic-attack-target-y", `${targetY}px`);
+    }
+
     function triggerFirstPersonAttack(options = {}) {
         if (typeof document === "undefined" || typeof gameState === "undefined" || gameState !== "BATTLE") return;
         const scene = document.getElementById("battle-scene-box");
@@ -250,6 +278,7 @@ let projectileBurstGuardUntil = 0;
             swipe.dataset.attackType = attackType;
             const showBasicAttackArt = Boolean(basicAttackType && (options.result === "hit" || options.result === "crit"));
             swipe.dataset.basicArt = showBasicAttackArt ? "true" : "false";
+            if (showBasicAttackArt) alignBasicAttackArt(swipe, target);
             const attackArt = document.getElementById("battle-attack-art");
             if (attackArt) {
                 attackArt.className = "battle-attack-art";

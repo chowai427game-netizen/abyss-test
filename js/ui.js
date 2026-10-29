@@ -1480,7 +1480,11 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "🌌 裂縫黯夜潛行者": "assets/combat/monsters/regular-17-rift-nocturnal-stalker.png",
     "🦇 異次元吸血巨蝠": "assets/combat/monsters/regular-18-interdimensional-vampire-bat.png",
     "🗿 虛空遺蹟守衛像": "assets/combat/monsters/regular-19-void-ruins-sentinel.png",
-    "🐍 劇毒多頭利維坦": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png"
+    "🐍 劇毒多頭利維坦": "assets/combat/monsters/regular-20-toxic-many-headed-leviathan.png",
+    "👿 深淵貪婪狂魔": "assets/combat/monsters/regular-21-abyss-greedy-fiend.png",
+    "🗡️ 墮落暗殺刺刃者": "assets/combat/monsters/regular-22-fallen-assassin-blade.png",
+    "🧠 奪心碎裂魔靈": "assets/combat/monsters/regular-23-mind-shatter-demon-spirit.png",
+    "🐲 岩漿黑羽幼龍": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png"
 });
 
 const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
@@ -1503,7 +1507,11 @@ const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
     "🌌 裂縫黯夜潛行者": { desktopHeight: 178, mobileHeight: 152, desktopLift: 44, mobileLift: 34, desktopVfxLift: 44, mobileVfxLift: 34, floating: true },
     "🦇 異次元吸血巨蝠": { desktopHeight: 182, mobileHeight: 154, desktopLift: 54, mobileLift: 40, desktopVfxLift: 54, mobileVfxLift: 40, floating: true },
     "🗿 虛空遺蹟守衛像": { desktopHeight: 242, mobileHeight: 206 },
-    "🐍 劇毒多頭利維坦": { desktopHeight: 220, mobileHeight: 188 }
+    "🐍 劇毒多頭利維坦": { desktopHeight: 220, mobileHeight: 188 },
+    "👿 深淵貪婪狂魔": { desktopHeight: 226, mobileHeight: 192 },
+    "🗡️ 墮落暗殺刺刃者": { desktopHeight: 184, mobileHeight: 156 },
+    "🧠 奪心碎裂魔靈": { desktopHeight: 178, mobileHeight: 152, desktopLift: 52, mobileLift: 38, desktopVfxLift: 52, mobileVfxLift: 38, floating: true },
+    "🐲 岩漿黑羽幼龍": { desktopHeight: 232, mobileHeight: 198 }
 });
 
 const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({
