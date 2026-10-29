@@ -1,7 +1,7 @@
 {
   "version": 1,
   "totalMonsters": 36,
-  "completedCount": 24,
+  "completedCount": 28,
   "portraits": [
     {
       "id": "regular-01-blue-slime",
@@ -217,6 +217,42 @@
       "minFloor": 41,
       "maxFloor": 49,
       "path": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-25-bloodtear-demon-flower",
+      "name": "🥀 嗜血泣淚妖花",
+      "kind": "regular",
+      "minFloor": 41,
+      "maxFloor": 49,
+      "path": "assets/combat/monsters/regular-25-bloodtear-demon-flower.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-26-starseam-meteor-wanderer",
+      "name": "✨ 織星流星漫遊者",
+      "kind": "regular",
+      "minFloor": 51,
+      "maxFloor": 59,
+      "path": "assets/combat/monsters/regular-26-starseam-meteor-wanderer.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-27-chaos-world-devourer",
+      "name": "🌌 混沌世界吞噬蟲",
+      "kind": "regular",
+      "minFloor": 51,
+      "maxFloor": 59,
+      "path": "assets/combat/monsters/regular-27-chaos-world-devourer.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-28-gravity-anomaly-singularity",
+      "name": "🪐 重力異變奇點",
+      "kind": "regular",
+      "minFloor": 51,
+      "maxFloor": 59,
+      "path": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png",
       "status": "complete"
     }
   ]

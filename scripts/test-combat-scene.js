@@ -113,7 +113,7 @@ assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedic
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
 const monsterPortraitManifest = JSON.parse(fs.readFileSync(path.join(root, "assets/combat/monsters/manifest.json"), "utf8"));
-assert.equal(monsterPortraitManifest.completedCount, 24, "twenty-four monster portraits are complete");
+assert.equal(monsterPortraitManifest.completedCount, 28, "twenty-eight monster portraits are complete");
 for (const [monsterName, assetPath] of Object.entries({
     "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
     "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
@@ -138,7 +138,11 @@ for (const [monsterName, assetPath] of Object.entries({
     "👿 深淵貪婪狂魔": "assets/combat/monsters/regular-21-abyss-greedy-fiend.png",
     "🗡️ 墮落暗殺刺刃者": "assets/combat/monsters/regular-22-fallen-assassin-blade.png",
     "🧠 奪心碎裂魔靈": "assets/combat/monsters/regular-23-mind-shatter-demon-spirit.png",
-    "🐲 岩漿黑羽幼龍": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png"
+    "🐲 岩漿黑羽幼龍": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png",
+    "🥀 嗜血泣淚妖花": "assets/combat/monsters/regular-25-bloodtear-demon-flower.png",
+    "✨ 織星流星漫遊者": "assets/combat/monsters/regular-26-starseam-meteor-wanderer.png",
+    "🌌 混沌世界吞噬蟲": "assets/combat/monsters/regular-27-chaos-world-devourer.png",
+    "🪐 重力異變奇點": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png"
 })) {
     assert.ok(ui.includes(`"${monsterName}": "${assetPath}"`), `${monsterName} has a dedicated battle portrait mapping`);
     assert.ok(fs.existsSync(path.join(root, assetPath)), `${assetPath} exists`);

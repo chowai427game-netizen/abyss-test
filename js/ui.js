@@ -1484,7 +1484,11 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "👿 深淵貪婪狂魔": "assets/combat/monsters/regular-21-abyss-greedy-fiend.png",
     "🗡️ 墮落暗殺刺刃者": "assets/combat/monsters/regular-22-fallen-assassin-blade.png",
     "🧠 奪心碎裂魔靈": "assets/combat/monsters/regular-23-mind-shatter-demon-spirit.png",
-    "🐲 岩漿黑羽幼龍": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png"
+    "🐲 岩漿黑羽幼龍": "assets/combat/monsters/regular-24-magma-blackfeather-wyvern.png",
+    "🥀 嗜血泣淚妖花": "assets/combat/monsters/regular-25-bloodtear-demon-flower.png",
+    "✨ 織星流星漫遊者": "assets/combat/monsters/regular-26-starseam-meteor-wanderer.png",
+    "🌌 混沌世界吞噬蟲": "assets/combat/monsters/regular-27-chaos-world-devourer.png",
+    "🪐 重力異變奇點": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png"
 });
 
 const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
@@ -1511,7 +1515,11 @@ const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
     "👿 深淵貪婪狂魔": { desktopHeight: 226, mobileHeight: 192 },
     "🗡️ 墮落暗殺刺刃者": { desktopHeight: 184, mobileHeight: 156 },
     "🧠 奪心碎裂魔靈": { desktopHeight: 178, mobileHeight: 152, desktopLift: 52, mobileLift: 38, desktopVfxLift: 52, mobileVfxLift: 38, floating: true },
-    "🐲 岩漿黑羽幼龍": { desktopHeight: 232, mobileHeight: 198 }
+    "🐲 岩漿黑羽幼龍": { desktopHeight: 232, mobileHeight: 198 },
+    "🥀 嗜血泣淚妖花": { desktopHeight: 210, mobileHeight: 180 },
+    "✨ 織星流星漫遊者": { desktopHeight: 184, mobileHeight: 158, desktopLift: 50, mobileLift: 38, desktopVfxLift: 50, mobileVfxLift: 38, floating: true },
+    "🌌 混沌世界吞噬蟲": { desktopHeight: 238, mobileHeight: 204 },
+    "🪐 重力異變奇點": { desktopHeight: 182, mobileHeight: 156, desktopLift: 56, mobileLift: 42, desktopVfxLift: 56, mobileVfxLift: 42, floating: true }
 });
 
 const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({
