@@ -57,7 +57,8 @@ assert.match(css, /\.battle-command-panel\s*\{/, "manual battle commands have a 
 assert.match(css, /\.battle-command-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?bottom:\s*39px;[\s\S]*?left:\s*10px;/, "manual commands are anchored in the lower-left battle scene");
 assert.match(css, /\.battle-command-actions, \.battle-command-options\s*\{[\s\S]*?flex-direction:\s*column;/, "manual categories, skills and items are selected top-to-bottom");
 assert.match(css, /\.battle-command-options button\s*\{[\s\S]*?flex:\s*0 0 auto;[\s\S]*?min-height:\s*25px;/, "skill and item options are compact rows rather than oversized cards");
-assert.match(css, /\.battle-command-option\[data-tooltip\]::after/, "skill buttons render a dedicated detailed tooltip");
+assert.doesNotMatch(css, /\.battle-command-option\[data-tooltip\]::after/, "skill descriptions do not use a tooltip clipped by the scrollable list");
+assert.match(ui, /bindFloatingCard\(button, \(\) => \(\{[\s\S]*?desc: button\.dataset\.tooltip/, "battle skill descriptions use the viewport-level floating card");
 assert.match(css, /\.battle-monster-inspect-card\s*\{/, "battle scene includes a monster hover information card");
 assert.match(css, /#battle-scene-box:has\(#battle-monster-sprite:hover\) \.battle-monster-inspect-card/, "hovering the monster reveals the information card");
 assert.match(css, /--battle-enemy-ground:\s*clamp\(/, "enemy, ground shadow and VFX share a responsive foreground anchor");
@@ -109,6 +110,8 @@ assert.match(ui, /function syncBattleSceneLog\(message, logType = "deal"\)/, "di
 assert.match(ui, /function getBattleDiaryTone\(text, logType = "deal"\)/, "diary entries receive combat-state colors");
 assert.match(ui, /Your Turn\.\./, "manual turn title uses the requested Your Turn.. label");
 assert.match(ui, /button\.dataset\.tooltip = title/, "skill command descriptions are exposed to the tooltip layer");
+assert.match(ui, /element\.onfocus = showCard/, "skill descriptions are also exposed when command buttons receive keyboard focus");
+assert.match(ui, /function showFloatingCard\(e, title, type, desc, stats = "", anchorElement = null\)/, "fixed skill info cards can anchor to focused controls");
 assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedicated skill cast cue");
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");

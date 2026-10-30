@@ -435,7 +435,7 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
 
 let touchCardTimer = null;
 
-function showFloatingCard(e, title, type, desc, stats = "") {
+function showFloatingCard(e, title, type, desc, stats = "", anchorElement = null) {
     let card = document.getElementById('floating-item-card');
     if (!card) {
         card = document.createElement('div');
@@ -452,8 +452,10 @@ function showFloatingCard(e, title, type, desc, stats = "") {
         ${stats ? `<div style="font-size: 10px; color: #00ffcc; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 5px; margin-top: 5px;">${stats}</div>` : ''}
     `;
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const touchPoint = e?.touches?.[0] || e?.changedTouches?.[0];
+    const anchorRect = anchorElement?.getBoundingClientRect?.();
+    const clientX = touchPoint?.clientX ?? (Number.isFinite(e?.clientX) ? e.clientX : (anchorRect ? anchorRect.left + anchorRect.width / 2 : 10));
+    const clientY = touchPoint?.clientY ?? (Number.isFinite(e?.clientY) ? e.clientY : (anchorRect ? anchorRect.top + anchorRect.height / 2 : 10));
 
     let posX = clientX + 15;
     let posY = clientY - 40;
@@ -479,17 +481,20 @@ function hideFloatingCard() {
 function bindFloatingCard(element, getCardDataFn) {
     if (!element) return;
 
-    element.onmouseenter = (e) => {
+    const showCard = (e) => {
         const data = getCardDataFn();
-        if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats);
+        if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats, element);
     };
+    element.onmouseenter = showCard;
     element.onmouseleave = () => hideFloatingCard();
+    element.onfocus = showCard;
+    element.onblur = () => hideFloatingCard();
 
     element.ontouchstart = (e) => {
         if (touchCardTimer) clearTimeout(touchCardTimer);
         touchCardTimer = setTimeout(() => {
             const data = getCardDataFn();
-            if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats);
+            if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats, element);
         }, 220);
     };
     element.ontouchmove = () => hideFloatingCard(); 
@@ -1685,9 +1690,13 @@ function appendCombatCommandButton(container, label, onClick, disabled = false, 
     button.appendChild(labelElement);
     button.disabled = disabled;
     if (title) {
-        button.title = title;
         button.dataset.tooltip = title;
         button.setAttribute('aria-label', `${label}。${title}`);
+        bindFloatingCard(button, () => ({
+            title: label,
+            type: "戰鬥技能",
+            desc: button.dataset.tooltip
+        }));
     }
     button.addEventListener('click', onClick);
     container.appendChild(button);

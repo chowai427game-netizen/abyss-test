@@ -161,30 +161,6 @@
 .battle-command-back { min-height: 24px !important; margin-top: -3px; padding: 4px 6px !important; color: #c8d7e7 !important; font-size: 10px !important; }
 .battle-command-option { position: relative; overflow: visible; }
 .battle-command-option .combat-command-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.battle-command-option[data-tooltip]::after {
-    position: absolute;
-    z-index: 20;
-    left: calc(100% + 8px);
-    bottom: -2px;
-    display: block;
-    width: min(250px, 48vw);
-    padding: 7px 8px;
-    border: 1px solid #e3c46f;
-    border-radius: 3px;
-    background: rgba(15, 13, 25, .97);
-    box-shadow: 3px 4px 0 rgba(0, 0, 0, .42);
-    color: #f8edc8;
-    content: attr(data-tooltip);
-    font: 600 10px/1.45 var(--font-game);
-    opacity: 0;
-    pointer-events: none;
-    text-shadow: none;
-    transform: translateX(-4px);
-    transition: opacity .14s ease, transform .14s ease;
-    white-space: normal;
-}
-.battle-command-option[data-tooltip]:hover::after,
-.battle-command-option[data-tooltip]:focus-visible::after { opacity: 1; transform: translateX(0); }
 .semi-command-options button { flex: 1 1 140px; text-align: left; }
 
 .battle-stage {
@@ -663,8 +639,6 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
     .battle-command-panel button { padding: 6px 7px; font-size: 10px; }
     .battle-command-options { max-height: 146px; }
     .battle-command-options button { min-height: 23px; padding: 4px 5px; font-size: 9px; }
-    .battle-command-option[data-tooltip]::after { position: fixed; right: 10px; bottom: 48px; left: 10px; width: auto; transform: translateY(4px); }
-    .battle-command-option[data-tooltip]:hover::after, .battle-command-option[data-tooltip]:focus-visible::after { transform: translateY(0); }
     .semi-command-options button { flex-basis: 100%; }
 }
 
