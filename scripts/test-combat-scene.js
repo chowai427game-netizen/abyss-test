@@ -64,7 +64,7 @@ assert.match(css, /#battle-scene-box:has\(#battle-monster-sprite:hover\) \.battl
 assert.match(css, /--battle-enemy-ground:\s*clamp\(/, "enemy, ground shadow and VFX share a responsive foreground anchor");
 assert.match(css, /\.battle-scene\s*\{[\s\S]*?--battle-enemy-ground:\s*clamp\(18px, 7%, 46px\)/, "grounded monsters share the corrected lower ground baseline");
 assert.match(css, /\.battle-sprite\s*\{[\s\S]*?height:\s*var\(--battle-monster-desktop-height, 168px\);[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-desktop-lift, 0px\)\);[\s\S]*?object-position:\s*center bottom;/, "monster height and lift are driven by individual presentation settings");
-assert.match(css, /\.battle-enemy-sprite\.battle-boss-sprite\s*\{\s*height:\s*218px;\s*max-width:\s*72%;\s*\}/, "bosses remain larger than regular monsters");
+assert.match(css, /\.battle-enemy-sprite\.battle-boss-sprite\s*\{\s*height:\s*var\(--battle-monster-desktop-height, 218px\);\s*max-width:\s*72%;\s*\}/, "bosses retain a large default size while accepting individual portrait overrides");
 assert.match(css, /@media \(max-width: 600px\)[\s\S]*?--battle-enemy-ground:\s*clamp\(16px, 7%, 34px\)[\s\S]*?\.battle-sprite\s*\{\s*height:\s*var\(--battle-monster-mobile-height, 142px\);\s*max-width:\s*92%;\s*bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-mobile-lift, 0px\)\);\s*\}/, "mobile monster position and size remain responsive");
 assert.match(css, /\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\):not\(\.is-defeated\)[\s\S]*?animation:\s*battle-monster-hover/, "floating monsters stop bobbing while hit or defeat animations play");
 assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\):not\(\.is-defeated\)[\s\S]*?animation-duration:\s*1ms/, "floating animation respects reduced-motion preference");
@@ -116,7 +116,7 @@ assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedic
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
 const monsterPortraitManifest = JSON.parse(fs.readFileSync(path.join(root, "assets/combat/monsters/manifest.json"), "utf8"));
-assert.equal(monsterPortraitManifest.completedCount, 28, "twenty-eight monster portraits are complete");
+assert.equal(monsterPortraitManifest.completedCount, 32, "thirty-two monster portraits are complete");
 for (const [monsterName, assetPath] of Object.entries({
     "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
     "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
@@ -145,11 +145,21 @@ for (const [monsterName, assetPath] of Object.entries({
     "🥀 嗜血泣淚妖花": "assets/combat/monsters/regular-25-bloodtear-demon-flower.png",
     "✨ 織星流星漫遊者": "assets/combat/monsters/regular-26-starseam-meteor-wanderer.png",
     "🌌 混沌世界吞噬蟲": "assets/combat/monsters/regular-27-chaos-world-devourer.png",
-    "🪐 重力異變奇點": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png"
+    "🪐 重力異變奇點": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png",
+    "💀 終焉寂滅死神": "assets/combat/monsters/regular-29-final-silence-reaper.png",
+    "👑 宇宙虛無秩序使者": "assets/combat/monsters/regular-30-cosmic-void-arbiter.png",
+    "👑 哥布林暴君 • 狂怒者": "assets/combat/monsters/boss-10-goblin-tyrant-rager.png",
+    "🧙 深淵墮落大祭司 • 莫爾": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png"
 })) {
     assert.ok(ui.includes(`"${monsterName}": "${assetPath}"`), `${monsterName} has a dedicated battle portrait mapping`);
     assert.ok(fs.existsSync(path.join(root, assetPath)), `${assetPath} exists`);
 }
+assert.deepEqual(monsterPortraitManifest.portraits.slice(-4).map(({ id, kind, floor }) => ({ id, kind, floor })), [
+    { id: "regular-29-final-silence-reaper", kind: "regular", floor: undefined },
+    { id: "regular-30-cosmic-void-arbiter", kind: "regular", floor: undefined },
+    { id: "boss-10-goblin-tyrant-rager", kind: "boss", floor: 10 },
+    { id: "boss-20-abyss-fallen-high-priest-mor", kind: "boss", floor: 20 }
+], "the next portraits follow regular-monster order, then boss-floor order");
 assert.match(ui, /hideFloatingCard\(\);/, "inventory and village transitions clear stale floating item cards");
 assert.match(ui, /\["NORMAL", "VOID", "ICE", "FIRE", "POISON"\]\.forEach/, "battle scene maps every environment type to a matching background class");
 assert.match(ui, /發現魔物/, "a new encounter resets the scene diary");

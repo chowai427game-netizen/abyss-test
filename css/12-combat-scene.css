@@ -199,7 +199,7 @@
     cursor: help;
 }
 
-.battle-enemy-sprite.battle-boss-sprite { height: 218px; max-width: 72%; }
+.battle-enemy-sprite.battle-boss-sprite { height: var(--battle-monster-desktop-height, 218px); max-width: 72%; }
 
 .battle-scene.is-floating-monster .battle-enemy-sprite:not(.is-hit):not(.is-critical):not(.is-defeated) {
     animation: battle-monster-hover 2.4s ease-in-out infinite;
@@ -624,7 +624,7 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
     .battle-atb-heading { font-size: 8px; }
     .battle-sprite-platform { width: 46%; }
     .battle-sprite { height: var(--battle-monster-mobile-height, 142px); max-width: 92%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-mobile-lift, 0px)); }
-    .battle-enemy-sprite.battle-boss-sprite { height: 178px; max-width: 94%; }
+    .battle-enemy-sprite.battle-boss-sprite { height: var(--battle-monster-mobile-height, 178px); max-width: 94%; }
     .battle-monster-vfx-anchor { width: 68%; height: 66%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-mobile-vfx-lift, 18px)); }
     .battle-monster-inspect-card { top: 41%; left: 50%; width: min(204px, 58%); padding: 6px 7px; font-size: 9px; }
     .battle-monster-inspect-heading { font-size: 10px; }

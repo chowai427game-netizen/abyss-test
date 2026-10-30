@@ -1493,7 +1493,11 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "🥀 嗜血泣淚妖花": "assets/combat/monsters/regular-25-bloodtear-demon-flower.png",
     "✨ 織星流星漫遊者": "assets/combat/monsters/regular-26-starseam-meteor-wanderer.png",
     "🌌 混沌世界吞噬蟲": "assets/combat/monsters/regular-27-chaos-world-devourer.png",
-    "🪐 重力異變奇點": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png"
+    "🪐 重力異變奇點": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png",
+    "💀 終焉寂滅死神": "assets/combat/monsters/regular-29-final-silence-reaper.png",
+    "👑 宇宙虛無秩序使者": "assets/combat/monsters/regular-30-cosmic-void-arbiter.png",
+    "👑 哥布林暴君 • 狂怒者": "assets/combat/monsters/boss-10-goblin-tyrant-rager.png",
+    "🧙 深淵墮落大祭司 • 莫爾": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png"
 });
 
 const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
@@ -1524,7 +1528,11 @@ const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
     "🥀 嗜血泣淚妖花": { desktopHeight: 210, mobileHeight: 180 },
     "✨ 織星流星漫遊者": { desktopHeight: 184, mobileHeight: 158, desktopLift: 50, mobileLift: 38, desktopVfxLift: 50, mobileVfxLift: 38, floating: true },
     "🌌 混沌世界吞噬蟲": { desktopHeight: 238, mobileHeight: 204 },
-    "🪐 重力異變奇點": { desktopHeight: 182, mobileHeight: 156, desktopLift: 56, mobileLift: 42, desktopVfxLift: 56, mobileVfxLift: 42, floating: true }
+    "🪐 重力異變奇點": { desktopHeight: 182, mobileHeight: 156, desktopLift: 56, mobileLift: 42, desktopVfxLift: 56, mobileVfxLift: 42, floating: true },
+    "💀 終焉寂滅死神": { desktopHeight: 210, mobileHeight: 180, desktopLift: 48, mobileLift: 36, desktopVfxLift: 48, mobileVfxLift: 36, floating: true },
+    "👑 宇宙虛無秩序使者": { desktopHeight: 220, mobileHeight: 188 },
+    "👑 哥布林暴君 • 狂怒者": { desktopHeight: 254, mobileHeight: 224 },
+    "🧙 深淵墮落大祭司 • 莫爾": { desktopHeight: 236, mobileHeight: 204, desktopLift: 44, mobileLift: 34, desktopVfxLift: 44, mobileVfxLift: 34, floating: true }
 });
 
 const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({

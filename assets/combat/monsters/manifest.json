@@ -1,7 +1,7 @@
 {
   "version": 1,
   "totalMonsters": 36,
-  "completedCount": 28,
+  "completedCount": 32,
   "portraits": [
     {
       "id": "regular-01-blue-slime",
@@ -253,6 +253,40 @@
       "minFloor": 51,
       "maxFloor": 59,
       "path": "assets/combat/monsters/regular-28-gravity-anomaly-singularity.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-29-final-silence-reaper",
+      "name": "💀 終焉寂滅死神",
+      "kind": "regular",
+      "minFloor": 51,
+      "maxFloor": 59,
+      "path": "assets/combat/monsters/regular-29-final-silence-reaper.png",
+      "status": "complete"
+    },
+    {
+      "id": "regular-30-cosmic-void-arbiter",
+      "name": "👑 宇宙虛無秩序使者",
+      "kind": "regular",
+      "minFloor": 51,
+      "maxFloor": 59,
+      "path": "assets/combat/monsters/regular-30-cosmic-void-arbiter.png",
+      "status": "complete"
+    },
+    {
+      "id": "boss-10-goblin-tyrant-rager",
+      "name": "👑 哥布林暴君 • 狂怒者",
+      "kind": "boss",
+      "floor": 10,
+      "path": "assets/combat/monsters/boss-10-goblin-tyrant-rager.png",
+      "status": "complete"
+    },
+    {
+      "id": "boss-20-abyss-fallen-high-priest-mor",
+      "name": "🧙 深淵墮落大祭司 • 莫爾",
+      "kind": "boss",
+      "floor": 20,
+      "path": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png",
       "status": "complete"
     }
   ]
