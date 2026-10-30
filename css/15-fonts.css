@@ -1,0 +1,25 @@
+/* Cubic 11 v1.500 by ACh-K; distributed under SIL OFL 1.1. See assets/fonts/OFL-Cubic-11.txt. */
+@font-face {
+    font-family: "Cubic 11";
+    src: url("../assets/fonts/Cubic_11.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+:root {
+    --font-game: "Cubic 11", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --font-damage: var(--font-game);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+    font-family: var(--font-game);
+}
+
+.victory-grand-title {
+    font-family: var(--font-game);
+}

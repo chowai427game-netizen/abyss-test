@@ -141,7 +141,7 @@ textarea {
     border-radius: 999px;
     background: rgba(8, 12, 20, 0.88);
     color: #fff;
-    font: 700 clamp(12px, 3vw, 16px)/1.2 system-ui, sans-serif;
+    font: 700 clamp(12px, 3vw, 16px)/1.2 var(--font-game);
     max-width: calc(100vw - 20px);
     overflow: hidden;
     text-shadow: 0 1px 3px #000;

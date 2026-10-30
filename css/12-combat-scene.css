@@ -46,7 +46,7 @@
     background: rgba(255, 248, 218, .94);
     box-shadow: 2px 2px 0 rgba(0, 0, 0, .65);
     color: #261d13;
-    font: 700 11px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font: 700 11px/1.25 var(--font-game);
 }
 
 .battle-hud-card strong {
@@ -146,7 +146,7 @@
     border-radius: 3px;
     background: #292330;
     color: #fff2cf;
-    font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font: 700 12px/1.2 var(--font-game);
     cursor: pointer;
 }
 .battle-command-panel button:hover:not(:disabled), .semi-command-controls button:hover:not(:disabled) { border-color: #ffe27a; background: #403548; }
@@ -175,7 +175,7 @@
     box-shadow: 3px 4px 0 rgba(0, 0, 0, .42);
     color: #f8edc8;
     content: attr(data-tooltip);
-    font: 600 10px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font: 600 10px/1.45 var(--font-game);
     opacity: 0;
     pointer-events: none;
     text-shadow: none;
@@ -264,7 +264,7 @@
     background: rgba(12, 14, 22, .88);
     box-shadow: 0 0 14px rgba(255, 214, 105, .28);
     color: #fff0c4;
-    font: 800 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font: 800 11px/1.2 var(--font-game);
     pointer-events: none;
     transform: translate(-50%, -50%);
     white-space: nowrap;
@@ -284,7 +284,7 @@
     background: rgba(12, 14, 22, .96);
     box-shadow: 4px 5px 0 rgba(0, 0, 0, .44), 0 0 14px rgba(255, 214, 105, .2);
     color: #eee5c9;
-    font: 700 10px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font: 700 10px/1.35 var(--font-game);
     opacity: 0;
     pointer-events: none;
     transform: translate(8px, -50%) scale(.96);
@@ -407,7 +407,7 @@
     background: rgba(12, 16, 27, .78);
     box-shadow: 0 0 14px rgba(195, 221, 255, .46);
     color: #eaf6ff;
-    font: 800 clamp(11px, 1.8vw, 16px)/1.15 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font: 800 clamp(11px, 1.8vw, 16px)/1.15 var(--font-game);
     letter-spacing: .04em;
     opacity: 0;
     overflow: hidden;
@@ -461,7 +461,7 @@
     padding: 4px 8px;
     background: rgba(20, 16, 11, .78);
     color: #f6df9b;
-    font: 700 10px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font: 700 10px/1.25 var(--font-game);
 }
 
 .battle-scene-log-line {
