@@ -1,7 +1,7 @@
 {
   "version": 1,
   "totalMonsters": 36,
-  "completedCount": 32,
+  "completedCount": 36,
   "portraits": [
     {
       "id": "regular-01-blue-slime",
@@ -287,6 +287,38 @@
       "kind": "boss",
       "floor": 20,
       "path": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png",
+      "status": "complete"
+    },
+    {
+      "id": "boss-30-void-order-distorter-zero",
+      "name": "🌌 虛空秩序扭曲者 • 零",
+      "kind": "boss",
+      "floor": 30,
+      "path": "assets/combat/monsters/boss-30-void-order-distorter-zero.png",
+      "status": "complete"
+    },
+    {
+      "id": "boss-40-abyss-crust-lord-scylla",
+      "name": "🌊 深淵巨鎧領主 • Scylla",
+      "kind": "boss",
+      "floor": 40,
+      "path": "assets/combat/monsters/boss-40-abyss-crust-lord-scylla.png",
+      "status": "complete"
+    },
+    {
+      "id": "boss-50-infernal-demon-god-barok",
+      "name": "🔥 煉獄魔神 • 巴洛克",
+      "kind": "boss",
+      "floor": 50,
+      "path": "assets/combat/monsters/boss-50-infernal-demon-god-barok.png",
+      "status": "complete"
+    },
+    {
+      "id": "boss-60-endstar-god-elda",
+      "name": "🪐 終焉星神 • 艾爾達",
+      "kind": "boss",
+      "floor": 60,
+      "path": "assets/combat/monsters/boss-60-endstar-god-elda.png",
       "status": "complete"
     }
   ]

@@ -1497,7 +1497,11 @@ const BATTLE_MONSTER_PORTRAIT_OVERRIDES = Object.freeze({
     "💀 終焉寂滅死神": "assets/combat/monsters/regular-29-final-silence-reaper.png",
     "👑 宇宙虛無秩序使者": "assets/combat/monsters/regular-30-cosmic-void-arbiter.png",
     "👑 哥布林暴君 • 狂怒者": "assets/combat/monsters/boss-10-goblin-tyrant-rager.png",
-    "🧙 深淵墮落大祭司 • 莫爾": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png"
+    "🧙 深淵墮落大祭司 • 莫爾": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png",
+    "🌌 虛空秩序扭曲者 • 零": "assets/combat/monsters/boss-30-void-order-distorter-zero.png",
+    "🌊 深淵巨鎧領主 • Scylla": "assets/combat/monsters/boss-40-abyss-crust-lord-scylla.png",
+    "🔥 煉獄魔神 • 巴洛克": "assets/combat/monsters/boss-50-infernal-demon-god-barok.png",
+    "🪐 終焉星神 • 艾爾達": "assets/combat/monsters/boss-60-endstar-god-elda.png"
 });
 
 const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
@@ -1532,7 +1536,11 @@ const BATTLE_MONSTER_LAYOUT_OVERRIDES = Object.freeze({
     "💀 終焉寂滅死神": { desktopHeight: 210, mobileHeight: 180, desktopLift: 48, mobileLift: 36, desktopVfxLift: 48, mobileVfxLift: 36, floating: true },
     "👑 宇宙虛無秩序使者": { desktopHeight: 220, mobileHeight: 188 },
     "👑 哥布林暴君 • 狂怒者": { desktopHeight: 254, mobileHeight: 224 },
-    "🧙 深淵墮落大祭司 • 莫爾": { desktopHeight: 236, mobileHeight: 204, desktopLift: 44, mobileLift: 34, desktopVfxLift: 44, mobileVfxLift: 34, floating: true }
+    "🧙 深淵墮落大祭司 • 莫爾": { desktopHeight: 236, mobileHeight: 204, desktopLift: 44, mobileLift: 34, desktopVfxLift: 44, mobileVfxLift: 34, floating: true },
+    "🌌 虛空秩序扭曲者 • 零": { desktopHeight: 246, mobileHeight: 214, desktopLift: 46, mobileLift: 34, desktopVfxLift: 46, mobileVfxLift: 34, floating: true },
+    "🌊 深淵巨鎧領主 • Scylla": { desktopHeight: 244, mobileHeight: 210 },
+    "🔥 煉獄魔神 • 巴洛克": { desktopHeight: 260, mobileHeight: 228 },
+    "🪐 終焉星神 • 艾爾達": { desktopHeight: 248, mobileHeight: 216, desktopLift: 52, mobileLift: 38, desktopVfxLift: 52, mobileVfxLift: 38, floating: true }
 });
 
 const BATTLE_MONSTER_VARIANT_PATHS = Object.freeze({

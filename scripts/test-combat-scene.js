@@ -116,7 +116,10 @@ assert.match(ui, /function showBattleSkillCastCue\(/, "battle UI exposes a dedic
 assert.match(ui, /function closeManualBattleCommandList\(\)/, "manual command list uses one fixed return action instead of appending duplicates");
 assert.match(ui, /function updateBattleMonsterInspectCard\(monster\)/, "monster hover information is synchronized from active battle data");
 const monsterPortraitManifest = JSON.parse(fs.readFileSync(path.join(root, "assets/combat/monsters/manifest.json"), "utf8"));
-assert.equal(monsterPortraitManifest.completedCount, 32, "thirty-two monster portraits are complete");
+assert.equal(monsterPortraitManifest.completedCount, 36, "all thirty-six monster portraits are complete");
+assert.equal(monsterPortraitManifest.totalMonsters, 36, "the portrait manifest covers all thirty-six monsters");
+assert.equal(monsterPortraitManifest.portraits.length, 36, "all thirty-six monsters have manifest entries");
+assert.ok(monsterPortraitManifest.portraits.every(({ status }) => status === "complete"), "every manifest portrait is complete");
 for (const [monsterName, assetPath] of Object.entries({
     "💧 藍色史萊姆": "assets/combat/monsters/regular-01-blue-slime.png",
     "👺 綠皮哥布林": "assets/combat/monsters/regular-02-green-goblin.png",
@@ -149,17 +152,21 @@ for (const [monsterName, assetPath] of Object.entries({
     "💀 終焉寂滅死神": "assets/combat/monsters/regular-29-final-silence-reaper.png",
     "👑 宇宙虛無秩序使者": "assets/combat/monsters/regular-30-cosmic-void-arbiter.png",
     "👑 哥布林暴君 • 狂怒者": "assets/combat/monsters/boss-10-goblin-tyrant-rager.png",
-    "🧙 深淵墮落大祭司 • 莫爾": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png"
+    "🧙 深淵墮落大祭司 • 莫爾": "assets/combat/monsters/boss-20-abyss-fallen-high-priest-mor.png",
+    "🌌 虛空秩序扭曲者 • 零": "assets/combat/monsters/boss-30-void-order-distorter-zero.png",
+    "🌊 深淵巨鎧領主 • Scylla": "assets/combat/monsters/boss-40-abyss-crust-lord-scylla.png",
+    "🔥 煉獄魔神 • 巴洛克": "assets/combat/monsters/boss-50-infernal-demon-god-barok.png",
+    "🪐 終焉星神 • 艾爾達": "assets/combat/monsters/boss-60-endstar-god-elda.png"
 })) {
     assert.ok(ui.includes(`"${monsterName}": "${assetPath}"`), `${monsterName} has a dedicated battle portrait mapping`);
     assert.ok(fs.existsSync(path.join(root, assetPath)), `${assetPath} exists`);
 }
 assert.deepEqual(monsterPortraitManifest.portraits.slice(-4).map(({ id, kind, floor }) => ({ id, kind, floor })), [
-    { id: "regular-29-final-silence-reaper", kind: "regular", floor: undefined },
-    { id: "regular-30-cosmic-void-arbiter", kind: "regular", floor: undefined },
-    { id: "boss-10-goblin-tyrant-rager", kind: "boss", floor: 10 },
-    { id: "boss-20-abyss-fallen-high-priest-mor", kind: "boss", floor: 20 }
-], "the next portraits follow regular-monster order, then boss-floor order");
+    { id: "boss-30-void-order-distorter-zero", kind: "boss", floor: 30 },
+    { id: "boss-40-abyss-crust-lord-scylla", kind: "boss", floor: 40 },
+    { id: "boss-50-infernal-demon-god-barok", kind: "boss", floor: 50 },
+    { id: "boss-60-endstar-god-elda", kind: "boss", floor: 60 }
+], "the final portraits follow remaining boss-floor order");
 assert.match(ui, /hideFloatingCard\(\);/, "inventory and village transitions clear stale floating item cards");
 assert.match(ui, /\["NORMAL", "VOID", "ICE", "FIRE", "POISON"\]\.forEach/, "battle scene maps every environment type to a matching background class");
 assert.match(ui, /發現魔物/, "a new encounter resets the scene diary");
