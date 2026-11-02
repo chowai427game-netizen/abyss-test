@@ -214,11 +214,17 @@ const transientClasses = (initial) => {
     return { values, remove(...names) { names.forEach((name) => values.delete(name)); } };
 };
 const transientCue = { classList: transientClasses(["is-active"]), dataset: { castTone: "fire" }, textContent: "✦ 火箭術" };
-const transientSwipe = { classList: transientClasses(["is-active"]), dataset: { attackType: "fire" } };
+const transientSwipe = { classList: transientClasses(["is-active"]), dataset: { attackType: "fire", basicArt: "true", attackArtRequestToken: "5" } };
+const transientAttackArt = {
+    className: "battle-attack-art is-active", onload() {}, onerror() {},
+    attributes: new Map([["src", "assets/combat/effects/basic-slash.png"], ["data-attack-type", "slash"]]),
+    removeAttribute(name) { this.attributes.delete(name); }
+};
 const transientMonster = { classList: transientClasses(["is-hit", "is-critical"]) };
 const transientFallback = { classList: transientClasses(["is-hit"]) };
 const transientNodes = new Map([
     ["battle-skill-cast-cue", transientCue], ["battle-attack-swipe", transientSwipe],
+    ["battle-attack-art", transientAttackArt],
     ["battle-monster-sprite", transientMonster], ["battle-monster-fallback", transientFallback]
 ]);
 const clearedTimeouts = [];
@@ -236,6 +242,12 @@ assert.equal(transientCue.dataset.castTone, "physical");
 assert.equal(transientCue.classList.values.has("is-active"), false);
 assert.equal(transientSwipe.classList.values.has("is-active"), false);
 assert.equal(transientSwipe.dataset.attackType, "");
+assert.equal(transientSwipe.dataset.basicArt, "false");
+assert.equal(transientSwipe.dataset.attackArtRequestToken, "6", "new encounter invalidates callbacks from the previous attack image");
+assert.equal(transientAttackArt.className, "battle-attack-art");
+assert.equal(transientAttackArt.onload, null);
+assert.equal(transientAttackArt.onerror, null);
+assert.equal(transientAttackArt.attributes.has("src"), false, "previous attack image is removed during encounter cleanup");
 assert.deepEqual([...transientMonster.classList.values], []);
 assert.deepEqual([...transientFallback.classList.values], []);
 assert.match(ui, /updateBattleScene\(typeof activeMonster/, "regular UI updates sync the scene before state-specific early returns");

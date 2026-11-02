@@ -7,6 +7,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const repoRoot = path.resolve(__dirname, "..");
+const pendingImageDecodeChecks = [];
 
 class FakeElement {
     constructor(tagName) {
@@ -62,6 +63,14 @@ class FakeElement {
 
     getAttribute(name) {
         return this.attributes.get(name) ?? null;
+    }
+
+    removeAttribute(name) {
+        this.attributes.delete(name);
+        if (name === "src") {
+            this.complete = false;
+            this.naturalWidth = 0;
+        }
     }
 
     addEventListener(type, listener) {
@@ -600,6 +609,12 @@ function runRoundTwoVfxTests() {
     swipe.id = "battle-attack-swipe";
     const image = basicAttackArt.document.createElement("img");
     image.id = "battle-attack-art";
+    image.setAttribute("src", "assets/combat/effects/basic-slash.png");
+    image.className = "battle-attack-art is-active";
+    image.complete = true;
+    image.naturalWidth = 1920;
+    image.decode = () => Promise.resolve();
+    swipe.className = "is-active";
     swipe.appendChild(image);
     scene.appendChild(swipe);
     basicAttackArt.document.body.appendChild(scene);
@@ -611,7 +626,22 @@ function runRoundTwoVfxTests() {
     assert.equal(swipe.dataset.basicArt, "true");
     assert.equal(image.getAttribute("src"), "assets/combat/effects/basic-pierce.png");
     assert.equal(image.getAttribute("data-attack-type"), "pierce");
-    assert.match(image.className, /is-active/);
+    assert.doesNotMatch(image.className, /is-active/, "the old attack art is hidden while the new PNG is not decoded");
+    assert.doesNotMatch(swipe.className, /is-active/, "the previous swipe stops while the new attack image loads");
+    image.complete = true;
+    image.naturalWidth = 1920;
+    image.onload();
+    pendingImageDecodeChecks.push(new Promise((resolve, reject) => {
+        setImmediate(() => {
+            try {
+                assert.match(image.className, /is-active/, "the new attack art appears after its image decode completes");
+                assert.match(swipe.className, /is-active/, "the attack sweep starts with the decoded current PNG");
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }));
 
     const monsterImpact = createEnvironment();
     monsterImpact.context.gameState = "BATTLE";
@@ -1187,13 +1217,21 @@ function runCombatTacticsAndPauseTests() {
     assert.equal(paused.context.toggleCombatPause(), false, "the pause control cannot start a battle from town");
 }
 
-require("node:child_process").execFileSync(process.execPath, [
-    path.join(repoRoot, "scripts/check-refactor-baseline.js")
-], { stdio: "inherit" });
-runLegacyCharacterization();
-runLifecycleTests();
-runSceneTransitionTests();
-runStaticIntegrationChecks();
-runRoundTwoVfxTests();
-runCombatTacticsAndPauseTests();
-console.log("✅ VFX, AGI ATB scaling, queued combat potions, shared skill effects, and pause/resume regression tests passed.");
+async function runAllVfxRegressionTests() {
+    require("node:child_process").execFileSync(process.execPath, [
+        path.join(repoRoot, "scripts/check-refactor-baseline.js")
+    ], { stdio: "inherit" });
+    runLegacyCharacterization();
+    runLifecycleTests();
+    runSceneTransitionTests();
+    runStaticIntegrationChecks();
+    runRoundTwoVfxTests();
+    runCombatTacticsAndPauseTests();
+    await Promise.all(pendingImageDecodeChecks);
+    console.log("✅ VFX, attack image decode gating, AGI ATB scaling, queued combat potions, shared skill effects, and pause/resume regression tests passed.");
+}
+
+runAllVfxRegressionTests().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});

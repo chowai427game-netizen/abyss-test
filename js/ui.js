@@ -1643,7 +1643,20 @@ function clearBattleTransientEffects() {
     const swipe = DOM.get('battle-attack-swipe');
     if (swipe) {
         swipe.classList?.remove('is-active');
-        if (swipe.dataset) swipe.dataset.attackType = "";
+        if (swipe.dataset) {
+            swipe.dataset.attackArtRequestToken = String((Number(swipe.dataset.attackArtRequestToken) || 0) + 1);
+            swipe.dataset.attackType = "";
+            swipe.dataset.basicArt = "false";
+        }
+    }
+
+    const attackArt = DOM.get('battle-attack-art');
+    if (attackArt) {
+        attackArt.onload = null;
+        attackArt.onerror = null;
+        attackArt.className = 'battle-attack-art';
+        attackArt.removeAttribute?.('src');
+        attackArt.removeAttribute?.('data-attack-type');
     }
 
     ['battle-monster-sprite', 'battle-monster-fallback'].forEach((id) => {

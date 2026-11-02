@@ -275,23 +275,74 @@ let projectileBurstGuardUntil = 0;
         const basicAttackType = options.basicAttack === true ? detectBasicAttackType(options.weaponName, options.job) : null;
         const attackType = basicAttackType || String(options.projectileType || options.attackType || "slash").replace(/[^a-z0-9_-]/gi, "");
         if (swipe && !options.skipSwipe) {
+            const requestToken = String((Number(swipe.dataset.attackArtRequestToken) || 0) + 1);
+            swipe.dataset.attackArtRequestToken = requestToken;
+            swipe.classList.remove("is-active");
             swipe.dataset.attackType = attackType;
             const showBasicAttackArt = Boolean(basicAttackType && (options.result === "hit" || options.result === "crit"));
             swipe.dataset.basicArt = showBasicAttackArt ? "true" : "false";
             if (showBasicAttackArt) alignBasicAttackArt(swipe, target);
             const attackArt = document.getElementById("battle-attack-art");
+
+            const playSwipe = () => {
+                if (swipe.dataset.attackArtRequestToken !== requestToken) return;
+                if (swipe.classList.contains("is-active")) swipe.classList.remove("is-active");
+                void swipe.offsetWidth;
+                swipe.classList.add("is-active");
+            };
+
             if (attackArt) {
                 attackArt.className = "battle-attack-art";
+                attackArt.onload = null;
+                attackArt.onerror = null;
                 if (showBasicAttackArt) {
-                    attackArt.setAttribute("src", BASIC_ATTACK_IMAGE_PATHS[basicAttackType]);
+                    const source = BASIC_ATTACK_IMAGE_PATHS[basicAttackType];
                     attackArt.setAttribute("data-attack-type", basicAttackType);
-                    void attackArt.offsetWidth;
-                    attackArt.className = "battle-attack-art is-active";
+                    let loadHandled = false;
+                    const isCurrentRequest = () => swipe.dataset.attackArtRequestToken === requestToken &&
+                        attackArt.getAttribute("src") === source && gameState === "BATTLE" && scene.style?.display !== "none";
+                    const showDecodedArt = () => {
+                        if (loadHandled || !isCurrentRequest()) return;
+                        loadHandled = true;
+                        const decoded = typeof attackArt.decode === "function" ? Promise.resolve().then(() => attackArt.decode()) : Promise.resolve();
+                        Promise.resolve(decoded).then(() => {
+                            if (!isCurrentRequest()) return;
+                            attackArt.onload = null;
+                            attackArt.onerror = null;
+                            attackArt.className = "battle-attack-art is-active";
+                            playSwipe();
+                        }).catch(() => {
+                            if (!isCurrentRequest()) return;
+                            attackArt.onload = null;
+                            attackArt.onerror = null;
+                            attackArt.className = "battle-attack-art";
+                            attackArt.removeAttribute("src");
+                            swipe.dataset.basicArt = "false";
+                            playSwipe();
+                        });
+                    };
+                    const previousSource = attackArt.getAttribute("src");
+                    const alreadyDecoded = previousSource === source && attackArt.complete && Number(attackArt.naturalWidth) > 0;
+                    attackArt.onload = showDecodedArt;
+                    attackArt.onerror = () => {
+                        if (!isCurrentRequest()) return;
+                        loadHandled = true;
+                        attackArt.onload = null;
+                        attackArt.onerror = null;
+                        attackArt.className = "battle-attack-art";
+                        attackArt.removeAttribute("src");
+                        swipe.dataset.basicArt = "false";
+                        playSwipe();
+                    };
+                    if (!alreadyDecoded) attackArt.removeAttribute("src");
+                    attackArt.setAttribute("src", source);
+                    if (alreadyDecoded) showDecodedArt();
+                } else {
+                    attackArt.removeAttribute("src");
+                    attackArt.removeAttribute("data-attack-type");
+                    playSwipe();
                 }
-            }
-            if (swipe.classList.contains("is-active")) swipe.classList.remove("is-active");
-            void swipe.offsetWidth;
-            swipe.classList.add("is-active");
+            } else playSwipe();
         }
         if (target && (options.result === "hit" || options.result === "crit")) {
             target.classList.remove("is-hit", "is-critical", "is-defeated");
