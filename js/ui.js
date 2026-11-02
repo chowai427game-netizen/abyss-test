@@ -1842,7 +1842,7 @@ function setBattleMonsterPortraitSource(image, fallback, loadStatus, spritePath)
     }
 
     if (image.dataset.variant === spritePath) {
-        const ready = image.dataset.loadState === "ready" || (image.dataset.loadState !== "loading" && image.complete && Number(image.naturalWidth) > 0);
+        const ready = image.dataset.loadState === "ready";
         image.dataset.loadState = ready ? "ready" : (image.dataset.loadState || "loading");
         image.hidden = !ready;
         if (fallback) fallback.hidden = ready;
@@ -1880,7 +1880,14 @@ function setBattleMonsterPortraitSource(image, fallback, loadStatus, spritePath)
         Promise.resolve(decoded).then(() => finish(true));
     };
     image.onerror = () => finish(false);
-    battleMonsterPortraitLoadTimer = setTimeout(() => finish(false), 4000);
+    battleMonsterPortraitLoadTimer = setTimeout(() => {
+        finish(false);
+        if (token !== battleMonsterPortraitLoadToken || image.dataset.variant !== spritePath) return;
+        // Keep the fallback stable after the deadline; queued load/decode callbacks are stale now.
+        battleMonsterPortraitLoadToken++;
+        image.onload = null;
+        image.onerror = null;
+    }, 4000);
     image.src = spritePath;
 }
 
