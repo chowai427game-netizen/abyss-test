@@ -1822,8 +1822,9 @@ function startNodeCombat(nodeType) {
                 spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: prefersReducedMotion() ? 0 : 4 });
             });
         }
-        const introDelay = typeof playBattleSceneEncounterIntro === "function" ? playBattleSceneEncounterIntro() : 0;
-        let introReady = introDelay <= 0;
+        const introSignal = typeof playBattleSceneEncounterIntro === "function" ? playBattleSceneEncounterIntro() : 0;
+        const introIsPromise = Boolean(introSignal && typeof introSignal.then === "function");
+        let introReady = !introIsPromise && Number(introSignal) <= 0;
         let portraitReady = typeof waitForBattleMonsterPortraitReady !== "function";
         const startEncounterWhenReady = () => {
             if (encounterGeneration !== combatEncounterGeneration || !introReady || !portraitReady) return;
@@ -1831,7 +1832,14 @@ function startNodeCombat(nodeType) {
             combatEncounterCooldownPending = false;
             if (gameState === "BATTLE" && activeMonster && currentRun && currentRun.hp > 0) startCombatTicker();
         };
-        if (introDelay > 0) {
+        if (introIsPromise) {
+            Promise.resolve(introSignal)
+                .catch(() => false)
+                .then(() => {
+                    introReady = true;
+                    startEncounterWhenReady();
+                });
+        } else if (Number(introSignal) > 0) {
             combatIntroStartTimer = setTimeout(() => {
                 combatIntroStartTimer = null;
                 introReady = true;

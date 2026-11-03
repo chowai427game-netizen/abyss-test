@@ -27,6 +27,9 @@ for (const id of [
 assert.match(html, /css\/12-combat-scene\.css/, "battle scene stylesheet is loaded");
 assert.match(css, /@media \(max-width: 600px\)/, "battle scene has a mobile layout");
 assert.match(css, /prefers-reduced-motion/, "battle scene respects reduced motion preferences");
+assert.match(html, /js\/pixelfx-encounter-transition\.js/, "the PixelFX encounter transition module is loaded");
+assert.match(css, /\.battle-encounter-shatter-canvas[\s\S]*?z-index:\s*30/, "the Shatter Wipe canvas covers only the isolated battle scene");
+assert.match(css, /#battle-scene-box\.is-encounter-reveal-held[\s\S]*?visibility:\s*hidden/, "the monster stays hidden until the transition's opaque phase");
 assert.match(css, /@keyframes first-person-attack/, "first-person slash has an animation");
 assert.match(css, /@keyframes diary-caret/, "battle diary has a typewriter cursor animation");
 assert.match(css, /body\.battle-scene-cinematic-active::before/, "encounter transition dims the page behind the floating scene");
@@ -39,6 +42,9 @@ assert.match(css, /@keyframes monster-hit-flash[\s\S]*?sepia\(1\)[\s\S]*?rgba\(2
 assert.match(css, /@keyframes monster-defeat-dissolve/, "defeated monsters scatter and fade out");
 assert.match(game, /function playBattleMonsterDefeatAnimation\(\)/, "victory sequence can animate the monster portrait away");
 assert.match(game, /playBattleMonsterDefeatAnimation\(\)/, "monster defeat animation is triggered before the battle result");
+assert.match(ui, /function completeBattleSceneEncounterIntro\(/, "encounter transitions always release their portrait and combat gates");
+assert.match(ui, /onCovered:[\s\S]*?is-encounter-reveal-held/, "the portrait is released only after the Shatter pane fully covers the scene");
+assert.match(game, /introIsPromise[\s\S]*?Promise\.resolve\(introSignal\)/, "combat waits for the transition promise as well as portrait readiness");
 assert.match(ui, /function waitForBattleMonsterPortraitReady\(\)/, "battle UI exposes the monster portrait readiness promise");
 assert.match(ui, /image\.decode\(\)/, "portrait readiness waits for browser image decoding");
 assert.match(game, /combatEncounterCooldownPending/, "ATB remains locked while the encounter is loading");

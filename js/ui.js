@@ -1288,9 +1288,27 @@ let battleSceneEncounterIntroTimer = null;
 let battleSceneReturnTimer = null;
 let battleSceneEncounterPlaceholder = null;
 let battleSkillCastCueTimer = null;
+let battleSceneShatterTransitionStartTimer = null;
+let battleSceneShatterTransition = null;
+let resolveBattleSceneEncounterIntro = null;
+
+function completeBattleSceneEncounterIntro(transition, completed = false) {
+    if (transition && battleSceneShatterTransition !== transition) return false;
+    if (battleSceneShatterTransitionStartTimer !== null) clearTimeout(battleSceneShatterTransitionStartTimer);
+    battleSceneShatterTransitionStartTimer = null;
+    const runningTransition = battleSceneShatterTransition;
+    battleSceneShatterTransition = null;
+    if (runningTransition && !completed) runningTransition.cancel?.();
+    DOM.get('battle-scene-box')?.classList?.remove('is-encounter-reveal-held');
+    const resolve = resolveBattleSceneEncounterIntro;
+    resolveBattleSceneEncounterIntro = null;
+    if (resolve) resolve(Boolean(completed));
+    return true;
+}
 
 function restoreBattleSceneAfterEncounterIntro() {
     const scene = DOM.get('battle-scene-box');
+    completeBattleSceneEncounterIntro(null, false);
     if (battleSceneEncounterIntroTimer !== null) clearTimeout(battleSceneEncounterIntroTimer);
     battleSceneEncounterIntroTimer = null;
     if (battleSceneReturnTimer !== null) clearTimeout(battleSceneReturnTimer);
@@ -1303,6 +1321,7 @@ function restoreBattleSceneAfterEncounterIntro() {
     if (scene) {
         scene.classList?.remove('is-encounter-cinematic');
         scene.classList?.remove('is-returning-to-origin');
+        scene.classList?.remove('is-encounter-reveal-held');
         ['--battle-scene-origin-top', '--battle-scene-origin-left', '--battle-scene-origin-width', '--battle-scene-origin-height']
             .forEach((property) => scene.style.removeProperty(property));
     }
@@ -1353,7 +1372,51 @@ function playBattleSceneEncounterIntro() {
     scene.classList.add('is-encounter-cinematic');
 
     const duration = typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 1 : 420;
-    return duration;
+    if (duration <= 1) return duration;
+
+    const transitionApi = typeof window !== "undefined" ? window.PixelFxEncounterTransition : null;
+    if (!transitionApi || typeof transitionApi.create !== "function") return duration;
+
+    scene.classList.add('is-encounter-reveal-held');
+    let transition = null;
+    try {
+        transition = transitionApi.create({
+            container: scene,
+            ...(transitionApi.options || { speed: 0.5, palette: "smoke" }),
+            onCovered: () => {
+                if (battleSceneShatterTransition === transition) scene.classList.remove('is-encounter-reveal-held');
+            }
+        });
+    } catch (_error) {
+        transition = null;
+    }
+    if (!transition || typeof transition.start !== "function" || !transition.finished?.then) {
+        transition?.cancel?.();
+        scene.classList.remove('is-encounter-reveal-held');
+        return duration;
+    }
+
+    battleSceneShatterTransition = transition;
+    const introReady = new Promise((resolve) => { resolveBattleSceneEncounterIntro = resolve; });
+    battleSceneShatterTransitionStartTimer = setTimeout(() => {
+        battleSceneShatterTransitionStartTimer = null;
+        if (battleSceneShatterTransition !== transition) return;
+        let started = false;
+        try {
+            started = transition.start();
+        } catch (_error) {
+            started = false;
+        }
+        if (!started) {
+            completeBattleSceneEncounterIntro(transition, false);
+            return;
+        }
+        Promise.resolve(transition.finished).then(
+            (completed) => completeBattleSceneEncounterIntro(transition, completed),
+            () => completeBattleSceneEncounterIntro(transition, false)
+        );
+    }, duration);
+    return introReady;
 }
 
 function getBattleDiaryTone(text, logType = "deal") {
@@ -1821,6 +1884,8 @@ function openSemiCombatCommandList(kind) {
 function finishBattleMonsterPortraitLoad(image, fallback, loadStatus, spritePath, token, loaded) {
     if (token !== battleMonsterPortraitLoadToken || image.dataset.variant !== spritePath) return;
     const ready = Boolean(loaded && Number(image.naturalWidth) > 0);
+    image.onload = null;
+    image.onerror = null;
     image.dataset.loadState = ready ? "ready" : "error";
     image.hidden = !ready;
     if (fallback) fallback.hidden = ready;
@@ -1854,18 +1919,30 @@ function setBattleMonsterPortraitSource(image, fallback, loadStatus, spritePath)
         return;
     }
 
-    if (image.dataset.variant === spritePath) {
-        const ready = image.dataset.loadState === "ready";
-        image.dataset.loadState = ready ? "ready" : (image.dataset.loadState || "loading");
-        image.hidden = !ready;
-        if (fallback) fallback.hidden = ready;
-        if (loadStatus) loadStatus.hidden = image.dataset.loadState !== "loading";
-        if (ready && resolveBattleMonsterPortraitReady) {
+    const samePath = image.dataset.variant === spritePath;
+    const previousAttempts = samePath ? (Number(image.dataset.loadAttempts) || 0) : 0;
+    if (samePath && image.dataset.loadState === "ready") {
+        image.hidden = false;
+        if (fallback) fallback.hidden = true;
+        if (loadStatus) loadStatus.hidden = true;
+        if (resolveBattleMonsterPortraitReady) {
             const resolve = resolveBattleMonsterPortraitReady;
             resolveBattleMonsterPortraitReady = null;
             resolve(true);
             battleMonsterPortraitReadyPromise = Promise.resolve(true);
         }
+        return;
+    }
+    if (samePath && image.dataset.loadState === "loading") {
+        image.hidden = true;
+        if (fallback) fallback.hidden = false;
+        if (loadStatus) loadStatus.hidden = false;
+        return;
+    }
+    if (samePath && image.dataset.loadState === "error" && previousAttempts >= 2) {
+        image.hidden = true;
+        if (fallback) fallback.hidden = false;
+        if (loadStatus) loadStatus.hidden = true;
         return;
     }
 
@@ -1875,6 +1952,7 @@ function setBattleMonsterPortraitSource(image, fallback, loadStatus, spritePath)
 
     const token = ++battleMonsterPortraitLoadToken;
     image.dataset.variant = spritePath;
+    image.dataset.loadAttempts = String(previousAttempts + 1);
     image.dataset.loadState = "loading";
     image.hidden = true;
     if (fallback) fallback.hidden = false;
@@ -1889,8 +1967,8 @@ function setBattleMonsterPortraitSource(image, fallback, loadStatus, spritePath)
     const finish = (loaded) => finishBattleMonsterPortraitLoad(image, fallback, loadStatus, spritePath, token, loaded);
     image.onload = () => {
         if (token !== battleMonsterPortraitLoadToken || image.dataset.variant !== spritePath) return;
-        const decoded = typeof image.decode === "function" ? image.decode().catch(() => {}) : Promise.resolve();
-        Promise.resolve(decoded).then(() => finish(true));
+        const decoded = typeof image.decode === "function" ? Promise.resolve().then(() => image.decode()) : Promise.resolve();
+        Promise.resolve(decoded).then(() => finish(true), () => finish(false));
     };
     image.onerror = () => finish(false);
     battleMonsterPortraitLoadTimer = setTimeout(() => {
@@ -1901,6 +1979,7 @@ function setBattleMonsterPortraitSource(image, fallback, loadStatus, spritePath)
         image.onload = null;
         image.onerror = null;
     }, 4000);
+    if (samePath) image.removeAttribute?.("src");
     image.src = spritePath;
 }
 
