@@ -521,10 +521,22 @@ let projectileBurstGuardUntil = 0;
         queuedLabels.sort((a, b) => b.priority - a.priority || a.sequence - b.sequence);
     }
 
+    function removeResultLabel(node) {
+        const record = activeLabels.get(node);
+        if (!record) return;
+        if (record.timerId !== null) cancelTrackedTimer(record.timerId);
+        if (typeof record.dispose === "function") {
+            try { record.dispose(); } catch { /* best-effort canvas cleanup */ }
+        }
+        if (node.parentNode) node.remove();
+        activeLabels.delete(node);
+        flushLabelQueue();
+    }
+
     function mountResultLabel(layer, label) {
         if (label.generation !== vfxGeneration || isDocumentHidden() || !layer.isConnected) return;
-        const node = document.createElement("div");
         const viewportHeight = Math.max(1, window.innerHeight || 1);
+        const viewportWidth = Math.max(1, window.innerWidth || 1);
         const laneSpacing = Math.max(16, Math.min(32, (viewportHeight - 48) / 7));
         const firstLane = label.sequence % MAX_ACTIVE_LABELS;
         let laneIndex = firstLane;
@@ -539,6 +551,39 @@ let projectileBurstGuardUntil = 0;
         const maxOffset = laneSpacing * 3.5;
         const safeTop = Math.min(maxOffset + 24, viewportHeight / 2 - 12);
         const labelY = Math.min(viewportHeight - safeTop, Math.max(safeTop, label.position.y / 100 * viewportHeight));
+        const pixelFx = global.PixelFxCombatNumbers;
+        if ((label.kind === "damage" || label.kind === "crit") && !motionReduced() && settings.quality !== "low" && typeof pixelFx?.create === "function") {
+            let controller = null;
+            try {
+                controller = pixelFx.create({
+                    kind: label.kind,
+                    text: label.text,
+                    x: label.position.x / 100 * viewportWidth,
+                    y: labelY + lane,
+                    seed: label.sequence + 1
+                });
+            } catch {
+                controller = null;
+            }
+            if (controller?.element && typeof controller.start === "function") {
+                const node = controller.element;
+                node.setAttribute("aria-hidden", "true");
+                node.setAttribute("data-label-kind", label.kind);
+                layer.appendChild(node);
+                const record = { node, priority: label.priority, sequence: label.sequence, laneIndex, timerId: null, dispose: controller.destroy };
+                activeLabels.set(node, record);
+                let started = false;
+                try { started = controller.start(() => removeResultLabel(node)) !== false; } catch { started = false; }
+                if (started) return;
+                if (typeof controller.destroy === "function") {
+                    try { controller.destroy(); } catch { /* fall through to the HTML label */ }
+                }
+                activeLabels.delete(node);
+                if (node.parentNode) node.remove();
+            }
+        }
+
+        const node = document.createElement("div");
         node.className = `vfx-result-label vfx-label-${label.kind}`;
         node.setAttribute("aria-hidden", "true");
         node.setAttribute("data-label-kind", label.kind);
@@ -549,11 +594,7 @@ let projectileBurstGuardUntil = 0;
         layer.appendChild(node);
         const record = { node, priority: label.priority, sequence: label.sequence, laneIndex, timerId: null };
         activeLabels.set(node, record);
-        record.timerId = scheduleTrackedVfx(() => {
-            if (node.parentNode) node.remove();
-            activeLabels.delete(node);
-            flushLabelQueue();
-        }, label.duration);
+        record.timerId = scheduleTrackedVfx(() => removeResultLabel(node), label.duration);
         if (record.timerId === null) {
             activeLabels.delete(node);
             if (node.parentNode) node.remove();
@@ -688,6 +729,12 @@ let projectileBurstGuardUntil = 0;
         pendingVfxTimers.clear();
         queuedSpawns.clear();
         activeVfxNodes.clear();
+        activeLabels.forEach((record) => {
+            if (typeof record.dispose === "function") {
+                try { record.dispose(); } catch { /* best-effort canvas cleanup */ }
+            }
+            if (record.node?.parentNode) record.node.remove();
+        });
         activeLabels.clear();
         queuedLabels.length = 0;
         labelSequence = 0;

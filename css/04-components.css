@@ -131,6 +131,15 @@ textarea {
     z-index: 121;
 }
 
+.vfx-pixelfx-number {
+    display: block;
+    max-width: none;
+    max-height: none;
+    image-rendering: pixelated;
+    pointer-events: none;
+    user-select: none;
+}
+
 .vfx-result-label {
     position: absolute;
     left: var(--vfx-label-x, 50%);

@@ -783,6 +783,47 @@ function runRoundTwoVfxTests() {
     assert.equal(labels(resultText)[0].getAttribute("data-label-kind"), "damage");
     assert.equal(effects(resultText)[0].getAttribute("data-vfx-text"), "-120 ×6 HP");
 
+    const pixelFxNumbers = createEnvironment();
+    const pixelFxCalls = [];
+    let pixelFxDisposals = 0;
+    pixelFxNumbers.context.PixelFxCombatNumbers = {
+        create(options) {
+            pixelFxCalls.push(options);
+            return {
+                element: new FakeElement("canvas"),
+                start() { return true; },
+                destroy() { pixelFxDisposals++; }
+            };
+        }
+    };
+    pixelFxNumbers.context.spawnVfx("hit", { text: "-120 ×6 HP" });
+    pixelFxNumbers.context.spawnVfx("crit", { text: "-305 HP" });
+    pixelFxNumbers.advanceBy(0);
+    assert.deepEqual(pixelFxCalls.map(({ kind, text }) => ({ kind, text })), [
+        { kind: "damage", text: "-120 ×6 HP" },
+        { kind: "crit", text: "-305 HP" }
+    ], "actual damage/critical labels are routed to PixelFX with the game-computed damage value");
+    assert.equal(labels(pixelFxNumbers).length, 2);
+    assert.ok(labels(pixelFxNumbers).every((node) => node.tagName === "CANVAS"), "PixelFX replaces only the floating damage/crit labels");
+    assert.equal(pixelFxNumbers.context.getVfxDiagnostics().labels, 2);
+    pixelFxNumbers.context.clearVfxLayer();
+    assert.equal(pixelFxDisposals, 2, "scene cleanup disposes active PixelFX renderers");
+    assert.equal(labels(pixelFxNumbers).length, 0);
+
+    const reducedPixelFx = createEnvironment({ reducedMotion: true });
+    let reducedPixelFxCalls = 0;
+    reducedPixelFx.context.PixelFxCombatNumbers = { create() { reducedPixelFxCalls++; return null; } };
+    reducedPixelFx.context.spawnVfx("crit", { text: "-15 HP" });
+    reducedPixelFx.advanceBy(0);
+    assert.equal(reducedPixelFxCalls, 0, "reduced-motion preference bypasses the animated PixelFX number");
+    assert.ok(labels(reducedPixelFx)[0].className.includes("vfx-result-label"), "reduced-motion falls back to the existing static-friendly label");
+
+    const pixelFxFallback = createEnvironment();
+    pixelFxFallback.context.PixelFxCombatNumbers = { create() { return null; } };
+    pixelFxFallback.context.spawnVfx("hit", { text: "-9 HP" });
+    pixelFxFallback.advanceBy(0);
+    assert.equal(labels(pixelFxFallback)[0].textContent, "-9 HP", "a renderer/context failure preserves the original readable label");
+
     const cappedHeal = createEnvironment();
     cappedHeal.context.setInterval = () => 1;
     cappedHeal.context.clearInterval = () => {};
