@@ -245,6 +245,20 @@ function cast(job, id, level = 1, effect = null) {
 assert.equal(skill("hunter", "ht_2").run(10, 100).stunChance, 100, "trap stun chance is capped at 100%");
 assert.equal(skill("knight", "k_2").run(10, 100).stunChance, 90, "knight stun chance is capped at the documented 90%");
 
+// Poison Burst binds the PixelFX dark explosion to the real poison-stack detonation without changing damage.
+{
+    const battle = freshBattle({ job: "thief" });
+    battle.monster.poisonStacks = 3;
+    const effectCalls = [];
+    context.PixelFxSkillEffects = { playPoisonExplosion: () => effectCalls.push("poison-explosion") };
+    const meta = skill("thief", "t_5");
+    assert.equal(context.executeActiveSkill(meta, 1, meta.run(1, battle.run.atk)), true);
+    assert.deepEqual(effectCalls, ["poison-explosion"], "the special PixelFX effect plays exactly once for a successful poison detonation");
+    assert.equal(battle.monster.poisonStacks, 0, "the existing poison stacks are still consumed");
+    assert.ok(battle.monster.hp < 1000, "the existing true-damage calculation still applies");
+    delete context.PixelFxSkillEffects;
+}
+
 // Sage dispels an enemy barrier and temporary buffs only after the attack lands.
 {
     const battle = freshBattle({ job: "sage", shield: 75 });

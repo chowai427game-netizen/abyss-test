@@ -8,7 +8,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const ui = fs.readFileSync(path.join(root, "js/ui.js"), "utf8");
-const transitionUi = ui.match(/let battleSceneLogLines = \[\];[\s\S]*?(?=\nfunction getBattleDiaryTone)/);
+const transitionUi = ui.match(/let battleSceneLogLines = \[\];[\s\S]*?(?=\nconst BATTLE_MONSTER_PORTRAIT_OVERRIDES)/);
 assert.ok(transitionUi, "encounter transition UI lifecycle exists");
 
 function createClassList() {
@@ -20,7 +20,7 @@ function createClassList() {
     };
 }
 
-function createHarness() {
+function createHarness({ transitionAvailable = true } = {}) {
     let nextTimerId = 0;
     const timers = new Map();
     const handles = [];
@@ -109,7 +109,8 @@ function createHarness() {
                 };
             }
         },
-        window: { PixelFxEncounterTransition: transitionApi },
+        window: transitionAvailable ? { PixelFxEncounterTransition: transitionApi } : {},
+        gameState: "BATTLE",
         getComputedStyle() { return { margin: "0px", gridColumn: "auto", gridRow: "auto", alignSelf: "auto", justifySelf: "auto" }; },
         prefersReducedMotion() { return false; },
         setTimeout(callback, delay) {
@@ -121,7 +122,7 @@ function createHarness() {
         Promise
     };
     vm.createContext(sandbox);
-    vm.runInContext(`${transitionUi[0]}\nthis.playIntro = playBattleSceneEncounterIntro;\nthis.restoreIntro = restoreBattleSceneAfterEncounterIntro;`, sandbox);
+    vm.runInContext(`${transitionUi[0]}\nthis.playIntro = playBattleSceneEncounterIntro;\nthis.restoreIntro = restoreBattleSceneAfterEncounterIntro;\nthis.syncDiary = syncBattleSceneLog;\nthis.getDiary = () => battleSceneLogLines;\nthis.transitionIsActive = () => Boolean(battleSceneShatterTransition);`, sandbox);
 
     return {
         sandbox,
@@ -154,8 +155,19 @@ function createHarness() {
     assert.equal(harness.handles[0].started, true, "the wipe starts after the 420 ms encounter zoom");
     harness.getTransitionArgs().onCovered();
     assert.equal(harness.scene.classList.contains("is-encounter-reveal-held"), false, "the monster is released at the opaque pane callback");
+    let introResolved = false;
+    introReady.then(() => { introResolved = true; });
+    await Promise.resolve();
+    assert.equal(introResolved, false, "the encounter gate stays closed while the pane is covered and waiting to burst");
+    harness.getTransitionArgs().onBurst();
+    assert.equal(await introReady, true, "the encounter gate opens at the burst callback");
+    assert.equal(harness.sandbox.transitionIsActive(), true, "the visual transition continues after combat begins");
+    harness.sandbox.syncDiary("⚔️【降臨 B5F】發現魔物：<strong>💧 藍色史萊姆</strong>");
+    assert.equal(harness.sandbox.getDiary().length, 1, "the encounter diary is added when the burst has revealed the monster");
+    assert.equal(harness.handles[0].cancelled, false, "adding the encounter diary does not cancel the active Shatter Wipe");
     harness.handles[0].resolveFinished(true);
-    assert.equal(await introReady, true, "the encounter gate opens when the transition completes");
+    await Promise.resolve();
+    assert.equal(harness.sandbox.transitionIsActive(), false, "the transition handle is cleared when the remaining shards finish");
 
     const cancelledIntro = harness.sandbox.playIntro();
     assert.equal(harness.scene.classList.contains("is-encounter-reveal-held"), true, "a second encounter holds the portrait again");
@@ -166,7 +178,14 @@ function createHarness() {
     assert.equal(harness.timers.size, 0, "cancelled intros clear their delayed start timer");
     assert.equal(harness.scene.parentNode, harness.originalParent, "the scene returns to its original layout container");
 
-    console.log("Battle encounter UI transition tests passed: zoom sequencing, opaque portrait reveal, gate release, and cancellation cleanup.");
+    const fallbackHarness = createHarness({ transitionAvailable: false });
+    assert.equal(fallbackHarness.sandbox.playIntro(), 420, "missing PixelFX uses the bounded zoom fallback");
+    assert.equal(fallbackHarness.scene.classList.contains("is-encounter-cinematic"), true);
+    fallbackHarness.sandbox.syncDiary("發現魔物：💧 藍色史萊姆");
+    assert.equal(fallbackHarness.scene.classList.contains("is-encounter-cinematic"), true, "the delayed diary does not cancel the fallback zoom");
+    fallbackHarness.sandbox.restoreIntro();
+
+    console.log("Battle encounter UI transition tests passed: zoom, opaque portrait reveal, burst-time gate, deferred diary, fallback zoom, and cancellation cleanup.");
 })().catch((error) => {
     console.error(error);
     process.exitCode = 1;

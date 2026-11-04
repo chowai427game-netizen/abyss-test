@@ -3,6 +3,7 @@
    -------------------------------------------------------------------------- */
 .battle-scene {
     --battle-enemy-ground: clamp(18px, 7%, 46px);
+    --battle-monster-global-lift: 70px;
     position: relative;
     isolation: isolate;
     width: 100%;
@@ -189,6 +190,14 @@
     overflow: hidden;
 }
 
+.battle-pixelfx-skill-effect {
+    position: absolute;
+    z-index: 5;
+    display: block;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+
 .battle-sprite-platform {
     position: absolute;
     bottom: calc(var(--battle-enemy-ground) - 2px);
@@ -209,7 +218,7 @@
     width: auto;
     height: var(--battle-monster-desktop-height, 168px);
     max-width: 70%;
-    bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-desktop-lift, 0px));
+    bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-global-lift, 70px) + var(--battle-monster-desktop-lift, 0px));
     transform: translateX(-50%);
     object-fit: contain;
     object-position: center bottom;
@@ -239,7 +248,7 @@
 .battle-monster-fallback {
     position: absolute;
     z-index: 2;
-    bottom: calc(var(--battle-enemy-ground) + 10px);
+    bottom: calc(var(--battle-enemy-ground) + 10px + var(--battle-monster-global-lift, 70px));
     left: 50%;
     transform: translateX(-50%);
     font-size: clamp(74px, 18vw, 126px);
@@ -306,7 +315,7 @@
 .battle-monster-vfx-anchor {
     position: absolute;
     z-index: 3;
-    bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-vfx-lift, 20px));
+    bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-global-lift, 70px) + var(--battle-monster-vfx-lift, 20px));
     left: 50%;
     width: min(54%, 330px);
     height: 66%;
@@ -642,9 +651,9 @@ body.battle-scene-cinematic-returning::before { animation: battle-backdrop-retur
     .battle-hud-card strong { font-size: 11px; }
     .battle-atb-heading { font-size: 8px; }
     .battle-sprite-platform { width: 46%; }
-    .battle-sprite { height: var(--battle-monster-mobile-height, 142px); max-width: 92%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-mobile-lift, 0px)); }
+    .battle-sprite { height: var(--battle-monster-mobile-height, 142px); max-width: 92%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-global-lift, 70px) + var(--battle-monster-mobile-lift, 0px)); }
     .battle-enemy-sprite.battle-boss-sprite { height: var(--battle-monster-mobile-height, 178px); max-width: 94%; }
-    .battle-monster-vfx-anchor { width: 68%; height: 66%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-mobile-vfx-lift, 18px)); }
+    .battle-monster-vfx-anchor { width: 68%; height: 66%; bottom: calc(var(--battle-enemy-ground) + var(--battle-monster-global-lift, 70px) + var(--battle-monster-mobile-vfx-lift, 18px)); }
     .battle-monster-inspect-card { top: 41%; left: 50%; width: min(204px, 58%); padding: 6px 7px; font-size: 9px; }
     .battle-monster-inspect-heading { font-size: 10px; }
     .battle-attack-swipe { inset: 18% -4% 8%; }

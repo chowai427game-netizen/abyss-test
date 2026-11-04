@@ -897,6 +897,7 @@ function executeActiveSkill(skillMeta, skillLevel, preparedEffect = null) {
             const result = applyDamageWithShield(activeMonster, rawExplosionDamage);
             if (result.absorbed > 0) vfx("shield", { anchor: "monster", text: `-${result.absorbed}` });
             vfx("hit", { anchor: "monster", text: `-${result.actualHpDmg}`, firstPersonAttack: true, result: "hit", particleCount: typeof prefersReducedMotion === "function" && prefersReducedMotion() ? 0 : 4 });
+            if (typeof window !== "undefined") window.PixelFxSkillEffects?.playPoisonExplosion?.();
             activeMonster.poisonStacks = 0;
             damageApplied = true;
             if (typeof addLog === "function") addLog(`🧪💥 引爆全部 <span class="skill-poison">${poisonStacks} 層劇毒</span>！造成 <span class="num-popup num-p-dmg">-${result.actualHpDmg} HP</span>！`, "skill-hit");
@@ -1740,6 +1741,8 @@ function startNodeCombat(nodeType) {
         const isBossNode = (nodeType === "BOSS" || dungeonFloor % 10 === 0);
         const isEliteNode = (nodeType === "ELITE");
         let shouldSpawnBossEntryVfx = false;
+        let encounterLogMessage = "";
+        let encounterLogType = "deal";
 
         if (isBossNode) {
             let bossMeta = (typeof BOSS_DATABASE !== "undefined" && BOSS_DATABASE[dungeonFloor]) || { 
@@ -1774,7 +1777,8 @@ function startNodeCombat(nodeType) {
                 fixedDrop: bossMeta.dropItem 
             };
             shouldSpawnBossEntryVfx = true;
-            if (typeof addLog === "function") addLog(`🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`, "take");
+            encounterLogMessage = `🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`;
+            encounterLogType = "take";
         } else {
             const generatedMonster = typeof spawnMonsterForFloor === "function"
                 ? spawnMonsterForFloor(dungeonFloor)
@@ -1808,7 +1812,7 @@ function startNodeCombat(nodeType) {
             };
             
             let eliteText = isEliteNode ? ` 🔥【狂暴精英對決】` : ``;
-            if (typeof addLog === "function") addLog(`⚔️【降臨 B${dungeonFloor}F】${eliteText}發現魔物：<strong>${activeMonster.name}</strong>`);
+            encounterLogMessage = `⚔️【降臨 B${dungeonFloor}F】${eliteText}發現魔物：<strong>${activeMonster.name}</strong>`;
         }
         
         activeTactic = normalizeTacticMode((currentRun && currentRun.tactic) || activeTactic);
@@ -1816,22 +1820,30 @@ function startNodeCombat(nodeType) {
         combatPaused = false;
         syncTacticButtonsUi();
         syncCombatPauseUi();
-        if (typeof updateUI === "function") updateUI();
-        if (shouldSpawnBossEntryVfx) {
-            scheduleVfx(() => {
-                spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: prefersReducedMotion() ? 0 : 4 });
-            });
-        }
         const introSignal = typeof playBattleSceneEncounterIntro === "function" ? playBattleSceneEncounterIntro() : 0;
         const introIsPromise = Boolean(introSignal && typeof introSignal.then === "function");
-        let introReady = !introIsPromise && Number(introSignal) <= 0;
+        const introDelay = introIsPromise ? 0 : Math.max(0, Number(introSignal) || 0);
+        let introReady = !introIsPromise && introDelay <= 0;
         let portraitReady = typeof waitForBattleMonsterPortraitReady !== "function";
+        let encounterStarted = false;
         const startEncounterWhenReady = () => {
-            if (encounterGeneration !== combatEncounterGeneration || !introReady || !portraitReady) return;
+            if (encounterStarted || encounterGeneration !== combatEncounterGeneration || !introReady || !portraitReady) return;
+            encounterStarted = true;
             combatIntroStartTimer = null;
+            if (gameState !== "BATTLE" || !activeMonster || !currentRun || currentRun.hp <= 0) {
+                combatEncounterCooldownPending = false;
+                return;
+            }
+            if (encounterLogMessage && typeof addLog === "function") addLog(encounterLogMessage, encounterLogType);
+            if (shouldSpawnBossEntryVfx) {
+                scheduleVfx(() => {
+                    spawnVfx("boss-entry", { anchor: "monster", duration: 900, particleCount: prefersReducedMotion() ? 0 : 4 });
+                });
+            }
             combatEncounterCooldownPending = false;
-            if (gameState === "BATTLE" && activeMonster && currentRun && currentRun.hp > 0) startCombatTicker();
+            startCombatTicker();
         };
+        if (typeof updateUI === "function") updateUI();
         if (introIsPromise) {
             Promise.resolve(introSignal)
                 .catch(() => false)
@@ -1839,7 +1851,7 @@ function startNodeCombat(nodeType) {
                     introReady = true;
                     startEncounterWhenReady();
                 });
-        } else if (Number(introSignal) > 0) {
+        } else if (introDelay > 0) {
             combatIntroStartTimer = setTimeout(() => {
                 combatIntroStartTimer = null;
                 introReady = true;

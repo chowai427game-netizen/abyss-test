@@ -44,14 +44,16 @@ assert.match(game, /function playBattleMonsterDefeatAnimation\(\)/, "victory seq
 assert.match(game, /playBattleMonsterDefeatAnimation\(\)/, "monster defeat animation is triggered before the battle result");
 assert.match(ui, /function completeBattleSceneEncounterIntro\(/, "encounter transitions always release their portrait and combat gates");
 assert.match(ui, /onCovered:[\s\S]*?is-encounter-reveal-held/, "the portrait is released only after the Shatter pane fully covers the scene");
-assert.match(game, /introIsPromise[\s\S]*?Promise\.resolve\(introSignal\)/, "combat waits for the transition promise as well as portrait readiness");
+assert.match(ui, /onBurst:[\s\S]*?resolveBattleSceneEncounterIntro/, "the encounter promise opens at the shatter burst, not after cleanup");
+assert.match(ui, /const cinematicActive = scene\?\.classList\?\.contains\('is-encounter-cinematic'\);[\s\S]*?if \(!battleSceneShatterTransition && !cinematicActive\) restoreBattleSceneAfterEncounterIntro\(\)/, "adding the delayed encounter diary preserves both Shatter Wipe and zoom fallbacks");
+assert.match(game, /introIsPromise[\s\S]*?Promise\.resolve\(introSignal\)/, "combat waits for the burst promise as well as portrait readiness");
 assert.match(ui, /function waitForBattleMonsterPortraitReady\(\)/, "battle UI exposes the monster portrait readiness promise");
 assert.match(ui, /image\.decode\(\)/, "portrait readiness waits for browser image decoding");
 assert.match(game, /combatEncounterCooldownPending/, "ATB remains locked while the encounter is loading");
 assert.match(ui, /function playBattleSceneEncounterIntro\(\)/, "encounter intro preserves the original layout before moving the scene");
 assert.match(ui, /function returnBattleSceneAfterResult\(delay = 2000\)/, "the floating scene waits two seconds after the result before returning");
 assert.match(ui, /returnBattleSceneAfterResult\(2000\)/, "both victory and defeat journal results schedule the two-second return");
-assert.match(game, /playBattleSceneEncounterIntro\(\)[\s\S]*?startCombatTicker\(\);/, "ATB starts only after the encounter intro transition");
+assert.match(game, /encounterLogMessage[\s\S]*?startCombatTicker\(\);/, "the encounter diary and ATB start only after reveal gates open");
 assert.match(css, /\.battle-meter span\s*\{[\s\S]*?transition: width \.25s linear;/, "ATB bars interpolate continuously instead of stepping");
 assert.match(ui, /getSkillCooldownRemaining\(skillMeta\)/, "the battle HUD displays live remaining cooldown seconds");
 assert.match(html, /tactic-btn-MANUAL[\s\S]*?手動指令[\s\S]*?選擇戰鬥、技能或道具/, "manual mode presents selectable player commands");
@@ -69,12 +71,14 @@ assert.match(css, /\.battle-monster-inspect-card\s*\{/, "battle scene includes a
 assert.match(css, /#battle-scene-box:has\(#battle-monster-sprite:hover\) \.battle-monster-inspect-card/, "hovering the monster reveals the information card");
 assert.match(css, /--battle-enemy-ground:\s*clamp\(/, "enemy, ground shadow and VFX share a responsive foreground anchor");
 assert.match(css, /\.battle-scene\s*\{[\s\S]*?--battle-enemy-ground:\s*clamp\(18px, 7%, 46px\)/, "grounded monsters share the corrected lower ground baseline");
-assert.match(css, /\.battle-sprite\s*\{[\s\S]*?height:\s*var\(--battle-monster-desktop-height, 168px\);[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-desktop-lift, 0px\)\);[\s\S]*?object-position:\s*center bottom;/, "monster height and lift are driven by individual presentation settings");
+assert.match(css, /\.battle-scene\s*\{[\s\S]*?--battle-monster-global-lift:\s*70px;/, "all battle scenes apply the cumulative 70px monster lift");
+assert.match(css, /\.battle-sprite\s*\{[\s\S]*?height:\s*var\(--battle-monster-desktop-height, 168px\);[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-global-lift, 70px\) \+ var\(--battle-monster-desktop-lift, 0px\)\);[\s\S]*?object-position:\s*center bottom;/, "desktop monsters retain individual lifts in addition to the cumulative 70px rise");
 assert.match(css, /\.battle-enemy-sprite\.battle-boss-sprite\s*\{\s*height:\s*var\(--battle-monster-desktop-height, 218px\);\s*max-width:\s*72%;\s*\}/, "bosses retain a large default size while accepting individual portrait overrides");
-assert.match(css, /@media \(max-width: 600px\)[\s\S]*?--battle-enemy-ground:\s*clamp\(16px, 7%, 34px\)[\s\S]*?\.battle-sprite\s*\{\s*height:\s*var\(--battle-monster-mobile-height, 142px\);\s*max-width:\s*92%;\s*bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-mobile-lift, 0px\)\);\s*\}/, "mobile monster position and size remain responsive");
+assert.match(css, /@media \(max-width: 600px\)[\s\S]*?--battle-enemy-ground:\s*clamp\(16px, 7%, 34px\)[\s\S]*?\.battle-sprite\s*\{\s*height:\s*var\(--battle-monster-mobile-height, 142px\);\s*max-width:\s*92%;\s*bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-global-lift, 70px\) \+ var\(--battle-monster-mobile-lift, 0px\)\);\s*\}/, "mobile monsters retain individual lifts in addition to the cumulative 70px rise");
 assert.match(css, /\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\):not\(\.is-defeated\)[\s\S]*?animation:\s*battle-monster-hover/, "floating monsters stop bobbing while hit or defeat animations play");
 assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.battle-scene\.is-floating-monster \.battle-enemy-sprite:not\(\.is-hit\):not\(\.is-critical\):not\(\.is-defeated\)[\s\S]*?animation-duration:\s*1ms/, "floating animation respects reduced-motion preference");
-assert.match(css, /\.battle-monster-vfx-anchor\s*\{[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-vfx-lift, 20px\)\)/, "hit VFX can align with individually elevated monsters");
+assert.match(css, /\.battle-monster-fallback\s*\{[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ 10px \+ var\(--battle-monster-global-lift, 70px\)\)/, "fallback monster icons receive the same cumulative 70px rise");
+assert.match(css, /\.battle-monster-vfx-anchor\s*\{[\s\S]*?bottom:\s*calc\(var\(--battle-enemy-ground\) \+ var\(--battle-monster-global-lift, 70px\) \+ var\(--battle-monster-vfx-lift, 20px\)\)/, "hit VFX anchor follows the cumulative 70px rise and per-monster lift");
 assert.match(ui, /"🐗 荒野半獸人": \{ desktopHeight: 220, mobileHeight: 188 \}/, "the wild orc is configured as a large monster");
 assert.match(ui, /"🧱 古墓巨石守衛": \{ desktopHeight: 228, mobileHeight: 194 \}/, "the stone guardian is configured as the largest regular monster");
 assert.match(ui, /"👻 迷途哭泣怨靈": \{[^\n]*desktopLift: 58, mobileLift: 42[^\n]*floating: true \}/, "the wraith is raised above the ground and floats");
@@ -301,12 +305,21 @@ let battleSceneTerminalSnapshot = null;
 let battleSceneTerminalTimer = null;
 let battleSceneTypingTimers = [null, null];
 let battleSceneLogSequence = 0;
+let battleSceneShatterTransition = null;
 function restoreBattleSceneAfterEncounterIntro() {}
 function returnBattleSceneAfterResult() { return true; }
 ${toneSource[0]}
 function renderBattleSceneLog() {
     diaryElements["battle-scene-log-line-1"].textContent = battleSceneLogLines[0]?.text || "發現魔物";
     diaryElements["battle-scene-log-line-2"].textContent = battleSceneLogLines[1]?.text || "戰鬥開始！";
+}
+function resetBattleSceneDiaryForEncounter() {
+    battleSceneLogLines = [];
+    battleSceneTypingTimers = [null, null];
+    battleSceneTerminalUntil = 0;
+    battleSceneTerminalSnapshot = null;
+    battleSceneTerminalTimer = null;
+    renderBattleSceneLog();
 }
 ${logSource[0]}
 this.getLines = () => battleSceneLogLines;

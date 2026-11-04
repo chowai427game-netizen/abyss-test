@@ -6,6 +6,8 @@ const [ORIGIN_X, ORIGIN_Y] = shatterWipe.meta.origin;
 const FRAME_STEP = 1 / 30;
 // Shatter Wipe's upstream LAND point: the pane has reached and covered the full 320x180 frame.
 export const ENCOUNTER_SHATTER_COVER_TIME = 0.55;
+// Shatter Wipe's upstream BREAK point: the first burst/shard frame begins here.
+export const ENCOUNTER_SHATTER_BURST_TIME = 1.62;
 export const ENCOUNTER_SHATTER_OPTIONS = Object.freeze({
     speed: 0.5,
     palette: "smoke",
@@ -38,7 +40,8 @@ function createBattleEncounterTransition({
     palette = ENCOUNTER_SHATTER_OPTIONS.palette,
     color = ENCOUNTER_SHATTER_OPTIONS.color,
     seed = ENCOUNTER_SHATTER_OPTIONS.seed,
-    onCovered
+    onCovered,
+    onBurst
 } = {}) {
     if (!container?.appendChild || typeof document === "undefined" || typeof globalThis.requestAnimationFrame !== "function") return null;
 
@@ -82,6 +85,7 @@ function createBattleEncounterTransition({
     let effectTime = 0;
     let hasDrawn = false;
     let covered = false;
+    let burst = false;
     let resolveFinished;
     const finished = new Promise((resolve) => { resolveFinished = resolve; });
 
@@ -129,6 +133,10 @@ function createBattleEncounterTransition({
                 covered = true;
                 if (typeof onCovered === "function") onCovered();
             }
+            if (!burst && covered && effectTime >= ENCOUNTER_SHATTER_BURST_TIME) {
+                burst = true;
+                if (typeof onBurst === "function") onBurst();
+            }
             if (effect.done()) {
                 finish(true);
                 return;
@@ -166,7 +174,8 @@ function createBattleEncounterTransition({
 const api = Object.freeze({
     create: createBattleEncounterTransition,
     options: ENCOUNTER_SHATTER_OPTIONS,
-    coverTime: ENCOUNTER_SHATTER_COVER_TIME
+    coverTime: ENCOUNTER_SHATTER_COVER_TIME,
+    burstTime: ENCOUNTER_SHATTER_BURST_TIME
 });
 if (typeof window !== "undefined") window.PixelFxEncounterTransition = api;
 

@@ -1353,6 +1353,7 @@ function playBattleSceneEncounterIntro() {
     const scene = DOM.get('battle-scene-box');
     if (typeof document === "undefined" || !document.body || !scene || !scene.parentNode || typeof scene.getBoundingClientRect !== "function") return 0;
     restoreBattleSceneAfterEncounterIntro();
+    resetBattleSceneDiaryForEncounter();
 
     const rect = scene.getBoundingClientRect();
     if (!rect.width || !rect.height) return 0;
@@ -1385,6 +1386,13 @@ function playBattleSceneEncounterIntro() {
             ...(transitionApi.options || { speed: 0.5, palette: "smoke" }),
             onCovered: () => {
                 if (battleSceneShatterTransition === transition) scene.classList.remove('is-encounter-reveal-held');
+            },
+            onBurst: () => {
+                if (battleSceneShatterTransition !== transition) return;
+                scene.classList.remove('is-encounter-reveal-held');
+                const resolve = resolveBattleSceneEncounterIntro;
+                resolveBattleSceneEncounterIntro = null;
+                if (resolve) resolve(true);
             }
         });
     } catch (_error) {
@@ -1475,21 +1483,28 @@ function renderBattleSceneLog(animateLatest = false) {
     setBattleDiaryLine(DOM.get('battle-scene-log-line-2'), 1, secondEntry, animateLatest);
 }
 
+function resetBattleSceneDiaryForEncounter() {
+    battleSceneLogLines = [];
+    battleSceneTypingTimers.forEach((timer, index) => {
+        if (timer !== null) clearInterval(timer);
+        battleSceneTypingTimers[index] = null;
+    });
+    battleSceneTerminalUntil = 0;
+    battleSceneTerminalSnapshot = null;
+    if (battleSceneTerminalTimer !== null) clearTimeout(battleSceneTerminalTimer);
+    battleSceneTerminalTimer = null;
+    renderBattleSceneLog(false);
+}
+
 function syncBattleSceneLog(message, logType = "deal") {
     const text = String(message || "").replace(/\s+/g, " ").trim();
     if (!text) return;
     const foundMonster = /發現(?:大領主|魔物)/.test(text);
     if (foundMonster) {
-        restoreBattleSceneAfterEncounterIntro();
-        battleSceneLogLines = [];
-        battleSceneTypingTimers.forEach((timer, index) => {
-            if (timer !== null) clearInterval(timer);
-            battleSceneTypingTimers[index] = null;
-        });
-        battleSceneTerminalUntil = 0;
-        battleSceneTerminalSnapshot = null;
-        if (battleSceneTerminalTimer !== null) clearTimeout(battleSceneTerminalTimer);
-        battleSceneTerminalTimer = null;
+        const scene = DOM.get('battle-scene-box');
+        const cinematicActive = scene?.classList?.contains('is-encounter-cinematic');
+        if (!battleSceneShatterTransition && !cinematicActive) restoreBattleSceneAfterEncounterIntro();
+        resetBattleSceneDiaryForEncounter();
     }
 
     const victory = /VICTORY!/i.test(text);
