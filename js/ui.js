@@ -434,8 +434,14 @@ function updateHpBarWithGhost(current, max, fillElId, ghostElId) {
 // --------------------------------------------------------------------------
 
 let touchCardTimer = null;
+let floatingCardDismissTimer = null;
+let floatingCardIgnoreHoverUntil = 0;
 
 function showFloatingCard(e, title, type, desc, stats = "", anchorElement = null) {
+    if (floatingCardDismissTimer !== null) {
+        clearTimeout(floatingCardDismissTimer);
+        floatingCardDismissTimer = null;
+    }
     let card = document.getElementById('floating-item-card');
     if (!card) {
         card = document.createElement('div');
@@ -474,6 +480,10 @@ function hideFloatingCard() {
         clearTimeout(touchCardTimer);
         touchCardTimer = null;
     }
+    if (floatingCardDismissTimer !== null) {
+        clearTimeout(floatingCardDismissTimer);
+        floatingCardDismissTimer = null;
+    }
     const card = document.getElementById('floating-item-card');
     if (card) card.classList.remove('active');
 }
@@ -485,21 +495,38 @@ function bindFloatingCard(element, getCardDataFn) {
         const data = getCardDataFn();
         if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats, element);
     };
-    element.onmouseenter = showCard;
+    element.onmouseenter = (e) => {
+        if (Date.now() < floatingCardIgnoreHoverUntil || e?.pointerType === "touch") return;
+        showCard(e);
+    };
     element.onmouseleave = () => hideFloatingCard();
     element.onfocus = showCard;
     element.onblur = () => hideFloatingCard();
 
     element.ontouchstart = (e) => {
+        floatingCardIgnoreHoverUntil = Date.now() + 1200;
         if (touchCardTimer) clearTimeout(touchCardTimer);
         touchCardTimer = setTimeout(() => {
+            touchCardTimer = null;
             const data = getCardDataFn();
             if (data) showFloatingCard(e, data.title, data.type, data.desc, data.stats, element);
         }, 220);
     };
     element.ontouchmove = () => hideFloatingCard(); 
-    element.ontouchend = () => hideFloatingCard();
+    element.ontouchend = () => {
+        floatingCardIgnoreHoverUntil = Date.now() + 1200;
+        if (touchCardTimer) {
+            clearTimeout(touchCardTimer);
+            touchCardTimer = null;
+        }
+        const card = document.getElementById('floating-item-card');
+        if (card?.classList?.contains('active')) {
+            if (floatingCardDismissTimer !== null) clearTimeout(floatingCardDismissTimer);
+            floatingCardDismissTimer = setTimeout(hideFloatingCard, 1400);
+        }
+    };
     element.ontouchcancel = () => hideFloatingCard();
+    element.addEventListener?.('click', hideFloatingCard);
 }
 
 // --------------------------------------------------------------------------
@@ -1281,6 +1308,9 @@ function switchVillageLocation(targetLoc) {
 let battleSceneLogLines = [];
 let battleSceneTypingTimers = [null, null];
 let battleSceneLogSequence = 0;
+let battleSceneEncounterLogEntry = null;
+let battleSceneEncounterLogPinUntil = 0;
+let battleSceneEncounterLogPinTimer = null;
 let battleSceneTerminalUntil = 0;
 let battleSceneTerminalSnapshot = null;
 let battleSceneTerminalTimer = null;
@@ -1299,11 +1329,26 @@ function completeBattleSceneEncounterIntro(transition, completed = false) {
     const runningTransition = battleSceneShatterTransition;
     battleSceneShatterTransition = null;
     if (runningTransition && !completed) runningTransition.cancel?.();
+    if (runningTransition && completed && battleSceneEncounterLogEntry) holdBattleSceneEncounterLog(1000);
+    else if (runningTransition && !completed && battleSceneEncounterLogEntry) holdBattleSceneEncounterLog(1000);
     DOM.get('battle-scene-box')?.classList?.remove('is-encounter-reveal-held');
     const resolve = resolveBattleSceneEncounterIntro;
     resolveBattleSceneEncounterIntro = null;
     if (resolve) resolve(Boolean(completed));
     return true;
+}
+
+function holdBattleSceneEncounterLog(duration = 1000) {
+    if (battleSceneEncounterLogPinTimer !== null) clearTimeout(battleSceneEncounterLogPinTimer);
+    const holdMs = Math.max(0, Number(duration) || 0);
+    battleSceneEncounterLogPinUntil = Date.now() + holdMs;
+    battleSceneEncounterLogPinTimer = setTimeout(() => {
+        battleSceneEncounterLogPinTimer = null;
+        battleSceneEncounterLogPinUntil = 0;
+        battleSceneEncounterLogEntry = null;
+        renderBattleSceneLog();
+    }, holdMs);
+    renderBattleSceneLog();
 }
 
 function restoreBattleSceneAfterEncounterIntro() {
@@ -1477,8 +1522,12 @@ function setBattleDiaryLine(element, index, entry, animate) {
 }
 
 function renderBattleSceneLog(animateLatest = false) {
-    const firstEntry = battleSceneLogLines[0] || { text: "發現魔物", tone: "status" };
-    const secondEntry = battleSceneLogLines[1] || { text: "戰鬥開始！", tone: "status" };
+    const pinEncounter = battleSceneEncounterLogEntry && Date.now() < battleSceneEncounterLogPinUntil;
+    const recentEntries = pinEncounter
+        ? battleSceneLogLines.filter((entry) => entry.id !== battleSceneEncounterLogEntry.id)
+        : battleSceneLogLines;
+    const firstEntry = pinEncounter ? battleSceneEncounterLogEntry : (recentEntries[0] || { text: "發現魔物", tone: "status" });
+    const secondEntry = (pinEncounter ? recentEntries[recentEntries.length - 1] : recentEntries[1]) || { text: "戰鬥開始！", tone: "status" };
     setBattleDiaryLine(DOM.get('battle-scene-log-line-1'), 0, firstEntry, false);
     setBattleDiaryLine(DOM.get('battle-scene-log-line-2'), 1, secondEntry, animateLatest);
 }
@@ -1491,6 +1540,10 @@ function resetBattleSceneDiaryForEncounter() {
     });
     battleSceneTerminalUntil = 0;
     battleSceneTerminalSnapshot = null;
+    battleSceneEncounterLogEntry = null;
+    battleSceneEncounterLogPinUntil = 0;
+    if (battleSceneEncounterLogPinTimer !== null) clearTimeout(battleSceneEncounterLogPinTimer);
+    battleSceneEncounterLogPinTimer = null;
     if (battleSceneTerminalTimer !== null) clearTimeout(battleSceneTerminalTimer);
     battleSceneTerminalTimer = null;
     renderBattleSceneLog(false);
@@ -1513,8 +1566,14 @@ function syncBattleSceneLog(message, logType = "deal") {
     if (!inBattle && !victory && !defeat) return;
     if (battleSceneTerminalUntil > Date.now()) return;
 
-    battleSceneLogLines.push({ id: ++battleSceneLogSequence, text, tone: getBattleDiaryTone(text, logType) });
+    const entry = { id: ++battleSceneLogSequence, text, tone: getBattleDiaryTone(text, logType) };
+    battleSceneLogLines.push(entry);
     if (battleSceneLogLines.length > 2) battleSceneLogLines = battleSceneLogLines.slice(-2);
+    if (foundMonster) {
+        battleSceneEncounterLogEntry = entry;
+        if (battleSceneShatterTransition) battleSceneEncounterLogPinUntil = Number.POSITIVE_INFINITY;
+        else holdBattleSceneEncounterLog(1000);
+    }
     renderBattleSceneLog(true);
 
     if (victory || defeat) {
@@ -1777,6 +1836,8 @@ function updateBattleMonsterInspectCard(monster) {
     if (monster.weakness) details.push(`弱點：${monster.weakness}`);
     if (Number(monster.shield) > 0) details.push(`護盾：${Math.floor(Number(monster.shield))}`);
     if (monster.attackType === "magic") details.push("魔法攻擊");
+    const specialSkills = [monster.skill, monster.phaseSkill].filter((skill) => skill && skill.name);
+    specialSkills.forEach((skill) => details.push(`特技：${skill.name} — ${skill.desc || "留意敵方蓄力預告。"}`));
     setText('battle-monster-inspect-name', name);
     setText('battle-monster-inspect-type', category);
     setText('battle-monster-inspect-desc', String(monster.desc || "深淵威脅生物。留意牠的行動條與攻擊節奏。"));
@@ -2002,6 +2063,89 @@ function waitForBattleMonsterPortraitReady() {
     return battleMonsterPortraitReadyPromise;
 }
 
+const BATTLE_SCENE_BACKGROUND_PATHS = Object.freeze({
+    NORMAL: "assets/combat/battle-ruins-bg.png",
+    VOID: "assets/combat/battle-void-bg.png",
+    ICE: "assets/combat/battle-ice-bg.png",
+    FIRE: "assets/combat/battle-fire-bg.png",
+    POISON: "assets/combat/battle-poison-bg.png"
+});
+const battleSceneBackgroundLoaded = new Set();
+const battleSceneBackgroundFailed = new Set();
+const battleSceneBackgroundLoads = new Map();
+
+function getBattleSceneBackgroundEnvironment(environmentKey) {
+    return typeof environmentKey === "string" && Object.prototype.hasOwnProperty.call(BATTLE_SCENE_BACKGROUND_PATHS, environmentKey)
+        ? environmentKey
+        : "NORMAL";
+}
+
+function preloadBattleSceneBackground(environmentKey = currentEnvironment) {
+    const key = getBattleSceneBackgroundEnvironment(environmentKey);
+    if (battleSceneBackgroundLoaded.has(key)) return Promise.resolve(true);
+    if (battleSceneBackgroundFailed.has(key)) return Promise.resolve(false);
+    if (battleSceneBackgroundLoads.has(key)) return battleSceneBackgroundLoads.get(key);
+    if (typeof Image !== "function") {
+        battleSceneBackgroundFailed.add(key);
+        return Promise.resolve(false);
+    }
+
+    const imagePath = BATTLE_SCENE_BACKGROUND_PATHS[key];
+    let loadingPromise;
+    loadingPromise = new Promise((resolve) => {
+        const image = new Image();
+        let settled = false;
+        let timeoutId = null;
+        const finish = (loaded) => {
+            if (settled) return;
+            settled = true;
+            if (timeoutId !== null) clearTimeout(timeoutId);
+            image.onload = null;
+            image.onerror = null;
+            resolve(Boolean(loaded));
+        };
+        timeoutId = setTimeout(() => finish(false), 5000);
+        image.onload = () => {
+            let decodeResult;
+            try {
+                decodeResult = typeof image.decode === "function" ? image.decode() : Promise.resolve();
+            } catch (error) {
+                finish(false);
+                return;
+            }
+            Promise.resolve(decodeResult).then(
+                () => finish(Number(image.naturalWidth) > 0),
+                () => finish(false)
+            );
+        };
+        image.onerror = () => finish(false);
+        try {
+            image.src = imagePath;
+            if (image.complete && Number(image.naturalWidth) > 0) image.onload();
+        } catch (error) {
+            finish(false);
+        }
+    });
+    battleSceneBackgroundLoads.set(key, loadingPromise);
+    loadingPromise.then(() => {
+        if (battleSceneBackgroundLoads.get(key) === loadingPromise) battleSceneBackgroundLoads.delete(key);
+    });
+    return loadingPromise;
+}
+
+function waitForBattleSceneBackgroundReady(environmentKey = currentEnvironment) {
+    const key = getBattleSceneBackgroundEnvironment(environmentKey);
+    if (battleSceneBackgroundLoaded.has(key)) return Promise.resolve(true);
+    if (battleSceneBackgroundFailed.has(key)) return Promise.resolve(false);
+    return preloadBattleSceneBackground(key).then((loaded) => {
+        if (loaded) battleSceneBackgroundLoaded.add(key);
+        else battleSceneBackgroundFailed.add(key);
+        const scene = DOM.get('battle-scene-box');
+        if (scene && currentEnvironment === key) scene.classList.toggle('is-background-fallback', !loaded);
+        return loaded;
+    });
+}
+
 function updateBattleScene(monster) {
     const scene = DOM.get('battle-scene-box');
     if (!scene) return;
@@ -2011,7 +2155,9 @@ function updateBattleScene(monster) {
         typeof currentRun !== "undefined" && currentRun;
     const showResult = Boolean(terminalVisible && sceneMonster && typeof currentRun !== "undefined" && currentRun);
     const showScene = Boolean(inBattle || showResult);
-    scene.style.display = showScene ? "block" : "none";
+    const environmentKey = getBattleSceneBackgroundEnvironment(currentEnvironment);
+    const backgroundSettled = battleSceneBackgroundLoaded.has(environmentKey) || battleSceneBackgroundFailed.has(environmentKey);
+    scene.style.display = showScene && backgroundSettled ? "block" : "none";
     const commandPanel = DOM.get('battle-command-panel');
     const commandStatus = DOM.get('battle-command-status');
     const commandCategories = DOM.get('battle-command-categories');
@@ -2082,7 +2228,6 @@ function updateBattleScene(monster) {
     scene.classList.toggle('is-boss-battle', Boolean(displayedMonster.isBoss));
     scene.classList.toggle('is-elite-battle', Boolean(displayedMonster.isElite));
     applyBattleMonsterLayout(scene, displayedMonster);
-    const environmentKey = typeof currentEnvironment === "string" ? currentEnvironment : "NORMAL";
     ["NORMAL", "VOID", "ICE", "FIRE", "POISON"].forEach((key) => {
         scene.classList.toggle(`is-${key.toLowerCase()}-zone`, environmentKey === key);
     });

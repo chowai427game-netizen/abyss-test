@@ -75,9 +75,15 @@ assert.equal(magicMonster.attackType, "magic", "caster monster attack type survi
 assert.equal(vm.runInContext('spawnMonsterForFloor(20).attackType', context), "magic", "caster boss attack type survives spawning");
 assert.equal(vm.runInContext('spawnMonsterForFloor(20).shield', context), 100, "shielded bosses expose their barrier to the combat engine");
 assert.equal(vm.runInContext('spawnMonsterForFloor(10).shield', context), 0, "unshielded bosses keep zero shield");
+assert.equal(vm.runInContext('getMonstersForFloor(61).length', context), 5, "B61 uses the five designed post-end regular monsters instead of fallback slimes");
+assert.equal(vm.runInContext('getMonstersForFloor(69).length', context), 5, "the post-end roster covers the full 61F–69F range");
+assert.equal(vm.runInContext('getMonstersForFloor(65).every(m => m.skill && m.skill.id && m.skill.name && m.skill.elite)', context), true, "each post-end archetype has a named skill and an elite extension");
+assert.equal(vm.runInContext('spawnMonsterForFloor(61).skill.name', context), "先兆刻印", "regular monster skill metadata survives generation");
+assert.equal(vm.runInContext('spawnMonsterForFloor(60).skill.name', context), "終焉因果鎖定", "Elda's special skill is available to the battle runtime");
+assert.equal(vm.runInContext('spawnMonsterForFloor(70).phaseSkill.name', context), "因果回簿", "the new final boss exposes its one-time phase mechanic");
 
 // Every boss must exceed the strongest regular monster on the preceding floor.
-for (const bossFloor of [10, 20, 30, 40, 50, 60]) {
+for (const bossFloor of [10, 20, 30, 40, 50, 60, 70]) {
     const priorFloor = bossFloor - 1;
     const strongestPrior = vm.runInContext(`REGULAR_MONSTERS_POOL.filter(m => ${priorFloor} >= m.minFloor && ${priorFloor} <= m.maxFloor).map(m => ({ hp: m.baseHp + m.hpScale * (${priorFloor} - m.minFloor), atk: m.baseAtk + m.atkScale * (${priorFloor} - m.minFloor) })).reduce((best, x) => ({ hp: Math.max(best.hp, x.hp), atk: Math.max(best.atk, x.atk) }), { hp: 0, atk: 0 })`, context);
     const boss = vm.runInContext(`BOSS_DATABASE[${bossFloor}]`, context);

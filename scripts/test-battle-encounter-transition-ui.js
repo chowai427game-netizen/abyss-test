@@ -25,6 +25,13 @@ function createHarness({ transitionAvailable = true } = {}) {
     const timers = new Map();
     const handles = [];
     let transitionArgs = null;
+    let reduceMotion = false;
+    const diaryElements = [0, 1].map(() => ({
+        textContent: "",
+        dataset: {},
+        className: "",
+        classList: createClassList()
+    }));
 
     const originalParent = {
         children: [],
@@ -96,7 +103,12 @@ function createHarness({ transitionAvailable = true } = {}) {
     };
 
     const sandbox = {
-        DOM: { get(id) { return id === "battle-scene-box" ? scene : null; } },
+        DOM: { get(id) {
+            if (id === "battle-scene-box") return scene;
+            if (id === "battle-scene-log-line-1") return diaryElements[0];
+            if (id === "battle-scene-log-line-2") return diaryElements[1];
+            return null;
+        } },
         document: {
             body,
             createElement(tag) {
@@ -112,23 +124,27 @@ function createHarness({ transitionAvailable = true } = {}) {
         window: transitionAvailable ? { PixelFxEncounterTransition: transitionApi } : {},
         gameState: "BATTLE",
         getComputedStyle() { return { margin: "0px", gridColumn: "auto", gridRow: "auto", alignSelf: "auto", justifySelf: "auto" }; },
-        prefersReducedMotion() { return false; },
+        prefersReducedMotion() { return reduceMotion; },
+        setReducedMotion(value) { reduceMotion = Boolean(value); },
         setTimeout(callback, delay) {
             const id = ++nextTimerId;
             timers.set(id, { callback, delay });
             return id;
         },
         clearTimeout(id) { timers.delete(id); },
+        setInterval() { return ++nextTimerId; },
+        clearInterval() {},
         Promise
     };
     vm.createContext(sandbox);
-    vm.runInContext(`${transitionUi[0]}\nthis.playIntro = playBattleSceneEncounterIntro;\nthis.restoreIntro = restoreBattleSceneAfterEncounterIntro;\nthis.syncDiary = syncBattleSceneLog;\nthis.getDiary = () => battleSceneLogLines;\nthis.transitionIsActive = () => Boolean(battleSceneShatterTransition);`, sandbox);
+    vm.runInContext(`${transitionUi[0]}\nthis.playIntro = playBattleSceneEncounterIntro;\nthis.restoreIntro = restoreBattleSceneAfterEncounterIntro;\nthis.syncDiary = syncBattleSceneLog;\nthis.getDiary = () => battleSceneLogLines;\nthis.getPinnedEncounter = () => battleSceneEncounterLogEntry;\nthis.transitionIsActive = () => Boolean(battleSceneShatterTransition);`, sandbox);
 
     return {
         sandbox,
         scene,
         body,
         originalParent,
+        diaryElements,
         handles,
         timers,
         getTransitionArgs: () => transitionArgs,
@@ -162,13 +178,23 @@ function createHarness({ transitionAvailable = true } = {}) {
     harness.getTransitionArgs().onBurst();
     assert.equal(await introReady, true, "the encounter gate opens at the burst callback");
     assert.equal(harness.sandbox.transitionIsActive(), true, "the visual transition continues after combat begins");
+    harness.sandbox.setReducedMotion(true);
     harness.sandbox.syncDiary("⚔️【降臨 B5F】發現魔物：<strong>💧 藍色史萊姆</strong>");
     assert.equal(harness.sandbox.getDiary().length, 1, "the encounter diary is added when the burst has revealed the monster");
     assert.equal(harness.handles[0].cancelled, false, "adding the encounter diary does not cancel the active Shatter Wipe");
     harness.handles[0].resolveFinished(true);
     await Promise.resolve();
     assert.equal(harness.sandbox.transitionIsActive(), false, "the transition handle is cleared when the remaining shards finish");
+    assert.ok([...harness.timers.values()].some((timer) => timer.delay === 1000), "the discovery line gets a one-second hold after Shatter completes");
+    harness.sandbox.syncDiary("⚔️ 玩家施放技能！");
+    harness.sandbox.syncDiary("✨ 技能命中魔物");
+    assert.match(harness.diaryElements[0].textContent, /發現魔物/, "the encounter discovery stays in the first line during its hold");
+    assert.match(harness.diaryElements[1].textContent, /技能命中魔物/, "new combat messages remain visible on the second line");
+    harness.runTimer(1000);
+    assert.equal(harness.sandbox.getPinnedEncounter(), null, "the discovery pin clears after one second");
+    assert.match(harness.diaryElements[0].textContent, /玩家施放技能/, "the diary returns to recent combat messages after the hold expires");
 
+    harness.sandbox.setReducedMotion(false);
     const cancelledIntro = harness.sandbox.playIntro();
     assert.equal(harness.scene.classList.contains("is-encounter-reveal-held"), true, "a second encounter holds the portrait again");
     harness.sandbox.restoreIntro();
@@ -183,9 +209,10 @@ function createHarness({ transitionAvailable = true } = {}) {
     assert.equal(fallbackHarness.scene.classList.contains("is-encounter-cinematic"), true);
     fallbackHarness.sandbox.syncDiary("發現魔物：💧 藍色史萊姆");
     assert.equal(fallbackHarness.scene.classList.contains("is-encounter-cinematic"), true, "the delayed diary does not cancel the fallback zoom");
+    assert.ok(fallbackHarness.sandbox.getPinnedEncounter(), "the zoom-only fallback also pins the encounter diary");
     fallbackHarness.sandbox.restoreIntro();
 
-    console.log("Battle encounter UI transition tests passed: zoom, opaque portrait reveal, burst-time gate, deferred diary, fallback zoom, and cancellation cleanup.");
+    console.log("Battle encounter UI transition tests passed: zoom, opaque portrait reveal, burst-time gate, post-Shatter one-second diary hold, fallback zoom, and cancellation cleanup.");
 })().catch((error) => {
     console.error(error);
     process.exitCode = 1;

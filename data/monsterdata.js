@@ -1,5 +1,5 @@
 // ==========================================================================
-// 👹 monsterdata.js：1F-59F 怪物分流與六大深淵領主數據庫 (v4.1)
+// 👹 monsterdata.js：1F-69F 怪物分流與七大深淵領主資料庫 (v4.2)
 // ==========================================================================
 
 const REGULAR_MONSTERS_POOL = [
@@ -43,7 +43,38 @@ const REGULAR_MONSTERS_POOL = [
     { name: "🌌 混沌世界吞噬蟲", minFloor: 51, maxFloor: 59, baseHp: 3500, hpScale: 240, baseAtk: 200, atkScale: 22.0, baseDef: 55, baseMdef: 45, baseSpd: 18, flee: 25 },
     { name: "🪐 重力異變奇點", minFloor: 51, maxFloor: 59, baseHp: 4500, hpScale: 300, baseAtk: 180, atkScale: 20.0, baseDef: 70, baseMdef: 70, baseSpd: 12, flee: 10, attackType: "magic" },
     { name: "💀 終焉寂滅死神", minFloor: 51, maxFloor: 59, baseHp: 2800, hpScale: 180, baseAtk: 260, atkScale: 30.0, baseDef: 30, baseMdef: 50, baseSpd: 45, flee: 70 },
-    { name: "👑 宇宙虛無秩序使者", minFloor: 51, maxFloor: 59, baseHp: 4000, hpScale: 270, baseAtk: 210, atkScale: 24.0, baseDef: 50, baseMdef: 65, baseSpd: 22, flee: 40, attackType: "magic" }
+    { name: "👑 宇宙虛無秩序使者", minFloor: 51, maxFloor: 59, baseHp: 4000, hpScale: 270, baseAtk: 210, atkScale: 24.0, baseDef: 50, baseMdef: 65, baseSpd: 22, flee: 40, attackType: "magic" },
+    // === 🧵 61F - 69F：終焉之後的因果殘響 ===
+    {
+        name: "🪡 因果織痕者", minFloor: 61, maxFloor: 69,
+        baseHp: 5200, hpScale: 250, baseAtk: 330, atkScale: 24, baseDef: 40, baseMdef: 75, baseSpd: 32, flee: 48, attackType: "magic",
+        desc: "把尚未發生的傷勢縫進星線；刻印亮起時，下一次魔法攻擊將更強。",
+        skill: { id: "causal-stitch", name: "先兆刻印", desc: "每三次普通行動後預告；下一次行動造成 1.25 倍魔法傷害。精英命中後獲得最多 150 護盾。", interval: 3, kind: "hit", multiplier: 1.25, attackType: "magic", elite: { shieldOnHit: 150, shieldOnHitCap: 150 } }
+    },
+    {
+        name: "🩸 逆果噬血蛭", minFloor: 61, maxFloor: 69,
+        baseHp: 6000, hpScale: 260, baseAtk: 300, atkScale: 25, baseDef: 55, baseMdef: 55, baseSpd: 22, flee: 24,
+        desc: "吞噬因果間的空隙，以受創的生命凝成護盾。",
+        skill: { id: "reverse-cause-leech", name: "倒因噬血", desc: "預告後以 1.15 倍物理傷害攻擊，並依實際 HP 傷害取得護盾；精英最多取得 300。", interval: 3, kind: "hit", multiplier: 1.15, attackType: "physical", shieldRate: 0.25, shieldGainCap: 220, shieldCap: 900, elite: { shieldRate: 0.3, shieldGainCap: 300, shieldCap: 1200 } }
+    },
+    {
+        name: "⌛ 裂時剪線者", minFloor: 61, maxFloor: 69,
+        baseHp: 4700, hpScale: 230, baseAtk: 370, atkScale: 24, baseDef: 30, baseMdef: 52, baseSpd: 42, flee: 66,
+        desc: "高速剪斷對手的下一瞬間；看見斷線姿態便準備防禦或閃避。",
+        skill: { id: "timeline-sever", name: "未來斷線", desc: "預告後以 1.2 倍物理傷害單擊；精英命中後獲得最多 120 護盾，不會追加連擊。", interval: 3, kind: "hit", multiplier: 1.2, attackType: "physical", elite: { shieldOnHit: 120, shieldOnHitCap: 120 } }
+    },
+    {
+        name: "🔔 未響因果鐘靈", minFloor: 61, maxFloor: 69,
+        baseHp: 6500, hpScale: 290, baseAtk: 285, atkScale: 24, baseDef: 68, baseMdef: 68, baseSpd: 15, flee: 15, attackType: "magic",
+        desc: "鐘聲總在結果之後才抵達；它蓄勢時會放棄攻擊，為自己展開結界。",
+        skill: { id: "silent-causality-bell", name: "無聲結界", desc: "預告後下一次行動不攻擊，改為獲得 600 護盾；精英結界為 800。", interval: 3, kind: "shield", shieldAmount: 600, shieldCap: 1200, elite: { shieldAmount: 800, shieldCap: 1600 } }
+    },
+    {
+        name: "🗿 遺世因果碑巨像", minFloor: 61, maxFloor: 69,
+        baseHp: 6800, hpScale: 320, baseAtk: 350, atkScale: 22, baseDef: 80, baseMdef: 45, baseSpd: 12, flee: 8,
+        desc: "背負宇宙終結後留下的債；沉重震擊前會先顯出裂紋。",
+        skill: { id: "consequence-fall", name: "後果震落", desc: "預告後造成單次 1.25 倍物理傷害；精英倍率提高至 1.35 倍。", interval: 3, kind: "hit", multiplier: 1.25, attackType: "physical", elite: { multiplier: 1.35 } }
+    }
 ];
 
 const BOSS_DATABASE = {
@@ -52,7 +83,16 @@ const BOSS_DATABASE = {
     30: { name: "🌌 虛空秩序扭曲者 • 零", baseHp: 1600, baseAtk: 155, baseSpd: 35, def: 32, mdef: 48, flee: 40, baseShield: 200, dropItem: "虛空核心", attackType: "magic", desc: "撕裂空間的虛空生物，其存在本身就在干擾力場！" },
     40: { name: "🌊 深淵巨鎧領主 • Scylla", baseHp: 2700, baseAtk: 225, baseSpd: 15, def: 60, mdef: 36, flee: 15, dropItem: "帝王蟹腿", desc: "鎮守深淵 40 層的海棲霸主，蟹螯擁有斷鋼級物理外傷！" },
     50: { name: "🔥 煉獄魔神 • 巴洛克", baseHp: 4900, baseAtk: 370, baseSpd: 24, def: 65, mdef: 62, flee: 30, baseShield: 450, dropItem: "魔神火核", attackType: "magic", desc: "由深淵熔岩孕育出的狂暴魔神，揮舞烈焰巨鞭！" },
-    60: { name: "🪐 終焉星神 • 艾爾達", baseHp: 9000, baseAtk: 620, baseSpd: 38, def: 82, mdef: 82, flee: 50, baseShield: 800, dropItem: "終焉奇點", attackType: "magic", desc: "主宰宇宙與萬物終焉的古老神明，掌控因果律武器！" }
+    60: {
+        name: "🪐 終焉星神 • 艾爾達", baseHp: 9000, baseAtk: 620, baseSpd: 38, def: 82, mdef: 82, flee: 50, baseShield: 800,
+        dropItem: "終焉奇點", attackType: "magic", desc: "主宰宇宙與萬物終焉的古老神明，掌控因果律武器！",
+        skill: { id: "elda-causal-lock", name: "終焉因果鎖定", desc: "每三次普通行動後預告；下一次行動造成 1.25 倍魔法傷害，可用魔防或護盾承受。", interval: 3, kind: "hit", multiplier: 1.25, attackType: "magic" }
+    },
+    70: {
+        name: "🧵 歸因者 • 未竟之初", baseHp: 14000, baseAtk: 740, baseSpd: 36, def: 95, mdef: 95, flee: 45, baseShield: 0,
+        dropItem: "未竟因果核", attackType: "magic", desc: "在萬物終結之後，仍將每個選擇記回最初；其半血反擊會先展開可破壞的因果護盾。",
+        phaseSkill: { id: "unended-causality-ledger", name: "因果回簿", desc: "HP 降至 50% 時預告並取得 1200 護盾；下一次行動若護盾仍在，造成 1.2 倍魔法傷害。若護盾被擊破，攻擊取消。", triggerAtHpRatio: 0.5, kind: "phase-hit", shieldAmount: 1200, multiplier: 1.2, attackType: "magic" }
+    }
 };
 
 const MONSTER_DROPS = {
@@ -61,11 +101,13 @@ const MONSTER_DROPS = {
     "🔥 焦土爆烈小鬼": "烈焰餘燼", "🦎 熔岩劇毒壁虎": "熔岩鱗片", "💀 焦黑地獄刺客": "焦黑骨碎", "🥩 煉獄虐殺食人魔": "食人魔厚皮", "🔮 浮空禁忌魔導書": "魔導碎頁",
     "👁️ 虛空扭曲觀察者": "虛空眼球", "🌌 裂縫黯夜潛行者": "時空皮革", "🦇 異次元吸血巨蝠": "吸血毒牙", "🗿 虛空遺蹟守衛像": "符文石板", "🐍 劇毒多頭利維坦": "九頭蛇血",
     "👿 深淵貪婪狂魔": "惡魔之角", "🗡️ 墮落暗殺刺刃者": "暗刃鋼片", "🧠 奪心碎裂魔靈": "奪心碎晶", "🐲 岩漿黑羽幼龍": "地龍魔爪", "🥀 嗜血泣淚妖花": "泣血花瓣",
-    "✨ 織星流星漫遊者": "星塵碎片", "🌌 混沌世界吞噬蟲": "混沌核心", "🪐 重力異變奇點": "重力奇點", "💀 終焉寂滅死神": "死神鐮刃", "👑 宇宙虛無秩序使者": "裁決羽毛"
+    "✨ 織星流星漫遊者": "星塵碎片", "🌌 混沌世界吞噬蟲": "混沌核心", "🪐 重力異變奇點": "重力奇點", "💀 終焉寂滅死神": "死神鐮刃", "👑 宇宙虛無秩序使者": "裁決羽毛",
+    "🪡 因果織痕者": "因果星線", "🩸 逆果噬血蛭": "逆果血囊", "⌛ 裂時剪線者": "斷時殘片", "🔔 未響因果鐘靈": "無聲鐘舌", "🗿 遺世因果碑巨像": "遺世碑片",
+    "🧵 歸因者 • 未竟之初": "未竟因果核"
 };
 
 // --------------------------------------------------------------------------
-// ⚡ 效能優化與生成 API (O(1) 雙向檢索與平滑數值生成器 v4.1)
+// ⚡ 效能優化與生成 API (O(1) 雙向檢索與平滑數值生成器 v4.2)
 // --------------------------------------------------------------------------
 
 /**
@@ -103,7 +145,7 @@ function getMonsterDrop(monsterName) {
 }
 
 /**
- * 判斷當前樓層是否為 Boss 關卡 (10F, 20F, 30F, 40F, 50F, 60F)
+ * 判斷當前樓層是否為 Boss 關卡 (10F 至 70F，每 10 層一位領主)
  */
 function isBossFloor(floor) {
     const f = parseInt(floor) || 1;
@@ -159,7 +201,8 @@ function generateMonsterInstance(template, floor) {
         isBoss: false,
         attackType: template.attackType || "physical",
         dropItem: getMonsterDrop(template.name) || "史萊姆黏液",
-        desc: `${template.name}（深淵 ${f}F 棲息魔物）`
+        desc: template.desc ? `${template.desc}（深淵 ${f}F 棲息魔物）` : `${template.name}（深淵 ${f}F 棲息魔物）`,
+        skill: template.skill || null
     };
 }
 
@@ -187,7 +230,9 @@ function spawnMonsterForFloor(floor) {
             isBoss: true,
             attackType: bossData.attackType || "physical",
             dropItem: bossData.dropItem,
-            desc: bossData.desc
+            desc: bossData.desc,
+            skill: bossData.skill || null,
+            phaseSkill: bossData.phaseSkill || null
         };
     }
 

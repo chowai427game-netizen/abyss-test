@@ -259,6 +259,18 @@ assert.equal(skill("knight", "k_2").run(10, 100).stunChance, 90, "knight stun ch
     delete context.PixelFxSkillEffects;
 }
 
+// Poison Burst must not show its dedicated explosion when there are no poison stacks to detonate.
+{
+    const battle = freshBattle({ job: "thief" });
+    const effectCalls = [];
+    context.PixelFxSkillEffects = { playPoisonExplosion: () => effectCalls.push("poison-explosion") };
+    const meta = skill("thief", "t_5");
+    assert.equal(context.executeActiveSkill(meta, 1, meta.run(1, battle.run.atk)), false, "the poison detonation is rejected when there are no stacks");
+    assert.deepEqual(effectCalls, [], "the PixelFX poison burst is not played when there are no poison stacks");
+    assert.equal(battle.monster.poisonStacks, 0, "the no-stack path does not invent or consume poison stacks");
+    delete context.PixelFxSkillEffects;
+}
+
 // Sage dispels an enemy barrier and temporary buffs only after the attack lands.
 {
     const battle = freshBattle({ job: "sage", shield: 75 });

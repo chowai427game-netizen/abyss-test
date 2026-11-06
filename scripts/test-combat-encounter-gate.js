@@ -11,10 +11,11 @@ const gameSource = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
 const combatFunction = gameSource.match(/function startNodeCombat\(nodeType\) \{[\s\S]*?\n\}\n\n(?=\/\/ -{10,})/);
 assert.ok(combatFunction, "the production startNodeCombat function is available for the gate test");
 
-function createHarness({ introSignal, portraitSignal }) {
+function createHarness({ introSignal, portraitSignal, backgroundSignal = Promise.resolve(true) }) {
     const calls = [];
     const timers = [];
     const elements = new Map();
+    let sceneVisible = false;
     let nextTimerId = 0;
     const sandbox = {
         activeMonster: null,
@@ -49,8 +50,15 @@ function createHarness({ introSignal, portraitSignal }) {
         normalizeTacticMode(value) { return value || "AUTO"; },
         syncTacticButtonsUi() {},
         syncCombatPauseUi() {},
-        updateUI() { calls.push({ type: "update-ui" }); },
-        playBattleSceneEncounterIntro() { return introSignal; },
+        updateUI() { sceneVisible = true; calls.push({ type: "update-ui" }); },
+        waitForBattleSceneBackgroundReady(environmentKey) {
+            calls.push({ type: "background-ready", environmentKey });
+            return backgroundSignal;
+        },
+        playBattleSceneEncounterIntro() {
+            calls.push({ type: "intro", sceneVisible });
+            return introSignal;
+        },
         waitForBattleMonsterPortraitReady() { return portraitSignal; },
         addLog(message, logType = "deal") { calls.push({ type: "log", message: String(message), logType }); },
         scheduleVfx(callback) { calls.push({ type: "schedule-vfx" }); callback(); },
@@ -89,16 +97,26 @@ const flushMicrotasks = () => new Promise((resolve) => setImmediate(resolve));
 const countCalls = (calls, type) => calls.filter((call) => call.type === type).length;
 
 (async () => {
+    let resolveBackground;
+    const backgroundSignal = new Promise((resolve) => { resolveBackground = resolve; });
     let resolveBurst;
     const burstSignal = new Promise((resolve) => { resolveBurst = resolve; });
     let resolvePortrait;
     const portraitSignal = new Promise((resolve) => { resolvePortrait = resolve; });
-    const burstHarness = createHarness({ introSignal: burstSignal, portraitSignal });
+    const burstHarness = createHarness({ introSignal: burstSignal, portraitSignal, backgroundSignal });
 
     burstHarness.runCombat();
+    assert.equal(burstHarness.calls.find((call) => call.type === "background-ready").environmentKey, "NORMAL", "the chosen environment background is requested for the encounter");
+    assert.equal(countCalls(burstHarness.calls, "intro"), 0, "cinematic does not measure the scene before the background is ready");
     assert.equal(countCalls(burstHarness.calls, "log"), 0, "the monster name is not logged while the wipe is closing");
     assert.equal(countCalls(burstHarness.calls, "ticker"), 0, "combat ATB stays stopped before the burst");
     assert.equal(burstHarness.sandbox.combatEncounterCooldownPending, true, "the encounter remains gated during the transition");
+
+    resolveBackground(true);
+    await flushMicrotasks();
+    assert.equal(burstHarness.calls.find((call) => call.type === "intro").sceneVisible, true, "UI reveals the initially hidden scene only after its background is ready");
+    assert.ok(burstHarness.calls.findIndex((call) => call.type === "update-ui" && burstHarness.calls.indexOf(call) > 0) < burstHarness.calls.findIndex((call) => call.type === "intro"), "the ready battle scene is rendered before the cinematic starts");
+    assert.equal(countCalls(burstHarness.calls, "log"), 0, "the monster name remains hidden while the background-ready scene enters the wipe");
 
     resolveBurst(true);
     await flushMicrotasks();
@@ -122,7 +140,7 @@ const countCalls = (calls, type) => calls.filter((call) => call.type === type).l
     assert.equal(countCalls(fallbackHarness.calls, "log"), 1, "numeric fallback reveals the encounter after its zoom delay");
     assert.equal(countCalls(fallbackHarness.calls, "ticker"), 1, "numeric fallback starts combat after the delay and portrait gate");
 
-    console.log("Combat encounter gate tests passed: diary and ATB wait for burst plus portrait readiness; 420 ms fallback remains functional.");
+    console.log("Combat encounter gate tests passed: the selected background loads before cinematic measurement; diary and ATB wait for burst plus portrait readiness; 420 ms fallback remains functional.");
 })().catch((error) => {
     console.error(error);
     process.exitCode = 1;

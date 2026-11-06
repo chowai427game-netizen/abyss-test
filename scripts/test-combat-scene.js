@@ -261,7 +261,11 @@ assert.equal(transientAttackArt.attributes.has("src"), false, "previous attack i
 assert.deepEqual([...transientMonster.classList.values], []);
 assert.deepEqual([...transientFallback.classList.values], []);
 assert.match(ui, /updateBattleScene\(typeof activeMonster/, "regular UI updates sync the scene before state-specific early returns");
+assert.match(ui, /const specialSkills = \[monster\.skill, monster\.phaseSkill\]/, "monster inspect card includes regular skills and boss phase mechanics");
 assert.match(game, /portraitName: fallbackMonster\.portraitName \|\| fallbackMonster\.name/, "elite monsters preserve the original portrait name");
+assert.match(game, /skill: bossMeta\.skill \|\| null/, "boss encounter setup carries its data-driven special skill");
+assert.match(game, /phaseSkill: bossMeta\.phaseSkill \|\| null/, "boss encounter setup carries its threshold phase mechanic");
+assert.match(game, /const isCampaignFinale = defeatedWasBoss && dungeonFloor === 70/, "the campaign finale is placed at B70");
 assert.match(ui, /scene\.classList\.toggle\('is-elite-battle', Boolean\(displayedMonster\.isElite\)\)/, "elite battle styling follows the elite state");
 assert.match(css, /\.battle-scene\.is-elite-battle \.battle-hud-enemy::before/, "elite monsters have a dedicated HUD badge");
 assert.match(css, /\.battle-scene\.is-elite-battle \.battle-enemy-sprite,[\s\S]*?drop-shadow\(0 0 5px/, "elite portraits receive a warm visual glow");
@@ -306,6 +310,10 @@ let battleSceneTerminalTimer = null;
 let battleSceneTypingTimers = [null, null];
 let battleSceneLogSequence = 0;
 let battleSceneShatterTransition = null;
+let battleSceneEncounterLogEntry = null;
+let battleSceneEncounterLogPinUntil = 0;
+let battleSceneEncounterLogPinTimer = null;
+function holdBattleSceneEncounterLog() {}
 function restoreBattleSceneAfterEncounterIntro() {}
 function returnBattleSceneAfterResult() { return true; }
 ${toneSource[0]}

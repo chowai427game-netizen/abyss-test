@@ -50,6 +50,7 @@ function createStateContext({ storage = createStorage(), fetch } = {}) {
 }
 
 function createElement() {
+    const listeners = new Map();
     return {
         style: {},
         innerHTML: "",
@@ -57,12 +58,22 @@ function createElement() {
         attributes: {},
         setAttribute(name, value) { this.attributes[name] = value; },
         getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 80 }; },
-        addEventListener() {},
-        removeEventListener() {}
+        addEventListener(type, handler) {
+            if (!listeners.has(type)) listeners.set(type, new Set());
+            listeners.get(type).add(handler);
+        },
+        removeEventListener(type, handler) { listeners.get(type)?.delete(handler); },
+        dispatch(type) {
+            for (const handler of [...(listeners.get(type) || [])]) handler({ type, target: this });
+        },
+        listenerCount(type) { return listeners.get(type)?.size || 0; }
     };
 }
 
 function createGameContext() {
+    const timers = new Map();
+    const timerCallbacks = new Map();
+    let nextTimerId = 1;
     const elements = new Map([
         "monster-status-card",
         "reward-panel-box",
@@ -82,8 +93,13 @@ function createGameContext() {
         document,
         window: { innerWidth: 1000, innerHeight: 800 },
         clearInterval() {},
-        setTimeout() { return 1; },
-        clearTimeout() {},
+        setTimeout(callback, delay) {
+            const id = nextTimerId++;
+            timers.set(id, { callback, delay });
+            timerCallbacks.set(id, callback);
+            return id;
+        },
+        clearTimeout(id) { timers.delete(id); },
         Math,
         console,
         clampVfxPercent(value, fallback) { return Number.isFinite(value) ? value : fallback; },
@@ -128,7 +144,7 @@ function createGameContext() {
         dungeonFloor = 10;
         activeMonster = { name: "QA Boss", hp: 0, maxHp: 100, isBoss: true };
     `, context);
-    return { context, elements };
+    return { context, elements, timers, timerCallbacks };
 }
 
 async function testOfflinePinAndLocalSave() {
@@ -187,12 +203,83 @@ function testBossRewardAndFinale() {
         activeMonster = { name: "終焉星神", hp: 0, maxHp: 100, isBoss: true };
         executeDungeonVictorySequence();
     `, context);
-    assert.equal(vm.runInContext("gameState", context), "ENDING", "B60 victory should enter a terminal ending state");
-    assert.equal(vm.runInContext("accountMeta.campaignCleared", context), true, "campaign completion should be persisted");
-    assert.equal(elements.get("game-ending-overlay").style.display, "flex", "B60 should show the ending modal");
+    assert.equal(vm.runInContext("gameState", context), "ENCOUNTER_RESOLVED", "B60 victory must allow progression into the newly playable post-end floors");
+    assert.notEqual(vm.runInContext("accountMeta.campaignCleared", context), true, "campaign completion is deferred until the new B70 finale");
+    assert.notEqual(elements.get("game-ending-overlay").style.display, "flex", "B60 should not show the campaign ending modal");
+
+    vm.runInContext(`
+        gameState = "BATTLE";
+        dungeonFloor = 70;
+        activeMonster = { name: "歸因者・未竟之初", hp: 0, maxHp: 100, isBoss: true };
+        executeDungeonVictorySequence();
+    `, context);
+    assert.equal(vm.runInContext("gameState", context), "ENDING", "B70 victory should enter the terminal campaign ending state");
+    assert.equal(vm.runInContext("accountMeta.campaignCleared", context), true, "B70 campaign completion should be persisted");
+    assert.equal(elements.get("game-ending-overlay").style.display, "flex", "B70 should show the ending modal");
 
     vm.runInContext("closeCampaignEndingModal()", context);
     assert.equal(vm.runInContext("gameState", context), "VILLAGE", "ending action should return safely to the village");
+}
+
+function getTimerIdByDelay(timers, delay) {
+    const entry = [...timers.entries()].find(([, timer]) => timer.delay === delay);
+    assert.ok(entry, `expected an active ${delay}ms timer`);
+    return entry[0];
+}
+
+function runTimer(timers, id) {
+    const timer = timers.get(id);
+    assert.ok(timer, `expected timer ${id} to still be active`);
+    timers.delete(id);
+    timer.callback();
+}
+
+function testBossVictoryModalLifecycle() {
+    const { context, elements, timers, timerCallbacks } = createGameContext();
+    const overlay = elements.get("boss-victory-overlay");
+
+    vm.runInContext('triggerBossVictoryModal("第一位領主")', context);
+    const firstUnlockTimer = getTimerIdByDelay(timers, 800);
+    const firstAutoCloseTimer = getTimerIdByDelay(timers, 5000);
+    const staleUnlockCallback = timerCallbacks.get(firstUnlockTimer);
+    const staleAutoCloseCallback = timerCallbacks.get(firstAutoCloseTimer);
+    assert.equal(overlay.style.display, "flex", "opening the boss victory modal should show it");
+    assert.equal(overlay.attributes["aria-hidden"], "false", "opening the boss victory modal should expose it to assistive technology");
+
+    runTimer(timers, firstUnlockTimer);
+    assert.equal(overlay.listenerCount("click"), 1, "manual dismissal should unlock after the intro delay");
+    overlay.dispatch("click");
+    assert.equal(overlay.style.display, "none", "manual dismissal should hide the current modal");
+    assert.equal(overlay.attributes["aria-hidden"], "true", "manual dismissal should hide the modal from assistive technology");
+    assert.equal(overlay.listenerCount("click"), 0, "manual dismissal should remove the click handler");
+    assert.equal(timers.has(firstAutoCloseTimer), false, "manual dismissal should cancel its auto-close timer");
+
+    vm.runInContext('triggerBossVictoryModal("第二位領主")', context);
+    assert.equal(overlay.style.display, "flex", "a later victory should open a fresh modal");
+    assert.equal(overlay.attributes["aria-hidden"], "false", "reopening should restore the visible accessibility state");
+    assert.equal(elements.get("victory-boss-name").innerText, "第二位領主");
+
+    staleUnlockCallback();
+    assert.equal(overlay.listenerCount("click"), 0, "a stale unlock callback must not unlock a newer modal early");
+    overlay.dispatch("click");
+    assert.equal(overlay.style.display, "flex", "the newer modal must remain open before its own unlock delay");
+
+    staleAutoCloseCallback();
+    assert.equal(overlay.style.display, "flex", "a stale auto-close callback must not close a newer modal");
+    assert.equal(overlay.attributes["aria-hidden"], "false", "a stale callback must not change the newer modal accessibility state");
+
+    const secondUnlockTimer = getTimerIdByDelay(timers, 800);
+    runTimer(timers, secondUnlockTimer);
+    overlay.dispatch("click");
+    assert.equal(overlay.style.display, "none", "the newer modal should still close through its own click handler");
+    assert.equal(overlay.attributes["aria-hidden"], "true", "closing the newer modal should synchronize aria-hidden");
+
+    const autoClosed = createGameContext();
+    const autoOverlay = autoClosed.elements.get("boss-victory-overlay");
+    vm.runInContext('triggerBossVictoryModal("自動關閉測試")', autoClosed.context);
+    runTimer(autoClosed.timers, getTimerIdByDelay(autoClosed.timers, 5000));
+    assert.equal(autoOverlay.style.display, "none", "the current auto-close timer should hide its modal");
+    assert.equal(autoOverlay.attributes["aria-hidden"], "true", "auto-close should synchronize aria-hidden");
 }
 
 function testVillageCleanupAfterDefeatAndRetreat() {
@@ -223,6 +310,7 @@ function testVillageCleanupAfterDefeatAndRetreat() {
     await testOfflinePinAndLocalSave();
     await testCloudHttpFailureAndPayload();
     testBossRewardAndFinale();
+    testBossVictoryModalLifecycle();
     testVillageCleanupAfterDefeatAndRetreat();
     console.log("✅ Critical progression, offline PIN, cloud-save failure, and ending tests passed.");
 })().catch((error) => {

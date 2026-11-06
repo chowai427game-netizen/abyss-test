@@ -229,6 +229,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (inputNameEl) inputNameEl.addEventListener('input', checkPlayerNameLive);
 
     if (loadingFlavorText) loadingFlavorText.innerText = "正在撕裂虛空裂縫，呼喚 Render 伺服器...";
+    const initialBattleBackgroundReady = typeof waitForBattleSceneBackgroundReady === "function"
+        ? Promise.resolve().then(() => waitForBattleSceneBackgroundReady("NORMAL")).catch(() => false)
+        : Promise.resolve(true);
 
     try {
         const controller = new AbortController();
@@ -244,6 +247,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (err) {
         if (loadingFlavorText) loadingFlavorText.innerText = "⚡ 連線逾時，已進入單機本地存檔模式！";
+    }
+
+    const backgroundReady = await initialBattleBackgroundReady;
+    if (!backgroundReady && loadingFlavorText) {
+        loadingFlavorText.innerText = "⚠️ 戰鬥背景載入不完整，將使用安全底色後繼續。";
     }
 
     if (loadingBarFill) loadingBarFill.classList.add('complete');

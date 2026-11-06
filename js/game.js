@@ -14,6 +14,7 @@ let combatRoundCounter = 1;
 let bossVictoryUnlockTimer = null;
 let bossVictoryAutoCloseTimer = null;
 let bossVictoryCloseHandler = null;
+let bossVictoryModalGeneration = 0;
 
 let playerAtb = 0;
 let monsterAtb = 0;
@@ -1774,7 +1775,14 @@ function startNodeCombat(nodeType) {
                 isSkipped: false, 
                 isBoss: true, 
                 attackType: bossMeta.attackType || "physical",
-                fixedDrop: bossMeta.dropItem 
+                fixedDrop: bossMeta.dropItem,
+                desc: bossMeta.desc || "深淵領主。留意牠的行動條與蓄力提示。",
+                skill: bossMeta.skill || null,
+                phaseSkill: bossMeta.phaseSkill || null,
+                enemySkillActionCount: 0,
+                enemySkillPending: false,
+                phaseSkillTriggered: false,
+                phaseSkillPending: false
             };
             shouldSpawnBossEntryVfx = true;
             encounterLogMessage = `🚨迫近🌋【領主降臨 B${dungeonFloor}F】發現大領主：<strong>${activeMonster.name}</strong>！`;
@@ -1808,7 +1816,11 @@ function startNodeCombat(nodeType) {
                 isSkipped: false, 
                 isBoss: false,
                 isElite: isEliteNode,
-                fixedDrop: fallbackMonster.dropItem
+                fixedDrop: fallbackMonster.dropItem,
+                enemySkillActionCount: 0,
+                enemySkillPending: false,
+                phaseSkillTriggered: false,
+                phaseSkillPending: false
             };
             
             let eliteText = isEliteNode ? ` 🔥【狂暴精英對決】` : ``;
@@ -1820,10 +1832,19 @@ function startNodeCombat(nodeType) {
         combatPaused = false;
         syncTacticButtonsUi();
         syncCombatPauseUi();
-        const introSignal = typeof playBattleSceneEncounterIntro === "function" ? playBattleSceneEncounterIntro() : 0;
-        const introIsPromise = Boolean(introSignal && typeof introSignal.then === "function");
-        const introDelay = introIsPromise ? 0 : Math.max(0, Number(introSignal) || 0);
-        let introReady = !introIsPromise && introDelay <= 0;
+        // Request the selected zone background before exposing the scene or measuring the cinematic origin.
+        const backgroundSignal = typeof waitForBattleSceneBackgroundReady === "function"
+            ? waitForBattleSceneBackgroundReady(currentEnvironment)
+            : null;
+        // Populate the portrait while the scene remains hidden behind its background-readiness gate.
+        if (typeof updateUI === "function") updateUI();
+        const startEncounterIntro = () => {
+            if (encounterGeneration !== combatEncounterGeneration || gameState !== "BATTLE" || !activeMonster || !currentRun || currentRun.hp <= 0) return false;
+            // Reveal only after the selected background has decoded (or settled to its safe fallback).
+            if (typeof updateUI === "function") updateUI();
+            return typeof playBattleSceneEncounterIntro === "function" ? playBattleSceneEncounterIntro() : 0;
+        };
+        let introReady = false;
         let portraitReady = typeof waitForBattleMonsterPortraitReady !== "function";
         let encounterStarted = false;
         const startEncounterWhenReady = () => {
@@ -1843,20 +1864,32 @@ function startNodeCombat(nodeType) {
             combatEncounterCooldownPending = false;
             startCombatTicker();
         };
-        if (typeof updateUI === "function") updateUI();
-        if (introIsPromise) {
-            Promise.resolve(introSignal)
-                .catch(() => false)
-                .then(() => {
+        const beginEncounterIntro = () => {
+            const introSignal = startEncounterIntro();
+            const introIsPromise = Boolean(introSignal && typeof introSignal.then === "function");
+            const introDelay = introIsPromise ? 0 : Math.max(0, Number(introSignal) || 0);
+            if (introIsPromise) {
+                Promise.resolve(introSignal)
+                    .catch(() => false)
+                    .then(() => {
+                        introReady = true;
+                        startEncounterWhenReady();
+                    });
+            } else if (introDelay > 0) {
+                combatIntroStartTimer = setTimeout(() => {
+                    combatIntroStartTimer = null;
                     introReady = true;
                     startEncounterWhenReady();
-                });
-        } else if (introDelay > 0) {
-            combatIntroStartTimer = setTimeout(() => {
-                combatIntroStartTimer = null;
+                }, introDelay);
+            } else {
                 introReady = true;
                 startEncounterWhenReady();
-            }, introDelay);
+            }
+        };
+        if (backgroundSignal && typeof backgroundSignal.then === "function") {
+            Promise.resolve(backgroundSignal).catch(() => false).then(beginEncounterIntro);
+        } else {
+            beginEncounterIntro();
         }
         if (typeof waitForBattleMonsterPortraitReady === "function") {
             Promise.resolve()
@@ -2034,13 +2067,40 @@ function executePlayerActionTick() {
     }
 }
 
+function getActiveMonsterSkillConfig(monster) {
+    if (!monster?.skill || typeof monster.skill !== "object") return null;
+    const { elite, ...baseSkill } = monster.skill;
+    return { ...baseSkill, ...(monster.isElite && elite && typeof elite === "object" ? elite : {}) };
+}
+
+function grantMonsterSkillShield(amount, cap) {
+    const shieldGain = Math.max(0, Math.floor(Number(amount) || 0));
+    if (!activeMonster || shieldGain <= 0) return 0;
+    const fallbackCap = Math.max(1, Math.floor((Number(activeMonster.maxHp) || 1) * 0.3));
+    const shieldCap = Math.max(0, Math.floor(Number(cap) || fallbackCap));
+    const previous = Math.max(0, Number(activeMonster.shield) || 0);
+    activeMonster.shield = Math.min(shieldCap, previous + shieldGain);
+    return activeMonster.shield - previous;
+}
+
+function announceMonsterSkill(skill, phase = false) {
+    if (!skill) return;
+    if (typeof showBattleSkillCastCue === "function") {
+        showBattleSkillCastCue(skill.name || "因果蓄力", skill.attackType === "magic" ? "shadow" : "physical", { isMagic: skill.attackType === "magic" });
+    }
+    if (typeof addLog === "function") {
+        const prefix = phase ? "⚠️【階段蓄力】" : "⚠️【敵方預告】";
+        addLog(`${prefix}${activeMonster.name} 準備施展【${skill.name || "特殊攻擊"}】。${skill.desc || "留意下一次敵方行動。"}`, "take");
+    }
+}
+
 function executeMonsterActionTick() {
     if (!activeMonster || activeMonster.hp <= 0) return;
 
-    if (activeMonster.freezeTurns > 0) { 
-        activeMonster.freezeTurns--; 
+    if (activeMonster.freezeTurns > 0) {
+        activeMonster.freezeTurns--;
         if (typeof addLog === "function") addLog(`❄️ 魔物處於 <span class="skill-ice">【冰凍狀態】</span>，無法行動！(剩餘 ${activeMonster.freezeTurns} 回合)`, "perfect");
-        return; 
+        return;
     }
 
     if (activeMonster.stunTurns > 0) {
@@ -2048,20 +2108,82 @@ function executeMonsterActionTick() {
         if (typeof addLog === "function") addLog(`💫 魔物處於 <span class="skill-bash">【眩暈狀態】</span>，陷入混亂無法行動！`, "perfect");
         return;
     }
-    
-    let monsterAtk = activeMonster.atk || 5;
-    const monsterUsesMagic = activeMonster.attackType === "magic" || activeMonster.isMagic === true;
-    let playerDef = monsterUsesMagic ? (currentRun.mdef || 0) : (currentRun.def || 0);
-    
-    let dmgRes = typeof calculateDamage === "function" ? calculateDamage(monsterAtk, playerDef, false, monsterUsesMagic) : { damage: monsterAtk, isMiss: false };
-    
-    if (dmgRes.isMiss) {
-        spawnVfx("miss", { anchor: "player", text: "MISS" });
-        if (typeof addLog === "function") addLog(`💨 勇者身形閃爍，成功 <span class="miss-effect">[MISS 閃過]</span> 了魔物的猛攻！<span class="num-popup num-miss">MISS</span>`, "miss");
+
+    let specialAction = null;
+    const phaseSkill = activeMonster.phaseSkill;
+    const monsterMaxHp = Math.max(1, Number(activeMonster.maxHp) || 1);
+    if (phaseSkill && !activeMonster.phaseSkillTriggered && activeMonster.hp / monsterMaxHp <= (Number(phaseSkill.triggerAtHpRatio) || 0.5)) {
+        activeMonster.phaseSkillTriggered = true;
+        activeMonster.phaseSkillPending = true;
+        grantMonsterSkillShield(phaseSkill.shieldAmount, phaseSkill.shieldCap);
+        announceMonsterSkill(phaseSkill, true);
+        if (typeof addLog === "function") addLog(`🛡️【${phaseSkill.name}】因果護盾展開：${activeMonster.shield}。在蓄力完成前擊破護盾可取消攻擊！`, "perfect");
+        spawnVfx("shield", { anchor: "monster", text: `+${activeMonster.shield}` });
         return;
     }
 
-    let res = applyDamageWithShield(currentRun, dmgRes.damage);
+    if (phaseSkill && activeMonster.phaseSkillPending) {
+        activeMonster.phaseSkillPending = false;
+        if ((Number(activeMonster.shield) || 0) > 0) {
+            specialAction = phaseSkill;
+        } else {
+            if (typeof addLog === "function") addLog(`✨【${phaseSkill.name}】因果護盾已被擊破，蓄力攻擊取消！`, "perfect");
+            return;
+        }
+    }
+
+    if (!specialAction) {
+        const skill = getActiveMonsterSkillConfig(activeMonster);
+        if (skill) {
+            if (activeMonster.enemySkillPending) {
+                activeMonster.enemySkillPending = false;
+                activeMonster.enemySkillActionCount = 0;
+                specialAction = skill;
+            } else {
+                const interval = Math.max(1, Math.floor(Number(skill.interval) || 1));
+                const actionCount = Math.max(0, Number(activeMonster.enemySkillActionCount) || 0);
+                if (actionCount >= interval) {
+                    activeMonster.enemySkillPending = true;
+                    activeMonster.enemySkillActionCount = 0;
+                    announceMonsterSkill(skill);
+                    return;
+                }
+                activeMonster.enemySkillActionCount = actionCount + 1;
+            }
+        }
+    }
+
+    if (specialAction?.kind === "shield") {
+        const gained = grantMonsterSkillShield(specialAction.shieldAmount, specialAction.shieldCap);
+        if (gained > 0) {
+            spawnVfx("shield", { anchor: "monster", text: `+${gained}` });
+            if (typeof addLog === "function") addLog(`🛡️【${specialAction.name}】${activeMonster.name} 展開結界，獲得 ${gained} 點護盾；本次行動不造成傷害。`, "take");
+        } else if (typeof addLog === "function") {
+            addLog(`🛡️【${specialAction.name}】${activeMonster.name} 的結界已達上限。`, "perfect");
+        }
+        return;
+    }
+
+    const isSkillAttack = Boolean(specialAction && specialAction.kind !== "shield");
+    const monsterAtk = Math.max(1, Math.floor((Number(activeMonster.atk) || 5) * (isSkillAttack ? (Number(specialAction.multiplier) || 1) : 1) + 1e-9));
+    const monsterUsesMagic = isSkillAttack
+        ? specialAction.attackType === "magic"
+        : activeMonster.attackType === "magic" || activeMonster.isMagic === true;
+    const playerDef = monsterUsesMagic ? (currentRun.mdef || 0) : (currentRun.def || 0);
+    const dmgRes = typeof calculateDamage === "function"
+        ? calculateDamage(monsterAtk, playerDef, false, monsterUsesMagic)
+        : { damage: monsterAtk, isMiss: false };
+
+    if (dmgRes.isMiss) {
+        spawnVfx("miss", { anchor: "player", text: "MISS" });
+        if (typeof addLog === "function") {
+            const attackName = isSkillAttack ? `【${specialAction.name}】` : "魔物的猛攻";
+            addLog(`💨 勇者身形閃爍，成功 <span class="miss-effect">[MISS 閃過]</span> ${attackName}！<span class="num-popup num-miss">MISS</span>`, "miss");
+        }
+        return;
+    }
+
+    const res = applyDamageWithShield(currentRun, dmgRes.damage);
     const jobTraits = currentRun.jobCombatTraits || {};
     if (currentRun.job === "swordsman" && activeMonster.hp > 0 && Math.random() < 0.15) {
         currentRun.shield = (Number(currentRun.shield) || 0) + 30;
@@ -2078,17 +2200,30 @@ function executeMonsterActionTick() {
         if (activeMonster.hp > 0) activeMonster.burnStacks = (Number(activeMonster.burnStacks) || 0) + 1;
         if (typeof addLog === "function") addLog(`🔥【火牆反噬】魔物受到 ${thornsResult.actualHpDmg} 點火焰傷害！`, "skill-hit");
     }
+
+    if (isSkillAttack && activeMonster.hp > 0) {
+        const shieldRate = Math.max(0, Number(specialAction.shieldRate) || 0);
+        const shieldOnHit = Math.max(0, Number(specialAction.shieldOnHit) || 0);
+        if (shieldRate > 0 && res.actualHpDmg > 0) {
+            const gain = Math.min(Math.max(0, Number(specialAction.shieldGainCap) || Infinity), Math.floor(res.actualHpDmg * shieldRate + 1e-9));
+            grantMonsterSkillShield(gain, specialAction.shieldCap);
+        } else if (shieldOnHit > 0) {
+            grantMonsterSkillShield(shieldOnHit, specialAction.shieldCap);
+        }
+    }
+
     if (res.absorbed > 0) spawnVfx("shield", { anchor: "player", text: `-${res.absorbed}` });
     if (res.actualHpDmg > 0) spawnVfx("hit", { anchor: "player", text: `-${res.actualHpDmg}`, variant: "damage" });
-    let shieldMsg = res.absorbed > 0 ? `🛡️ 護盾吸收了 ${res.absorbed} 點傷害！` : "";
-
+    const shieldMsg = res.absorbed > 0 ? `🛡️ 護盾吸收了 ${res.absorbed} 點傷害！` : "";
     if (typeof addLog === "function") {
-        addLog(`🔴 魔物暴虐反噬！${shieldMsg}<span class="strike-monster">[${accountMeta.name || "勇者"}]</span> <span class="num-popup num-boss-strike">-${res.actualHpDmg} HP</span>`, "take"); 
+        const attackLabel = isSkillAttack ? `✨【${specialAction.name}】` : "🔴 魔物暴虐反噬！";
+        addLog(`${attackLabel}${shieldMsg}<span class="strike-monster">[${accountMeta.name || "勇者"}]</span> <span class="num-popup num-boss-strike">-${res.actualHpDmg} HP</span>`, "take");
+        if (isSkillAttack && Number(activeMonster.shield) > 0) addLog(`🛡️【${specialAction.name}】魔物獲得護盾，目前 ${activeMonster.shield}。`, "perfect");
     }
-    
-    if (currentRun.hp <= 0) { 
+
+    if (currentRun.hp <= 0) {
         stopCombatTicker();
-        executeDungeonDefeatSequence(); 
+        executeDungeonDefeatSequence();
     } else if (activeMonster && activeMonster.hp <= 0) {
         stopCombatTicker();
         executeDungeonVictorySequence();
@@ -2150,7 +2285,7 @@ function executeDungeonVictorySequence() {
     activeMonster = null;
     gameState = "ENCOUNTER_RESOLVED";
 
-    const isCampaignFinale = defeatedWasBoss && dungeonFloor === 60;
+    const isCampaignFinale = defeatedWasBoss && dungeonFloor === 70;
     if (isBossFloor) {
         if (!isCampaignFinale) triggerBossVictoryModal(defeatedBossName);
         triggerBossTalentReward(dungeonFloor);
@@ -2192,26 +2327,35 @@ function triggerBossVictoryModal(bossName) {
     if (!overlay) return;
     if (nameEl) nameEl.innerText = bossName || "LEGENDARY BOSS DEFEATED";
 
-    if (bossVictoryUnlockTimer) clearTimeout(bossVictoryUnlockTimer);
-    if (bossVictoryAutoCloseTimer) clearTimeout(bossVictoryAutoCloseTimer);
+    const generation = ++bossVictoryModalGeneration;
+    if (bossVictoryUnlockTimer !== null) clearTimeout(bossVictoryUnlockTimer);
+    if (bossVictoryAutoCloseTimer !== null) clearTimeout(bossVictoryAutoCloseTimer);
     if (bossVictoryCloseHandler) {
         overlay.removeEventListener('click', bossVictoryCloseHandler);
     }
     overlay.style.display = 'flex';
+    overlay.setAttribute('aria-hidden', 'false');
 
-    bossVictoryCloseHandler = () => {
+    const closeHandler = () => {
+        if (generation !== bossVictoryModalGeneration || bossVictoryCloseHandler !== closeHandler) return;
+        if (bossVictoryUnlockTimer !== null) clearTimeout(bossVictoryUnlockTimer);
+        if (bossVictoryAutoCloseTimer !== null) clearTimeout(bossVictoryAutoCloseTimer);
         overlay.style.display = 'none';
-        overlay.removeEventListener('click', bossVictoryCloseHandler);
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.removeEventListener('click', closeHandler);
         bossVictoryUnlockTimer = null;
         bossVictoryAutoCloseTimer = null;
         bossVictoryCloseHandler = null;
     };
+    bossVictoryCloseHandler = closeHandler;
 
     bossVictoryUnlockTimer = setTimeout(() => {
-        overlay.addEventListener('click', bossVictoryCloseHandler);
+        if (generation !== bossVictoryModalGeneration || bossVictoryCloseHandler !== closeHandler) return;
+        overlay.addEventListener('click', closeHandler);
+        bossVictoryUnlockTimer = null;
     }, 800);
 
-    bossVictoryAutoCloseTimer = setTimeout(bossVictoryCloseHandler, 5000);
+    bossVictoryAutoCloseTimer = setTimeout(closeHandler, 5000);
 }
 
 function triggerBossTalentReward(floor = dungeonFloor) {
