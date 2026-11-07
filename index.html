@@ -428,12 +428,12 @@
                 </div>
                 <div id="battle-command-panel" class="battle-command-panel" style="display: none;" aria-label="手動戰鬥指令" aria-live="polite">
                     <div class="battle-command-heading" id="battle-command-status">Your Turn..</div>
-                    <div id="battle-command-categories" class="battle-command-actions">
+                    <div id="battle-command-categories" class="battle-command-actions" role="group" aria-label="戰鬥指令">
                         <button type="button" onclick="submitManualBattleCommand('basic')">⚔️ 攻擊</button>
-                        <button type="button" onclick="openManualBattleCommandList('skills')">✨ 技能</button>
-                        <button type="button" onclick="openManualBattleCommandList('items')">🎒 道具</button>
+                        <button id="battle-command-skills" type="button" aria-controls="battle-command-options" aria-expanded="false" onclick="openManualBattleCommandList('skills')">✨ 技能</button>
+                        <button id="battle-command-items" type="button" aria-controls="battle-command-options" aria-expanded="false" onclick="openManualBattleCommandList('items')">🎒 道具</button>
                     </div>
-                    <div id="battle-command-options" class="battle-command-options" style="display: none;"></div>
+                    <div id="battle-command-options" class="battle-command-options" style="display: none;" role="group" aria-label="技能與道具選單"></div>
                     <button id="battle-command-back" class="battle-command-back" type="button" onclick="closeManualBattleCommandList()" style="display: none;">↩ 返回指令</button>
                 </div>
                 <div class="tactics-drawer" id="tactics-drawer-box">
@@ -541,7 +541,7 @@
     </main>
 </div>
 
-<!-- 📱 僅於 640px 以下啟用：既有角色、動作與日誌節點會由 ui.js 移入此 portal，桌機保持原位置。 -->
+<!-- 📱 僅於 640px 以下啟用：既有角色、動作、手動戰鬥指令與日誌節點會由 ui.js 移入此 portal，桌機保持原位置。 -->
 <section id="mobile-bottom-hud" aria-label="手機冒險 HUD" hidden>
     <div class="mobile-latest-log-row" role="status" aria-live="polite">
         <span id="mobile-latest-log">尚無新的冒險紀錄</span>

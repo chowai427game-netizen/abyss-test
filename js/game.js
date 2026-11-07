@@ -379,6 +379,8 @@ function toggleTacticsDrawer() {
     const expanded = drawer.classList.toggle('expanded');
     const trigger = document.getElementById('tactic-trigger-btn');
     if (trigger) trigger.setAttribute('aria-expanded', String(expanded));
+    const mobileTrigger = document.getElementById('mobile-tactics-button');
+    if (mobileTrigger) mobileTrigger.setAttribute('aria-expanded', String(expanded));
     const mainAction = document.getElementById('btn-main-action');
     if (mainAction) mainAction.setAttribute('aria-expanded', String(expanded));
     if (gameState === "BATTLE" && activeMonster && activeMonster.hp > 0) {
@@ -1251,10 +1253,19 @@ function renderRouteSelectionPanel() {
     }
 
     currentRun.currentNodes.forEach((node, idx) => {
-        const btn = document.createElement('div');
+        const btn = document.createElement('article');
         const riskBar = Math.max(10, Math.min(100, node.danger || 50));
         const rewardBar = Math.max(10, Math.min(100, node.reward || 50));
+        const routeTypeLabels = {
+            COMBAT: "一般戰鬥",
+            ELITE: "精英戰鬥",
+            EVENT: "奇遇",
+            REST_SHOP: "休整／補給",
+            BOSS: "關卡王"
+        };
+        const routeTypeLabel = routeTypeLabels[node.type] || "路線";
 
+        btn.className = "route-choice-card";
         btn.style.cssText = `
             background: linear-gradient(135deg, rgba(20, 20, 28, 0.95) 0%, rgba(10, 10, 15, 0.98) 100%);
             border: 1px solid ${node.color || '#ffd700'};
@@ -1276,16 +1287,26 @@ function renderRouteSelectionPanel() {
         };
 
         btn.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
-                <span style="font-size: 15px; font-weight: bold; color: ${node.color}; line-height: 1.3;">${node.icon} ${node.title}</span>
-                <span style="font-size: 10px; padding: 2px 8px; border-radius: 10px; background: ${node.color}22; color: ${node.color}; border: 1px solid ${node.color}55; white-space: nowrap;">分支 #${idx + 1}</span>
+            <div class="route-choice-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
+                <div class="route-choice-title-line">
+                    <span class="route-choice-title" style="font-size: 15px; font-weight: bold; color: ${node.color}; line-height: 1.3;">${node.icon} ${node.title}</span>
+                    <span class="route-choice-type">${routeTypeLabel}</span>
+                    <span class="route-choice-index" style="font-size: 10px; padding: 2px 8px; border-radius: 10px; background: ${node.color}22; color: ${node.color}; border: 1px solid ${node.color}55; white-space: nowrap;">分支 #${idx + 1}</span>
+                </div>
+                <details class="route-choice-details">
+                    <summary>詳情</summary>
+                    <div class="route-choice-full-desc">${node.desc || node.clue || "前方路線資料不明。"}</div>
+                </details>
             </div>
-            <div style="font-size: 11px; color: #d1d1d6; line-height: 1.5; margin-bottom: 10px;">${node.clue || node.desc}</div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+            <div class="route-choice-clue" style="font-size: 11px; color: #d1d1d6; line-height: 1.5; margin-bottom: 10px;">${node.clue || node.desc}</div>
+            <div class="route-choice-footer" style="margin-bottom: 8px;">
+                <div class="route-choice-metrics" style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <span style="font-size: 10px; padding: 3px 7px; border-radius: 999px; background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.4); color: #ff9090;">危險 ${node.riskLabel || '中危'} ${riskBar}%</span>
                 <span style="font-size: 10px; padding: 3px 7px; border-radius: 999px; background: rgba(34,197,94,0.14); border: 1px solid rgba(34,197,94,0.4); color: #8ef0a5;">報酬 ${node.rewardLabel || '穩妥'} ${rewardBar}%</span>
+                </div>
+                <button class="route-choice-select" type="button" aria-label="選擇${node.title}">選擇</button>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <div class="route-choice-meters" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
                 <div style="height: 7px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06);">
                     <div style="height: 100%; width: ${riskBar}%; background: linear-gradient(90deg, #f87171, #ef4444); border-radius: inherit;"></div>
                 </div>
@@ -1295,7 +1316,13 @@ function renderRouteSelectionPanel() {
             </div>
         `;
 
-        btn.onclick = () => {
+        btn.onclick = (event) => {
+            if (event?.target?.closest?.('.route-choice-select, .route-choice-details')) return;
+            if (typeof isMobileShellViewport !== "function" || !isMobileShellViewport()) selectRouteNode(idx);
+        };
+        const selectButton = btn.querySelector('.route-choice-select');
+        if (selectButton) selectButton.onclick = (event) => {
+            event?.stopPropagation?.();
             selectRouteNode(idx);
         };
 
@@ -1539,6 +1566,12 @@ function triggerRandomAbyssEvent() {
     resolveAbyssEvent();
 }
 
+function getAbyssEventOneLineSummary(description) {
+    const text = String(description || "一段未知的深淵奇遇。").replace(/\s+/g, " ").trim();
+    const punctuation = text.search(/[。！？!?]/);
+    return punctuation >= 0 ? text.slice(0, punctuation + 1) : text;
+}
+
 function renderAbyssEventCard(eventObj) {
     const rewardBox = document.getElementById('reward-panel-box');
     const rewardContainer = document.getElementById('reward-choices-container');
@@ -1546,16 +1579,29 @@ function renderAbyssEventCard(eventObj) {
 
     if (!rewardBox || !rewardContainer) return;
 
+    rewardBox.classList?.add('is-abyss-event-card');
     rewardContainer.innerHTML = "";
     rewardBox.style.display = "block";
     rewardBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     if (rewardTitle) rewardTitle.innerText = `✨ ${eventObj.title} ✨`;
 
-    const descDiv = document.createElement('div');
-    descDiv.style.cssText = "width: 100%; font-size: 12px; color: #d1d1d6; margin-bottom: 12px; line-height: 1.5; text-align: left;";
-    descDiv.innerText = eventObj.desc;
-    rewardContainer.appendChild(descDiv);
+    const eventSummary = document.createElement('div');
+    eventSummary.className = "abyss-event-one-line-summary";
+    eventSummary.textContent = getAbyssEventOneLineSummary(eventObj.desc);
+    rewardContainer.appendChild(eventSummary);
+
+    const eventDetails = document.createElement('details');
+    eventDetails.className = "abyss-event-details";
+    eventDetails.open = !(typeof isMobileShellViewport === "function" && isMobileShellViewport());
+    const detailsSummary = document.createElement('summary');
+    detailsSummary.textContent = "閱讀事件詳情";
+    const fullDescription = document.createElement('p');
+    fullDescription.className = "abyss-event-full-description";
+    fullDescription.textContent = String(eventObj.desc || "一段未知的深淵奇遇。");
+    eventDetails.appendChild(detailsSummary);
+    eventDetails.appendChild(fullDescription);
+    rewardContainer.appendChild(eventDetails);
 
     eventObj.choices.forEach((choice) => {
         const btn = document.createElement('button');
@@ -1612,6 +1658,7 @@ function executeRestShopNode() {
     const rewardBox = document.getElementById('reward-panel-box');
     const rewardContainer = document.getElementById('reward-choices-container');
     const rewardTitle = document.getElementById('reward-title-text');
+    rewardBox?.classList?.remove('is-abyss-event-card');
 
     if (rewardBox) {
         rewardBox.style.display = "block";

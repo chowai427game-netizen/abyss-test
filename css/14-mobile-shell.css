@@ -178,6 +178,260 @@
         white-space: nowrap;
     }
 
+    body.mobile-shell-active.mobile-manual-command-visible {
+        --mobile-hud-reserve: 230px;
+    }
+
+    body.mobile-shell-active.mobile-manual-command-visible.mobile-manual-command-options-open {
+        --mobile-hud-reserve: clamp(230px, 28dvh, 300px);
+    }
+
+    body.mobile-shell-active #mobile-hud-action-slot {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    #mobile-hud-action-slot #action-panel-box .mobile-tactics-button {
+        min-height: 44px !important;
+        border-color: rgba(0, 255, 204, 0.42);
+        background: linear-gradient(135deg, rgba(18, 89, 75, 0.95), rgba(26, 38, 49, 0.96));
+    }
+
+    #mobile-hud-action-slot .battle-command-panel {
+        position: static;
+        z-index: auto;
+        bottom: auto;
+        left: auto;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 5px;
+        padding: 6px;
+        border-radius: 8px;
+    }
+
+    #mobile-hud-action-slot .battle-command-status {
+        text-align: center;
+        font-size: 10px;
+    }
+
+    #mobile-hud-action-slot #battle-command-categories {
+        flex-direction: row;
+        gap: 5px;
+    }
+
+    #mobile-hud-action-slot #battle-command-categories button {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 44px;
+        padding: 6px 3px;
+        text-align: center;
+        font-size: clamp(9px, 2.8vw, 11px);
+        white-space: nowrap;
+    }
+
+    #mobile-hud-action-slot #battle-command-options {
+        grid-column: 1 / -1;
+        max-height: min(24dvh, 165px);
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #mobile-hud-action-slot #battle-command-back {
+        min-height: 44px !important;
+        grid-column: 1 / -1;
+        margin-top: 0;
+        text-align: center;
+    }
+
+    #route-panel-box,
+    #reward-panel-box {
+        scroll-margin-bottom: calc(var(--mobile-hud-reserve) + env(safe-area-inset-bottom, 0px));
+    }
+
+    #route-choices-container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .route-choice-card {
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0 !important;
+        padding: 8px !important;
+        border-radius: 9px !important;
+        cursor: default !important;
+    }
+
+    .route-choice-head {
+        align-items: flex-start !important;
+        gap: 6px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .route-choice-title-line {
+        display: flex;
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 6px;
+        min-width: 0;
+    }
+
+    .route-choice-title {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-size: 12px !important;
+    }
+
+    .route-choice-type,
+    .route-choice-index {
+        display: inline-flex;
+        align-items: center;
+        min-height: 19px;
+        padding: 2px 6px;
+        border: 1px solid rgba(255, 215, 112, 0.26);
+        border-radius: 999px;
+        background: rgba(255, 215, 112, 0.07);
+        color: #e9d39a;
+        font-size: 9px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .route-choice-details {
+        flex: 0 0 auto;
+        max-width: 78px;
+        color: #a3f4e0;
+        font-size: 10px;
+    }
+
+    .route-choice-details > summary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 4px 6px;
+        border: 1px solid rgba(0, 255, 204, 0.26);
+        border-radius: 6px;
+        background: rgba(0, 255, 204, 0.055);
+        cursor: pointer;
+        list-style: none;
+        white-space: nowrap;
+    }
+
+    .route-choice-details > summary::-webkit-details-marker { display: none; }
+
+    .route-choice-full-desc {
+        margin-top: 6px;
+        padding: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.24);
+        color: #cbd5e1;
+        font-size: 10px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .route-choice-clue,
+    .route-choice-meters {
+        display: none !important;
+    }
+
+    .route-choice-footer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .route-choice-metrics {
+        align-items: center;
+        gap: 4px !important;
+        min-width: 0;
+    }
+
+    .route-choice-metrics > span {
+        padding: 3px 5px !important;
+        font-size: 9px !important;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .route-choice-select {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 66px;
+        min-height: 44px;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 215, 112, 0.68);
+        border-radius: 6px;
+        background: linear-gradient(135deg, rgba(112, 82, 30, 0.85), rgba(47, 43, 37, 0.95));
+        color: #fff1c1;
+        font: 800 11px/1.2 var(--font-game);
+        touch-action: manipulation;
+    }
+
+    .route-choice-select:focus-visible,
+    .route-choice-details > summary:focus-visible,
+    #mobile-hud-action-slot .battle-command-panel button:focus-visible {
+        outline: 2px solid #8cf4db;
+        outline-offset: 2px;
+    }
+
+    .is-abyss-event-card .abyss-event-one-line-summary {
+        display: block;
+        overflow: hidden;
+        margin-bottom: 6px;
+        padding: 8px 9px;
+        border-left: 3px solid rgba(0, 255, 204, 0.62);
+        border-radius: 4px;
+        background: rgba(0, 255, 204, 0.055);
+        color: #d1dbe8;
+        font-size: 11px;
+        line-height: 1.4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .is-abyss-event-card .abyss-event-details {
+        margin: 0 0 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .is-abyss-event-card .abyss-event-details > summary {
+        display: flex;
+        align-items: center;
+        min-height: 38px;
+        color: #a3f4e0;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .is-abyss-event-card .abyss-event-full-description {
+        margin: 0 0 9px;
+        color: #cbd5e1;
+        font-size: 11px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .is-abyss-event-card #reward-choices-container > button {
+        min-height: 44px;
+        padding: 10px !important;
+        font-size: 12px !important;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+        touch-action: manipulation;
+    }
+
     #mobile-drawer-scrim {
         position: fixed;
         z-index: var(--mobile-scrim-z);
@@ -296,6 +550,64 @@
     body.mobile-drawer-open #floating-item-card {
         visibility: hidden;
         opacity: 0;
+    }
+}
+
+@media screen and (min-width: 641px) {
+    .route-choice-details,
+    .route-choice-select {
+        display: none;
+    }
+
+    .route-choice-type,
+    .route-choice-index {
+        display: inline-flex;
+        align-items: center;
+        min-height: 20px;
+        padding: 2px 7px;
+        border: 1px solid rgba(255, 215, 112, 0.35);
+        border-radius: 999px;
+        background: rgba(255, 215, 112, 0.08);
+        color: #f3d889;
+        font-size: 10px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .route-choice-title-line {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .route-choice-type {
+        display: none;
+    }
+
+    .route-choice-index {
+        margin-left: auto;
+    }
+
+    .abyss-event-details {
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .abyss-event-full-description {
+        width: 100%;
+        margin: 0 0 12px;
+        color: #d1d1d6;
+        font-size: 12px;
+        line-height: 1.5;
+        text-align: left;
+    }
+
+    .abyss-event-one-line-summary,
+    .abyss-event-details > summary {
+        display: none;
     }
 }
 

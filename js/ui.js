@@ -152,6 +152,27 @@ function restoreMobileShellElement(key, elementId) {
     }
 }
 
+function syncMobileManualCommandState(visible, optionsVisible = false) {
+    const body = document.body;
+    if (!body) return;
+    const active = isMobileShellViewport() && Boolean(visible);
+    body.classList.toggle('mobile-manual-command-visible', active);
+    body.classList.toggle('mobile-manual-command-options-open', active && Boolean(optionsVisible));
+    body.style.removeProperty('--mobile-hud-reserve');
+    if (!active) return;
+
+    const hud = document.getElementById('mobile-bottom-hud');
+    if (!hud) return;
+    const schedule = typeof window.requestAnimationFrame === "function"
+        ? window.requestAnimationFrame.bind(window)
+        : (callback) => window.setTimeout(callback, 0);
+    schedule(() => {
+        if (!isMobileShellViewport() || !body.classList.contains('mobile-manual-command-visible')) return;
+        const measuredHeight = Math.ceil(hud.getBoundingClientRect().height);
+        if (measuredHeight > 0) body.style.setProperty('--mobile-hud-reserve', `${measuredHeight}px`);
+    });
+}
+
 function setMobileDrawerExpanded(expanded) {
     ['mobile-hud-character', 'mobile-hud-vitals', 'mobile-hud-bag', 'mobile-hud-log'].forEach((id) => {
         const trigger = document.getElementById(id);
@@ -201,12 +222,19 @@ function syncMobileShellPlacement() {
     if (useMobileShell) {
         moveMobileShellElement('status', 'status-panel-box', 'mobile-character-drawer');
         moveMobileShellElement('action', 'action-panel-box', 'mobile-hud-action-slot');
+        moveMobileShellElement('battleCommands', 'battle-command-panel', 'mobile-hud-action-slot');
         moveMobileShellElement('log', 'log-wrapper-box', 'mobile-log-drawer');
+        const commandOptions = document.getElementById('battle-command-options');
+        const manualTurnActive = typeof gameState !== "undefined" && gameState === "BATTLE" &&
+            typeof manualTurnPaused !== "undefined" && manualTurnPaused;
+        syncMobileManualCommandState(manualTurnActive, commandOptions?.style.display === "flex");
     } else {
         closeMobileDrawer({ restoreFocus: false });
         restoreMobileShellElement('status', 'status-panel-box');
         restoreMobileShellElement('action', 'action-panel-box');
+        restoreMobileShellElement('battleCommands', 'battle-command-panel');
         restoreMobileShellElement('log', 'log-wrapper-box');
+        syncMobileManualCommandState(false, false);
     }
 }
 
@@ -688,6 +716,20 @@ function updateActionPanelUI() {
     }
 
     if (gameState === "BATTLE") {
+        if (isMobileShellViewport()) {
+            const tacticsButton = document.createElement('button');
+            tacticsButton.id = "mobile-tactics-button";
+            tacticsButton.type = "button";
+            tacticsButton.className = "btn-game btn-rest mobile-tactics-button";
+            tacticsButton.style.cssText = "flex: 1.2; padding: 10px; font-size: 11px; font-weight: bold;";
+            tacticsButton.innerText = "⚙️ 戰術";
+            tacticsButton.setAttribute('aria-controls', 'tactics-drawer-box');
+            const tacticsDrawer = document.getElementById('tactics-drawer-box');
+            tacticsButton.setAttribute('aria-expanded', String(Boolean(tacticsDrawer?.classList?.contains('expanded'))));
+            tacticsButton.onclick = () => { if (typeof toggleTacticsDrawer === "function") toggleTacticsDrawer(); };
+            actionBox.appendChild(tacticsButton);
+        }
+
         const btnFlee = document.createElement('button');
         btnFlee.id = "btn-secondary-action";
         btnFlee.className = "btn-game btn-rest";
@@ -736,6 +778,7 @@ function updateActionPanelUI() {
 function renderBlessingRewardCards(customChoices = null) {
     const rewardBox = DOM.get('reward-panel-box');
     if (!rewardBox) return;
+    rewardBox.classList?.remove('is-abyss-event-card');
 
     if (autoSelectBlessingTimer) clearTimeout(autoSelectBlessingTimer);
 
@@ -1927,7 +1970,11 @@ function openManualBattleCommandList(kind) {
     categories.style.display = "none";
     options.style.display = "flex";
     populateCombatCommandOptions(options, kind, "manual");
+    options.setAttribute('aria-label', kind === "skills" ? "可用技能" : "可用道具");
     back.style.display = "block";
+    document.getElementById('battle-command-skills')?.setAttribute('aria-expanded', String(kind === "skills"));
+    document.getElementById('battle-command-items')?.setAttribute('aria-expanded', String(kind === "items"));
+    syncMobileManualCommandState(true, true);
     return true;
 }
 
@@ -1940,6 +1987,10 @@ function closeManualBattleCommandList() {
     options.style.display = "none";
     categories.style.display = "flex";
     back.style.display = "none";
+    options.setAttribute('aria-label', "技能與道具選單");
+    document.getElementById('battle-command-skills')?.setAttribute('aria-expanded', "false");
+    document.getElementById('battle-command-items')?.setAttribute('aria-expanded', "false");
+    syncMobileManualCommandState(typeof manualTurnPaused !== "undefined" && manualTurnPaused, false);
     return true;
 }
 
@@ -2172,6 +2223,7 @@ function updateBattleScene(monster) {
         }
         commandPanel.style.display = showManualCommands ? "grid" : "none";
     }
+    syncMobileManualCommandState(showManualCommands, commandOptions?.style.display === "flex");
     if (commandStatus && showManualCommands) commandStatus.textContent = "Your Turn..";
     const semiControls = DOM.get('semi-command-controls');
     if (semiControls) semiControls.style.display = Boolean(inBattle && activeTactic === "SEMI") ? "block" : "none";
