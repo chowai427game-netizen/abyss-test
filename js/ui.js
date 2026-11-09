@@ -4,6 +4,7 @@
 
 // 🌐 1. 全域狀態變數宣告
 let currentOnlineCount = 1; 
+let currentSquareTab = "chat";
 const MAX_CHAT_LOGS = 25;
 let localChatHistory = [];
 const BLACK_MARKET_REFRESH_MS = 4 * 60 * 60 * 1000; // 4 小時
@@ -105,9 +106,14 @@ const DOM = {
 };
 
 let activeCookingRange = "1-10";
+let activeCookingUseFilter = "all";
+let activeCookingRecipeFocusIndex = 0;
 let activeCraftingCategory = "all";
 let activeCraftingLvlRange = "1-10";
+let activeWorkshopBlueprintFocusIndex = 0;
 let activeWarehouseFilter = "all";
+let kitchenWarehouseExpanded = false;
+let workshopWarehouseExpanded = false;
 const MOBILE_SHELL_MEDIA_QUERY = "(max-width: 640px)";
 const mobileShellOrigins = {};
 let mobileShellInitialized = false;
@@ -288,6 +294,7 @@ function initMobileShell() {
         const syncForViewport = () => {
             syncMobileShellPlacement();
             syncMobileShellUI();
+            syncVillageSquareTabPresentation();
         };
         if (typeof mobileShellMediaQuery.addEventListener === 'function') mobileShellMediaQuery.addEventListener('change', syncForViewport);
         else if (typeof mobileShellMediaQuery.addListener === 'function') mobileShellMediaQuery.addListener(syncForViewport);
@@ -692,11 +699,13 @@ function updateActionPanelUI() {
     actionBox.style.width = "100%";
 
     if (gameState === "VILLAGE") {
+        const targetFloor = typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1;
         const btnEnter = document.createElement('button');
         btnEnter.id = "btn-main-action";
         btnEnter.className = "btn-game btn-explore full-width";
         btnEnter.style.cssText = "flex: 1; padding: 12px; font-size: 13px; font-weight: bold;";
-        btnEnter.innerHTML = `🔮 進入地下城 (B${typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1}F)`;
+        btnEnter.setAttribute('aria-label', `進入地下城，目標樓層 B${targetFloor}F`);
+        btnEnter.innerHTML = `🔮 進入地下城 (B${targetFloor}F)`;
         btnEnter.onclick = () => { if (typeof startNextFloor === "function") startNextFloor(); };
         actionBox.appendChild(btnEnter);
         return;
@@ -1301,6 +1310,46 @@ function getJobChineseName(j) {
     return jobNames[j] || "無名勇者";
 }
 
+function ensureVillageNavTabVisible(tab) {
+    if (!tab || typeof tab.closest !== "function" || typeof isMobileShellViewport !== "function" || !isMobileShellViewport()) return;
+
+    const nav = tab.closest('.village-nav-bar');
+    if (!nav || nav.clientWidth <= 0 || nav.scrollWidth <= nav.clientWidth + 1) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const tabRect = tab.getBoundingClientRect();
+    const visibleLeft = navRect.left + nav.clientLeft;
+    const visibleRight = visibleLeft + nav.clientWidth;
+    const edgePadding = 8;
+    let scrollDelta = 0;
+
+    if (tabRect.left < visibleLeft + edgePadding) {
+        scrollDelta = tabRect.left - visibleLeft - edgePadding;
+    } else if (tabRect.right > visibleRight - edgePadding) {
+        scrollDelta = tabRect.right - visibleRight + edgePadding;
+    }
+
+    if (!scrollDelta) return;
+    const prefersReducedMotion = typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof nav.scrollBy === "function") {
+        nav.scrollBy({ left: scrollDelta, behavior: prefersReducedMotion ? "auto" : "smooth" });
+    } else {
+        nav.scrollLeft += scrollDelta;
+    }
+}
+
+function syncVillageGateContext() {
+    const floor = document.getElementById('gate-current-floor');
+    const environment = document.getElementById('gate-environment-status');
+    const targetFloor = typeof dungeonFloor !== "undefined" ? (dungeonFloor || 1) : 1;
+    const environmentKey = typeof currentEnvironment !== "undefined" ? currentEnvironment : "NORMAL";
+    const environmentData = typeof ENVIRONMENT_DATABASE !== "undefined" ? ENVIRONMENT_DATABASE[environmentKey] : null;
+
+    if (floor) floor.textContent = `🎯 目標樓層：B${targetFloor}F`;
+    if (environment) environment.textContent = environmentData?.logText || "✨ 當前環境力場穩定";
+}
+
 function switchVillageLocation(targetLoc) {
     currentVillageLocation = targetLoc;
 
@@ -1341,6 +1390,8 @@ function switchVillageLocation(targetLoc) {
         if (target.render) target.render();
     }
 
+    syncVillageGateContext();
+    ensureVillageNavTabVisible(DOM.get(tabs[targetLoc]));
     updateUI();
 }
 
@@ -2349,6 +2400,7 @@ function updateUI() {
 
         initSwipeNavigation();
         syncCharacterDataUi();
+        syncVillageGateContext();
         updateActionPanelUI();
         return; 
     }
@@ -2543,6 +2595,7 @@ function getIngredientAvailability(ingredients) {
 function renderFacilityOverview(elementId, metrics) {
     const target = DOM.get(elementId);
     if (!target) return;
+    target.dataset.metricCount = String(metrics.length);
     target.innerHTML = metrics.map((metric) => `
         <div class="facility-metric${metric.tone ? ` facility-metric--${metric.tone}` : ''}">
             <span class="facility-metric-label">${metric.label}</span>
@@ -2593,6 +2646,7 @@ function renderWarehouseFilterBar(containerEl, onFilterChange, allowedKeys = ['a
     normalizeWarehouseFilter(tags.map((tag) => tag.key));
     const filterRow = document.createElement('div');
     filterRow.className = 'warehouse-filter-row';
+    filterRow.setAttribute('role', 'group');
     filterRow.setAttribute('aria-label', '倉庫物品篩選');
 
     tags.forEach((tag) => {
@@ -2610,6 +2664,78 @@ function renderWarehouseFilterBar(containerEl, onFilterChange, allowedKeys = ['a
     });
 
     containerEl.appendChild(filterRow);
+}
+
+function createFacilityWarehouseDisclosure(container, { contentId, summaryHtml, expanded, onToggle }) {
+    const root = document.createElement('div');
+    root.className = 'facility-warehouse-disclosure';
+    if (!expanded) root.classList.add('is-collapsed');
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'facility-warehouse-disclosure__toggle';
+    toggle.setAttribute('aria-controls', contentId);
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.textContent = expanded ? '📦 收合完整倉庫清單' : '📦 查看完整倉庫清單';
+
+    const summary = document.createElement('div');
+    summary.className = 'facility-stock-summary facility-stock-summary--compact';
+    summary.setAttribute('aria-label', '倉庫數量摘要');
+    summary.innerHTML = summaryHtml;
+
+    const content = document.createElement('div');
+    content.id = contentId;
+    content.className = 'facility-warehouse-disclosure__content';
+
+    toggle.addEventListener('click', () => {
+        const nextExpanded = root.classList.toggle('is-collapsed') === false;
+        toggle.setAttribute('aria-expanded', String(nextExpanded));
+        toggle.textContent = nextExpanded ? '📦 收合完整倉庫清單' : '📦 查看完整倉庫清單';
+        onToggle(nextExpanded);
+    });
+
+    root.append(toggle, summary, content);
+    container.appendChild(root);
+    return content;
+}
+
+function appendFacilityFocusNavigation(container, itemCount, activeIndex, itemLabel, onNavigate) {
+    const navigation = document.createElement('div');
+    navigation.className = 'facility-focus-nav';
+    navigation.setAttribute('role', 'group');
+    navigation.setAttribute('aria-label', `${itemLabel}卡片瀏覽`);
+
+    const previous = document.createElement('button');
+    previous.type = 'button';
+    previous.className = 'facility-focus-nav__button facility-focus-nav__button--previous';
+    previous.setAttribute('aria-label', `上一個${itemLabel}`);
+    previous.textContent = '‹ 上一個';
+    previous.disabled = activeIndex <= 0;
+    previous.addEventListener('click', () => {
+        onNavigate(activeIndex - 1);
+        container.querySelector('.facility-focus-nav__button--previous')?.focus();
+    });
+
+    const position = document.createElement('span');
+    position.className = 'facility-focus-nav__position';
+    position.setAttribute('aria-live', 'polite');
+    position.setAttribute('aria-atomic', 'true');
+    position.textContent = `${activeIndex + 1} / ${itemCount}`;
+
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'facility-focus-nav__button facility-focus-nav__button--next';
+    next.setAttribute('aria-label', `下一個${itemLabel}`);
+    next.textContent = '下一個 ›';
+    next.disabled = activeIndex >= itemCount - 1;
+    next.addEventListener('click', () => {
+        onNavigate(activeIndex + 1);
+        container.querySelector('.facility-focus-nav__button--next')?.focus();
+    });
+
+    if (itemCount < 2) navigation.hidden = true;
+    navigation.append(previous, position, next);
+    container.appendChild(navigation);
 }
 
 // --------------------------------------------------------------------------
@@ -2678,7 +2804,7 @@ function renderVillageGuild() {
         const isDisabled = isMaxLevel || !hasLevel || !hasGold || !availability.isReady;
         const currentEffect = formatSkillEffectText(skill, currentLv, currentRun);
         const nextEffect = isMaxLevel ? '已達上限' : formatSkillEffectText(skill, nextLv, currentRun);
-        const skillType = skill.type === 'passive' ? '被動常駐' : `主動 · MP ${skill.mp || 0}`;
+        const skillType = skill.type === 'passive' ? '被動常駐' : '主動技能';
 
         let statusLabel = '可升級';
         let statusClass = 'facility-status-chip--ready';
@@ -2698,6 +2824,8 @@ function renderVillageGuild() {
 
         const card = document.createElement('article');
         card.className = 'guild-skill-card';
+        card.tabIndex = 0;
+        card.setAttribute('aria-label', `${skill.name}，技能 Lv. ${currentLv}。${statusLabel}。聚焦或長按查看詳情。`);
         card.innerHTML = `
             <div>
                 <div class="guild-skill-card__name">${skill.name} <span class="guild-skill-card__level">Lv. ${currentLv} / 10</span></div>
@@ -2712,7 +2840,11 @@ function renderVillageGuild() {
         const learnButton = document.createElement('button');
         learnButton.type = 'button';
         learnButton.className = 'btn-game btn-explore facility-action-button';
-        learnButton.textContent = isMaxLevel ? '滿級' : `升級 · ${goldCost}G`;
+        learnButton.classList.add('guild-skill-card__upgrade');
+        learnButton.innerHTML = isMaxLevel
+            ? '<span class="guild-skill-upgrade-label">滿級</span>'
+            : `<span class="guild-skill-upgrade-label">升級</span><span class="guild-skill-upgrade-cost"> · ${goldCost}G</span>`;
+        learnButton.setAttribute('aria-label', isMaxLevel ? `${skill.name} 已達滿級` : `升級 ${skill.name}，需要 ${goldCost} G`);
         learnButton.disabled = isDisabled;
         learnButton.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -2731,13 +2863,23 @@ function renderVillageGuild() {
         container.appendChild(card);
     });
 
+    const isMobileGuild = typeof isMobileShellViewport === 'function' && isMobileShellViewport();
     const resetSection = document.createElement('section');
     resetSection.className = 'guild-reset-section';
     resetSection.innerHTML = `
-        <h5 class="guild-reset-section__heading">⚖️ 命運洗禮</h5>
-        <p class="guild-reset-section__description">重置能力點或重選職業會影響角色配置，請在出發前確認。</p>
-        <div class="guild-reset-section__actions"></div>
+        <button type="button" class="guild-reset-section__toggle" aria-controls="guild-reset-options" aria-expanded="${!isMobileGuild}">⚖️ 角色重置</button>
+        <div id="guild-reset-options" class="guild-reset-section__content">
+            <h5 class="guild-reset-section__heading">⚖️ 命運洗禮</h5>
+            <p class="guild-reset-section__description">重置能力點或重選職業會影響角色配置，請在出發前確認。</p>
+            <div class="guild-reset-section__actions"></div>
+        </div>
     `;
+    if (isMobileGuild) resetSection.classList.add('is-collapsed');
+    const resetToggle = resetSection.querySelector('.guild-reset-section__toggle');
+    resetToggle.addEventListener('click', () => {
+        const isCollapsed = resetSection.classList.toggle('is-collapsed');
+        resetToggle.setAttribute('aria-expanded', String(!isCollapsed));
+    });
     const resetActions = resetSection.querySelector('.guild-reset-section__actions');
     const resetStatsButton = document.createElement('button');
     resetStatsButton.type = 'button';
@@ -2786,12 +2928,14 @@ function renderVillageCookingWorkshop() {
     if (warehouseBox) {
         warehouseBox.className = 'facility-stock-card';
         warehouseBox.innerHTML = '';
-
-        const summary = document.createElement('div');
-        summary.className = 'facility-stock-summary';
-        summary.innerHTML = `<span>目前倉庫共有 <strong>${counts.totalTypes}</strong> 種物品</span><span>${counts.totalQty} 件</span>`;
-        warehouseBox.appendChild(summary);
-        renderWarehouseFilterBar(warehouseBox, renderVillageCookingWorkshop, ['all', 'mat', 'dish']);
+        const isMobileKitchen = typeof isMobileShellViewport === 'function' && isMobileShellViewport();
+        const warehouseContent = createFacilityWarehouseDisclosure(warehouseBox, {
+            contentId: 'kitchen-warehouse-content',
+            expanded: !isMobileKitchen || kitchenWarehouseExpanded,
+            summaryHtml: `<span><strong>${counts.totalTypes}</strong> 種物品 · <strong>${counts.totalQty}</strong> 件</span><span class="facility-stock-summary__categories"><span>🌾 食材 ${counts.materialQty}</span><span>🍱 料理 ${counts.dishQty}</span></span>`,
+            onToggle: (expanded) => { kitchenWarehouseExpanded = expanded; }
+        });
+        renderWarehouseFilterBar(warehouseContent, renderVillageCookingWorkshop, ['all', 'mat', 'dish']);
 
         const recipeNames = new Set(recipes.map((recipe) => recipe.name));
         const blueprintNames = new Set(typeof CRAFTING_BLUEPRINTS !== 'undefined' ? CRAFTING_BLUEPRINTS.map((blueprint) => blueprint.name) : []);
@@ -2813,19 +2957,19 @@ function renderVillageCookingWorkshop() {
             const materialTitle = document.createElement('div');
             materialTitle.className = 'facility-stock-summary';
             materialTitle.innerHTML = `<span>🌾 食材素材</span><span>${rawMaterials.length} 種</span>`;
-            warehouseBox.appendChild(materialTitle);
+            warehouseContent.appendChild(materialTitle);
             const materialBox = document.createElement('div');
             materialBox.className = 'warehouse-pill-box';
             if (rawMaterials.length) rawMaterials.forEach((item) => materialBox.appendChild(createWarehousePill(item.name, item.qty)));
             else materialBox.innerHTML = '<div class="facility-empty-state">目前沒有符合篩選條件的食材。</div>';
-            warehouseBox.appendChild(materialBox);
+            warehouseContent.appendChild(materialBox);
         }
 
         if (activeWarehouseFilter !== 'mat') {
             const dishTitle = document.createElement('div');
             dishTitle.className = 'facility-stock-summary';
             dishTitle.innerHTML = `<span>🍱 完成料理</span><span>${cookedDishes.length} 種</span>`;
-            warehouseBox.appendChild(dishTitle);
+            warehouseContent.appendChild(dishTitle);
             const dishList = document.createElement('div');
             dishList.className = 'facility-owned-list';
             if (!cookedDishes.length) {
@@ -2861,7 +3005,7 @@ function renderVillageCookingWorkshop() {
                     dishList.appendChild(dishRow);
                 });
             }
-            warehouseBox.appendChild(dishList);
+            warehouseContent.appendChild(dishList);
         }
     }
 
@@ -2870,33 +3014,61 @@ function renderVillageCookingWorkshop() {
     recipeContainer.innerHTML = '';
 
     const filterBar = document.createElement('div');
-    filterBar.className = 'facility-filter-bar facility-filter-bar--single';
+    filterBar.className = 'facility-filter-bar facility-filter-bar--cooking';
     const recipeSelect = document.createElement('select');
     recipeSelect.className = 'select-game';
     recipeSelect.setAttribute('aria-label', '選擇食譜對應的深淵階層');
     recipeSelect.innerHTML = `
-        <option value="1-10">📜 深淵階層 B1F ~ B10F 食譜</option>
-        <option value="11-20">📜 深淵階層 B11F ~ B20F 食譜</option>
-        <option value="21-30">📜 深淵階層 B21F ~ B30F 食譜</option>
-        <option value="31-40">📜 深淵階層 B31F ~ B40F 食譜</option>
-        <option value="41-50">📜 深淵階層 B41F ~ B50F 食譜</option>
+        <option value="1-10">📜 B1–10F 食譜</option>
+        <option value="11-20">📜 B11–20F 食譜</option>
+        <option value="21-30">📜 B21–30F 食譜</option>
+        <option value="31-40">📜 B31–40F 食譜</option>
+        <option value="41-50">📜 B41–50F 食譜</option>
     `;
     recipeSelect.value = activeCookingRange;
     recipeSelect.addEventListener('change', (event) => changeCookingTab(event.target.value));
-    filterBar.appendChild(recipeSelect);
+
+    const useSelect = document.createElement('select');
+    useSelect.className = 'select-game';
+    useSelect.setAttribute('aria-label', '依料理用途篩選食譜');
+    useSelect.innerHTML = `
+        <option value="all">🍲 全部用途</option>
+        <option value="village_eat">✨ 立即進食</option>
+        <option value="battle">⚔️ 戰鬥料理</option>
+    `;
+    useSelect.value = activeCookingUseFilter;
+    useSelect.addEventListener('change', (event) => {
+        activeCookingUseFilter = event.target.value;
+        activeCookingRecipeFocusIndex = 0;
+        renderVillageCookingWorkshop();
+    });
+    filterBar.append(recipeSelect, useSelect);
     recipeContainer.appendChild(filterBar);
 
-    const filteredRecipes = recipes.filter((recipe) => recipe.range === activeCookingRange);
+    const filteredRecipes = recipes.filter((recipe) => {
+        const useKey = recipe.type === 'village_eat' ? 'village_eat' : 'battle';
+        return recipe.range === activeCookingRange && (activeCookingUseFilter === 'all' || useKey === activeCookingUseFilter);
+    });
     if (!filteredRecipes.length) {
-        recipeContainer.insertAdjacentHTML('beforeend', '<div class="facility-empty-state">此樓層區間暫無食譜。</div>');
+        activeCookingRecipeFocusIndex = 0;
+        recipeContainer.insertAdjacentHTML('beforeend', '<div class="facility-empty-state">目前篩選條件暫無食譜。</div>');
         return;
     }
 
-    filteredRecipes.forEach((recipe) => {
+    activeCookingRecipeFocusIndex = Math.min(Math.max(activeCookingRecipeFocusIndex, 0), filteredRecipes.length - 1);
+    appendFacilityFocusNavigation(recipeContainer, filteredRecipes.length, activeCookingRecipeFocusIndex, '食譜', (nextIndex) => {
+        activeCookingRecipeFocusIndex = nextIndex;
+        renderVillageCookingWorkshop();
+    });
+
+    filteredRecipes.forEach((recipe, index) => {
         const availability = getIngredientAvailability(recipe.ingredients);
         const isBuff = recipe.type === 'village_eat';
         const card = document.createElement('article');
-        card.className = 'recipe-card';
+        card.className = `recipe-card${index === activeCookingRecipeFocusIndex ? ' is-focus-card' : ''}`;
+        card.tabIndex = 0;
+        card.dataset.focusIndex = String(index);
+        card.setAttribute('aria-label', `${recipe.name}，${isBuff ? '立即進食增益料理' : '可攜帶戰鬥料理'}。聚焦或長按查看食譜詳情。`);
         card.innerHTML = `
             <div>
                 <h5 class="recipe-card__name">${recipe.name}</h5>
@@ -2951,11 +3123,14 @@ function renderVillageWorkshop() {
     if (warehouseBox) {
         warehouseBox.className = 'facility-stock-card';
         warehouseBox.innerHTML = '';
-        const summary = document.createElement('div');
-        summary.className = 'facility-stock-summary';
-        summary.innerHTML = `<span>加工庫存共有 <strong>${counts.totalTypes}</strong> 種物品</span><span>${counts.totalQty} 件</span>`;
-        warehouseBox.appendChild(summary);
-        renderWarehouseFilterBar(warehouseBox, renderVillageWorkshop, ['all', 'mat', 'dish', 'equip']);
+        const isMobileWorkshop = typeof isMobileShellViewport === 'function' && isMobileShellViewport();
+        const warehouseContent = createFacilityWarehouseDisclosure(warehouseBox, {
+            contentId: 'workshop-warehouse-content',
+            expanded: !isMobileWorkshop || workshopWarehouseExpanded,
+            summaryHtml: `<span><strong>${counts.totalTypes}</strong> 種物品 · <strong>${counts.totalQty}</strong> 件</span><span class="facility-stock-summary__categories"><span>🌾 素材 ${counts.materialQty}</span><span>🍱 料理 ${counts.dishQty}</span><span>⚔️ 裝備 ${counts.equipmentQty}</span></span>`,
+            onToggle: (expanded) => { workshopWarehouseExpanded = expanded; }
+        });
+        renderWarehouseFilterBar(warehouseContent, renderVillageWorkshop, ['all', 'mat', 'dish', 'equip']);
 
         const blueprintNames = new Set(blueprints.map((blueprint) => blueprint.name));
         const recipeNames = new Set(recipes.map((recipe) => recipe.name));
@@ -2972,7 +3147,7 @@ function renderVillageWorkshop() {
         itemBox.className = 'warehouse-pill-box';
         if (filteredItems.length) filteredItems.forEach((item) => itemBox.appendChild(createWarehousePill(item.name, item.qty)));
         else itemBox.innerHTML = '<div class="facility-empty-state">沒有符合篩選條件的庫存物品。</div>';
-        warehouseBox.appendChild(itemBox);
+        warehouseContent.appendChild(itemBox);
     }
 
     const blueprintContainer = DOM.get('blueprints-container');
@@ -3020,6 +3195,7 @@ function renderVillageWorkshop() {
     });
 
     if (!filteredBlueprints.length) {
+        activeWorkshopBlueprintFocusIndex = 0;
         const message = activeCraftingLvlRange === 'legendary'
             ? '🔒 尚未解鎖任何傳說藍圖。請前往地下黑市進行尋寶採購！'
             : '📜 該分頁目前暫無可打造裝備。';
@@ -3027,8 +3203,14 @@ function renderVillageWorkshop() {
         return;
     }
 
+    activeWorkshopBlueprintFocusIndex = Math.min(Math.max(activeWorkshopBlueprintFocusIndex, 0), filteredBlueprints.length - 1);
+    appendFacilityFocusNavigation(blueprintContainer, filteredBlueprints.length, activeWorkshopBlueprintFocusIndex, '藍圖', (nextIndex) => {
+        activeWorkshopBlueprintFocusIndex = nextIndex;
+        renderVillageWorkshop();
+    });
+
     const typeLabelMap = { weapon: '武器', armor: '防具', accessory: '飾品' };
-    filteredBlueprints.forEach((blueprint) => {
+    filteredBlueprints.forEach((blueprint, index) => {
         const itemRefineLvl = (accountMeta.itemRefines?.[blueprint.name]) || (accountMeta.equipmentStars?.[blueprint.type]) || 0;
         const availability = getIngredientAvailability(blueprint.ingredients);
         const isEquipped = Object.values(accountMeta.equipment || {}).includes(blueprint.name);
@@ -3042,7 +3224,10 @@ function renderVillageWorkshop() {
             : (hasInWarehouse ? '<span class="facility-status-chip">倉庫持有</span>' : '');
 
         const card = document.createElement('article');
-        card.className = `workshop-blueprint-card${blueprint.isLegendary ? ' workshop-blueprint-card--legendary' : ''}`;
+        card.className = `workshop-blueprint-card${blueprint.isLegendary ? ' workshop-blueprint-card--legendary' : ''}${index === activeWorkshopBlueprintFocusIndex ? ' is-focus-card' : ''}`;
+        card.tabIndex = 0;
+        card.dataset.focusIndex = String(index);
+        card.setAttribute('aria-label', `${blueprint.name}，${typeLabelMap[blueprint.type] || blueprint.type}藍圖。聚焦或長按查看材料、效果與強化費用。`);
         card.innerHTML = `
             <div class="workshop-blueprint-card__heading">
                 <div>
@@ -3171,16 +3356,19 @@ function addLog(msg, type = "deal") {
 
 function changeCookingTab(range) {
     activeCookingRange = range;
+    activeCookingRecipeFocusIndex = 0;
     renderVillageCookingWorkshop();
 }
 
 function changeCraftingCat(cat) {
     activeCraftingCategory = cat;
+    activeWorkshopBlueprintFocusIndex = 0;
     renderVillageWorkshop();
 }
 
 function changeCraftingLvl(range) {
     activeCraftingLvlRange = range;
+    activeWorkshopBlueprintFocusIndex = 0;
     renderVillageWorkshop();
 }
 
@@ -3539,57 +3727,90 @@ function generateBlackMarketStock() {
     return stock;
 }
 
+function syncVillageSquareTabPresentation() {
+    const squareContainer = document.getElementById('v-loc-square');
+    if (!squareContainer) return;
+
+    const isMobile = isMobileShellViewport();
+    const selectedTab = currentSquareTab === "market" ? "market" : "chat";
+    squareContainer.querySelectorAll('[data-square-tab]').forEach((tab) => {
+        const selected = tab.dataset.squareTab === selectedTab;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+        tab.classList.toggle('is-active', selected);
+    });
+    squareContainer.querySelectorAll('[data-square-panel]').forEach((panel) => {
+        const inactiveOnMobile = isMobile && panel.dataset.squarePanel !== selectedTab;
+        panel.classList.toggle('is-active', panel.dataset.squarePanel === selectedTab);
+        panel.setAttribute('aria-hidden', String(inactiveOnMobile));
+        panel.inert = inactiveOnMobile;
+    });
+}
+
+function switchVillageSquareTab(tabName, { focus = false } = {}) {
+    if (tabName !== "chat" && tabName !== "market") return false;
+    currentSquareTab = tabName;
+    syncVillageSquareTabPresentation();
+    if (focus) document.querySelector(`#v-loc-square [data-square-tab="${tabName}"]`)?.focus({ preventScroll: true });
+    return true;
+}
+
 function renderVillageSquare() {
     const squareContainer = DOM.get('v-loc-square');
     if (!squareContainer) return;
 
     squareContainer.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
-            
-            <div style="
-                background: radial-gradient(circle at 0% 0%, rgba(230, 126, 34, 0.2) 0%, rgba(20, 15, 10, 0.95) 100%); 
-                border: 1px solid rgba(230, 126, 34, 0.4); border-radius: 12px; padding: 14px; 
-                display: flex; justify-content: space-between; align-items: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            ">
-                <div>
-                    <div style="font-size: 14px; font-weight: bold; color: #e67e22; letter-spacing: 0.5px;">⚖️ 地下黑市交易所</div>
-                    <div style="font-size: 11px; color: #aaa; margin-top: 3px;">提供稀有素材採購、傳說藍圖與倉庫變賣服務。</div>
-                </div>
-                <button class="btn-game btn-rerun" style="padding: 6px 14px; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, #e67e22, #d35400) !important;" onclick="openBlackMarketModal('buy')">
-                    🛒 進入交易選單
-                </button>
+        <div class="square-facility-stack">
+            <div class="square-mobile-tabs" role="tablist" aria-label="廣場功能">
+                <button id="square-tab-chat" type="button" role="tab" data-square-tab="chat" aria-controls="square-chat-panel" aria-selected="false" tabindex="-1">💬 聊天室</button>
+                <button id="square-tab-market" type="button" role="tab" data-square-tab="market" aria-controls="square-market-panel" aria-selected="false" tabindex="-1">⚖️ 黑市</button>
             </div>
 
-            <div style="background: rgba(10, 15, 25, 0.85); border: 1px solid rgba(41, 128, 185, 0.3); border-radius: 12px; padding: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 13px; font-weight: bold; color: #3498db;">💬 冒險者廣場頻道</span>
-                    <span style="font-size: 11px; color: #00ffcc; font-weight: bold; background: rgba(0,255,204,0.1); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(0,255,204,0.3);">
-                        🟢 線上勇者: <span id="square-online-count">${currentOnlineCount}</span> 人
-                    </span>
-                </div>
-                
-                <div id="square-chat-box" style="
-                    height: 130px; overflow-y: auto; background: rgba(0,0,0,0.4); 
-                    border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; 
-                    padding: 8px; font-size: 11px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;
-                ">
-                </div>
-
-                <div style="display: flex; gap: 6px;">
-                    <input type="text" id="square-chat-input" placeholder="輸入發言內容..." maxlength="40" style="
-                        flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(52, 152, 219, 0.4); 
-                        border-radius: 6px; color: #fff; padding: 6px 10px; font-size: 11px; outline: none;
-                    " onkeypress="if(event.key === 'Enter') sendSquareChatMessage()">
-                    <button class="btn-game btn-explore" style="padding: 6px 12px; font-size: 11px;" onclick="sendSquareChatMessage()">
-                        發送
+            <section id="square-market-panel" class="square-tab-panel square-market-panel" data-square-panel="market" role="tabpanel" aria-labelledby="square-tab-market" aria-hidden="false" tabindex="0">
+                <div class="square-market-entry">
+                    <div class="square-market-copy">
+                        <div class="square-market-title">⚖️ 地下黑市交易所</div>
+                        <div class="square-market-description">提供稀有素材採購、傳說藍圖與倉庫變賣服務。</div>
+                    </div>
+                    <button type="button" class="btn-game btn-rerun square-market-open" aria-haspopup="dialog" aria-controls="black-market-modal-overlay" onclick="openBlackMarketModal('buy')">
+                        🛒 進入交易選單
                     </button>
                 </div>
-            </div>
+            </section>
 
+            <section id="square-chat-panel" class="square-tab-panel square-chat-panel" data-square-panel="chat" role="tabpanel" aria-labelledby="square-tab-chat" aria-hidden="false" tabindex="0">
+                <div class="square-chat-card">
+                    <div class="square-chat-header">
+                        <span class="square-chat-title">💬 冒險者廣場頻道</span>
+                        <span class="square-online-badge">🟢 線上勇者: <span id="square-online-count">${currentOnlineCount}</span> 人</span>
+                    </div>
+                    <div id="square-chat-box" class="square-chat-box" role="log" aria-label="廣場聊天訊息" aria-live="polite" aria-relevant="additions"></div>
+                    <div class="square-chat-compose">
+                        <input type="text" id="square-chat-input" class="square-chat-input" placeholder="輸入發言內容..." aria-label="輸入廣場訊息" maxlength="40" onkeypress="if(event.key === 'Enter') sendSquareChatMessage()">
+                        <button type="button" class="btn-game btn-explore square-chat-send" onclick="sendSquareChatMessage()">發送</button>
+                    </div>
+                </div>
+            </section>
         </div>
     `;
 
+    const tabs = Array.from(squareContainer.querySelectorAll('[data-square-tab]'));
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => switchVillageSquareTab(tab.dataset.squareTab));
+        tab.addEventListener('keydown', (event) => {
+            let nextIndex = index;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % tabs.length;
+            else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + tabs.length) % tabs.length;
+            else if (event.key === 'Home') nextIndex = 0;
+            else if (event.key === 'End') nextIndex = tabs.length - 1;
+            else return;
+
+            event.preventDefault();
+            switchVillageSquareTab(tabs[nextIndex].dataset.squareTab, { focus: true });
+        });
+    });
+
+    syncVillageSquareTabPresentation();
     renderSquareChatBox();
 }
 

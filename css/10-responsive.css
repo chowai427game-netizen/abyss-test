@@ -38,3 +38,31 @@
         width: min(100%, 560px);
     }
 }
+
+@media (max-width: 640px) {
+    .village-nav-bar {
+        box-sizing: border-box;
+        flex-wrap: nowrap;
+        gap: 5px;
+        margin-bottom: 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scroll-padding-inline: 8px;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .village-nav-bar > .btn-nav-tab {
+        flex: 0 0 auto;
+        min-width: max-content;
+        min-height: 44px;
+        padding: 8px 10px;
+        scroll-snap-align: start;
+    }
+
+    .village-nav-bar > .btn-nav-tab:focus-visible {
+        outline: 2px solid #8cf4db;
+        outline-offset: 1px;
+    }
+}

@@ -178,6 +178,10 @@
         white-space: nowrap;
     }
 
+    #mobile-hud-action-slot #action-panel-box #btn-main-action {
+        min-height: 44px !important;
+    }
+
     body.mobile-shell-active.mobile-manual-command-visible {
         --mobile-hud-reserve: 230px;
     }
@@ -314,7 +318,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 36px;
+        min-height: 44px;
         padding: 4px 6px;
         border: 1px solid rgba(0, 255, 204, 0.26);
         border-radius: 6px;
@@ -408,7 +412,7 @@
     .is-abyss-event-card .abyss-event-details > summary {
         display: flex;
         align-items: center;
-        min-height: 38px;
+        min-height: 44px;
         color: #a3f4e0;
         font-size: 11px;
         font-weight: 700;
@@ -424,7 +428,7 @@
     }
 
     .is-abyss-event-card #reward-choices-container > button {
-        min-height: 44px;
+        min-height: 44px !important;
         padding: 10px !important;
         font-size: 12px !important;
         line-height: 1.4;

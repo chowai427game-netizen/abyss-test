@@ -191,6 +191,35 @@
     box-sizing: border-box;
 }
 
+.facility-warehouse-disclosure {
+    display: grid;
+    gap: 9px;
+    width: 100%;
+    min-width: 0;
+}
+
+.facility-warehouse-disclosure__toggle,
+.facility-focus-nav {
+    display: none;
+}
+
+.facility-warehouse-disclosure__content {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+}
+
+.facility-stock-summary--compact {
+    align-items: flex-start;
+}
+
+.facility-stock-summary__categories {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 .facility-stock-summary {
     display: flex;
     align-items: center;
@@ -524,6 +553,14 @@
     background: rgba(255, 215, 0, 0.035);
 }
 
+.guild-reset-section__toggle {
+    display: none;
+}
+
+.guild-reset-section__content {
+    display: block;
+}
+
 .guild-reset-section__heading {
     margin: 0 0 8px;
     color: #ffe08a;
@@ -603,12 +640,80 @@
 
 @media (max-width: 640px) {
     .facility-panel {
-        padding: 12px;
+        padding: 11px;
         border-radius: 13px;
     }
 
-    .facility-overview {
+    /* The town HUD can exceed its 142px default reserve; add only the measured-gap budget plus 12px breathing room. */
+    .facility-panel--guild,
+    .facility-panel--kitchen,
+    .facility-panel--workshop {
+        padding-bottom: calc(11px + max(12px, calc(226px - var(--mobile-hud-reserve, 142px))));
+    }
+
+    .facility-hero {
+        gap: 6px;
+        padding: 0 0 10px;
+    }
+
+    .facility-hero-heading {
+        gap: 8px;
+    }
+
+    .facility-hero-icon {
+        flex-basis: 36px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        font-size: 19px;
+    }
+
+    .facility-eyebrow {
+        display: none;
+    }
+
+    .facility-title {
+        font-size: 16px;
+    }
+
+    .facility-description {
+        padding-left: 44px;
+        font-size: 11px;
+        line-height: 1.45;
+    }
+
+    .facility-overview[data-metric-count="4"] {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: repeat(2, minmax(52px, auto));
+        gap: 6px;
+        margin: 10px 0;
+    }
+
+    .facility-metric {
+        display: grid;
+        align-content: center;
+        gap: 3px;
+        min-height: 52px;
+        padding: 7px 8px;
+    }
+
+    .facility-metric-label,
+    .facility-metric-value {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .facility-metric-label {
+        font-size: 9px;
+        line-height: 1.25;
+    }
+
+    .facility-metric-value {
+        margin-top: 0;
+        font-size: 12px;
+        line-height: 1.3;
     }
 
     .facility-section-heading {
@@ -621,7 +726,135 @@
     }
 
     .facility-filter-bar {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .facility-filter-bar .select-game {
+        min-width: 0;
+        min-height: 44px;
+        padding-inline: 7px;
+        font-size: 10px;
+    }
+
+    .facility-warehouse-disclosure__toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 1px solid rgba(var(--facility-accent-rgb), 0.34);
+        border-radius: 8px;
+        background: rgba(var(--facility-accent-rgb), 0.08);
+        color: #dce7f6;
+        font: inherit;
+        font-size: 11px;
+        font-weight: 800;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .facility-warehouse-disclosure__toggle::after {
+        content: "+";
+        color: var(--facility-accent);
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .facility-warehouse-disclosure:not(.is-collapsed) .facility-warehouse-disclosure__toggle::after {
+        content: "−";
+    }
+
+    .facility-warehouse-disclosure.is-collapsed .facility-warehouse-disclosure__content {
+        display: none;
+    }
+
+    .facility-stock-summary--compact {
+        display: grid;
+        gap: 5px;
+        padding-bottom: 7px;
+    }
+
+    .facility-stock-summary__categories {
+        justify-content: flex-start;
+        gap: 5px 10px;
+        color: #9eacbf;
+        font-size: 10px;
+    }
+
+    .warehouse-filter-row {
+        flex-wrap: nowrap;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0 1px 3px;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+
+    .warehouse-filter-row::-webkit-scrollbar {
+        display: none;
+    }
+
+    .warehouse-filter-button {
+        flex: 0 0 auto;
+        min-height: 44px !important;
+    }
+
+    .facility-focus-nav {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        min-width: 0;
+        margin: 1px 0 0;
+    }
+
+    .facility-focus-nav[hidden] {
+        display: none;
+    }
+
+    .facility-focus-nav__button {
+        min-width: 0;
+        min-height: 44px;
+        padding: 7px 9px;
+        border: 1px solid rgba(var(--facility-accent-rgb), 0.32);
+        border-radius: 8px;
+        background: rgba(var(--facility-accent-rgb), 0.08);
+        color: #dce7f6;
+        font: inherit;
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .facility-focus-nav__button--previous {
+        justify-self: start;
+    }
+
+    .facility-focus-nav__button--next {
+        justify-self: end;
+    }
+
+    .facility-focus-nav__button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+    }
+
+    .facility-focus-nav__position {
+        color: var(--facility-accent);
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .recipe-card:not(.is-focus-card),
+    .workshop-blueprint-card:not(.is-focus-card) {
+        display: none;
     }
 
     .recipe-card,
@@ -635,8 +868,109 @@
         width: 100%;
     }
 
+    .recipe-card > .facility-action-button,
+    .workshop-blueprint-card__actions > .btn-game {
+        min-height: 44px !important;
+    }
+
     .facility-detail-hint {
         width: 100%;
+    }
+
+    .guild-skill-card {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        min-height: 56px;
+        padding: 8px;
+    }
+
+    .guild-skill-card > div:first-child {
+        min-width: 0;
+    }
+
+    .guild-skill-card .guild-skill-card__name {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    .guild-skill-card .facility-compact-meta {
+        gap: 4px;
+        margin-top: 4px;
+    }
+
+    .guild-skill-card .guild-skill-card__type,
+    .guild-skill-card .facility-status-chip {
+        font-size: 9px;
+    }
+
+    .guild-skill-card .facility-detail-hint {
+        width: auto;
+        white-space: nowrap;
+    }
+
+    .guild-skill-card > .facility-action-button {
+        width: auto;
+        min-width: 60px;
+        min-height: 44px !important;
+        padding: 7px 8px;
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    .guild-skill-upgrade-cost {
+        display: none;
+    }
+
+    .guild-reset-section {
+        padding: 9px;
+    }
+
+    .guild-reset-section__toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 215, 0, 0.28);
+        border-radius: 8px;
+        background: rgba(255, 215, 0, 0.06);
+        color: #ffe08a;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .guild-reset-section__toggle::after {
+        content: "+";
+        color: #ffd700;
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .guild-reset-section:not(.is-collapsed) .guild-reset-section__toggle::after {
+        content: "−";
+    }
+
+    .guild-reset-section.is-collapsed .guild-reset-section__content {
+        display: none;
+    }
+
+    .guild-reset-section__content {
+        margin-top: 8px;
+    }
+
+    .guild-reset-section__actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .guild-reset-section__actions > .btn-game {
+        min-height: 44px !important;
+        white-space: normal;
     }
 
     .guild-advancement-banner {
@@ -657,5 +991,271 @@
     .guild-skill-card,
     .workshop-blueprint-card {
         transition: none;
+    }
+}
+
+.square-facility-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.square-mobile-tabs {
+    display: none;
+}
+
+.square-tab-panel {
+    display: block;
+}
+
+.square-market-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+    padding: 14px;
+    border: 1px solid rgba(230, 126, 34, 0.4);
+    border-radius: 12px;
+    background: radial-gradient(circle at 0% 0%, rgba(230, 126, 34, 0.2) 0%, rgba(20, 15, 10, 0.95) 100%);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.square-market-copy {
+    min-width: 0;
+}
+
+.square-market-title {
+    color: #e67e22;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.square-market-description {
+    margin-top: 3px;
+    color: #aaa;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.square-market-open {
+    flex: 0 0 auto;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #e67e22, #d35400) !important;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.square-chat-card {
+    padding: 12px;
+    border: 1px solid rgba(41, 128, 185, 0.3);
+    border-radius: 12px;
+    background: rgba(10, 15, 25, 0.85);
+}
+
+.square-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 8px;
+}
+
+.square-chat-title {
+    color: #3498db;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.square-online-badge {
+    padding: 2px 8px;
+    border: 1px solid rgba(0, 255, 204, 0.3);
+    border-radius: 12px;
+    background: rgba(0, 255, 204, 0.1);
+    color: #00ffcc;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.square-chat-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 130px;
+    margin-bottom: 8px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    font-size: 11px;
+    overscroll-behavior-y: contain;
+}
+
+.square-chat-compose {
+    display: flex;
+    gap: 6px;
+}
+
+.square-chat-input {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    border: 1px solid rgba(52, 152, 219, 0.4);
+    border-radius: 6px;
+    outline: none;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 11px;
+}
+
+.square-chat-send {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    font-size: 11px;
+}
+
+.gate-mobile-context {
+    display: none;
+}
+
+.gate-departure-copy--mobile {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .square-facility-stack {
+        gap: 10px;
+        padding-bottom: calc(11px + max(12px, calc(226px - var(--mobile-hud-reserve, 142px))));
+    }
+
+    .square-mobile-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .square-mobile-tabs [role="tab"] {
+        min-width: 0;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 1px solid rgba(52, 152, 219, 0.38);
+        border-radius: 8px;
+        background: rgba(10, 20, 32, 0.92);
+        color: #cfeaff;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .square-mobile-tabs [role="tab"].is-active {
+        border-color: rgba(91, 195, 255, 0.85);
+        background: linear-gradient(135deg, rgba(29, 76, 108, 0.96), rgba(17, 39, 58, 0.98));
+        color: #fff;
+        box-shadow: inset 0 0 0 1px rgba(91, 195, 255, 0.2);
+    }
+
+    .square-mobile-tabs [role="tab"]:focus-visible {
+        outline: 2px solid #70d3ff;
+        outline-offset: 2px;
+    }
+
+    #v-loc-square .square-tab-panel:not(.is-active) {
+        display: none !important;
+    }
+
+    #v-loc-square .square-market-entry {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 12px;
+    }
+
+    #v-loc-square .square-market-title {
+        font-size: 13px;
+    }
+
+    #v-loc-square .square-market-open,
+    #v-loc-square .square-chat-send {
+        min-height: 44px !important;
+    }
+
+    #v-loc-square .square-market-open {
+        width: 100%;
+    }
+
+    #v-loc-square .square-chat-card {
+        padding: 10px;
+    }
+
+    #v-loc-square .square-chat-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    #v-loc-square .square-chat-box {
+        height: clamp(120px, 24dvh, 200px);
+        min-height: 120px;
+        max-height: 200px;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        touch-action: pan-y;
+    }
+
+    #v-loc-square .square-chat-compose {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 68px;
+        gap: 8px;
+    }
+
+    #v-loc-square .square-chat-input {
+        min-height: 44px;
+        padding: 8px 10px;
+        font-size: 16px !important;
+    }
+
+    #v-loc-square .square-chat-send {
+        padding: 8px 10px;
+    }
+
+    .gate-mobile-context {
+        display: grid;
+        gap: 5px;
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid rgba(85, 195, 255, 0.28);
+        border-radius: 8px;
+        background: rgba(8, 25, 38, 0.72);
+        color: #b8d6e7;
+        font-size: 11px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    #gate-current-floor {
+        color: #6fd3ff;
+        font-weight: 800;
+    }
+
+    .gate-departure-copy--desktop {
+        display: none;
+    }
+
+    .gate-departure-copy--mobile {
+        display: inline;
+        line-height: 1.6;
+    }
+}
+
+@media (min-width: 641px) {
+    .square-mobile-tabs {
+        display: none !important;
+    }
+
+    #v-loc-square .square-tab-panel {
+        display: block !important;
     }
 }

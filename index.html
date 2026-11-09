@@ -260,7 +260,11 @@
                 <div id="v-loc-gate" class="v-sub-loc-panel">
                     <div class="placeholder-card gate-theme-card">
                         <h3 class="text-cyan-title">🌀 深淵傳送大門</h3>
-                        <p class="text-muted-desc">準備就緒後，點擊左側【🔮 進入地下城】即可直接降臨深淵探險！</p>
+                        <div class="gate-mobile-context" aria-live="polite">
+                            <span id="gate-current-floor">🎯 目標樓層：B1F</span>
+                            <span id="gate-environment-status">✨ 當前環境力場穩定</span>
+                        </div>
+                        <p class="text-muted-desc gate-departure-copy"><span class="gate-departure-copy--desktop">準備就緒後，點擊左側【🔮 進入地下城】即可直接降臨深淵探險！</span><span class="gate-departure-copy--mobile">準備就緒後，使用畫面底部「進入地下城」按鈕出發；按鈕會標示目前目標樓層。</span></p>
                     </div>
                 </div>
 
