@@ -94,3 +94,14 @@
 - Chromium 在 360×844、393×844、430×844 逐一 sweep 八類主要畫面，檢查重要按鈕／輸入／分頁至少 44px、固定 HUD 底邊定位與展開技能抽屜可視範圍、路線／事件互動不重複結算、聊天草稿切換保留、大殿出發按鈕可達，以及頁面水平溢出；1280×900 桌面版恢復與原有互動回歸通過。
 - 修正 `.route-choice-details > summary`、`.abyss-event-details > summary`、奇遇選項按鈕及 `#btn-main-action` 的手機觸控高度；後兩者以高優先權覆寫避免 legacy 34／37px 規則壓低實際計算尺寸。所有修改僅在 ≤640px 生效。
 - Chromium 截圖位於 `/tmp/abyss-mobile-dungeon-qa/`，檔名格式 `stage7-{360|393|430}-{route|event|battle|guild|kitchen|workshop|square|gate}.png`（QA 用，不納入遊戲版本控制）。
+
+## 第八階段：線上 GitHub Pages 黑箱驗收（已完成）
+
+- [x] 核對 GitHub Pages 部署與資源載入；測試版本為 `4ce308d91077db2e2060ee9576fcd835cccda9cb`，Render health endpoint 回應正常，Socket.IO 曾連線成功。
+- [x] 使用專用 QA 角色驗證登入、黑市單次購買、手動技能面板與 B1F→B2F 樓層切換；操作範圍未包含出售物品、角色重置或分配能力點。
+- [x] 驗證 B2F PixelFX 遭遇過場（smoke、speed 0.5）、魔物揭露與手動回合；進一步施放狂擊 Lv.1，實測造成 109 傷害擊敗 75 HP 精英，扣除 15 MP，獲得 +32 G、+28 EXP 與 2 個史萊姆黏液，勝利結算正常。
+- [x] 續測由 B2F 勝利畫面推進至 B3F，選擇一般戰鬥「遺失寶庫」並以狂擊 Lv.1 造成 97 傷害擊敗 91 HP 荒野半獸人；HP 維持 308、MP 44→29，獲得 +19 G、+18 EXP 與獸人後腿肉。停在 B3F 勝利結算，未按 B4F。Stage 8 逐項測試、前後數值及截圖見 `/tmp/stage8-blackbox-evidence.md`。
+- [ ] 未獨立確認跨來源資料庫的每筆 save ACK；為避免重載 QA 角色狀態，沒有以重新整理測試。真實聊天送出與黑市出售亦未測。這些屬明列的範圍限制，不宣稱已驗收。
+- [x] 手機 360／393／430px 版面與觸控目標由先前本地 Chromium 回歸覆蓋；線上黑箱瀏覽器僅能使用 1280×1100 viewport。
+
+註：本次僅追加 QA 紀錄，沒有修改遊戲程式碼、建立 commit 或推送。
